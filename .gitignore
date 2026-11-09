@@ -1,0 +1,18 @@
+/target/
+/artifacts/
+/data/
+/reports/
+/.reference/
+.env
+.env.*
+!.env.example
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+# Large or executable model/data formats belong in the artifact cache, not Git.
+*.pt
+*.pth
+*.pickle
+*.pkl
+*.safetensors

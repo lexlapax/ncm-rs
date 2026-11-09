@@ -1,0 +1,86 @@
+name: Upstream NCM watch
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Compare metadata with pinned reference (no upstream code execution)
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import tomllib
+          import urllib.request
+          from pathlib import Path
+
+          ref = tomllib.loads(Path("upstream.toml").read_text())["reference"]
+
+          def get_json(url, github=False):
+              headers = {"User-Agent": "ncm-rs-upstream-watch"}
+              if github:
+                  headers["Authorization"] = "Bearer " + os.environ["GH_TOKEN"]
+                  headers["Accept"] = "application/vnd.github+json"
+              request = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(request, timeout=60) as response:
+                  return json.load(response)
+
+          repo = ref["repository"]
+          branch = ref["branch"]
+          weights = ref["checkpoint_repository"]
+          code = get_json(f"https://api.github.com/repos/{repo}/commits/{branch}", True)["sha"]
+          checkpoint = get_json(f"https://huggingface.co/api/models/{weights}")["sha"]
+          for sha in (code, checkpoint, ref["commit"], ref["checkpoint_revision"]):
+              if not re.fullmatch(r"[0-9a-f]{40}", sha):
+                  raise ValueError("Unexpected revision format")
+          changed = code != ref["commit"] or checkpoint != ref["checkpoint_revision"]
+          report = (
+              "## Upstream revision check\n\n"
+              f"Pin status: `{ref['status']}` (not inferred from this check).\n\n"
+              "| Source | Pinned | Observed |\n| --- | --- | --- |\n"
+              f"| Python NCM | `{ref['commit']}` | `{code}` |\n"
+              f"| Checkpoints | `{ref['checkpoint_revision']}` | `{checkpoint}` |\n\n"
+              f"Changes detected: **{changed}**.\n\n"
+              f"[Code diff](https://github.com/{repo}/compare/{ref['commit']}...{code}) · "
+              f"[Checkpoint tree](https://huggingface.co/{weights}/tree/{checkpoint})\n\n"
+              "Follow docs/UPSTREAM.md: review changes, regenerate candidate fixtures, "
+              "qualify both runtimes, and publish quality/performance comparisons "
+              "before advancing pins. This metadata check establishes no model parity.\n"
+          )
+          Path("/tmp/ncm-upstream-watch.md").write_text(report)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as output:
+              output.write(report)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"changed={str(changed).lower()}\n")
+          PY
+      - name: Open or refresh the review issue
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          title="Upstream NCM changes awaiting review"
+          issue=$(gh issue list --state open --search "$title in:title" --json number,title \
+            --jq '.[] | select(.title == "Upstream NCM changes awaiting review") | .number' | head -n 1)
+          if [ -n "$issue" ]; then
+            gh issue edit "$issue" --body-file /tmp/ncm-upstream-watch.md
+          else
+            gh issue create --title "$title" --body-file /tmp/ncm-upstream-watch.md
+          fi

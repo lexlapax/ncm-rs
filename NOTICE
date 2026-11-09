@@ -1,0 +1,15 @@
+ncm-rs is an independent planned Rust port of Next-Concept Modeling (NCM).
+
+Upstream: https://github.com/HazyResearch/ncm
+Research reference: c70274273f489abc73832b2b98584a8483b6b203
+Paper: https://arxiv.org/abs/2610.14162
+
+Upstream code is MIT licensed:
+Copyright (c) 2025 hermann kumbong
+The complete upstream license is retained in licenses/NCM-MIT.txt for future
+translated/derived implementations. Required upstream notices must be preserved.
+
+This initial scaffold does not include upstream model code, weights or datasets.
+Model, tokenizer and dataset licensing must be checked separately before
+redistributing artifacts. Referencing MLX, CUDA or Candle does not imply they
+are already integrated, validated, or covered by this project's MIT license.
