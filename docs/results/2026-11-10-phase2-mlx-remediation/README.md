@@ -1,4 +1,8 @@
-# Phase 2 Apple remediation — qualified gains, acceptance still open
+# Phase 2 Apple remediation — initial qualified measurements
+
+**Update:** [Final dual-platform acceptance](../2026-11-10-phase2-acceptance/README.md)
+now closes the remaining controls/lifecycle work. The initial pending decision and
+all measurements below are retained as historical evidence, not rewritten.
 
 Candidate **`083c1e5`**, M1 Ultra / native MLX 0.32.2. Linux validation preceded
 every shared change. **Do not close Phase 2 or advance to Phase 3 yet.**

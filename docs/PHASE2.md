@@ -1,9 +1,11 @@
 # Phase 2 contract and acceptance tracker
 
-Status: **reopened at user request for performance research and remediation**.
-The original Linux/CUDA and Apple/MLX correctness/measurement baselines are
-published; their negative performance findings now block advancement to Phase 3.
-See [the extension plan](PHASE2-PERFORMANCE.md) for ordered work and new gates.
+Status: **complete, including the user-requested performance-remediation extension**.
+[Final acceptance](results/2026-11-10-phase2-acceptance/README.md) records 78 passing
+performance/memory comparisons on each platform, unchanged trained parity, final
+checks and reproducible evidence. Linux/CUDA preceded Apple/MLX. Phase 3 remains
+unstarted and outside this task. See [the extension contract](PHASE2-PERFORMANCE.md)
+for the ordered work and unchanged gates; original negative baselines are retained.
 Phase 1 evidence remains unchanged; this document declares Phase 2 criteria before
 Rust codec implementation. The confirmed scope includes Sudoku codec execution
 and TinyStories/GPT-2/Qwen/BERT tokenizer asset conversion/parity, not their full
@@ -163,15 +165,17 @@ of the newly requested performance-remediation gate.
 - [x] Complete source/documentation/upstream research and causal profiling on Linux.
 - [x] Fix Linux codec/loading/tokenizer deficits; retain unchanged correctness and
   publish candidate versus previous Rust versus Python performance/memory evidence.
-- [ ] After Linux acceptance, research and fix Apple load time/host-memory
+- [x] After Linux acceptance, research and fix Apple load time/host-memory
   amplification and tokenizer deficits; preserve execution performance and parity.
-- [ ] Accept both extended gates and publish final evidence and updated status.
+- [x] Accept both extended gates and publish final evidence and updated status.
 
 The [CUDA remediation milestone](results/2026-11-10-phase2-cuda-remediation/README.md)
 qualifies vectorized/fused/view/pool changes and publishes three-way measurements.
 [Extended Linux acceptance](results/2026-11-10-phase2-linux-acceptance/README.md)
-now passes, including uncertainty controls, lifecycle evidence and a whole-matrix
-audit. Apple remediation is next; Phase 2 as a whole is not yet accepted.
+passed before Apple remediation; every subsequent shared loading/tokenizer change
+returned through Linux validation. [Final dual-platform acceptance](results/2026-11-10-phase2-acceptance/README.md)
+now passes, including fixed process-level uncertainty controls, lifecycle evidence,
+all trained traces and whole-matrix audits. Phase 2 is accepted within its stated scope.
 
 The [extension plan](PHASE2-PERFORMANCE.md) defines predeclared non-inferiority bands,
 source-cited research deliverables and blocking/exception rules. Historical

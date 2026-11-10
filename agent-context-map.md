@@ -5,23 +5,19 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 ## Current state and user decisions
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
-- **Phase 2 reopened at user request: research, investigate and fix native
-  performance/memory deficits before Phase 3.** User authorized committing/pushing
-  the extension and implementing it, including research and quick PoCs; ask about
-  blockers or consequential choices. The original correctness and
-  measurement baseline (`7a74fb3`, closure `5dc9626`) remains historical evidence:
-  CUDA reconstruction is roughly 4–5× slower than eager Torch; Apple checked load
-  is about 3.25× slower and host HWM 3.40–4.42 GiB versus 0.287–0.288 GiB Python.
-  See `docs/PHASE2-PERFORMANCE.md` for research, measurement audit, ordered fixes,
-  proposed acceptance bands and blocking rules. Explanation alone is not closure.
-  Approved plan pushed as `7507d13`. Initial measurement-repair/research milestone
-  is described in `docs/results/2026-11-10-phase2-performance-research/README.md`.
-  Latest: qualified production CUDA remediation and three-way results in
-  `docs/results/2026-11-10-phase2-cuda-remediation/README.md`; codec deficits are
-  removed in measured cells. The extended Linux gate now passes:
-  `docs/results/2026-11-10-phase2-linux-acceptance/README.md`.
-  No persistent goal was created or old completed goal rewritten by this request.
-  Large-archive publication remains pending; no efficiency/inference-release claim.
+- **Phase 2 is complete, including user-requested performance remediation.**
+  Final production candidate `083c1e5`; final evidence/acceptance:
+  `docs/results/2026-11-10-phase2-acceptance/README.md`. Both platforms pass all
+  78 comparisons against previous Rust and qualified Python under unchanged
+  limits. Final fresh CUDA, then Metal captures pass 642 traces/2,500 decisions
+  each, zero ID disagreements; full real-device checks and tokenizer probes pass.
+  CUDA codec latency and Apple checked-load/host-memory deficits are remediated.
+  Original/intermediate failures remain historical evidence, not overwritten.
+  User authorized implementation, research and commit/push for this extension.
+  Phase 3 is not started and needs the next work authorization; no generator/CLI
+  work was done. No persistent goal was created or old goal metadata rewritten.
+  Large licensed release archives remain separately pending authorization; this
+  is a scoped codec/tokenizer result, not full-model inference or a release.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -65,7 +61,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 
 | Need | Load |
 | --- | --- |
-| Phase 2 contract / acceptance / remediation | [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md), [research and performance extension](docs/PHASE2-PERFORMANCE.md), [initial research/PoC](docs/results/2026-11-10-phase2-performance-research/README.md) |
+| Phase 2 contract / acceptance / remediation | [final dual-platform acceptance](docs/results/2026-11-10-phase2-acceptance/README.md), [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md), [research and performance extension](docs/PHASE2-PERFORMANCE.md), [initial research/PoC](docs/results/2026-11-10-phase2-performance-research/README.md) |
 | Shared runtime and model | [core](crates/ncm-core/src/lib.rs), [config](crates/ncm-core/src/config.rs), [model](crates/ncm-model/src/lib.rs), [blocks](crates/ncm-model/src/blocks.rs), [codec](crates/ncm-model/src/codec.rs) |
 | CUDA adapter / known native fixes | [adapter](crates/ncm-backend-cuda/src/codec.rs), [vectorized resampling](crates/ncm-backend-cuda/src/resample.rs), [pool policy](crates/ncm-backend-cuda/src/runtime.rs), [operators](crates/ncm-backend-cuda/src/ops.rs), [remediation](docs/results/2026-11-10-phase2-cuda-remediation/README.md) |
 | Phase 2 oracle and complete CUDA results | [oracle audit](docs/results/2026-11-10-phase2-oracle/README.md), [codec report](docs/results/2026-11-10-phase2-codec/README.md) |
@@ -332,7 +328,21 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   latest Linux gate still passes 78 comparisons under the stronger audit. A clean
   staged checkout without ignored artifacts exactly reproduces Linux acceptance
   and both Apple summaries; all 24 report-tool tests pass.
-- **Next: restore access, retrieve lifecycle/check logs, collect fixed 30-triplet
-  GPT-2/Qwen controls, complete Apple audit and committed-only reproduction.**
-  No further production optimization is currently justified by point estimates.
-  Phase 3 stays blocked; preserve historical worktrees, goldens and `.pi/`.
+- Final follow-up: SSH restored; availability rechecked and a process-local
+  persistent connection used (no global SSH edits). Mac main pulled `42caaec`.
+  Retrieved/validated lifecycle and final logs. Fixed 30-triplet GPT-2/Qwen controls
+  resolve all three uncertain cells: all 78 Apple comparisons pass. Linux also
+  passes 78 under the final audit. All negative rounds remain archived.
+- Final `tools/check.sh --cuda`, then `--mlx`, pass; fresh native trained traces
+  captured CUDA first then Metal both pass 642/2,500 unchanged. Cleared-environment
+  tokenizer probes pass on both. Evidence/configs/logs are in the final report.
+  Apple lifecycle medians: old/new/Python full process 1050.72/287.30/468.01 ms;
+  startup 39.84/39.68/106.10 ms. Not disk-cold or steady-state timing. Clean staged
+  checkout exactly reproduces both 78-cell audits and all four matrix summaries;
+  all 24 report tests and evidence hashes pass. Control binaries match matrices.
+  All 21 offline reference-tool tests and the final default publication check pass.
+  Plan, tracker, extension contract, root README, testing/architecture status and
+  results index now consistently record completion without a generator/release claim.
+- **Next: await the next task; Phase 3 is unstarted, not blocked by Phase 2.**
+  Preserve historical worktrees, goldens and `.pi/`. No service, unrelated process,
+  clock/power policy or global tooling was changed for the final measurements.

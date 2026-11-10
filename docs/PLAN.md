@@ -1,10 +1,10 @@
 # Phased port and validation plan
 
-The user approved implementation on 2026-11-09. Phases 0 and 1 are complete.
-**Phase 2 is reopened for performance research and remediation at the user's
-request. Phase 3 is blocked.** Its original correctness/measurement baselines were
-published in Linux-then-Apple order, but merely documenting slower native execution
-or excessive memory no longer satisfies the extended acceptance gate. **Within
+The user approved implementation on 2026-11-09. **Phases 0, 1 and 2 are complete**,
+including the user-requested Phase 2 performance-remediation extension. Both
+platforms pass unchanged correctness and all 78 performance/memory comparisons;
+see [final acceptance](results/2026-11-10-phase2-acceptance/README.md). Phase 3 is
+not started and was outside this task. **Within
 every phase, implement and validate Linux/CUDA first, then macOS/MLX.** Complete
 both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
@@ -56,19 +56,19 @@ match; tiny operator fixtures execute on CPU, CUDA and MLX. Publish capability a
 baseline report, including unsupported operations. MLX needs Apple hardware access;
 a Linux-only result does not pass this gate. No broad framework written in advance.
 
-## Phase 2 — shared primitives, codec and performance remediation (reopened)
+## Phase 2 — shared primitives, codec and performance remediation (complete)
 
 The [Phase 2 contract](PHASE2.md) fixes the initial model scope, tensor inventory,
 new numerical budgets and fixture semantics. Tiny CPU and trained CUDA reference
 captures, passing Rust CUDA/MLX codec trace comparisons and pinned tokenizer parity
 are published. The [Linux quality/performance/memory gate](results/2026-11-10-phase2-linux/README.md)
 and [Apple quality/performance/memory gate](results/2026-11-10-phase2-mlx/README.md)
-established the original measured baseline. Linux native codec latency is roughly
-4–5× slower than eager Torch; Apple checked loading is about 3.25× slower with
-roughly 12–15× higher process host HWM than its independently qualified adapted
-Python MLX baseline. These deficits now require investigation **and remediation**,
-not merely disclosure. Historical reports remain valid but do not close this
-extension; see the [detailed research and remediation plan](PHASE2-PERFORMANCE.md).
+established the original measured baseline. Historical Linux codec latency was
+roughly 4–5× slower than eager Torch; Apple checked loading was about 3.25× slower
+with roughly 12–15× higher host HWM than its qualified adapted Python baseline.
+The [completed research/remediation extension](PHASE2-PERFORMANCE.md) fixes those
+deficits while preserving parity and existing advantages. Historical failures
+remain valid evidence; final acceptance is recorded separately.
 
 Implement validated configs, backend operations and deterministic fixture harness.
 Port norms, split-half RoPE, bidirectional/prefix attention, GELU blocks,
@@ -85,8 +85,10 @@ kernels, reduced precision and generator/prefix caching remain out of scope.
 [CUDA remediation evidence](results/2026-11-10-phase2-cuda-remediation/README.md)
 now includes qualified production changes and three-way measurements: all codec
 latency cells meet the predeclared Python bands. [Extended Linux acceptance](results/2026-11-10-phase2-linux-acceptance/README.md)
-now passes uncertainty/audit/startup follow-ups. Apple remediation is next;
-Phase 3 remains blocked.
+passed uncertainty/audit/startup follow-ups before Apple work. Shared bounded
+loading and compact tokenizer structures were revalidated Linux-first. The
+[final dual-platform gate](results/2026-11-10-phase2-acceptance/README.md) now passes,
+including Apple memory/loading remediation, trained traces and controlled timing.
 
 ### Required extension, in order
 
@@ -119,7 +121,8 @@ material deficits block closure unless the user explicitly accepts an exception.
 
 ## Phase 3 — end-to-end Sudoku vertical slice
 
-**Not started; blocked on the extended Phase 2 performance/memory gates.**
+**Not started. Phase 2 prerequisites pass; implementation is outside the completed
+Phase 2 task and requires the next work authorization.**
 
 Implement shared generator, raw prefix path, learned level-zero queries, level
 embeddings/RoPE, untied heads, eager level loop, greedy selection and final codec

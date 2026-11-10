@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "scope": "Run trusted local lifecycle commands in fresh, counterbalanced processes.\n\nParent wall includes process creation/import/linker/context startup and process exit.\nChild load/execute/drop intervals are separate; this is NOT the steady-state matrix.\n",
+  "started_utc": "2026-11-10T21:16:57.760828+00:00",
+  "host": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+  "commands": [
+    {
+      "name": "previous",
+      "cwd": "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/phase2-mlx-lifecycle-baseline",
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/phase2-mlx-lifecycle-build/release/examples/mlx_codec_lifecycle",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified"
+      ],
+      "env": {
+        "PATH": "/usr/bin:/bin",
+        "TOKENIZERS_PARALLELISM": "false"
+      }
+    },
+    {
+      "name": "candidate",
+      "cwd": "/Users/lexlapax/projects/lexlapax/ncm-rs",
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/mlx_codec_lifecycle",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified"
+      ],
+      "env": {
+        "PATH": "/usr/bin:/bin",
+        "TOKENIZERS_PARALLELISM": "false"
+      }
+    },
+    {
+      "name": "python",
+      "cwd": "/Users/lexlapax/projects/lexlapax/ncm-rs",
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/mlx-venv/bin/python",
+        "tools/reference/mlx_codec_lifecycle.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-codec/python-mlx-v1"
+      ],
+      "env": {
+        "PATH": "/usr/bin:/bin",
+        "TOKENIZERS_PARALLELISM": "false"
+      }
+    }
+  ],
+  "source_sha256": "77aa8a0c66af4709edab33295a185f27562c4c96a1eafc5ed503469960c18d81",
+  "binary_sha256": {
+    "previous": "996dec8bd0314bc68f70bd7e9fe435e6c144754be268ddafe26ab695f3548c7d",
+    "candidate": "53fe0c4eb15b0b5c89bb738c9c8647b1d5ddfd48b0e44bfb973565c7b7fee332",
+    "python": "26b5194d2beb09e648b4676ddc18a1384f182a7ed84f3db73106096aba6febf4"
+  },
+  "runs": [
+    {
+      "runtime": "previous",
+      "repeat": 1,
+      "phases": [
+        {
+          "internal_ms": 53.84675,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 337.05195800030197
+        },
+        {
+          "internal_ms": 946.5745420000001,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 1283.6235830000078
+        },
+        {
+          "internal_ms": 131.039208,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 1414.65537500153
+        },
+        {
+          "internal_ms": 0.022583,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 1414.6678329998394
+        }
+      ],
+      "startup_wall_ms": 337.05195800030197,
+      "post_drop_exit_ms": 6.7402500008029165,
+      "total_process_ms": 1421.4080830006424,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "repeat": 1,
+      "phases": [
+        {
+          "internal_ms": 57.280791,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 340.7213749997027
+        },
+        {
+          "internal_ms": 182.28312499999998,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 522.9908339988469
+        },
+        {
+          "internal_ms": 62.126915999999994,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 585.1343750000524
+        },
+        {
+          "internal_ms": 0.035290999999999996,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 585.1498749998427
+        }
+      ],
+      "startup_wall_ms": 340.7213749997027,
+      "post_drop_exit_ms": 6.771874999685679,
+      "total_process_ms": 591.9217499995284,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "python",
+      "repeat": 1,
+      "phases": [
+        {
+          "schema_version": 1,
+          "phase": "context",
+          "internal_ms": 9.806791998926201,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 109.80245899918373
+        },
+        {
+          "schema_version": 1,
+          "phase": "load",
+          "internal_ms": 277.15708399955474,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 386.97433400011505
+        },
+        {
+          "schema_version": 1,
+          "phase": "execute",
+          "internal_ms": 63.334124999528285,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "parent_elapsed_ms": 450.39058399925125
+        },
+        {
+          "schema_version": 1,
+          "phase": "drop",
+          "internal_ms": 0.05816599878016859,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 450.4005840008176
+        }
+      ],
+      "startup_wall_ms": 109.80245899918373,
+      "post_drop_exit_ms": 17.606415998670855,
+      "total_process_ms": 468.00699999948847,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "repeat": 2,
+      "phases": [
+        {
+          "internal_ms": 30.57875,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 39.50812500079337
+        },
+        {
+          "internal_ms": 178.375125,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 217.86854200036032
+        },
+        {
+          "internal_ms": 52.048792000000006,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 269.9255420011468
+        },
+        {
+          "internal_ms": 0.035959,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 269.93504200072493
+        }
+      ],
+      "startup_wall_ms": 39.50812500079337,
+      "post_drop_exit_ms": 5.654832999425707,
+      "total_process_ms": 275.58987500015064,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "python",
+      "repeat": 2,
+      "phases": [
+        {
+          "schema_version": 1,
+          "phase": "context",
+          "internal_ms": 8.307207999678212,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 104.61400000167487
+        },
+        {
+          "schema_version": 1,
+          "phase": "load",
+          "internal_ms": 267.7840410015051,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 372.40175000079034
+        },
+        {
+          "schema_version": 1,
+          "phase": "execute",
+          "internal_ms": 63.43837500025984,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "parent_elapsed_ms": 435.92787500165286
+        },
+        {
+          "schema_version": 1,
+          "phase": "drop",
+          "internal_ms": 0.0686250004946487,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 435.96429100034584
+        }
+      ],
+      "startup_wall_ms": 104.61400000167487,
+      "post_drop_exit_ms": 17.781042000933667,
+      "total_process_ms": 453.7453330012795,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "previous",
+      "repeat": 2,
+      "phases": [
+        {
+          "internal_ms": 30.713375000000003,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 39.740541000355734
+        },
+        {
+          "internal_ms": 942.752042,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 982.494083000347
+        },
+        {
+          "internal_ms": 60.335917,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 1042.8197500004899
+        },
+        {
+          "internal_ms": 0.038917,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 1042.830041000343
+        }
+      ],
+      "startup_wall_ms": 39.740541000355734,
+      "post_drop_exit_ms": 6.74691700078256,
+      "total_process_ms": 1049.5769580011256,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "python",
+      "repeat": 3,
+      "phases": [
+        {
+          "schema_version": 1,
+          "phase": "context",
+          "internal_ms": 9.962333999283146,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 106.1011250003503
+        },
+        {
+          "schema_version": 1,
+          "phase": "load",
+          "internal_ms": 293.179667000004,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 399.2847920017084
+        },
+        {
+          "schema_version": 1,
+          "phase": "execute",
+          "internal_ms": 65.47862499974144,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "parent_elapsed_ms": 464.85637500154553
+        },
+        {
+          "schema_version": 1,
+          "phase": "drop",
+          "internal_ms": 0.06333300007099751,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 464.87166700171656
+        }
+      ],
+      "startup_wall_ms": 106.1011250003503,
+      "post_drop_exit_ms": 17.481540999142453,
+      "total_process_ms": 482.353208000859,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "previous",
+      "repeat": 3,
+      "phases": [
+        {
+          "internal_ms": 30.784375,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 39.83887499998673
+        },
+        {
+          "internal_ms": 942.326209,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 982.1677079999063
+        },
+        {
+          "internal_ms": 61.5205,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 1043.6745829993015
+        },
+        {
+          "internal_ms": 0.040375,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 1043.6845830008679
+        }
+      ],
+      "startup_wall_ms": 39.83887499998673,
+      "post_drop_exit_ms": 7.034041998849716,
+      "total_process_ms": 1050.7186249997176,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "repeat": 3,
+      "phases": [
+        {
+          "internal_ms": 30.811792,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 39.682541999354726
+        },
+        {
+          "internal_ms": 178.705,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 218.38520799974503
+        },
+        {
+          "internal_ms": 61.932416999999994,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 280.3133750003326
+        },
+        {
+          "internal_ms": 0.023916,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 280.3336670003773
+        }
+      ],
+      "startup_wall_ms": 39.682541999354726,
+      "post_drop_exit_ms": 6.963124998947023,
+      "total_process_ms": 287.29679199932434,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    }
+  ],
+  "finished_utc": "2026-11-10T21:17:03.869950+00:00"
+}

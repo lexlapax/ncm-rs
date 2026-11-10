@@ -1,0 +1,40 @@
+[
+  {
+    "name": "previous",
+    "cwd": "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/phase2-mlx-lifecycle-baseline",
+    "argv": [
+      "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/phase2-mlx-lifecycle-build/release/examples/mlx_codec_lifecycle",
+      "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified"
+    ],
+    "env": {
+      "PATH": "/usr/bin:/bin",
+      "TOKENIZERS_PARALLELISM": "false"
+    }
+  },
+  {
+    "name": "candidate",
+    "cwd": "/Users/lexlapax/projects/lexlapax/ncm-rs",
+    "argv": [
+      "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/mlx_codec_lifecycle",
+      "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified"
+    ],
+    "env": {
+      "PATH": "/usr/bin:/bin",
+      "TOKENIZERS_PARALLELISM": "false"
+    }
+  },
+  {
+    "name": "python",
+    "cwd": "/Users/lexlapax/projects/lexlapax/ncm-rs",
+    "argv": [
+      "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/mlx-venv/bin/python",
+      "tools/reference/mlx_codec_lifecycle.py",
+      "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+      "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-codec/python-mlx-v1"
+    ],
+    "env": {
+      "PATH": "/usr/bin:/bin",
+      "TOKENIZERS_PARALLELISM": "false"
+    }
+  }
+]

@@ -9,16 +9,18 @@
 | [2026-11-10: Phase 2 codec oracle](2026-11-10-phase2-oracle/README.md) | 236 tiny / 642 trained codec traces; declared budgets | CUDA reference captured; Rust pending; CPU/CUDA diagnostic failure retained | Phase 2 not started | Reference only |
 | [2026-11-10: Phase 2 Apple runtime gate](2026-11-10-phase2-mlx/README.md) | 642-trace qualified adapted baseline; 30 matched fresh-process codec/tokenizer reports | Linux gate already passed | Measured; parity/output checks pass, high native host RSS retained | Not measured |
 
-**Phase 2 is reopened for performance research and remediation**; see the
-[extension plan](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).
+**Phase 2 is complete, including performance remediation**; see
+[final dual-platform acceptance](2026-11-10-phase2-acceptance/README.md), the
+[extension contract](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).
 [Production CUDA remediation](2026-11-10-phase2-cuda-remediation/README.md) now
 passes unchanged correctness and removes the codec latency deficit in three-way
 measurements. [Extended Linux acceptance](2026-11-10-phase2-linux-acceptance/README.md)
 now passes. [Shared loading](2026-11-10-phase2-shared-loading/README.md) and
 [compact tokenizer structures](2026-11-10-phase2-compact-tokenizers/README.md)
 retain Linux acceptance. [Apple remediation measurements](2026-11-10-phase2-mlx-remediation/README.md)
-remove measured loading/memory deficits and pass all trained traces; three execution
-uncertainty cells and lifecycle-report retrieval still block its final gate.
+remove measured loading/memory deficits and pass all trained traces. Fixed
+30-triplet controls and lifecycle evidence now close the final Apple gate:
+**78/78 comparisons pass on each platform**, with all negative rounds retained.
 The following are historical baseline acceptances, not acceptance of the new performance gate. Its reference contract and
 [checked shared-runtime construction](2026-11-10-phase2-runtime/README.md) and
 [Linux component parity](2026-11-10-phase2-primitives/README.md) exist.
@@ -27,7 +29,7 @@ CPU/CUDA and all 642 trained CUDA traces. [Pinned tokenizer assets](2026-11-10-p
 pass exact Linux parity. The [Linux Phase 2 runtime gate](2026-11-10-phase2-linux/README.md)
 and [Apple Phase 2 runtime gate](2026-11-10-phase2-mlx/README.md) established the
 original matched three-process codec/tokenizer latency, throughput and memory
-baseline. Their deficits now require remediation before Phase 3.
+baseline. Their deficits were remediated before closing Phase 2; Phase 3 is not started.
 The Apple codec/tokenizer [parity report](2026-11-10-phase2-mlx-codec/README.md)
 retains the initial long-dot failure and FP32 projection correction; the final
 Apple report retains high native host RSS and the adapted-baseline limitation.

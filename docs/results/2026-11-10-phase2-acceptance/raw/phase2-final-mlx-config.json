@@ -1,0 +1,11 @@
+{
+  "device": "metal",
+  "previous": "reports/phase2-performance-mlx-remediated-v1/previous",
+  "candidate": "reports/phase2-performance-mlx-remediated-v1/candidate",
+  "qualification": "reports/phase2-codec/mlx-phase2-final-qualification.json",
+  "lifecycle": "reports/phase2-mlx-lifecycle-v1.json",
+  "controls": {
+    "gpt2": "reports/phase2-performance-mlx-controls-v1",
+    "qwen3": "reports/phase2-performance-mlx-controls-v1"
+  }
+}

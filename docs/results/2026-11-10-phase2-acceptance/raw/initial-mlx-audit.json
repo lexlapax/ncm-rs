@@ -1,0 +1,726 @@
+{
+  "schema_version": 1,
+  "device": "metal",
+  "all_passed": false,
+  "quality_passed": true,
+  "limits": {
+    "median": 1.05,
+    "p95": 1.1,
+    "comparable_host_memory": 1.05
+  },
+  "input_sha256": {
+    "reports/phase2-performance-mlx-remediated-v1/previous/codec-rust-1.json": "e89831bc215e1071dd4e4d9f49668c5bceaeb97bfd26eae30d7d4f75d194a040",
+    "reports/phase2-performance-mlx-remediated-v1/previous/codec-rust-2.json": "11624600bead45bdb87b982d92fbc0387f0ee85985d17cab2bac01da53d6d233",
+    "reports/phase2-performance-mlx-remediated-v1/previous/codec-rust-3.json": "c764f5ca39b4674196ca5b714c696b4076d60d3d5d7a265aa9cf4b84a9f258f7",
+    "reports/phase2-performance-mlx-remediated-v1/previous/codec-python-1.json": "457e943ff5d7ddce514ec8fa6d2909e5134e2ae4dddeac36bcdfeffcaa07a5fe",
+    "reports/phase2-performance-mlx-remediated-v1/previous/codec-python-2.json": "afb4cea8035c5a99cb8b4788ce0c51dbc08c2147cf9580f3c6f04e1d8e772823",
+    "reports/phase2-performance-mlx-remediated-v1/previous/codec-python-3.json": "7f7ac9eb9e071df2339d065ac545e638458c9b8856605545446df3c6a66f0730",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-bert-rust-1.json": "f7c71cfd943563d6ea1c56abb67150a33c7fe73c7b50c9cb22ec45cd68a21247",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-bert-rust-2.json": "b50ca042ba4b449e07268ed16a8ff0a10259d4498117e0c0dfb3b2b220c6ca4c",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-bert-rust-3.json": "c3ca8bc74d7648d31d8f7786f41e8112bd97f8825c9b52a8cf8c21bff17ef29f",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-bert-python-1.json": "e9931000781048eebfc66cd5ad8c501af96ab39a0461efbec750071412e471db",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-bert-python-2.json": "fcb4145d93b73d8dc9b460fd87c68083534bf751e67c7a95fc9be8affb00e06e",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-bert-python-3.json": "5965d19f7757ca4e8206ddbdc09ea5fa1dacdc7e85d460487405ca13eb40a3fa",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-gpt2-rust-1.json": "55d1e119aa14893442f84f9a7bc1f700c73c697af390b5cfc151675ed55dab13",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-gpt2-rust-2.json": "e661730104dcad42b5a2e94fc74de278051914a8f274c4b65f0a39c2b2bae93a",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-gpt2-rust-3.json": "f0943a1f4c9210f82c20111bc4efc74c49b4bceedc5f8a276ab6ac7cfb7e81bb",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-gpt2-python-1.json": "3f54c32d409f7ee812e968873db98569dbe53b4d695197cde684ba51a8bc7a90",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-gpt2-python-2.json": "ba17b4e59d677877a320d72b0378bc32f89225ae082a774471124e0b9eb2140c",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-gpt2-python-3.json": "ed2d6a159165ce66dd1380d0a809344161ea26f1da317765e25de3119c221162",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-qwen3-rust-1.json": "4390517c3203902da55ede4c13958f446a50020169066003602095c958f7ff7c",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-qwen3-rust-2.json": "e704d80d372aabad444b7e5405887a3fe96fe956520ec332f148864760a1f072",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-qwen3-rust-3.json": "2781e61d08a99c854915f6ee9ed6894c59a06410c27a87c1fc59a10c87816a94",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-qwen3-python-1.json": "7de86ff680e540d47000d6628959caa7de69a04e152cd337fd540bda15aabdda",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-qwen3-python-2.json": "80fc747fe6d3727b8f5e2359e31eccfc157e20a90bdde866f7cae650b663085c",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-qwen3-python-3.json": "6b8c5af2604b565393f29e3ba2ccfa927b47c5a345db150b56662e5a1c17743e",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-tinystories-rust-1.json": "0ad5cfa12e962b7599e43430834fa027bcbe08b900b54fe3540e2b80bddf7ad0",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-tinystories-rust-2.json": "edef46dbd0e8a9d325524905a0e06db911b89f801473e6c2993266abb4e366b5",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-tinystories-rust-3.json": "10ddc3dd6efd7dade9bef8b8345abd1145de34206dfa19e48dd2c0f1c4e50b46",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-tinystories-python-1.json": "72f2630e3625b7d37e822f79e88cec68f1d4affb6d12d2a0ac7730df85cf933a",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-tinystories-python-2.json": "e95d838f8725a232958ee180b0548bf188db489319c0957ccb6ed413afaac56b",
+    "reports/phase2-performance-mlx-remediated-v1/previous/tokenizer-tinystories-python-3.json": "f6c501edcf6e7662cf9cfbce2c0f8e25650786d57956476b9cd967bec6de4843",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/codec-rust-1.json": "3958026f8cd79dc7d81fdd5e71b3dce7373cad8bcd62e029c034bbe2edb06b7b",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/codec-rust-2.json": "9e9f6529ddbbf152769aed6c396ca302471161ff69d2ff98ae835875a7c72830",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/codec-rust-3.json": "ceb350df1b61fafa02fb8ddf5164c764d2a9b48980119d4f44f6b9af130edec6",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/codec-python-1.json": "457e943ff5d7ddce514ec8fa6d2909e5134e2ae4dddeac36bcdfeffcaa07a5fe",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/codec-python-2.json": "afb4cea8035c5a99cb8b4788ce0c51dbc08c2147cf9580f3c6f04e1d8e772823",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/codec-python-3.json": "7f7ac9eb9e071df2339d065ac545e638458c9b8856605545446df3c6a66f0730",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-bert-rust-1.json": "64b6753efe25258858e1d8a68326dff2870429d0a73f2c4ca2f934164fad6831",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-bert-rust-2.json": "69381cae61e656cc21eb92eba875dc68e451ad10ff34a1ad8e74d54862e4a73d",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-bert-rust-3.json": "fcc9c6b39c15e753e032f298f287111ff5df3c5c060ecb6c4f22766dc2a8c6c9",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-bert-python-1.json": "e9931000781048eebfc66cd5ad8c501af96ab39a0461efbec750071412e471db",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-bert-python-2.json": "fcb4145d93b73d8dc9b460fd87c68083534bf751e67c7a95fc9be8affb00e06e",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-bert-python-3.json": "5965d19f7757ca4e8206ddbdc09ea5fa1dacdc7e85d460487405ca13eb40a3fa",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-gpt2-rust-1.json": "46f4bd342bebad387ea024cdb7ecd74f747efba762d784002f592c2db959efe8",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-gpt2-rust-2.json": "3dc811ae862adfad966e36998ed50daa3e7ccd3a61282841abd0698fb4d3f027",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-gpt2-rust-3.json": "4dd001b800afa2361e27bd48f994799f76fbeed0313ed347129288a47cd4124a",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-gpt2-python-1.json": "3f54c32d409f7ee812e968873db98569dbe53b4d695197cde684ba51a8bc7a90",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-gpt2-python-2.json": "ba17b4e59d677877a320d72b0378bc32f89225ae082a774471124e0b9eb2140c",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-gpt2-python-3.json": "ed2d6a159165ce66dd1380d0a809344161ea26f1da317765e25de3119c221162",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-qwen3-rust-1.json": "f3d4af6a773a806fb54a82b2364f5289660f9637508cf1bd814c8079a495f1d2",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-qwen3-rust-2.json": "f020082f000a97db699c365b0bd90450732ae405083b37766c14a3aa50cd47c2",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-qwen3-rust-3.json": "d6bf818a32e021a3529ddd10f12b0ac5b2c81b6e5331933e41ee53765aa9bdce",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-qwen3-python-1.json": "7de86ff680e540d47000d6628959caa7de69a04e152cd337fd540bda15aabdda",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-qwen3-python-2.json": "80fc747fe6d3727b8f5e2359e31eccfc157e20a90bdde866f7cae650b663085c",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-qwen3-python-3.json": "6b8c5af2604b565393f29e3ba2ccfa927b47c5a345db150b56662e5a1c17743e",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-tinystories-rust-1.json": "0b1deb7b4b22ee42fb7f9c98ed4233b7863b5c84c6b29eb1bb53449d2b0b8396",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-tinystories-rust-2.json": "aaed8097f83343c3d55116e78117572d9ac8a43f271eb68ccab80ec4bc731798",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-tinystories-rust-3.json": "bf703e34756694d658872e656ca535d1fea097292795b3b5d77795872dad3fcb",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-tinystories-python-1.json": "72f2630e3625b7d37e822f79e88cec68f1d4affb6d12d2a0ac7730df85cf933a",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-tinystories-python-2.json": "e95d838f8725a232958ee180b0548bf188db489319c0957ccb6ed413afaac56b",
+    "reports/phase2-performance-mlx-remediated-v1/candidate/tokenizer-tinystories-python-3.json": "f6c501edcf6e7662cf9cfbce2c0f8e25650786d57956476b9cd967bec6de4843",
+    "reports/phase2-codec/mlx-remediated-v3-qualification.json": "38650fd2d04e9c630db7795f183571b428efe9c845488961915b31acd9c0b66d",
+    "reports/phase2-mlx-lifecycle-v1.json": "1617d114bfebb1757b7c4a9d7d256177db73102365b3b56f85e1b662d6a25fb0"
+  },
+  "controls": {},
+  "cells": [
+    {
+      "cell": "codec/1/encode",
+      "comparator": "previous",
+      "median_ratio": 1.0036998776713641,
+      "p95_ratio": 1.0076212362749393,
+      "process_median_envelope_ratio": 1.0113858907247675,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/encode",
+      "comparator": "python",
+      "median_ratio": 0.8648267328447663,
+      "p95_ratio": 0.8610441037085091,
+      "process_median_envelope_ratio": 0.8746293136321277,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9985494526564858,
+      "p95_ratio": 0.9542466615709726,
+      "process_median_envelope_ratio": 1.0046148844534257,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/decode",
+      "comparator": "python",
+      "median_ratio": 0.8677685094851131,
+      "p95_ratio": 0.8900790123084005,
+      "process_median_envelope_ratio": 0.8734036980199887,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 1.0066519078853962,
+      "p95_ratio": 1.0116080604479596,
+      "process_median_envelope_ratio": 1.0217767576104533,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.8702877655120649,
+      "p95_ratio": 0.8699144229018614,
+      "process_median_envelope_ratio": 0.8878714790640301,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.9891955800876557,
+      "p95_ratio": 1.0436420100060402,
+      "process_median_envelope_ratio": 0.9989486685387032,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.9858547477799944,
+      "p95_ratio": 1.0317477708818747,
+      "process_median_envelope_ratio": 0.9981995840059231,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/encode",
+      "comparator": "previous",
+      "median_ratio": 0.9914012993281934,
+      "p95_ratio": 0.9078886071767129,
+      "process_median_envelope_ratio": 1.0110742557493064,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/encode",
+      "comparator": "python",
+      "median_ratio": 0.8697209559194052,
+      "p95_ratio": 0.8717816186095803,
+      "process_median_envelope_ratio": 0.8808551163977708,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/decode",
+      "comparator": "previous",
+      "median_ratio": 1.0038663070546998,
+      "p95_ratio": 1.0153148722474834,
+      "process_median_envelope_ratio": 1.011835427650662,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/decode",
+      "comparator": "python",
+      "median_ratio": 0.8824452840316036,
+      "p95_ratio": 0.896382225808664,
+      "process_median_envelope_ratio": 0.8876923037530194,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 1.000875066815082,
+      "p95_ratio": 0.997585277270549,
+      "process_median_envelope_ratio": 1.0166402298751107,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.8780620549902308,
+      "p95_ratio": 0.8818211240120445,
+      "process_median_envelope_ratio": 0.8936247444438667,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 1.0055147425301134,
+      "p95_ratio": 1.0424611117034828,
+      "process_median_envelope_ratio": 1.0356548486965211,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.9875198812439157,
+      "p95_ratio": 1.0252840695479386,
+      "process_median_envelope_ratio": 1.0072832711772313,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/encode",
+      "comparator": "previous",
+      "median_ratio": 1.0079221856918186,
+      "p95_ratio": 1.0086743227189665,
+      "process_median_envelope_ratio": 1.0194130211116494,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/encode",
+      "comparator": "python",
+      "median_ratio": 0.8848503854847403,
+      "p95_ratio": 0.883995746654074,
+      "process_median_envelope_ratio": 0.8944732248322755,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/decode",
+      "comparator": "previous",
+      "median_ratio": 1.0032857860814517,
+      "p95_ratio": 1.042018019855841,
+      "process_median_envelope_ratio": 1.014490529453929,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/decode",
+      "comparator": "python",
+      "median_ratio": 0.8851013549747261,
+      "p95_ratio": 0.8882357568001615,
+      "process_median_envelope_ratio": 0.8980395280065451,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 1.005477930123906,
+      "p95_ratio": 1.0076621485715231,
+      "process_median_envelope_ratio": 1.02305605809245,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.8886612275998661,
+      "p95_ratio": 0.89161253735688,
+      "process_median_envelope_ratio": 0.9085134445233427,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.9993658997151074,
+      "p95_ratio": 1.0025631213655974,
+      "process_median_envelope_ratio": 1.0047069096378065,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.985785862233482,
+      "p95_ratio": 0.9962711573996172,
+      "process_median_envelope_ratio": 0.9893264787717856,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/encode",
+      "comparator": "previous",
+      "median_ratio": 1.0001614854800875,
+      "p95_ratio": 0.9824348313556946,
+      "process_median_envelope_ratio": 1.0142086509287498,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/encode",
+      "comparator": "python",
+      "median_ratio": 0.5356685985220464,
+      "p95_ratio": 0.5345160635790457,
+      "process_median_envelope_ratio": 0.5391407658138708,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9971939229952433,
+      "p95_ratio": 0.995203886806737,
+      "process_median_envelope_ratio": 0.9986254420979769,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode",
+      "comparator": "python",
+      "median_ratio": 0.6960103931320627,
+      "p95_ratio": 0.6947085998280831,
+      "process_median_envelope_ratio": 0.6990597950030096,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.9981089131545681,
+      "p95_ratio": 0.9994478371965384,
+      "process_median_envelope_ratio": 1.0045589225589227,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.6604180810288053,
+      "p95_ratio": 0.6633949082118441,
+      "process_median_envelope_ratio": 0.6651024840825389,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/encode",
+      "comparator": "previous",
+      "median_ratio": 0.9988803825947615,
+      "p95_ratio": 1.0575677053850867,
+      "process_median_envelope_ratio": 1.0697713725534386,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "gpt2/encode",
+      "comparator": "python",
+      "median_ratio": 0.48225294554044024,
+      "p95_ratio": 0.5101311643746238,
+      "process_median_envelope_ratio": 0.5256830656086892,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9945269965322411,
+      "p95_ratio": 1.0348984914229187,
+      "process_median_envelope_ratio": 1.0177498213009293,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode",
+      "comparator": "python",
+      "median_ratio": 0.35104775060914994,
+      "p95_ratio": 0.3643334163621346,
+      "process_median_envelope_ratio": 0.3597504897268249,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.992380375166193,
+      "p95_ratio": 1.0137073499662845,
+      "process_median_envelope_ratio": 1.0303455857093782,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.356532639167337,
+      "p95_ratio": 0.35901776192612267,
+      "process_median_envelope_ratio": 0.37012097292056834,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/encode",
+      "comparator": "previous",
+      "median_ratio": 0.9947284886667103,
+      "p95_ratio": 1.03064800861141,
+      "process_median_envelope_ratio": 1.0938873738718697,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "qwen3/encode",
+      "comparator": "python",
+      "median_ratio": 0.5590910933992519,
+      "p95_ratio": 0.5796614315545334,
+      "process_median_envelope_ratio": 0.5965381356001679,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode",
+      "comparator": "previous",
+      "median_ratio": 1.0078557897046507,
+      "p95_ratio": 0.986409155937053,
+      "process_median_envelope_ratio": 1.0857030015797788,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "qwen3/decode",
+      "comparator": "python",
+      "median_ratio": 0.3389336411881227,
+      "p95_ratio": 0.3533179601487805,
+      "process_median_envelope_ratio": 0.364298580267912,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.9832519190509421,
+      "p95_ratio": 0.9534198675496689,
+      "process_median_envelope_ratio": 1.0318591448077614,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.3511526472150494,
+      "p95_ratio": 0.3499991242523603,
+      "process_median_envelope_ratio": 0.36088294990207354,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/encode",
+      "comparator": "previous",
+      "median_ratio": 0.9930597716588315,
+      "p95_ratio": 0.9809289457179274,
+      "process_median_envelope_ratio": 1.002708801165868,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/encode",
+      "comparator": "python",
+      "median_ratio": 0.13890492643106966,
+      "p95_ratio": 0.143599754745769,
+      "process_median_envelope_ratio": 0.1395715277022991,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode",
+      "comparator": "previous",
+      "median_ratio": 0.8947658528743024,
+      "p95_ratio": 0.8860775974307786,
+      "process_median_envelope_ratio": 0.9059563294637922,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode",
+      "comparator": "python",
+      "median_ratio": 0.055861844412386064,
+      "p95_ratio": 0.055632152504979854,
+      "process_median_envelope_ratio": 0.05682251568896807,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.9182397193889323,
+      "p95_ratio": 0.9001863188714401,
+      "process_median_envelope_ratio": 0.9229132947976878,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.03278803344573835,
+      "p95_ratio": 0.0323314081508303,
+      "process_median_envelope_ratio": 0.03322642432198512,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.19028767140338768,
+      "p95_ratio": 0.18784485193764394,
+      "process_median_envelope_ratio": 0.19092454907026085,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.6612197061399472,
+      "p95_ratio": 0.6091656700636378,
+      "process_median_envelope_ratio": 0.6694609476311328,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.061887216851924685,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.9521256833501407,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.12344820941947204,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.9532387480737552,
+      "passed": true
+    },
+    {
+      "cell": "bert/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.2935498987767274,
+      "p95_ratio": 0.2975973858896782,
+      "process_median_envelope_ratio": 0.2944484999762027,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.19873222299623167,
+      "p95_ratio": 0.20118244979216318,
+      "process_median_envelope_ratio": 0.19927345624355766,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.5180658873538788,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.15359168241965973,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.5180658873538788,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.15359168241965973,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.33220795593047064,
+      "p95_ratio": 0.333023471541724,
+      "process_median_envelope_ratio": 0.3339393926603155,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.33447213311987634,
+      "p95_ratio": 0.33267262455447943,
+      "process_median_envelope_ratio": 0.3362552291859689,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.3875476493011436,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.10929549200888698,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.3875476493011436,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.10929549200888698,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.3362674233070667,
+      "p95_ratio": 0.3368673695845568,
+      "process_median_envelope_ratio": 0.34757642100460834,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.4396438554241967,
+      "p95_ratio": 0.43194594404512165,
+      "process_median_envelope_ratio": 0.44351024225203844,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.11013466359947272,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.23992117117117118,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.1155086882268427,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.23992117117117118,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.6753995444697517,
+      "p95_ratio": 0.6823641217434159,
+      "process_median_envelope_ratio": 0.6782473885038547,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.12372455060110801,
+      "p95_ratio": 0.1253921187873048,
+      "process_median_envelope_ratio": 0.12432411066594849,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.8987517337031901,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.125193199381762,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.8987517337031901,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.125193199381762,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Observed per-process median envelope used for three-process cells; control intervals resample whole paired processes.",
+    "Memory uses maximum observed process RSS/HWM, not allocator counters as interchangeable device peaks.",
+    "Lifecycle is separately measured, not an invented disk-cold or steady-state timing."
+  ],
+  "audit_source_sha256": "aa4157bfe0f7291c092851c1595be4d9ff0d989196dc4df03218e659ca786a57"
+}

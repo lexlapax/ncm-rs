@@ -1,8 +1,9 @@
 # Architecture proposal
 
-Status: [Phase 1 feasibility passed](PHASE1.md) on Linux/CUDA then macOS/MLX.
-The shared production backend trait remains provisional for Phase 2's model work;
-crate boundaries do not imply complete working APIs or frozen abstractions.
+Status: [Phase 2 codec/tokenizer acceptance passes](results/2026-11-10-phase2-acceptance/README.md)
+on Linux/CUDA then macOS/MLX. The shared codec/backend contract is implemented and
+validated for that scope; generator, sampling and inference-CLI architecture below
+remains planned. Crate boundaries do not imply full-model APIs or frozen abstractions.
 
 ## Decision: one model, two runtime adapters
 
@@ -22,8 +23,8 @@ ncm-cli
   └── ncm-backend-cuda ─────> ncm-core + Candle -> CUDA/cuBLAS/custom kernels
 ```
 
-This is the intended dependency graph; dependencies are deliberately not wired
-into the initial empty packages. `ncm-io` and tokenizers may depend on core types;
+This is the intended full dependency graph; codec/backend/config edges are wired,
+while the generator, sampler and inference CLI remain future work. `ncm-io` and tokenizers may depend on core types;
 core never depends on a concrete runtime. A bounded Candle CPU implementation is
 for fixtures and development, **not a third production runtime target**.
 

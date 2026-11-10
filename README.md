@@ -1,15 +1,15 @@
 # ncm-rs
 
-A planned Rust port of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
+A Rust port in progress of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
-**Status: Phase 2 in progress; Phase 1 complete on Linux/CUDA and Apple Silicon/MLX.**
-All 18 operator goldens and 238 checkpoint tensor readbacks pass; scoped Sudoku
-conversion, a checked Rust artifact loader, text tokenizer and reference traces
-exist. The shared FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT text
-tokenizers now pass the [Linux correctness/performance/memory gate](docs/results/2026-11-10-phase2-linux/README.md).
-The codec is slower than eager PyTorch. [MLX codec/tokenizer parity](docs/results/2026-11-10-phase2-mlx-codec/README.md)
-now passes; Apple performance/memory acceptance remains pending. Text tokenizer support does not imply full text-model inference.
+**Status: Phase 2 complete on Linux/CUDA and Apple Silicon/MLX, including performance remediation.**
+The shared FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT tokenizers pass
+[final correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):
+642 trained traces / 2,500 decisions and 78 performance/memory comparisons on each
+platform, with unchanged thresholds. CUDA codec latency and Apple loading/memory
+deficits are remediated; original negative results remain published.
+Text tokenizer support does not imply full text-model inference.
 **No generator or inference CLI yet.** See the
 [Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
 Within each phase, Linux/CUDA is validated
@@ -53,8 +53,8 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 | `crates/ncm-model` | Shared FP32 Sudoku codec and blocks; generation/sampling planned |
 | `crates/ncm-tokenizers` | Sudoku, pinned HF tokenizers and TinyStories byte BPE |
 | `crates/ncm-io` | Versioned manifests, safetensors, artifact validation |
-| `crates/ncm-backend-cuda` | Candidate Candle CPU/CUDA operators, fixture tests and microprobe |
-| `crates/ncm-backend-mlx` | Candidate MLX/Metal operators, real-device tests and load/memory probes |
+| `crates/ncm-backend-cuda` | Candle CUDA codec/operators; CPU fixture path and real-device checks |
+| `crates/ncm-backend-mlx` | Native MLX codec/operators, real-Metal tests and memory probes |
 | `crates/ncm-cli` | Future `ncm` command; currently a status-only executable |
 | `tools/reference` | Pinned operator/model oracles and scoped Sudoku checkpoint exporter |
 | `tests/fixtures` | 18 synthetic FP32 operator cases, Sudoku tokenizer goldens and fixture policy |
@@ -63,8 +63,8 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 
 Candle is pinned to 0.11.1 behind the backend crate's opt-in `cpu`/`cuda` features.
 Default builds do not require a GPU SDK. MLX is opt-in on Apple Silicon with a
-pinned native runtime. The shared production backend trait remains provisional;
-the status-only CLI has no runtime features yet.
+pinned native runtime. The shared backend contract is validated for the supported
+codec; generator APIs remain future work. The status-only CLI has no runtime features yet.
 
 [First public operator comparison](docs/results/2026-11-09-cuda-operators/README.md):
 correctness passes, but composed resampling is substantially slower than PyTorch.
@@ -100,8 +100,8 @@ Torch installation. A smoke report is not a full three-run benchmark comparison.
 The [Sudoku artifact report](docs/results/2026-11-10-sudoku-artifacts/README.md)
 records byte-exact conversion, CPU/CUDA tensor readback and Python model traces.
 It does not establish Rust model parity. The later Linux and Apple reports close
-Phase 1's capability/baseline gates; optimization and model quality remain future
-work. Recheck Mac availability before starting a later phase's hardware runs.
+Phase 1's capability/baseline gates. Phase 2 now adds qualified codec/tokenizer
+parity and remediation; end-to-end generation quality remains future work. Recheck Mac availability before starting a later phase's hardware runs.
 
 ## Provenance and license
 

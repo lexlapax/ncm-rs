@@ -1,17 +1,14 @@
 # Phase 2 extension — performance research and remediation
 
-Status: [production CUDA remediation](results/2026-11-10-phase2-cuda-remediation/README.md)
-passes unchanged correctness and brings all codec latency cells within the Python
-bands. [Extended Linux acceptance now passes](results/2026-11-10-phase2-linux-acceptance/README.md),
-including controlled uncertainty follow-ups and separate startup/teardown evidence.
-Apple remediation is next. The
-[initial research](results/2026-11-10-phase2-performance-research/README.md) and
+Status: **complete on Linux/CUDA and Apple/MLX**, in the required order.
+[Final acceptance](results/2026-11-10-phase2-acceptance/README.md) publishes 78 passing
+comparisons per platform, unchanged trained parity, controlled uncertainty,
+startup/teardown and reproducible raw evidence. The user-requested reopened
+extension is closed; Phase 3 remains unstarted and outside this task.
+The [initial research](results/2026-11-10-phase2-performance-research/README.md) and
 [predeclared thresholds](results/2026-11-10-phase2-performance-research/acceptance-v1.json)
-remain immutable evidence. The user reopened
-Phase 2 after its correctness/measurement baseline was published. **Phase 3 is
-blocked until this extension passes Linux/CUDA first, then Apple/MLX.** Publishing
-negative results was necessary, but is no longer sufficient for Phase 2 closure.
-Historical reports remain unchanged evidence, not acceptance of these new gates.
+remain immutable. Historical negative/intermediate reports are preserved, not
+rewritten as passes. The ordered requirements below remain the extension contract.
 
 ## Problem statement and scope
 
@@ -209,11 +206,11 @@ not close this extension.
 - [x] Measurement audit, clean-checkout reproduction and baseline/noise thresholds.
 - [x] Source-cited Linux research, profiles and ranked causal hypotheses.
 - [x] Linux fixes, unchanged correctness, three-way measurements and extended gate.
-- [ ] Apple research, allocation diagnosis, fixes and extended gate after Linux.
-- [ ] Regression/performance checks and reproducible raw evidence for both devices;
+- [x] Apple research, allocation diagnosis, fixes and extended gate after Linux.
+- [x] Regression/performance checks and reproducible raw evidence for both devices;
       update plan, acceptance tracker, context and results index before closure.
 
-The original planning change performed no experiments. Subsequent CUDA profiling,
-production changes, correctness and three-way measurements are linked above.
-They establish measured codec improvements, not full extended acceptance or MLX
-qualification. Remaining deliverables must not be inferred as complete.
+The original planning change performed no experiments. Subsequent source research,
+profiling, bounded loading, compact tokenizer structures and runtime remediation
+are linked from the final acceptance report. Both real-device gates now pass;
+this does not establish generator/full text-model support or an inference release.
