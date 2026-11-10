@@ -1,0 +1,11 @@
+    Finished `release` profile [optimized] target(s) in 0.04s
+     Running tests/codec_components.rs (target/release/deps/codec_components-d8f8a5b05cc78f89)
+
+running 3 tests
+test batched_transpose_regression ... ok
+CPU Summary { tensors: 140, elements: 75348, max_abs: 1.1444091796875e-5 }
+test cpu_codec_components ... ok
+CUDA Summary { tensors: 140, elements: 75348, max_abs: 7.62939453125e-6 }
+test cuda_codec_components ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s

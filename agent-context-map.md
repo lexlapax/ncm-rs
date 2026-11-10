@@ -7,7 +7,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Current confirmed goal: complete Phase 2. In progress on Linux; neither Phase 2
   runtime gate is passed.** Reference contract and checked shared-runtime construction
-  are implemented; Linux backend primitives/model execution are next. See [Phase 2 contract](docs/PHASE2.md).
+  and Linux primitive/component parity are implemented; complete Linux codec
+  execution is next. See [Phase 2 contract](docs/PHASE2.md).
   Phase 1 passed Linux/CUDA then macOS/MLX ([acceptance](docs/PHASE1.md)). Keep this
   same order within EVERY phase; both gates before advancing. Phase 3 is out of scope.
 - The confirmed Phase 2 goal includes TinyStories byte-BPE and GPT-2/Qwen/BERT
@@ -18,8 +19,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   model traces and reproducible operator/load/tokenizer/memory reports.
 - **No full Rust codec/generator, inference CLI, official task-quality result,
   generalized runtime importer or inference release.** Core/model now provide typed
-  configuration, backend contracts and checked weight construction, not forward
-  execution. Phase 1 completion is feasibility/reference qualification only.
+  configuration, backend contracts, checked weights and shared components, not
+  complete free-running codec execution. Phase 1 completion is feasibility/reference qualification only.
 - Production inference stays Python-free. Offline conversion/oracles and native
   CUDA/MLX libraries are allowed. Never silently relax tolerances or advance pins.
 - Local checks replace GitHub build CI by user request. Use `tools/check.sh`,
@@ -162,6 +163,28 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   No forward execution/performance qualification implied; load/RSS and affected
   workload benchmarks remain pending the Linux gate, then Apple.
 
+## Phase 2 Linux primitive/component milestone
+
+- Implemented `CodecBackend` for Candle, shared components in
+  `crates/ncm-model/src/blocks.rs`, and device-neutral tiny fixture runner at
+  `tests/support/codec.rs`. Includes complete traced decoder block, exact GELU,
+  normalized cascades, Euclidean codebooks, Phi refinement and accumulation.
+- CPU/CUDA each pass 140 floating comparisons / 75,348 values; largest absolute
+  errors ~1.1444e-5 / 7.6294e-6. All selected tiny code IDs exact. Component tests
+  use reference residual inputs: complete free-running encoding is still pending.
+- Two regression fixes without pin/tolerance changes: Candle CPU batched ConvT
+  misindexes a multi-position second batch, so CPU dispatches separate batch
+  slices; CUDA remains batched. CUDA native argmin picks a non-first tied index,
+  so adapter selection uses value reduction plus masked-index minimum on-device.
+  Tests cover both fixes, signed-zero/wide-row ties and retained snapshots.
+- `tools/check.sh --cuda` now runs native CUDA release tests in addition to the
+  old probe. Full checks pass: 24 base Rust tests plus real-CUDA component suite,
+  seven report tests, all 18 unchanged GPU operators, lint/fmt/docs/syntax. Log:
+  `.reference/phase2-primitives-check.log`. No Phase 2 Apple run.
+- [Component report](docs/results/2026-11-10-phase2-primitives/README.md) retains raw
+  release output and defects/workarounds. No performance or trained-model claim;
+  complete codec traces and affected-workload measurements remain pending.
+
 ## Latest provenance and next actions
 
 - CUDA milestone `3178aa1`; local checks `f7aad49`; artifacts/traces `bbdf422`;
@@ -170,9 +193,10 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Final Apple raw trials: `reports/phase1-final/mlx` and `mlx-load-matched` locally;
   remote `reports/phase1-mlx/final` and `load-final`. Final remote local-check log:
   `reports/phase1-mlx/check-closure.log`; Linux `.reference/phase1-linux-closure.log`.
-- Phase 1 closure is pushed as `650cc7d`; Phase 2 reference contract as `97a3125`.
-  Reference reports embed exact script/helper hashes.
-- Next: implement the Candle codec backend and shared primitives/codec, then
+- Phase 1 closure is pushed as `650cc7d`; Phase 2 reference contract as `97a3125`,
+  checked shared runtime as `8492c27`. Reference reports embed exact helper hashes.
+- Next: complete shared encoder/pre-quant, quantization, decoder, encode/decode
+  and traced snapshots; qualify full tiny and trained CUDA traces. Then complete
   tokenizer assets and Linux
   measurements. Only then start Phase 2 Apple work. Preserve the fixed oracle
   budgets, retain near-margin cases and negative findings, and do not conflate

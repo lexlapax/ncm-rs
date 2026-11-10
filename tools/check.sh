@@ -7,7 +7,7 @@ usage() {
         'Usage: tools/check.sh [--cuda|--mlx]' \
         '' \
         'Default: formatting, Clippy, CPU fixtures, docs and Python report-tool tests.' \
-        '--cuda: additionally lint CUDA code and run the real-device operator probe.' \
+        '--cuda: additionally lint/test CUDA code and run the real-device operator probe.' \
         '--mlx: additionally lint/test/probe MLX on Apple Silicon (native MLX required).'  \
         '' \
         'Requires Rust 1.99.1+, rustfmt, Clippy, and Python 3 (no Torch for these checks).' \
@@ -68,6 +68,7 @@ python3 -m py_compile tools/reference/*.py tools/bench/compare.py
 if "$cuda"; then
     printf '%s\n' '== Explicit CUDA validation (real GPU required) =='
     cargo clippy --workspace --all-targets --features ncm-backend-cuda/cuda --locked -- -D warnings
+    cargo test -p ncm-backend-cuda --features cuda --release --locked
     report_dir="reports/local-check-$(date -u +%Y%m%dT%H%M%SZ)-$$"
     mkdir -p "$report_dir"
     cargo run -p ncm-backend-cuda --features cuda --example probe --release --locked -- \

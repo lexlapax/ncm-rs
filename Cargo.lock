@@ -1035,6 +1035,7 @@ dependencies = [
  "ncm-core",
  "ncm-io",
  "ncm-model",
+ "safetensors",
  "serde",
  "serde_json",
  "sha2",

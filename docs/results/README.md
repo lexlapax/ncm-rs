@@ -9,8 +9,9 @@
 | [2026-11-10: Phase 2 codec oracle](2026-11-10-phase2-oracle/README.md) | 236 tiny / 642 trained codec traces; declared budgets | CUDA reference captured; Rust pending; CPU/CUDA diagnostic failure retained | Phase 2 not started | Reference only |
 
 **Phase 2 is in progress**: its reference contract and
-[checked shared-runtime construction](2026-11-10-phase2-runtime/README.md) exist,
-not Rust forward parity or runtime acceptance.
+[checked shared-runtime construction](2026-11-10-phase2-runtime/README.md) and
+[Linux component parity](2026-11-10-phase2-primitives/README.md) exist,
+not complete Rust codec parity or runtime acceptance.
 
 **Phase 1 is complete**; see the [acceptance checklist](../PHASE1.md). Earlier rows
 retain their historical scope. These are capability/baseline checks, **not** NCM
