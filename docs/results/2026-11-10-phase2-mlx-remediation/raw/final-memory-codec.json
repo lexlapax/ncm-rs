@@ -1,0 +1,851 @@
+{
+  "before": {
+    "active": 0,
+    "cache": 8,
+    "host": {
+      "VmHWM": 18776064,
+      "VmRSS": 18890752
+    },
+    "peak": 0
+  },
+  "iterations": [
+    {
+      "artifact_ms": 164.486209,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266141696,
+          "VmRSS": 266141696
+        },
+        "peak": 59593216
+      },
+      "iteration": 0,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266141696,
+          "VmRSS": 266141696
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.115375
+    },
+    {
+      "artifact_ms": 170.647667,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266240000,
+          "VmRSS": 266240000
+        },
+        "peak": 59593216
+      },
+      "iteration": 1,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266240000,
+          "VmRSS": 266240000
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 181.28354199999998
+    },
+    {
+      "artifact_ms": 170.563916,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266289152,
+          "VmRSS": 266289152
+        },
+        "peak": 59593216
+      },
+      "iteration": 2,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266272768,
+          "VmRSS": 266289152
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.8785
+    },
+    {
+      "artifact_ms": 171.171459,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266321920,
+          "VmRSS": 266321920
+        },
+        "peak": 59593216
+      },
+      "iteration": 3,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266321920,
+          "VmRSS": 266321920
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.634084
+    },
+    {
+      "artifact_ms": 170.69383299999998,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266338304,
+          "VmRSS": 266338304
+        },
+        "peak": 59593216
+      },
+      "iteration": 4,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266338304,
+          "VmRSS": 266338304
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.004333
+    },
+    {
+      "artifact_ms": 170.823584,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266371072,
+          "VmRSS": 266371072
+        },
+        "peak": 59593216
+      },
+      "iteration": 5,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266371072,
+          "VmRSS": 266371072
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.099584
+    },
+    {
+      "artifact_ms": 170.137417,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266371072,
+          "VmRSS": 266371072
+        },
+        "peak": 59593216
+      },
+      "iteration": 6,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266371072,
+          "VmRSS": 266371072
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.30737499999998
+    },
+    {
+      "artifact_ms": 170.81991699999998,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266420224,
+          "VmRSS": 266420224
+        },
+        "peak": 59593216
+      },
+      "iteration": 7,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266420224,
+          "VmRSS": 266420224
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.09687499999998
+    },
+    {
+      "artifact_ms": 170.469667,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266420224,
+          "VmRSS": 266420224
+        },
+        "peak": 59593216
+      },
+      "iteration": 8,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266420224,
+          "VmRSS": 266420224
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.7635
+    },
+    {
+      "artifact_ms": 171.170375,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266420224,
+          "VmRSS": 266420224
+        },
+        "peak": 59593216
+      },
+      "iteration": 9,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266420224,
+          "VmRSS": 266420224
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.28329200000002
+    },
+    {
+      "artifact_ms": 170.467459,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266452992,
+          "VmRSS": 266452992
+        },
+        "peak": 59593216
+      },
+      "iteration": 10,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266452992,
+          "VmRSS": 266452992
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.47020899999998
+    },
+    {
+      "artifact_ms": 170.948625,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266452992,
+          "VmRSS": 266452992
+        },
+        "peak": 59593216
+      },
+      "iteration": 11,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266452992,
+          "VmRSS": 266452992
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.91708300000002
+    },
+    {
+      "artifact_ms": 170.96241600000002,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "iteration": 12,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.29008299999998
+    },
+    {
+      "artifact_ms": 170.706333,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "iteration": 13,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.74212500000002
+    },
+    {
+      "artifact_ms": 170.87745900000002,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "iteration": 14,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.901542
+    },
+    {
+      "artifact_ms": 171.198125,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "iteration": 15,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.12325
+    },
+    {
+      "artifact_ms": 170.18016599999999,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "iteration": 16,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266469376,
+          "VmRSS": 266469376
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.478208
+    },
+    {
+      "artifact_ms": 171.154959,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 17,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.46020900000002
+    },
+    {
+      "artifact_ms": 170.69937499999997,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 18,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.140083
+    },
+    {
+      "artifact_ms": 170.874208,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 19,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.22299999999998
+    },
+    {
+      "artifact_ms": 170.178209,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 20,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.512
+    },
+    {
+      "artifact_ms": 170.971292,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 21,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266485760,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.197125
+    },
+    {
+      "artifact_ms": 170.258917,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 22,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.516375
+    },
+    {
+      "artifact_ms": 170.339709,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 23,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.655375
+    },
+    {
+      "artifact_ms": 170.525,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 24,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.01566699999998
+    },
+    {
+      "artifact_ms": 170.865542,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 25,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.17170900000002
+    },
+    {
+      "artifact_ms": 170.269833,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 26,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266502144,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.575291
+    },
+    {
+      "artifact_ms": 171.05583299999998,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266518528
+        },
+        "peak": 59593216
+      },
+      "iteration": 27,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266518528
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.161125
+    },
+    {
+      "artifact_ms": 170.56520899999998,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266518528
+        },
+        "peak": 59593216
+      },
+      "iteration": 28,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266518528
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.53804200000002
+    },
+    {
+      "artifact_ms": 170.40045800000001,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 29,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.48804199999998
+    },
+    {
+      "artifact_ms": 171.214625,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 30,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.541208
+    },
+    {
+      "artifact_ms": 170.700875,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "iteration": 31,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266485760
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 180.001292
+    },
+    {
+      "artifact_ms": 170.22,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 32,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.525375
+    },
+    {
+      "artifact_ms": 170.37295899999998,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 33,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.559292
+    },
+    {
+      "artifact_ms": 170.76375,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 34,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 179.985208
+    },
+    {
+      "artifact_ms": 168.04345800000002,
+      "dropped": {
+        "active": 0,
+        "cache": 59593224,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "iteration": 35,
+      "loaded": {
+        "active": 59593216,
+        "cache": 8,
+        "host": {
+          "VmHWM": 266518528,
+          "VmRSS": 266502144
+        },
+        "peak": 59593216
+      },
+      "total_load_ms": 177.35595800000002
+    }
+  ],
+  "mode": "codec",
+  "schema_version": 1,
+  "scope": "diagnostic, not a matched throughput benchmark; host snapshots invoke ps outside load timing",
+  "source_sha256": {
+    "Cargo.lock": "650e2d1802a4b36b0e57f77e5dbb7054f22a8dd5a7a0ebd6284469f1d6f64016",
+    "crates/ncm-backend-mlx/examples/mlx_memory_probe.rs": "8685f300de802785801720916895c1bbda72fbb5f061f4cff156d4eb9bdae007",
+    "crates/ncm-io/src/lib.rs": "e141d1caa65dfa87eaba55959f43af79b098916b5ac8d20815f794f864fa0d77",
+    "crates/ncm-model/src/lib.rs": "cc6f6f8fbbd85c4b87bee391a3918af0bcf97fbd048303972f80fa9b932e97c1",
+    "tests/support/host_memory.rs": "f0b1184b6d2b45610a5a6eec6d917a867829f7e75dc1eae365e0a87ccc54cdd6"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "device": "metal",
+  "previous": "reports/phase2-performance-mlx-remediated-v1/previous",
+  "candidate": "reports/phase2-performance-mlx-remediated-v1/candidate",
+  "qualification": "reports/phase2-codec/mlx-remediated-v3-qualification.json",
+  "lifecycle": "reports/phase2-mlx-lifecycle-v1.json",
+  "controls": {}
+}

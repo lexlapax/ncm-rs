@@ -1,0 +1,17 @@
+{
+  "README.md": "8fdc8c8580f7628d0bcc34e4175db201becee1fb2c50517439e4e8403812a96a",
+  "phase2-mlx-matrix-diagnostic.json": "eac26109845049e6ff055620536d92209b2799e8071db72a1cd7c60f08c89476",
+  "phase2-mlx-remediated-candidate-summary.json": "7ad218aaed1cd6b869208a2f404fe6937b2c6337c65e399d48784d3b0ca2f341",
+  "phase2-mlx-remediated-config.json": "8edfbd4d74cbefc8756b109da9589d9946685f7c533af55c761aa17e8f796d2e",
+  "phase2-mlx-remediated-previous-summary.json": "6c888076c77cdd91bf43f460a6488c26c3e70fee713fd36a97f409ae1a5871bb",
+  "raw/capacity-qwen.json": "e9b4b9687fa3dd1ac9be89d4d4a18b894bb9102d99fa178b888559a67dba1781",
+  "raw/final-memory-arrays.json": "91170a16b5386dc95a6cd94acd6373cc352818172e5faeb0a202203d732e66f9",
+  "raw/final-memory-artifact.json": "d3391f80cb94c8badda8814cd12fe10972c57a9198ee7d0eb1f9aae482d0f379",
+  "raw/final-memory-codec.json": "453db401d02456b1613794c7677feda715bec66afc3ba61b38478b1738adc1b3",
+  "raw/lifecycle-baseline-build.log": "9b6d89ecd46f913c3c5c5b5c29ba2b0544430486af7314b68741e57665d17ffb",
+  "raw/linux-bound-reference-audit.json": "f10d5bb018a651bd0663ca1f4f1ac970b292a88ea04d2c3168e3ece9657b8f46",
+  "raw/local-check.log": "88f87ddd3023b4920e6cc9a6200c675acc45f585668e4d1685cf79509ee1a6a5",
+  "raw/native-trace-report.json": "fe5e939eac1389f67fdc6b6b6b67cf29ed476a1cea7da5b61503fac35e176a2a",
+  "raw/qualification.json": "38650fd2d04e9c630db7795f183571b428efe9c845488961915b31acd9c0b66d",
+  "raw/threeway-v1.tar.gz": "0ea22f7c678e3bbbe58879501c6085af8332ed80d7243dabf7fb3e2ff876c605"
+}

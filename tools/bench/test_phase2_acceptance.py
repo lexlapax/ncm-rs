@@ -6,7 +6,7 @@ import tarfile
 import tempfile
 from unittest.mock import patch
 from summarize_codec_load_control import summarize as codec_load_control
-from audit_phase2_performance import quality
+from audit_phase2_performance import quality, bind_control_sources
 from run_codec_lifecycle import validate
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -21,6 +21,20 @@ class AcceptanceTests(unittest.TestCase):
                        lambda q:q['traces'][0].update(mismatches=1),lambda q:q.update(selections={})]:
             q=copy.deepcopy(raw);mutate(q)
             with self.assertRaises(ValueError):quality(q)
+
+    def test_control_binding_includes_python_reference(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);controls=root/'controls';matrix=root/'matrix'
+            roots={name:matrix/name for name in ('previous','candidate')}
+            for name in ('previous','candidate','python'):
+                (controls/name).mkdir(parents=True)
+                target=roots['candidate' if name=='python' else name];target.mkdir(parents=True,exist_ok=True)
+                filename=f"tokenizer-bert-{'python' if name=='python' else 'rust'}-1.json"
+                raw=json.dumps({'source_sha256':{'source':'a'*64}})
+                (controls/name/filename).write_text(raw);(target/filename).write_text(raw)
+            bind_control_sources(controls,roots,'bert')
+            (controls/'python/tokenizer-bert-python-1.json').write_text(json.dumps({'source_sha256':{'source':'b'*64}}))
+            with self.assertRaises(ValueError):bind_control_sources(controls,roots,'bert')
 
     def test_codec_load_control_validates_full_reports(self):
         archive=ROOT/'docs/results/2026-11-10-phase2-shared-loading/raw/linux-token-buffer-v1.tar.gz'

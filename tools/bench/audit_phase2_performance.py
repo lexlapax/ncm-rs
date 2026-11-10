@@ -20,6 +20,16 @@ def quality(q):
     require(all(r['disagreements']==r['stable_disagreements']==r['candidate_selection_mismatches']==0 for r in q['selections'].values()), 'selection disagreement')
 
 
+def bind_control_sources(directory, roots, profile):
+    for name in ('previous','candidate','python'):
+        suffix='python' if name=='python' else 'rust'
+        prefix='codec' if profile=='codec' else f'tokenizer-{profile}'
+        filename=f'{prefix}-{suffix}-1.json'
+        a=json.loads((directory/name/filename).read_bytes())
+        b=json.loads((roots['candidate' if name=='python' else name]/filename).read_bytes())
+        require(a['source_sha256']==b['source_sha256'],'follow-up sources differ from the matrix')
+
+
 def audit(config):
     device=config['device'];require(device in ('cuda','metal'),'unsupported device')
     roots={name:Path(config[name]) for name in ('previous','candidate')}
@@ -56,11 +66,7 @@ def audit(config):
         environment=json.loads((directory/'environment.json').read_bytes())
         if environment.get('identical_tokenizer_binary_control',False):
             require(controls[profile]['native_binaries_identical'],'identity control requires identical binaries')
-        for name in ('previous','candidate'):
-            filename='codec-rust-1.json' if profile=='codec' else f'tokenizer-{profile}-rust-1.json'
-            a=json.loads((directory/name/filename).read_bytes())
-            b=json.loads((roots[name]/filename).read_bytes())
-            require(a['source_sha256']==b['source_sha256'],'follow-up sources differ from the matrix')
+        bind_control_sources(directory,roots,profile)
     rows=[]
     def timing(label,new,a,b,follow=None):
         for name,other in [('previous',a),('python',b)]:

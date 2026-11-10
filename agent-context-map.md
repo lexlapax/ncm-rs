@@ -312,7 +312,27 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   tests enforce bounds. Full Linux CUDA checks and fresh matrix + 30-triplet
   controls again pass all 78 comparisons; unchanged-codec load control is explicitly
   reused with source binding. Evidence appended to the compact-tokenizers report.
-- **Next: pull this capacity follow-up and finish Apple acceptance, not Phase 3.**
-  Validate new structures/memory, trained Metal traces, real tokenizers, repeated
-  loads/requests, full three-way performance/memory and separate lifecycle evidence.
-  Neither diagnostics nor Linux acceptance close Phase 2; preserve historical worktrees.
+- Capacity follow-up pushed/pulled as `083c1e5`. Full Metal checks and real
+  tokenizer goldens pass; 642 trained traces/2,500 decisions qualify unchanged,
+  zero ID disagreement. Fresh Apple matrix: codec load 945.87/179.99/272.21 ms
+  old/new/Python, HWM 4749.16/293.91/308.69 MB; Qwen 189.29/63.65/144.78 ms,
+  HWM 633.88/69.81/290.98 MB. Repeated-load probes plateau with zero active MLX
+  bytes after drops. All latency point estimates and host-memory ratios pass;
+  75/78 cells meet conservative process envelopes. GPT-2 encode and Qwen
+  encode/decode versus old Rust still need fixed additional process controls.
+- Separate `.reference/phase2-mlx-lifecycle-baseline` at `5dc9626` has ONLY copied
+  lifecycle example/support files; baseline build and remote lifecycle command
+  succeeded. **SSH agent became unavailable again before report transfer.** Retry
+  denied; user asked to unlock. Mac lifecycle report/final check logs remain remote;
+  do not infer lifecycle figures or final acceptance. Next use a process-local
+  persistent SSH connection after access returns, without global configuration edits.
+- Published qualified Apple measurements and explicit pending diagnostic:
+  `docs/results/2026-11-10-phase2-mlx-remediation/README.md`. Audit now binds Python
+  control sources as well as native ones; mutation regression and local checks pass,
+  latest Linux gate still passes 78 comparisons under the stronger audit. A clean
+  staged checkout without ignored artifacts exactly reproduces Linux acceptance
+  and both Apple summaries; all 24 report-tool tests pass.
+- **Next: restore access, retrieve lifecycle/check logs, collect fixed 30-triplet
+  GPT-2/Qwen controls, complete Apple audit and committed-only reproduction.**
+  No further production optimization is currently justified by point estimates.
+  Phase 3 stays blocked; preserve historical worktrees, goldens and `.pi/`.
