@@ -39,6 +39,7 @@ pub trait CodecBackend: WeightBackend {
     fn read_f32(&self, x: &Self::Tensor) -> Result<Vec<f32>>;
     fn read_indices(&self, x: &Self::Indices) -> Result<Vec<u32>>;
     fn shape(&self, x: &Self::Tensor) -> Vec<usize>;
+    fn indices_shape(&self, x: &Self::Indices) -> Vec<usize>;
     fn reshape(&self, x: &Self::Tensor, shape: &[usize]) -> Result<Self::Tensor>;
     fn permute(&self, x: &Self::Tensor, axes: &[usize]) -> Result<Self::Tensor>;
     fn narrow(
@@ -57,6 +58,7 @@ pub trait CodecBackend: WeightBackend {
     fn project(&self, x: &Self::Tensor, weight: &Self::Tensor) -> Result<Self::Tensor>;
     fn embedding(&self, weight: &Self::Tensor, ids: &Self::Indices) -> Result<Self::Tensor>;
     fn select_last(&self, x: &Self::Tensor, largest: bool) -> Result<Self::Indices>;
+    fn reshape_indices(&self, x: &Self::Indices, shape: &[usize]) -> Result<Self::Indices>;
     fn concat_indices(&self, xs: &[Self::Indices], axis: usize) -> Result<Self::Indices>;
     fn narrow_indices(
         &self,

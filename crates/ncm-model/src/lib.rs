@@ -1,7 +1,9 @@
 //! Shared codec state and preflight-checked FP32 runtime weight loading.
 //! Forward execution is implemented separately from artifact validation.
 mod blocks;
+mod codec;
 pub use blocks::{NoTrace, TraceSink, codebook_distances};
+pub use codec::{Decoded, Encoded};
 
 use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;

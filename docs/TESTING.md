@@ -4,9 +4,12 @@ Phase 1 is complete: 18 fixed operator cases pass CPU/CUDA/MLX, all 238 checkpoi
 tensors round-trip/read back exactly, and the tokenizer, artifact and real-Metal
 tests exist. There are seven report-tool tests. Phase 2 now has a declared
 [codec reference contract](PHASE2.md), a tiny synthetic CPU fixture and trained
-CUDA codec traces; no Rust codec or model-quality result exists yet. See the
-[oracle audit](results/2026-11-10-phase2-oracle/README.md), including its retained
-CPU/CUDA diagnostic failure. The remaining model gates below are still planned.
+CUDA codec traces. The [complete shared Rust codec](results/2026-11-10-phase2-codec/README.md)
+passes tiny CPU/CUDA and all 642 trained CUDA traces, with all 2,500 code/output
+IDs exact and two near ties disclosed. Performance/memory acceptance, tokenizer
+assets and Apple codec parity remain pending; there is no official task-quality
+result. The [oracle audit](results/2026-11-10-phase2-oracle/README.md) retains its
+separate original-Python CPU/CUDA diagnostic failure. The remaining model gates below are still planned.
 
 ## Layers of evidence
 

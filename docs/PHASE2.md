@@ -1,6 +1,6 @@
 # Phase 2 contract and acceptance tracker
 
-Status: in progress, Linux shared-runtime/component work. Neither runtime gate is passed.
+Status: in progress; complete shared codec passes Linux/CUDA trace parity. Neither runtime gate is passed.
 Phase 1 evidence remains unchanged; this document declares Phase 2 criteria before
 Rust codec implementation. The confirmed scope includes Sudoku codec execution
 and TinyStories/GPT-2/Qwen/BERT tokenizer asset conversion/parity, not their full
@@ -129,10 +129,11 @@ kernels, compiled mixed-precision policy or generation-cache work in this phase.
 - [x] Reference contract, fixtures and supported tensor/config inventory: see the
   [oracle audit](results/2026-11-10-phase2-oracle/README.md). This is not Rust parity.
 - [x] Validated shared configuration/backend/model-loading interface: [construction
-  checks](results/2026-11-10-phase2-runtime/README.md). Backend execution remains
-  pending; construction/readback is not forward parity.
+  checks](results/2026-11-10-phase2-runtime/README.md). Construction/readback alone
+  is not forward parity; the subsequent full codec check is recorded below.
 - [x] Linux CPU/CUDA primitive/component parity: [component report](results/2026-11-10-phase2-primitives/README.md).
-- [ ] Complete Linux codec parity (component tests use reference residual inputs).
+- [x] Complete Linux codec parity: [full tiny/trained comparison](results/2026-11-10-phase2-codec/README.md),
+  including free-running and fixed-code paths, near ties and uninstrumented outputs.
 - [ ] Sudoku regression plus TinyStories/HF tokenizer conversion/parity.
 - [ ] Published Linux reconstruction, performance and memory gate.
 - [ ] Corresponding Apple/MLX implementation, parity and measurements.

@@ -10,8 +10,10 @@
 
 **Phase 2 is in progress**: its reference contract and
 [checked shared-runtime construction](2026-11-10-phase2-runtime/README.md) and
-[Linux component parity](2026-11-10-phase2-primitives/README.md) exist,
-not complete Rust codec parity or runtime acceptance.
+[Linux component parity](2026-11-10-phase2-primitives/README.md) exist.
+[Complete shared codec parity](2026-11-10-phase2-codec/README.md) now passes tiny
+CPU/CUDA and all 642 trained CUDA traces. Tokenizer assets, performance/memory and
+Apple codec checks remain pending; neither full Phase 2 runtime gate is closed.
 
 **Phase 1 is complete**; see the [acceptance checklist](../PHASE1.md). Earlier rows
 retain their historical scope. These are capability/baseline checks, **not** NCM

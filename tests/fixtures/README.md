@@ -24,7 +24,9 @@ F32/I64 little-endian hex bytes; weights/traces refer to their interned IDs.
 The reference contains 236 traced tensors and per-position winner margins. It is
 not trained Sudoku weights. See [Phase 2 policy](../../docs/PHASE2.md) and the
 [oracle audit](../../docs/results/2026-11-10-phase2-oracle/README.md). Rust fixture
-execution is pending the shared backend/model implementation.
+execution now passes on CPU/CUDA, including complete free-running and fixed-code
+paths; trained CUDA qualification is reported separately. Phase 2 Apple execution
+remains pending the Linux platform gate.
 
 The operator fixture is not a checkpoint/model fixture. The scoped Sudoku oracle
 now generates 56 model traces from pinned weights; large traces, weights and

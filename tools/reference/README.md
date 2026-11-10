@@ -82,6 +82,13 @@ CUDA captures. A full-checkpoint CPU/CUDA diagnostic has one internal mismatch,
 retained without changing tolerances. See the
 [contract](../../docs/PHASE2.md) and [audit/reproduction commands](../../docs/results/2026-11-10-phase2-oracle/README.md).
 
+The native `codec_trace` example exports the shared Rust codec's observations.
+`qualify_codec.py` verifies floating budgets, first-index selection consistency,
+stable IDs and all near ties, and records error distributions plus reconstruction
+agreement. It does not waive floating failures for near ties or claim performance.
+See [complete Linux codec results](../../docs/results/2026-11-10-phase2-codec/README.md)
+for exact commands and current limitations.
+
 The tiny fixture stores deduplicated typed little-endian hex arrays. Raw Sudoku
 traces remain ignored until durable archive publication; never replace established
 fixtures with a new generation merely to hide a failure. The generator authenticates

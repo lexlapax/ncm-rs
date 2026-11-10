@@ -1,7 +1,7 @@
 # Phased port and validation plan
 
 The user approved implementation on 2026-11-09. Phases 0 and 1 are complete;
-Phase 2 is in progress on Linux, beginning with its reference contract. **Within every phase, implement and validate Linux/CUDA first,
+Phase 2 is in progress on Linux; complete codec trace parity passes. **Within every phase, implement and validate Linux/CUDA first,
 then macOS/MLX.** Complete both platform gates before advancing to the next phase;
 do not finish the whole CUDA project before starting Apple work. GPU feasibility
 and artifact work precede committing to a detailed delivery estimate.
@@ -56,7 +56,9 @@ a Linux-only result does not pass this gate. No broad framework written in advan
 
 The [Phase 2 contract](PHASE2.md) fixes the initial model scope, tensor inventory,
 new numerical budgets and fixture semantics. Tiny CPU and trained CUDA reference
-captures exist; the Rust codec and both platform gates remain pending.
+captures and a passing Rust CUDA codec trace comparison exist. Tokenizer assets,
+Linux performance/memory acceptance and the Apple codec pass remain pending;
+neither complete platform gate is closed.
 
 Implement validated configs, backend operations and deterministic fixture harness.
 Port norms, split-half RoPE, bidirectional/prefix attention, GELU blocks,

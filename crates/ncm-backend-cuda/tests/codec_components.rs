@@ -87,6 +87,8 @@ fn cpu_codec_components() {
     let report = support::components(b);
     assert!(report.tensors > 100 && report.elements > 10000);
     println!("CPU {report:?}");
+    let full = support::full_codec(CandleBackend::cpu());
+    println!("CPU complete codec {full:?}");
 }
 #[cfg(feature = "cuda")]
 #[test]
@@ -99,4 +101,6 @@ fn cuda_codec_components() {
     let report = support::components(b);
     assert!(report.tensors > 100 && report.elements > 10000);
     println!("CUDA {report:?}");
+    let full = support::full_codec(CandleBackend::cuda(0).unwrap());
+    println!("CUDA complete codec {full:?}");
 }

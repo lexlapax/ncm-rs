@@ -36,6 +36,9 @@ impl CodecBackend for CandleBackend {
     fn shape(&self, x: &Tensor) -> Vec<usize> {
         x.dims().to_vec()
     }
+    fn indices_shape(&self, x: &Tensor) -> Vec<usize> {
+        x.dims().to_vec()
+    }
     fn reshape(&self, x: &Tensor, shape: &[usize]) -> Result<Tensor> {
         op!(self, [x], { x.reshape(shape) })
     }
@@ -103,6 +106,12 @@ impl CodecBackend for CandleBackend {
             let indices = Tensor::arange(0u32, count, self.device())?.broadcast_as(x.shape())?;
             let sentinel = Tensor::new(u32::MAX, self.device())?.broadcast_as(x.shape())?;
             matches.where_cond(&indices, &sentinel)?.min(D::Minus1)
+        })
+    }
+    fn reshape_indices(&self, x: &Tensor, shape: &[usize]) -> Result<Tensor> {
+        op!(self, [], {
+            self.check_tensor(x, DType::U32)?;
+            x.reshape(shape)
         })
     }
     fn concat_indices(&self, xs: &[Tensor], axis: usize) -> Result<Tensor> {

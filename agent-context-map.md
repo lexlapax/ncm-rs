@@ -7,8 +7,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Current confirmed goal: complete Phase 2. In progress on Linux; neither Phase 2
   runtime gate is passed.** Reference contract and checked shared-runtime construction
-  and Linux primitive/component parity are implemented; complete Linux codec
-  execution is next. See [Phase 2 contract](docs/PHASE2.md).
+  and complete Linux codec trace parity are implemented. Tokenizer assets and
+  Linux performance/memory acceptance are next; Apple codec work has not started. See [Phase 2 contract](docs/PHASE2.md).
   Phase 1 passed Linux/CUDA then macOS/MLX ([acceptance](docs/PHASE1.md)). Keep this
   same order within EVERY phase; both gates before advancing. Phase 3 is out of scope.
 - The confirmed Phase 2 goal includes TinyStories byte-BPE and GPT-2/Qwen/BERT
@@ -17,10 +17,9 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Implemented: candidate CPU/CUDA/MLX operators, shared fixed fixture contract,
   scoped Sudoku exporter/checked copied loader, Sudoku text tokenizer, upstream
   model traces and reproducible operator/load/tokenizer/memory reports.
-- **No full Rust codec/generator, inference CLI, official task-quality result,
-  generalized runtime importer or inference release.** Core/model now provide typed
-  configuration, backend contracts, checked weights and shared components, not
-  complete free-running codec execution. Phase 1 completion is feasibility/reference qualification only.
+- Shared FP32 codec now passes tiny CPU/CUDA and trained CUDA traces. **No Rust
+  generator, inference CLI, official task-quality result, generalized importer or
+  inference release.** Codec output parity is not the complete Phase 2 platform gate.
 - Production inference stays Python-free. Offline conversion/oracles and native
   CUDA/MLX libraries are allowed. Never silently relax tolerances or advance pins.
 - Local checks replace GitHub build CI by user request. Use `tools/check.sh`,
@@ -107,7 +106,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   precision unsupported, no tolerance waiver. Eager FP32 remains the baseline.
 - No task-quality or model-generation speedup claim. Workstation noise/warm disk
   caches disclosed. Generalized configs, TinyStories assets, mixed-precision models,
-  cached generation, packaging and training remain future phases. OWT weights and
+  cached generation, packaging and training remain pending (tokenizer assets are
+  current Phase 2 work). OWT weights and
   the upstream full training pipeline remain unavailable.
 
 ## Phase 2 reference-contract milestone
@@ -123,7 +123,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   encode/decode snapshots agree. No upstream source/math patches or pickle loading.
 - New `tests/fixtures/codec-v1.json`: 170 interned typed arrays (~608 KiB), untrained
   width-16/length-16 codec, two-stage normalized cascade, 236 traces across two cases.
-  Rust execution of this fixture is still pending implementation, not passing.
+  Full Rust execution now passes CPU/CUDA (see complete-codec milestone below).
 - Trained Sudoku CUDA: 642 traces, solved B2 / blank B1 / mixed B2, with free encode
   and fixed-code decode. Two fresh canonical generations have identical file hashes.
   Phase 1 solved-batch codec input/pre-quant/codes/logits remain byte-exact.
@@ -135,7 +135,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Nine optional reference tests pass; every fixture array's key/shape/dtype/byte
   count and reference was checked. Small reports are public; large traces (~92 MiB
   for trained capture) are ignored in `reports/phase2-oracle/v1/`; durable Phase 2
-  archive publication is still pending. No Rust codec/performance claim yet.
+  archive publication is still pending. This historical milestone was reference-only.
 - Reconciled stale README/plan/testing status. Runtime code is unchanged in this
   milestone. Full `tools/check.sh --cuda` passes (15 Rust tests, seven report-tool
   tests, all 18 real-GPU operator cases, lint/fmt/docs/syntax), plus nine optional
@@ -171,7 +171,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   normalized cascades, Euclidean codebooks, Phi refinement and accumulation.
 - CPU/CUDA each pass 140 floating comparisons / 75,348 values; largest absolute
   errors ~1.1444e-5 / 7.6294e-6. All selected tiny code IDs exact. Component tests
-  use reference residual inputs: complete free-running encoding is still pending.
+  use reference residual inputs; complete free-running encoding is now separately
+  qualified below.
 - Two regression fixes without pin/tolerance changes: Candle CPU batched ConvT
   misindexes a multi-position second batch, so CPU dispatches separate batch
   slices; CUDA remains batched. CUDA native argmin picks a non-first tied index,
@@ -183,7 +184,33 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   `.reference/phase2-primitives-check.log`. No Phase 2 Apple run.
 - [Component report](docs/results/2026-11-10-phase2-primitives/README.md) retains raw
   release output and defects/workarounds. No performance or trained-model claim;
-  complete codec traces and affected-workload measurements remain pending.
+  complete codec traces are now separately qualified below; measurements remain pending.
+
+## Phase 2 complete shared codec milestone
+
+- `crates/ncm-model/src/codec.rs` implements encoder/pre-quant, residual quantization,
+  decoder, encode/decode and reconstruction with on-device codes and retained
+  independent snapshots. Instrumented and uninstrumented outputs agree.
+- All 236 tiny traces pass CPU/CUDA; extra snapshot/uninstrumented checks yield
+  252 floating comparisons / 112,212 elements. All tiny IDs exact.
+- Native `codec_trace` authenticates reference inputs/config/weights; all 642 trained
+  CUDA traces pass. All 2,500 code/output decisions agree; two mixed-board near ties
+  (levels 1/2) remain visible. Two native processes produce identical trace hashes.
+- Worst normalized error is blank-board level-zero channel 113, using 94.2% of its
+  unchanged budget. No tolerance or golden changes. Original-Python CPU diagnostic
+  failure remains separate; do not infer Apple parity from Linux's narrow margin.
+- Reconstruction agrees with Python on all 445 tokens / five sequences. Original
+  input recovery is 437/445 tokens (eight mixed-board differences), not losslessness.
+- [Complete codec report](docs/results/2026-11-10-phase2-codec/README.md) has source
+  hashes, per-tensor errors, histograms, stable decisions and reconstruction counts.
+  Large native traces: `reports/phase2-codec/cuda-v2`; SHA-256
+  `a3776cac0ba75eaeb9ebc9a30ebd03c131f0b4470f12f136b7ccc95fc25e0fa0`.
+- Full `tools/check.sh --cuda` passes (24 base Rust tests plus real-CUDA suite,
+  unchanged 18 operators, seven report tests, lint/fmt/docs/syntax), plus 13 offline
+  reference tests. Log `.reference/phase2-codec-check.log`. New qualifier checks
+  candidate selection consistency, stable margins and all float budgets separately.
+- No latency/throughput/memory claim yet. Durable Phase 2 trace archive remains
+  pending publication. No Phase 2 Apple work; Linux acceptance must precede it.
 
 ## Latest provenance and next actions
 
@@ -194,10 +221,9 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   remote `reports/phase1-mlx/final` and `load-final`. Final remote local-check log:
   `reports/phase1-mlx/check-closure.log`; Linux `.reference/phase1-linux-closure.log`.
 - Phase 1 closure is pushed as `650cc7d`; Phase 2 reference contract as `97a3125`,
-  checked shared runtime as `8492c27`. Reference reports embed exact helper hashes.
-- Next: complete shared encoder/pre-quant, quantization, decoder, encode/decode
-  and traced snapshots; qualify full tiny and trained CUDA traces. Then complete
-  tokenizer assets and Linux
-  measurements. Only then start Phase 2 Apple work. Preserve the fixed oracle
+  checked shared runtime as `8492c27`, components as `a4a6344`.
+  Reference reports embed exact helper hashes.
+- Next: safe pinned TinyStories/HF tokenizer assets and exact parity; then matched
+  Python/native load, latency, throughput and memory measurements. Only then start Phase 2 Apple work. Preserve the fixed oracle
   budgets, retain near-margin cases and negative findings, and do not conflate
   reference generation with Rust codec qualification.

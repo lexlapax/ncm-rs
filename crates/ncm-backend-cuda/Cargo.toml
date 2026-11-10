@@ -34,6 +34,10 @@ name = "artifact_probe"
 required-features = ["cpu"]
 
 [[example]]
+name = "codec_trace"
+required-features = ["cpu"]
+
+[[example]]
 name = "checked_codec_load"
 required-features = ["cpu"]
 

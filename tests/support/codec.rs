@@ -1,4 +1,6 @@
 //! Shared, device-neutral execution of the fixed Phase 2 tiny reference.
+#[path = "codec_capture.rs"]
+mod capture;
 use ncm_core::{CodecBackend, CodecConfig, Result};
 use ncm_model::{Codec, TraceSink, codebook_distances};
 use safetensors::{
@@ -301,6 +303,90 @@ pub fn components<B: CodecBackend>(backend: B) -> Summary {
                 2e-4,
             );
         }
+    }
+    summary
+}
+
+pub fn full_codec<B: CodecBackend>(backend: B) -> Summary {
+    let f = Fixture::load();
+    let codec = f.model(backend);
+    let b = codec.backend();
+    let mut summary = Summary::default();
+    for case in &f.cases {
+        let input = f.array(case, "input.ids");
+        let supplied = f.array(case, "supplied.codes");
+        let batch = input.shape[0];
+        let mut capture = capture::Captured::default();
+        capture
+            .indices(
+                "input.ids",
+                &b.upload_indices(&input.indices(), &input.shape).unwrap(),
+            )
+            .unwrap();
+        capture
+            .indices(
+                "supplied.codes",
+                &b.upload_indices(&supplied.indices(), &supplied.shape)
+                    .unwrap(),
+            )
+            .unwrap();
+        let (encoded, decoded) = codec
+            .reconstruct_traced(&input.indices(), batch, &mut capture)
+            .unwrap();
+        let forced = codec
+            .decode_traced(&supplied.indices(), batch, "forced", &mut capture)
+            .unwrap();
+        assert_eq!(
+            capture.tensors.len() + capture.indices.len(),
+            case.traces.len()
+        );
+        for (name, value) in &capture.tensors {
+            let (atol, rtol) = capture::tolerance(name);
+            summary.check(b, value, f.array(case, name), name, atol, rtol);
+        }
+        for (name, value) in &capture.indices {
+            let expected = f.array(case, name);
+            assert_eq!(b.indices_shape(value), expected.shape, "{name}");
+            assert_eq!(b.read_indices(value).unwrap(), expected.indices(), "{name}");
+        }
+        let (plain_codes, plain_decode) = codec.reconstruct(&input.indices(), batch).unwrap();
+        let plain_forced = codec.decode(&supplied.indices(), batch).unwrap();
+        assert_eq!(
+            b.read_indices(&plain_codes.codes).unwrap(),
+            f.array(case, "encode.codes").indices()
+        );
+        for (label, plain) in [("decode", plain_decode), ("forced", plain_forced)] {
+            summary.check(
+                b,
+                &plain.logits,
+                f.array(case, &format!("{label}.logits")),
+                "uninstrumented logits",
+                5e-4,
+                2e-4,
+            );
+            assert_eq!(
+                b.read_indices(&plain.ids).unwrap(),
+                f.array(case, &format!("{label}.ids")).indices()
+            );
+        }
+        // Retain and re-read every earlier API snapshot after subsequent decode.
+        for (prefix, snapshots) in [
+            ("encode", encoded.snapshots),
+            ("decode", decoded.snapshots),
+            ("forced", forced.snapshots),
+        ] {
+            assert_eq!(snapshots.len(), codec.config().levels().len());
+            for (level, snapshot) in snapshots.iter().enumerate() {
+                let name = format!("{prefix}.level_{level:02}.cumulative");
+                summary.check(b, snapshot, f.array(case, &name), &name, 5e-4, 2e-4);
+            }
+        }
+        assert!(codec.encode(&input.indices()[1..], batch).is_err());
+        assert!(
+            codec
+                .decode(&vec![u32::MAX; supplied.indices().len()], batch)
+                .is_err()
+        );
     }
     summary
 }
