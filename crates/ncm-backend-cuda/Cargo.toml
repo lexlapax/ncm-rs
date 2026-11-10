@@ -1,12 +1,29 @@
 [package]
 name = "ncm-backend-cuda"
-description = "Planned Candle CUDA backend for NCM on Linux"
+description = "Candle CPU/CUDA capability probes and candidate NCM tensor operations"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
+
+[features]
+default = []
+cpu = ["dep:candle-core"]
+cuda = ["cpu", "candle-core/cuda"]
+
+[dependencies]
+candle-core = { version = "=0.11.1", optional = true, default-features = false }
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[[example]]
+name = "probe"
+required-features = ["cpu"]
 
 [lints]
 workspace = true

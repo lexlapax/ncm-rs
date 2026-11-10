@@ -1,7 +1,9 @@
 # Test strategy and acceptance gates
 
-Phase 0 only checks empty Rust packages and the status binary. All numerical,
-hardware and quality tests below are planned, not already passing.
+Phase 1 now has five Rust CPU regression tests covering 18 synthetic operator
+fixtures and invalid-input/comparison checks; the same 18 cases pass a manual CUDA
+probe. Four standard-library Python tests check report aggregation. No checkpoint,
+model-quality or MLX suite exists yet. The broader gates below remain planned.
 
 ## Layers of evidence
 
@@ -113,8 +115,11 @@ profiles should match, stochastic profiles need uncertainty-aware comparisons.
 
 ## CI and hardware policy
 
-Current CI: minimum Rust/stable build+test, stable fmt/Clippy/docs, and a scheduled
-upstream watch. No GPU or quality tests exist yet.
+Current CI: minimum Rust/stable build+test including opt-in CPU operator fixtures,
+stable fmt/Clippy/docs, Python report-tool tests, and a scheduled upstream watch.
+CUDA probes are manual on real hardware; no automated GPU or model-quality job exists.
+Within each phase, Linux/CUDA completes its checks before macOS/MLX starts.
+Notify the user before MLX runs on `macstudio` because it has competing workloads.
 
 Planned CI: lightweight default CPU checks every PR; target-specific SDK builds;
 small fixtures on dedicated Apple Silicon and CUDA runners; full checkpoint suites

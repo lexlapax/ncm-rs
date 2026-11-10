@@ -1,7 +1,8 @@
 # Architecture proposal
 
-Status: proposed, pending Phase 1 spikes and user review. Empty crates reserve
-boundaries; they do not imply working APIs or frozen abstractions.
+Status: implementation approved; backend contracts remain provisional pending
+Phase 1 spikes (Linux/CUDA first, then macOS/MLX). Crate boundaries do not imply
+complete working APIs or frozen abstractions.
 
 ## Decision: one model, two runtime adapters
 

@@ -3,8 +3,10 @@
 A planned Rust port of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
-**Status: research and workspace scaffold only. No model, GPU backend, checkpoint
-converter, or inference command is implemented. Implementation awaits plan review.**
+**Status: Phase 1 approved and in progress.** Linux/CUDA candidate operators pass
+18 synthetic PyTorch parity cases; there is no complete model, checkpoint converter
+or inference command yet. Within each phase, Linux/CUDA is validated first, then
+macOS/MLX. Both gates are required before advancing phases.
 
 ## Goals
 
@@ -38,21 +40,27 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 
 ## Workspace
 
-| Path | Intended responsibility (not implemented) |
+| Path | Responsibility / current scope |
 | --- | --- |
 | `crates/ncm-core` | Validated configuration, tensor/backend contract, errors |
 | `crates/ncm-model` | Shared VQ codec, transformer, generation and sampling |
 | `crates/ncm-tokenizers` | HF tokenizers, TinyStories byte BPE, Sudoku |
 | `crates/ncm-io` | Versioned manifests, safetensors, artifact validation |
-| `crates/ncm-backend-cuda` | Candle CPU reference and Linux CUDA adapter |
+| `crates/ncm-backend-cuda` | Candidate Candle CPU/CUDA operators, fixture tests and microprobe |
 | `crates/ncm-backend-mlx` | Apple Silicon MLX adapter |
 | `crates/ncm-cli` | Future `ncm` command; currently a status-only executable |
-| `tools/reference` | Offline Python oracle/exporter boundary |
-| `tests/fixtures` | Fixture policy; no generated fixtures yet |
-| `benches` | Benchmark protocol; no benchmarks yet |
+| `tools/reference` | Pinned Python operator oracle; checkpoint exporter still pending |
+| `tests/fixtures` | 18 synthetic FP32 operator cases and fixture policy |
+| `tools/bench` | Validated aggregation of raw probe results |
+| `benches` | Benchmark protocol and reproduction links |
 
-No external dependencies are selected or linked in this scaffold. Runtime choices
-are provisional until Phase 1's capability spikes. There are no GPU feature flags yet.
+Candle is pinned to 0.11.1 behind the backend crate's opt-in `cpu`/`cuda` features.
+Default builds do not require a GPU SDK. MLX integration and a shared backend
+contract remain provisional; the status-only CLI has no runtime features yet.
+
+[First public operator comparison](docs/results/2026-11-09-cuda-operators/README.md):
+correctness passes, but composed resampling is substantially slower than PyTorch.
+These tiny microprobes establish no NCM quality or generation speedup.
 
 ## Scaffold checks
 
@@ -65,8 +73,17 @@ cargo test --workspace --locked
 cargo run -p ncm-cli --locked
 ```
 
-These commands validate the **scaffold only**; empty library crates have no model
-tests. GPU verification will require real Apple Silicon and NVIDIA runners.
+These default commands validate the scaffold and reporting dependencies. Run the
+actual operator regression suite with:
+
+```sh
+cargo test -p ncm-backend-cuda --features cpu --locked
+python3 -m unittest discover -s tools/bench -v
+```
+
+For CUDA builds and synchronized timing commands, see the report linked above.
+No model-level tests exist yet. `macstudio` is authorized for Apple validation,
+but coordinate its competing workloads with the user before starting MLX runs.
 
 ## Provenance and license
 

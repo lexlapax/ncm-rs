@@ -18,8 +18,14 @@
   adapters. Unsupported features must fail explicitly, not silently fall back.
 - Publish reproducible quality AND performance comparisons for execution/output-
   affecting changes and releases. Missing hardware evidence is pending, not passing.
-- Phase 0 is scaffold/research only. Do not begin model/backend/converter
-  implementation until the user approves the plan; consult the map for current gate.
+- The implementation plan is approved. Within EVERY phase, complete Linux/CUDA
+  work and validation first, then macOS/MLX. Both runtime gates must pass before
+  advancing phases. Consult the context map for the current phase and blockers.
+- `ssh macstudio` is authorized for Apple testing. It has competing workloads:
+  **notify the user and coordinate availability before starting MLX workloads**.
+  Inspect remote state before syncing; never overwrite unrelated work or change
+  global tooling unnecessarily. Pull reviewed pushed commits into
+  `~/projects/lexlapax/ncm-rs` rather than overwriting that checkout.
 - Keep unsafe code narrowly audited, dependencies deliberate, secrets/weights/data
   out of Git, and untrusted code off persistent GPU runners. Respect licenses.
 - No agent attribution in code, comments, documentation, generated files or commit

@@ -3,7 +3,8 @@
 Required deliverable: reproducible comparisons when inference is completed, for
 each subsequent release/upstream upgrade, and for code changes affecting execution
 or outputs. Benchmark and quality evidence is part of the change, not a final
-marketing task. No results exist yet; see [results index](results/README.md).
+marketing task. The first report covers Linux/CUDA synthetic operators only;
+see the [results index](results/README.md). Model quality is explicitly unmeasured.
 
 ## When reports are required
 

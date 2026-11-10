@@ -1,8 +1,15 @@
-# Reference fixtures (planned)
+# Reference fixtures
 
-No golden fixtures exist yet. Phase 1 adds small deterministic synthetic tensors
-and provenance manifests; real model weights/data remain in the ignored artifact
-cache. Fixture schema records upstream/converter revisions, patches, inputs,
-outputs, dtypes and checksums. Do not replace reference outputs to conceal failures.
+`operators-v1.json` contains 18 small synthetic FP32 PyTorch 2.15.0 CPU cases for
+matmul, conv/transposed conv, GroupNorm/LayerNorm/RMSNorm, area/linear resampling,
+padded prefix attention, split-half RoPE and FP16 rounding. Inputs are fixed
+values, not RNG-dependent. Metadata pins the oracle and upstream semantic reference.
 
-See ../../docs/TESTING.md and ../../docs/ARTIFACTS.md.
+Regenerate to a NEW file with `tools/reference/operators.py generate --fixture ...`
+and review differences. Shapes, lengths, finite values, schema and upstream pin are
+validated before loading the Rust fixture tensors. Test tolerances are fixed in
+`crates/ncm-backend-cuda/tests/support/mod.rs`, not controlled by the fixture.
+
+This is not a checkpoint/model fixture. Large traces, weights and licensed data
+remain outside Git. See [testing policy](../../docs/TESTING.md) and the
+[measurement report](../../docs/results/2026-11-09-cuda-operators/README.md).

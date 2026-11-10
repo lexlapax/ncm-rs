@@ -1,13 +1,12 @@
 # Published comparison index
 
-No measured model results yet. The initial commit is documentation and empty
-workspace scaffolding, so quality/performance comparisons are **not applicable**.
-No inference, GPU kernel, converter, model test or benchmark is implemented.
+| Report | Scope | CUDA | MLX | Model quality |
+| --- | --- | --- | --- | --- |
+| [2026-11-09: operator capability spike](2026-11-09-cuda-operators/README.md) | 18 synthetic cases; three fresh-process timing runs per runtime | Measured, parity passed; slower composed resampling reported | Pending, coordinate workloads first | Not measured |
 
-The first required report is Phase 1's runtime capability/baseline study, followed
-by the end-to-end Sudoku comparison on CUDA and MLX in Phase 3.
+These are operator measurements, **not** NCM generation benchmarks. Phase 1's
+checkpoint conversion/model fixtures and the Apple pass remain incomplete.
 
-Follow [REPORTING.md](../REPORTING.md) for immutable result bundles, baseline
-selection, affected-change reports and release publication. The repository is
-public at the user's request; reviewed reports will be published here with durable
-links to raw result bundles.
+Follow [REPORTING.md](../REPORTING.md) for immutable bundles, affected-change
+reports and release publication. Summaries, compact raw data and source hashes
+are public; larger future bundles need durable release-asset links.
