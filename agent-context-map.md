@@ -158,6 +158,20 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
   tested Sudoku artifact was copied to a new ignored Mac cache directory.
 - Local default checks pass after these harness additions; no tolerance changes.
 
+## Apple hardware results (publication review in progress)
+
+- All 18 unchanged operator goldens and all 238 tensor readbacks pass on real
+  Metal. Three fresh-process Python/Rust MLX runs completed. `tools/check.sh --mlx`
+  passes CPU checks plus the two Metal tests, release Clippy, docs and the probe.
+- Rust probe also runs with a cleared environment and no Python venv on PATH;
+  native linkage contains no Python library. Tokenizer parity/timing passes on Mac.
+- Reviewing memory scopes exposed that the Python load preflight had not executed
+  a Metal kernel like Rust's preflight. Added matching loaded-weight square/eval
+  before measuring Python memory; rerunning both load baselines before publication.
+- Added a validated three-process result aggregator (three new unit tests) and
+  pinned Mac offline requirements. Negative findings and native build limitations
+  will be preserved in the phase-completion report; no optimization claim.
+
 ## Next actions (do not skip gates)
 
 1. Announce/start the Apple Phase 1 pass: pinned mlx-rs, existing operator goldens,

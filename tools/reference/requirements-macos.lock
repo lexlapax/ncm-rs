@@ -1,0 +1,5 @@
+# Tested with Python 3.14.10 on Apple Silicon macOS 26.7.3.
+# Native wheel tags/dylib hashes are recorded in the MLX Phase 1 report.
+mlx==0.32.2
+mlx-metal==0.32.2
+numpy==2.5.4

@@ -46,6 +46,10 @@ def main():
     assert mx.__version__=="0.32.2" and mx.metal.is_available()
     mx.set_default_device(mx.gpu)
     loaded=load(args.bundle,check=True)
+    # Match the Rust preflight: a real Metal kernel consumes a loaded weight.
+    # Leaf-array eval alone does not initialize the same GPU execution resources.
+    weight=next(a for a in loaded[1] if a.dtype==mx.float32)
+    kernel=mx.square(weight); mx.eval(kernel); del kernel, weight
     count=len(loaded[1]); del loaded
     mx.clear_cache(); mx.reset_peak_memory()
     before=mx.get_active_memory()
