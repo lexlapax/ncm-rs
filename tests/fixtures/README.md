@@ -17,6 +17,15 @@ Rust token IDs are rejected rather than permitting Python's negative indexing.
 Generate to a new file with `tools/reference/sudoku_trace.py`, never silently
 replace the established fixture.
 
+`codec-v1.json` is the Phase 2 **untrained synthetic codec** oracle: a width-16,
+length-16 model with a normalized two-stage learned cascade, two input batches,
+free-running encoding and fixed-code decoding. Its 170 deduplicated arrays use
+F32/I64 little-endian hex bytes; weights/traces refer to their interned IDs.
+The reference contains 236 traced tensors and per-position winner margins. It is
+not trained Sudoku weights. See [Phase 2 policy](../../docs/PHASE2.md) and the
+[oracle audit](../../docs/results/2026-11-10-phase2-oracle/README.md). Rust fixture
+execution is pending the shared backend/model implementation.
+
 The operator fixture is not a checkpoint/model fixture. The scoped Sudoku oracle
 now generates 56 model traces from pinned weights; large traces, weights and
 licensed data remain outside Git. See [testing policy](../../docs/TESTING.md) and the

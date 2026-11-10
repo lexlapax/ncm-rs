@@ -1,0 +1,15 @@
+{
+  "scope": "diagnostic only, no runtime precision/tolerance change",
+  "rows": [
+    {
+      "flat_batch_row": 0,
+      "channel": 113,
+      "cpu": 4.467771053314209,
+      "cuda": 4.46671724319458,
+      "abs_error": 0.0010538101196289062,
+      "diagnostic_f64_dot_from_cpu_input": 4.467653124198236,
+      "sum_abs_products": 2267.9939920046627,
+      "dot_terms": 22784
+    }
+  ]
+}

@@ -72,6 +72,23 @@ compare tensor hashes separately. Large traces and weights remain ignored; only
 small fixtures, inventories and reports are checked in. The optional Torch test
 suite above is separate from `tools/check.sh`, which needs no reference venv.
 
+## Phase 2 codec references
+
+`codec_trace.py` captures the pinned unmodified codec with read-only observations,
+cloned cumulative snapshots and fixed-code decoding. `compare_codec_traces.py`
+checks source/config/weight identity and the new predeclared budgets; it is not a
+Rust parity claim. Canonical oracles are the tiny CPU fixture and trained Sudoku
+CUDA captures. A full-checkpoint CPU/CUDA diagnostic has one internal mismatch,
+retained without changing tolerances. See the
+[contract](../../docs/PHASE2.md) and [audit/reproduction commands](../../docs/results/2026-11-10-phase2-oracle/README.md).
+
+The tiny fixture stores deduplicated typed little-endian hex arrays. Raw Sudoku
+traces remain ignored until durable archive publication; never replace established
+fixtures with a new generation merely to hide a failure. The generator authenticates
+config/codec/training files against the committed Phase 1 inventory, not an arbitrary
+replacement manifest. It requires the pinned clean source checkout and refuses
+existing output directories. It never loads pickle or starts an MLX job.
+
 ## Apple Silicon / MLX Phase 1
 
 Tested tuple: Rust 1.99.1, mlx-rs Git pin in Cargo.lock (0.34.0), native MLX

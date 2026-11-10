@@ -5,9 +5,14 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 ## Current state and user decisions
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
-- **User goal: complete Phase 1. Both gates now passed, Linux/CUDA first and
-  macOS/MLX second. Phase 2 has not started.** See [acceptance](docs/PHASE1.md).
-  Keep this same platform order within EVERY later phase; both gates before advance.
+- **Current confirmed goal: complete Phase 2. In progress on Linux; neither Phase 2
+  runtime gate is passed.** The reference-contract milestone is implemented; shared
+  Rust runtime/model work is next. See [Phase 2 contract](docs/PHASE2.md).
+  Phase 1 passed Linux/CUDA then macOS/MLX ([acceptance](docs/PHASE1.md)). Keep this
+  same order within EVERY phase; both gates before advancing. Phase 3 is out of scope.
+- The confirmed Phase 2 goal includes TinyStories byte-BPE and GPT-2/Qwen/BERT
+  tokenizer asset conversion/parity, not full text-model inference. Goal state is
+  managed by the harness under untracked `.pi/`; do not edit or stage that state.
 - Implemented: candidate CPU/CUDA/MLX operators, shared fixed fixture contract,
   scoped Sudoku exporter/checked copied loader, Sudoku text tokenizer, upstream
   model traces and reproducible operator/load/tokenizer/memory reports.
@@ -30,6 +35,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 
 | Need | Load |
 | --- | --- |
+| Current Phase 2 contract / fixture audit | [docs/PHASE2.md](docs/PHASE2.md), [oracle audit](docs/results/2026-11-10-phase2-oracle/README.md) |
 | Completed gate and precise scope | [docs/PHASE1.md](docs/PHASE1.md) |
 | Next stages | [docs/PLAN.md](docs/PLAN.md) |
 | Architecture / provisional model interface | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
@@ -102,6 +108,37 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   cached generation, packaging and training remain future phases. OWT weights and
   the upstream full training pipeline remain unavailable.
 
+## Phase 2 reference-contract milestone
+
+- Audited all pinned codec/quantizer source and the 58 runtime tensor names/shapes.
+  Important: codec `n_layers=4` is head count; decoder is bidirectional, unlike the
+  common generator attention's default causal path. Exact-erf GELU is required.
+- Declared `codec-fp32-v1` budgets before Rust codec work in `docs/PHASE2.md`.
+  Existing operator tolerances/goldens are unchanged. Full-checkpoint CUDA is the
+  canonical trained oracle; tiny synthetic CPU is the portable component oracle.
+- Added `tools/reference/codec_trace.py`, comparator and four utility tests. Captures
+  clone every snapshot; decode shadow sums match the original decoder latent, and
+  encode/decode snapshots agree. No upstream source/math patches or pickle loading.
+- New `tests/fixtures/codec-v1.json`: 170 interned typed arrays (~608 KiB), untrained
+  width-16/length-16 codec, two-stage normalized cascade, 236 traces across two cases.
+  Rust execution of this fixture is still pending implementation, not passing.
+- Trained Sudoku CUDA: 642 traces, solved B2 / blank B1 / mixed B2, with free encode
+  and fixed-code decode. Two fresh canonical generations have identical file hashes.
+  Phase 1 solved-batch codec input/pre-quant/codes/logits remain byte-exact.
+- Tiny original-Python CPU/CUDA comparison passes all 236 traces. Real-checkpoint
+  CPU/CUDA diagnostic retains one failing internal component on blank-board level-0
+  learned downsampling (22,784-term projection; channel 113 differs by ~0.001054).
+  All IDs and final reconstruction/logit budgets agree. No tolerance widened; this
+  diagnostic cannot exempt a future GPU candidate from the trained-CUDA oracle gate.
+- Nine optional reference tests pass; every fixture array's key/shape/dtype/byte
+  count and reference was checked. Small reports are public; large traces (~92 MiB
+  for trained capture) are ignored in `reports/phase2-oracle/v1/`; durable Phase 2
+  archive publication is still pending. No Rust codec/performance claim yet.
+- Reconciled stale README/plan/testing status. Runtime code is unchanged in this
+  milestone. Full `tools/check.sh --cuda` passes (15 Rust tests, seven report-tool
+  tests, all 18 real-GPU operator cases, lint/fmt/docs/syntax), plus nine optional
+  reference tests. Log: `.reference/phase2-contract-check.log`. Hashes/links pass.
+
 ## Latest provenance and next actions
 
 - CUDA milestone `3178aa1`; local checks `f7aad49`; artifacts/traces `bbdf422`;
@@ -110,7 +147,10 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Final Apple raw trials: `reports/phase1-final/mlx` and `mlx-load-matched` locally;
   remote `reports/phase1-mlx/final` and `load-final`. Final remote local-check log:
   `reports/phase1-mlx/check-closure.log`; Linux `.reference/phase1-linux-closure.log`.
-- Phase 1 goal is complete. Next plan stage is Phase 2 shared primitives/codec,
-  starting on Linux and only then Mac. Preserve golden/reference behavior; retain
-  aliasing-helper caveats and copied accumulator snapshots. Do not begin claiming
-  model compatibility from the operator/artifact evidence or hide negative baselines.
+- Phase 1 closure is pushed as `650cc7d`. The current reference milestone is based
+  on that commit; newly generated reports embed exact script/helper hashes.
+- Next: validated shared configuration and checked model-weight loading, followed
+  by a minimal backend trait, Linux primitives/codec, tokenizer assets and Linux
+  measurements. Only then start Phase 2 Apple work. Preserve the fixed oracle
+  budgets, retain near-margin cases and negative findings, and do not conflate
+  reference generation with Rust codec qualification.

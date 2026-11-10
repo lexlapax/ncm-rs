@@ -1,9 +1,12 @@
 # Test strategy and acceptance gates
 
-Phase 1 now has five Rust CPU regression tests covering 18 synthetic operator
-fixtures and invalid-input/comparison checks; the same 18 cases pass a manual CUDA
-probe. Four standard-library Python tests check report aggregation. No checkpoint,
-model-quality or MLX suite exists yet. The broader gates below remain planned.
+Phase 1 is complete: 18 fixed operator cases pass CPU/CUDA/MLX, all 238 checkpoint
+tensors round-trip/read back exactly, and the tokenizer, artifact and real-Metal
+tests exist. There are seven report-tool tests. Phase 2 now has a declared
+[codec reference contract](PHASE2.md), a tiny synthetic CPU fixture and trained
+CUDA codec traces; no Rust codec or model-quality result exists yet. See the
+[oracle audit](results/2026-11-10-phase2-oracle/README.md), including its retained
+CPU/CUDA diagnostic failure. The remaining model gates below are still planned.
 
 ## Layers of evidence
 
