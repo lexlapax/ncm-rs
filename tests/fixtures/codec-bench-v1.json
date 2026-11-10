@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "profile": "sudoku-easy",
+  "input_pattern": "solved Sudoku rows: (row*3 + row/3 + column + batch_index%2)%9+1; token 10 between rows",
+  "supplied_codes": "per level: (batch_index*level_length + position + 3*level_index)%16",
+  "batches": [1, 2, 4],
+  "levels": [1, 2, 4, 6, 9, 13, 18, 26, 37, 50, 67, 89],
+  "warmups": 5,
+  "trials": 30,
+  "precision": "fp32",
+  "snapshots": "retain every cumulative latent; fixed decode uses out-of-place sums, avoiding the upstream aliasing helper",
+  "scopes": ["encode", "decode", "reconstruct", "resident_decoder_block"],
+  "pipeline_scope": "host input IDs -> GPU outputs and independent snapshots -> host code/output IDs; logits/snapshots retained on GPU; destruction excluded",
+  "resident_scope": "resident BLC latent -> decoder middle block BLC output; no input/output host copies",
+  "timing": "synchronized wall clock and CUDA stream event span, including host-submission gaps; not summed kernel time",
+  "instrumented_stages": "separate reconstruction pass: embedding/pre-quant after input upload; each encode level from residual/downsample through Phi contribution (excluding accumulation, residual subtraction and unused reference z_levels); full decoder logits; output argmax. Instrumentation perturbs dispatch; not additive headline timings."
+}

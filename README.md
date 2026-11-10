@@ -7,8 +7,8 @@ Next-Concept Modeling for parallel, coarse-to-fine text generation.
 All 18 operator goldens and 238 checkpoint tensor readbacks pass; scoped Sudoku
 conversion, a checked Rust artifact loader, text tokenizer and reference traces
 exist. The shared FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT text
-tokenizers now pass Linux parity; performance/memory acceptance and the MLX codec
-pass remain pending. Text tokenizer support does not imply full text-model inference.
+tokenizers now pass the [Linux correctness/performance/memory gate](docs/results/2026-11-10-phase2-linux/README.md).
+The codec is slower than eager PyTorch; the MLX codec pass remains pending. Text tokenizer support does not imply full text-model inference.
 **No generator or inference CLI yet.** See the
 [Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
 Within each phase, Linux/CUDA is validated
@@ -48,9 +48,9 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 
 | Path | Responsibility / current scope |
 | --- | --- |
-| `crates/ncm-core` | Planned validated configuration, tensor/backend contract, errors |
-| `crates/ncm-model` | Planned shared VQ codec, transformer, generation and sampling |
-| `crates/ncm-tokenizers` | Sudoku implemented; HF tokenizers and TinyStories byte BPE planned |
+| `crates/ncm-core` | Validated codec configuration, provisional backend contract, errors |
+| `crates/ncm-model` | Shared FP32 Sudoku codec and blocks; generation/sampling planned |
+| `crates/ncm-tokenizers` | Sudoku, pinned HF tokenizers and TinyStories byte BPE |
 | `crates/ncm-io` | Versioned manifests, safetensors, artifact validation |
 | `crates/ncm-backend-cuda` | Candidate Candle CPU/CUDA operators, fixture tests and microprobe |
 | `crates/ncm-backend-mlx` | Candidate MLX/Metal operators, real-device tests and load/memory probes |

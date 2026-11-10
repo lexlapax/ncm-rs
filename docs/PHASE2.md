@@ -137,7 +137,10 @@ kernels, compiled mixed-precision policy or generation-cache work in this phase.
 - [x] Sudoku regression plus TinyStories/HF tokenizer conversion/parity on Linux:
   [asset pins, safety, exact cases](results/2026-11-10-phase2-tokenizers/README.md).
   Apple must repeat the same fixtures after Linux platform acceptance.
-- [ ] Published Linux reconstruction, performance and memory gate.
+- [x] Published Linux reconstruction, performance and memory gate:
+  [three-process codec/tokenizer evidence](results/2026-11-10-phase2-linux/README.md).
+  Native codec is slower than eager Torch; measured memory scopes differ. No
+  efficiency claim or compiled-Python qualification is implied.
 - [ ] Corresponding Apple/MLX implementation, parity and measurements.
 - [ ] Both local checks, reports, context updates and reviewed commit/push closure.
 

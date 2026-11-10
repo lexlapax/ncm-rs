@@ -2,6 +2,7 @@ use candle_core::{Device, Tensor};
 use ncm_core::{Error, Result, WeightBackend};
 
 /// Explicit native device selection. CPU is a diagnostic path, never a fallback.
+#[derive(Clone)]
 pub struct CandleBackend {
     device: Device,
 }

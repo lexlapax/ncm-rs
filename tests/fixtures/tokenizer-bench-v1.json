@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "fixture_sha256": "5c937a5e5aef961d9361b7f5788929681b24e55c223886d11b5928169db23256",
+  "scope": "All 89 encode cases per profile from tokenizers-v1.json, in fixture order; sequential scalar encode, decode(false), decode(true). Five warmups and thirty trials after a separate first call.",
+  "special_id_provenance": "Reviewed canonical tokenizers-qualified payload added_tokens entries with special=true; TinyStories fixed EOS/PAD IDs. Payload identities are pinned in tools/reference/tokenizers-v1.lock.json. Used only for throughput denominators, not to change execution or golden outputs.",
+  "special_ids": {
+    "bert": [0, 100, 101, 102, 103],
+    "gpt2": [50256, 50257],
+    "qwen3": [151643, 151644, 151645, 151646, 151647, 151648, 151649, 151650, 151651, 151652, 151653, 151654, 151655, 151656],
+    "tinystories": [0, 1]
+  }
+}

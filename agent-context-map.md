@@ -5,9 +5,10 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 ## Current state and user decisions
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
-- **Confirmed goal: complete Phase 2. Linux codec and tokenizer parity pass;
-  neither complete Phase 2 runtime gate is closed.** Linux performance/memory
-  acceptance is next. No Phase 2 Apple implementation/testing has started.
+- **Confirmed goal: complete Phase 2. Linux/CUDA gate is complete**, including
+  codec/tokenizer parity and matched three-process performance/memory evidence.
+  Native codec is slower than eager Torch; this is not an efficiency claim.
+  Apple/MLX implementation/testing is next; no Phase 2 Apple run has started.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -40,6 +41,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 | Artifact trust/limits | [docs/ARTIFACTS.md](docs/ARTIFACTS.md), [ncm-io](crates/ncm-io/src/lib.rs), [runtime checks](docs/results/2026-11-10-phase2-runtime/README.md) |
 | Architecture / upstream caveats | [architecture](docs/ARCHITECTURE.md), [research](docs/RESEARCH.md) |
 | Checks / reporting / compatibility | [testing](docs/TESTING.md), [reporting](docs/REPORTING.md), [upstream policy](docs/UPSTREAM.md) |
+| Phase 2 Linux acceptance / benchmarks | [Linux gate](docs/results/2026-11-10-phase2-linux/README.md), [summary tool](tools/bench/phase2_summary.py), [runner](tools/bench/run_phase2_linux.py) |
 | Historical baselines | [results index](docs/results/README.md), [Apple Phase 1](docs/results/2026-11-10-mlx-phase1/README.md) |
 
 ## Pins, machines and caches
@@ -125,22 +127,34 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   Tiny pickle conversion interprets bounded data opcodes, never unpickles or calls
   constructors. Canonical HF JSON comes from offline trusted-code-disabled wrappers.
   Four real-asset mutations/profile are rejected; fresh conversions are identical.
+- Linux measurements: `reports/phase2-linux-v1`; all 30 fresh-process raw reports,
+  telemetry and first logits are committed under `docs/results/2026-11-10-phase2-linux`.
+  Three processes, five warmups, thirty trials; matching output hashes/counts and
+  44,856 native benchmark logits pass. B1 reconstruct Rust/Python 18.890/4.668 ms;
+  warm codec load 184.49/267.61 ms; host HWM ~559–562/1530–1540 MiB. Native pool
+  counters exclude context/cuBLAS allocations; not interchangeable with Torch's
+  allocator or device-global snapshots. Occupied workstation/clock variation disclosed.
+- Instrumented level spans identify intermediate composed resampling as the main
+  native cost. Original-Python fullgraph Inductor preflight fails on NumPy-based
+  Phi module indexing; no compiled timing baseline is qualified. Tokenizer timings
+  retain both skip modes and special/non-special throughput; Qwen native loading
+  is slightly slower in pooled medians. Original-source vs canonical load formats
+  differ. No model/operator/tokenizer math, dependency pin or golden changed.
 - Latest Linux `tools/check.sh --cuda` passes: 30 base Rust tests, real-CUDA codec
-  suite, all 18 unchanged operators, seven report-tool tests, fmt/Clippy/docs/syntax.
-  All 18 offline reference tests pass. Tokenizer probe also passes with cleared env
-  and no Python on PATH. Logs: `.reference/phase2-tokenizer-check.log`,
-  `.reference/phase2-codec-check.log`; current reports link exact fingerprints.
+  suite, all 18 unchanged operators, fmt/Clippy/docs/syntax. Eleven report-tool tests
+  and all 18 offline reference tests pass. Tokenizer probe previously also passed
+  with cleared env and no Python on PATH. Logs: `.reference/phase2-linux-check.log`,
+  `.reference/phase2-linux-reference-tests.log`; reports retain exact fingerprints.
 
 ## Provenance and next actions
 
 - Phase 1 closure `650cc7d`; Phase 2 oracle `97a3125`, checked runtime `8492c27`,
-  components `a4a6344`, complete codec `bb77fef`. Tokenizer work is in the accompanying
-  milestone. Preserve old reports/source hashes; do not relabel historical runs.
-- **Next: Linux quality/performance/memory gate.** Benchmark matched uninstrumented
-  Python/native codec and tokenizer workloads (three fresh processes, five warmups,
-  thirty trials), first/warm/load timing, throughput and host/device memory. Keep
-  reference snapshot fixes explicit; do not compare mismatched API/output scopes.
-- Then recheck Mac availability, safely sync pushed code/assets, implement the same
+  components `a4a6344`, complete codec `bb77fef`, tokenizers `0396b56`. Linux runtime
+  gate closes in the accompanying milestone. Preserve old reports/source hashes;
+  do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
+  task-quality data or an inference release.
+- **Next: Apple/MLX gate.** Recheck Mac availability/worktree, announce the first
+  Phase 2 MLX run after safely syncing reviewed pushed code/assets, implement the same
   shared codec via MLX, and repeat the identical fixtures/tokenizer checks and
   measurement protocol. Both platform gates plus durable evidence/acceptance
   publication are required; no Phase 3 work or inference release claims.

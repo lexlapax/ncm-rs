@@ -115,6 +115,22 @@ existing Torch reference environment. Canonical payload/manifest hashes are in
 for commands and the explicit Unicode-16/reference-version policy. This supports
 these wrappers, not arbitrary HF imports or full text-model inference.
 
+## Phase 2 Linux measurements
+
+`codec_bench.py` measures pinned eager CUDA codec execution and checked loading,
+with explicitly snapshot-safe decode checked against the unmodified final decoder.
+`codec_stages.py` adds separate instrumented stream spans; these are not headline
+API timing. `codec_compile_probe.py` retains the failed optional fullgraph Inductor
+preflight and never marks a compiled baseline qualified from output checks alone.
+`text_tokenizer_bench.py` uses the original pinned wrappers and safe source loading;
+canonical/native vs original/Python load formats are disclosed rather than hidden.
+
+Build the native `codec_bench` and `asset_bench` examples, then use
+`tools/bench/run_phase2_linux.py` for sequential alternating fresh-process runs.
+`phase2_summary.py` checks complete matrices, matching outputs/scopes, fixed logit
+budgets and timing counts before aggregating. See the [Linux gate report](../../docs/results/2026-11-10-phase2-linux/README.md)
+for exact commands, raw trials, telemetry, memory scopes and negative results.
+
 ## Apple Silicon / MLX Phase 1
 
 Tested tuple: Rust 1.99.1, mlx-rs Git pin in Cargo.lock (0.34.0), native MLX

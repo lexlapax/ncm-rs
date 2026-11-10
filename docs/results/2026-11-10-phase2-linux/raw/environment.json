@@ -1,0 +1,267 @@
+{
+  "started_utc": "2026-11-10T05:40:52.925255+00:00",
+  "git_head": "0396b5660c43d18db593c0e9360a948f48a36422",
+  "git_status": "M crates/ncm-backend-cuda/Cargo.toml\n M crates/ncm-backend-cuda/src/runtime.rs\n?? .pi/\n?? crates/ncm-backend-cuda/examples/codec_bench.rs\n?? crates/ncm-backend-cuda/examples/support/\n?? crates/ncm-tokenizers/examples/asset_bench.rs\n?? tests/fixtures/codec-bench-v1.json\n?? tools/bench/phase2_summary.py\n?? tools/bench/run_phase2_linux.py\n?? tools/reference/codec_bench.py\n?? tools/reference/codec_compile_probe.py\n?? tools/reference/codec_stages.py\n?? tools/reference/text_tokenizer_bench.py",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Arch Linux rust 1:1.99.1-1)",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27) (Arch Linux rust 1:1.99.1-1)",
+  "kernel": "7.2.14-arch1-1",
+  "cpu": "12th Gen Intel(R) Core(TM) i7-12700K",
+  "gpu": "name, driver_version, memory.total [MiB], memory.used [MiB], power.limit [W], utilization.gpu [%]\nNVIDIA GeForce RTX 3060 Ti, 615.78.08, 8192 MiB, 4809 MiB, 200.00 W, 0 %",
+  "cuda_compiler": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2026 NVIDIA Corporation\nBuilt on Tue_Sep_01_08:45:21_PDT_2026\nCuda compilation tools, release 13.4, V13.4.92\nBuild cuda_13.4.r13.4/compiler.38855100_0",
+  "commands": [
+    [
+      ".reference/venv/bin/python",
+      "tools/reference/codec_bench.py",
+      "artifacts/canonical/sudoku-easy-qualified",
+      ".reference/upstream-ncm",
+      "tests/fixtures/codec-bench-v1.json",
+      "reports/phase2-linux-v1/codec-python-1.json"
+    ],
+    [
+      "target/release/examples/codec_bench",
+      "artifacts/canonical/sudoku-easy-qualified",
+      "tests/fixtures/codec-bench-v1.json",
+      "reports/phase2-linux-v1/codec-rust-1.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "bert",
+      "reports/phase2-linux-v1/tokenizer-bert-python-1.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "bert",
+      "reports/phase2-linux-v1/tokenizer-bert-rust-1.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "gpt2",
+      "reports/phase2-linux-v1/tokenizer-gpt2-python-1.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "gpt2",
+      "reports/phase2-linux-v1/tokenizer-gpt2-rust-1.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "qwen3",
+      "reports/phase2-linux-v1/tokenizer-qwen3-python-1.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "qwen3",
+      "reports/phase2-linux-v1/tokenizer-qwen3-rust-1.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "tinystories",
+      "reports/phase2-linux-v1/tokenizer-tinystories-python-1.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "tinystories",
+      "reports/phase2-linux-v1/tokenizer-tinystories-rust-1.json"
+    ],
+    [
+      "target/release/examples/codec_bench",
+      "artifacts/canonical/sudoku-easy-qualified",
+      "tests/fixtures/codec-bench-v1.json",
+      "reports/phase2-linux-v1/codec-rust-2.json"
+    ],
+    [
+      ".reference/venv/bin/python",
+      "tools/reference/codec_bench.py",
+      "artifacts/canonical/sudoku-easy-qualified",
+      ".reference/upstream-ncm",
+      "tests/fixtures/codec-bench-v1.json",
+      "reports/phase2-linux-v1/codec-python-2.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "bert",
+      "reports/phase2-linux-v1/tokenizer-bert-rust-2.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "bert",
+      "reports/phase2-linux-v1/tokenizer-bert-python-2.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "gpt2",
+      "reports/phase2-linux-v1/tokenizer-gpt2-rust-2.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "gpt2",
+      "reports/phase2-linux-v1/tokenizer-gpt2-python-2.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "qwen3",
+      "reports/phase2-linux-v1/tokenizer-qwen3-rust-2.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "qwen3",
+      "reports/phase2-linux-v1/tokenizer-qwen3-python-2.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "tinystories",
+      "reports/phase2-linux-v1/tokenizer-tinystories-rust-2.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "tinystories",
+      "reports/phase2-linux-v1/tokenizer-tinystories-python-2.json"
+    ],
+    [
+      ".reference/venv/bin/python",
+      "tools/reference/codec_bench.py",
+      "artifacts/canonical/sudoku-easy-qualified",
+      ".reference/upstream-ncm",
+      "tests/fixtures/codec-bench-v1.json",
+      "reports/phase2-linux-v1/codec-python-3.json"
+    ],
+    [
+      "target/release/examples/codec_bench",
+      "artifacts/canonical/sudoku-easy-qualified",
+      "tests/fixtures/codec-bench-v1.json",
+      "reports/phase2-linux-v1/codec-rust-3.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "bert",
+      "reports/phase2-linux-v1/tokenizer-bert-python-3.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "bert",
+      "reports/phase2-linux-v1/tokenizer-bert-rust-3.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "gpt2",
+      "reports/phase2-linux-v1/tokenizer-gpt2-python-3.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "gpt2",
+      "reports/phase2-linux-v1/tokenizer-gpt2-rust-3.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "qwen3",
+      "reports/phase2-linux-v1/tokenizer-qwen3-python-3.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "qwen3",
+      "reports/phase2-linux-v1/tokenizer-qwen3-rust-3.json"
+    ],
+    [
+      ".reference/tokenizers-venv/bin/python",
+      "tools/reference/text_tokenizer_bench.py",
+      "artifacts/upstream/tokenizers-v2",
+      ".reference/upstream-ncm",
+      "tests/fixtures/tokenizers-v1.json",
+      "tinystories",
+      "reports/phase2-linux-v1/tokenizer-tinystories-python-3.json"
+    ],
+    [
+      "target/release/examples/asset_bench",
+      "artifacts/canonical/tokenizers-qualified",
+      "tests/fixtures/tokenizers-v1.json",
+      "tinystories",
+      "reports/phase2-linux-v1/tokenizer-tinystories-rust-3.json"
+    ]
+  ],
+  "scope_notes": [
+    "Workstation GPU; existing resident applications are not stopped or reconfigured. See telemetry/pmon for activity.",
+    "No clock/power controls changed. Warm filesystem cache, not disk-cold load. Python import and CUDA context startup excluded.",
+    "Codec runtime allocations and device-global observations differ; do not interpret global usage as process peak.",
+    "CPU tokenizer profiles use separate fresh processes; Python source loading and native canonical loading differ in representation."
+  ],
+  "binaries_sha256": {
+    "target/release/examples/codec_bench": "97d2dd688736e64e6b8d51d097cebaef7e1db2eb8f628fc00d3126c552009f26",
+    "target/release/examples/asset_bench": "1feb0b213169773976166e1e59222cf7bc8545b17ccb231c4c23d7ac92287214"
+  },
+  "cpu_governor": "powersave",
+  "venv": {
+    "python": "Python 3.14.9",
+    "packages": "antlr4-python3-runtime==4.9.3\ncuda-bindings==13.5.0\ncuda-pathfinder==1.8.6\ncuda-toolkit==13.2.2\nfilelock==4.2.10\nfsspec==2026.9.0\nhydra-core==1.3.2\nJinja2==3.1.6\nMarkupSafe==3.0.4\nmpmath==1.3.0\nnetworkx==3.7\nnumpy==2.5.4\nnvidia-cublas==13.4.1.3\nnvidia-cuda-cccl==13.3.5.0.6\nnvidia-cuda-cupti==13.2.86\nnvidia-cuda-nvrtc==13.2.86\nnvidia-cuda-runtime==13.2.86\nnvidia-cudnn-cu13==9.26.0.51\nnvidia-cufft==12.2.0.57\nnvidia-cufile==1.17.1.22\nnvidia-cusolver==12.2.0.11\nnvidia-cusparse==12.7.10.12\nnvidia-cusparselt-cu13==0.8.1\nnvidia-nccl-cu13==2.30.7\nnvidia-nvjitlink==13.5.37\nnvidia-nvshmem-cu13==3.7.2\nnvidia-nvtx==13.2.86\nomegaconf==2.3.0\npackaging==26.3\nPyYAML==6.0.3\nsafetensors==0.7.0\nsetuptools==84.2.1\nsympy==1.14.0\ntorch==2.15.0\ntriton==3.9.0\ntyping_extensions==4.16.0"
+  },
+  "tokenizers-venv": {
+    "python": "Python 3.14.9",
+    "packages": "certifi==2026.10.23\ncharset-normalizer==3.5.2\nfilelock==4.2.10\nfsspec==2026.9.0\nhf-xet==1.8.0\nhuggingface_hub==0.36.2\nidna==3.20\nnumpy==2.5.4\npackaging==26.3\nPyYAML==6.0.3\nregex==2025.9.18\nrequests==2.34.2\nsafetensors==0.8.0\ntokenizers==0.22.2\ntqdm==4.70.1\ntransformers==4.57.6\ntyping_extensions==4.16.0\nurllib3==2.8.0"
+  },
+  "finished_utc": "2026-11-10T05:43:28.335480+00:00"
+}

@@ -1,0 +1,1356 @@
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      -      -      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C      1      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      68524     C     65     12      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     17      4      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C      1      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C      8      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     64      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     92      1      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     96      2      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     99      3      -      -      -      -    codec_bench    
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     99      3      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     99      4      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      69132     C     99      4      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C      2      0      -      -      -      -    codec_bench    
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C      1      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C      1      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0      70030     C      1      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     50      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     85      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     89      1      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     98      2      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     98      3      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     98      3      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     98      4      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      70030     C     98      5      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C      1      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C     47      8      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      71360     C     92     21      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      1      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C      0      0      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C     38      6      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      72526     C     92     20      -      -      -      -    python         
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     49     13      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C      1      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C      1      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C      1      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C      2      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     19      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     72      0      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     87      1      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     95      2      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     98      3      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     98      3      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     98      4      -      -      -      -    codec_bench    
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0      75187     C     98      5      -      -      -      -    codec_bench    
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command 
+# Idx           #    C/G      %      %      %      %      %      %    name 
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       
+    0       1618     G      -      -      -      -      -      -    Hyprland       
+    0       1669   C+G      -      -      -      -      -      -    walker         
+    0       1695     G      -      -      -      -      -      -    Xwayland       
+    0       2942   C+G      -      -      -      -      -      -    1Pas           
+    0       3375   C+G      -      -      -      -      -      -    renderD128 --cr
+    0     320575     C      -      -      -      -      -      -    llama-server   
+    0    2215387   C+G      -      -      -      -      -      -    Code --gpu-pref
+    0    4071326     G      -      -      -      -      -      -    hyprlock       

@@ -26,7 +26,7 @@ not trained Sudoku weights. See [Phase 2 policy](../../docs/PHASE2.md) and the
 [oracle audit](../../docs/results/2026-11-10-phase2-oracle/README.md). Rust fixture
 execution now passes on CPU/CUDA, including complete free-running and fixed-code
 paths; trained CUDA qualification is reported separately. Phase 2 Apple execution
-remains pending the Linux platform gate.
+remains pending; the Linux platform gate is now complete.
 
 `tokenizers-v1.json` contains the four pinned text-tokenizer profiles: 356 encode
 cases and 2,314 decode comparisons across both special-token modes. It includes
@@ -35,6 +35,12 @@ mixed strings, not the downloaded vocabularies. Run `ncm-tokenizers`' `asset_pro
 against separately converted canonical assets. See the
 [tokenizer report](../../docs/results/2026-11-10-phase2-tokenizers/README.md) for
 exact versions, source locks, conversion safety and reproduction.
+
+`codec-bench-v1.json` fixes the matched FP32 codec scopes, batch patterns, independent
+snapshot retention and separate instrumented stages. `tokenizer-bench-v1.json`
+defines the 89-case/profile scalar timing workload and canonical special IDs for
+separate total/non-special throughput denominators. Neither changes parity goldens.
+See the [Linux measurement gate](../../docs/results/2026-11-10-phase2-linux/README.md).
 
 The operator fixture is not a checkpoint/model fixture. The scoped Sudoku oracle
 now generates 56 model traces from pinned weights; large traces, weights and
