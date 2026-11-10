@@ -3,11 +3,12 @@
 A planned Rust port of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
-**Status: Phase 1 approved and in progress.** Linux/CUDA candidate operators pass
-18 synthetic PyTorch parity cases. A scoped Sudoku checkpoint exporter, checked
-Rust artifact loader, and Sudoku text tokenizer now exist; there is no complete
-Rust model or inference command yet. Within each phase, Linux/CUDA is validated first, then
-macOS/MLX. Both gates are required before advancing phases.
+**Status: Phase 1 complete on Linux/CUDA and Apple Silicon/MLX.**
+All 18 operator goldens and 238 checkpoint tensor readbacks pass; scoped Sudoku
+conversion, a checked Rust artifact loader, text tokenizer and reference traces
+exist. **No complete Rust model or inference command yet.** See the
+[acceptance checklist](docs/PHASE1.md). Within each phase, Linux/CUDA is validated
+first, then macOS/MLX; both gates are required before advancing.
 
 ## Goals
 
@@ -43,12 +44,12 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 
 | Path | Responsibility / current scope |
 | --- | --- |
-| `crates/ncm-core` | Validated configuration, tensor/backend contract, errors |
-| `crates/ncm-model` | Shared VQ codec, transformer, generation and sampling |
-| `crates/ncm-tokenizers` | HF tokenizers, TinyStories byte BPE, Sudoku |
+| `crates/ncm-core` | Planned validated configuration, tensor/backend contract, errors |
+| `crates/ncm-model` | Planned shared VQ codec, transformer, generation and sampling |
+| `crates/ncm-tokenizers` | Sudoku implemented; HF tokenizers and TinyStories byte BPE planned |
 | `crates/ncm-io` | Versioned manifests, safetensors, artifact validation |
 | `crates/ncm-backend-cuda` | Candidate Candle CPU/CUDA operators, fixture tests and microprobe |
-| `crates/ncm-backend-mlx` | Apple Silicon MLX adapter |
+| `crates/ncm-backend-mlx` | Candidate MLX/Metal operators, real-device tests and load/memory probes |
 | `crates/ncm-cli` | Future `ncm` command; currently a status-only executable |
 | `tools/reference` | Pinned operator/model oracles and scoped Sudoku checkpoint exporter |
 | `tests/fixtures` | 18 synthetic FP32 operator cases, Sudoku tokenizer goldens and fixture policy |
@@ -56,12 +57,16 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 | `benches` | Benchmark protocol and reproduction links |
 
 Candle is pinned to 0.11.1 behind the backend crate's opt-in `cpu`/`cuda` features.
-Default builds do not require a GPU SDK. MLX integration and a shared backend
-contract remain provisional; the status-only CLI has no runtime features yet.
+Default builds do not require a GPU SDK. MLX is opt-in on Apple Silicon with a
+pinned native runtime. The shared production backend trait remains provisional;
+the status-only CLI has no runtime features yet.
 
 [First public operator comparison](docs/results/2026-11-09-cuda-operators/README.md):
 correctness passes, but composed resampling is substantially slower than PyTorch.
 These tiny microprobes establish no NCM quality or generation speedup.
+[Apple Phase 1 results](docs/results/2026-11-10-mlx-phase1/README.md) include the
+negative finding that Rust copied loading is slower and has higher host RSS than
+the adapted Python baseline.
 
 ## Local checks
 
@@ -78,6 +83,9 @@ NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 \
   ./tools/check.sh --cuda
 ```
 
+On Apple Silicon, use `./tools/check.sh --mlx` with the
+[documented native MLX environment](tools/reference/README.md#apple-silicon--mlx-phase-1).
+
 The script works from any working directory, fails on the first error, does not
 install tools or download weights, and never launches SSH jobs. The default runs
 CPU fixtures and report-tool tests; `--cuda` additionally runs the real-device
@@ -86,8 +94,9 @@ Torch installation. A smoke report is not a full three-run benchmark comparison.
 
 The [Sudoku artifact report](docs/results/2026-11-10-sudoku-artifacts/README.md)
 records byte-exact conversion, CPU/CUDA tensor readback and Python model traces.
-It does not establish Rust model parity or load-performance qualification. `macstudio` is now available for the Apple pass; announce MLX work
-when Linux Phase 1 is ready and recheck availability in later sessions.
+It does not establish Rust model parity. The later Linux and Apple reports close
+Phase 1's capability/baseline gates; optimization and model quality remain future
+work. Recheck Mac availability before starting a later phase's hardware runs.
 
 ## Provenance and license
 

@@ -1,7 +1,7 @@
 # Phased port and validation plan
 
-The user approved implementation on 2026-11-09. Phase 0 is complete; Phase 1
-is in progress. **Within every phase, implement and validate Linux/CUDA first,
+The user approved implementation on 2026-11-09. Phases 0 and 1 are complete;
+Phase 2 has not started. **Within every phase, implement and validate Linux/CUDA first,
 then macOS/MLX.** Complete both platform gates before advancing to the next phase;
 do not finish the whole CUDA project before starting Apple work. GPU feasibility
 and artifact work precede committing to a detailed delivery estimate.
@@ -15,20 +15,19 @@ CPU scaffold CI. No inference implementation or performance claims.
 **Gate:** formatting, Clippy, workspace tests/build and docs succeed; tests currently
 contain no numerical cases. Commit/push scaffold; obtain review before Phase 1.
 
-## Phase 1 — reference contract, artifacts, and runtime spikes (in progress)
+## Phase 1 — reference contract, artifacts, and runtime spikes (complete)
 
-Current milestone: Linux CPU/CUDA candidate operators pass 18 synthetic PyTorch
-fixtures, with a [public microprobe report](results/2026-11-09-cuda-operators/README.md).
-The scoped Sudoku artifact milestone now has 238 byte-exact tensor roundtrips,
-CPU/CUDA readback, tokenizer goldens and 56 upstream Python model traces unchanged
-by conversion ([report](results/2026-11-10-sudoku-artifacts/README.md)). This is not
-a general runtime importer or Rust model parity. Load-performance/memory evidence
-and the remaining runtime-contract checks are still open.
-The Apple pass has not started. The user has now confirmed `macstudio` is available;
-announce MLX validation once Linux checks are complete (recheck availability in
-later sessions). No gate has been waived by the operator-only evidence.
-Build/test checks now run locally via `tools/check.sh`, not GitHub build CI;
-the weekly upstream metadata watcher remains enabled.
+Both platform gates passed in the required Linux-then-Mac order on 2026-11-10.
+See the [acceptance checklist](PHASE1.md) for evidence, scope and negative findings.
+The scoped Sudoku prototype round-trips all 238 tensors exactly on CPU/CUDA/MLX;
+56 original-vs-converted upstream CUDA traces and tokenizer goldens are retained.
+All 18 operator cases pass on all three devices. Load/memory and three-process
+baselines are published, including slower resampling and poor Apple load/RSS results.
+This is not a general runtime importer, Rust model parity or inference release.
+Build/test checks run locally via `tools/check.sh` with explicit `--cuda` / `--mlx`;
+the metadata-only upstream watcher remains the only GitHub workflow.
+
+Original phase tasks (acceptance scope/dispositions are detailed in the checklist):
 
 1. Pin Python NCM, Torch/dependencies, HF checkpoint/data/tokenizer revisions and
    checksums. Start with Sudoku easy, then TinyStories. Download only needed files.

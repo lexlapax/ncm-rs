@@ -1,0 +1,13 @@
+{
+  "sha256": {
+    "crates/ncm-tokenizers/src/lib.rs": "9623f57feec9722f98ebddc7f7df8d589e2eea1fe2596cb8ca3552d6460369cb",
+    "crates/ncm-tokenizers/examples/tokenizer_probe.rs": "fe18aeebfa079dcbf74c5b6d8af50c943704db6c4c32dcefa6b267ab5f4518ce",
+    "tools/reference/tokenizer_probe.py": "5b36376f81f71f917a74a364e063e0ddf2bfadd82bda05c7f4177f391a009891",
+    "tools/reference/requirements-macos.lock": "35a3978f52d2bca6ae2f091d401dac4d71aa26efde7e243701924b35131d217c",
+    "crates/ncm-backend-mlx/Cargo.toml": "e7d72e303baa1fe7f1990e86961fed1a08e74a7fb26aee308dba04493558841c",
+    "tests/fixtures/operators-v1.json": "554d9540e212a93473dee9d362a6734d5bc23bd981d1550e69eb2aca9af6d024",
+    "tests/fixtures/sudoku-tokenizer-v1.json": "f648f5215bfe7a12eba8a2d5c46b44eddda3980f51721de7713971f6e8ab8e41"
+  },
+  "rust_operator_and_loader_base_commit": "2d262e172aa9febcce3705315eefc36d3b31655c",
+  "python_loader_commit": "2b19c87a4d3c6e1f2895d90a52be956ac28b1be6"
+}

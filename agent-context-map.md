@@ -1,184 +1,116 @@
 # Agent context map
 
-Last updated: 2026-11-10 UTC. Read this first; load linked documents only as needed.
+Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 
-## Current state / user decisions
+## Current state and user decisions
 
-- Public repository: https://github.com/lexlapax/ncm-rs; `main`, remote `origin`.
-- **Plan approved. Phase 1 Linux spike accepted; Apple pass next.** Within EVERY phase:
-  Linux/CUDA first, then macOS/MLX; both must pass before advancing phases.
-  Do not interpret this as completing the whole CUDA project before Apple work.
-- Linux CPU/CUDA operators, a scoped Sudoku checkpoint exporter/checked Rust
-  inspection loader, Sudoku text tokenizer and Python model traces now exist.
-  **No full Rust model, inference CLI or corpus-quality result.** The general
-  runtime importer and load-performance/memory qualification remain open.
-- `ssh macstudio` is authorized and the user has now confirmed it is **available
-  for MLX**. Announce the first run when the Linux phase gate is ready; recheck
-  availability if resuming in a later session. Only read-only inspection has
-  occurred there; no Apple code/build/benchmark has been launched.
-- The user requested replacing GitHub build CI with local validation. Use
-  `tools/check.sh` and opt-in `--cuda`; do not restore build CI without approval.
-  The metadata-only weekly upstream watcher remains on GitHub.
-- Mac checkout exists, clean at initial inspection: `~/projects/lexlapax/ncm-rs`.
-  Commit/push locally as requested, then use a safe pull there when appropriate;
-  inspect remote worktree first, never overwrite user work or force-push.
-- Continue periodic upstream parity and public quality/performance reporting.
-  Update this map before EVERY commit. No agent attribution or co-author trailers.
+- Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
+- **User goal: complete Phase 1. Both gates now passed, Linux/CUDA first and
+  macOS/MLX second. Phase 2 has not started.** See [acceptance](docs/PHASE1.md).
+  Keep this same platform order within EVERY later phase; both gates before advance.
+- Implemented: candidate CPU/CUDA/MLX operators, shared fixed fixture contract,
+  scoped Sudoku exporter/checked copied loader, Sudoku text tokenizer, upstream
+  model traces and reproducible operator/load/tokenizer/memory reports.
+- **No full Rust codec/generator, inference CLI, official task-quality result,
+  generalized runtime importer or inference release.** Core/model crates remain
+  scaffolds. Phase 1 completion is feasibility/reference qualification only.
+- Production inference stays Python-free. Offline conversion/oracles and native
+  CUDA/MLX libraries are allowed. Never silently relax tolerances or advance pins.
+- Local checks replace GitHub build CI by user request. Use `tools/check.sh`,
+  explicit `--cuda` or `--mlx`; never restore build CI without approval. Only the
+  metadata-only upstream watcher remains on GitHub.
+- `ssh macstudio` is authorized. First MLX run was announced and completed after
+  Linux acceptance. Recheck availability before later hardware runs; idle inference
+  services were left untouched. Inspect worktree and safely pull reviewed pushed
+  commits into `~/projects/lexlapax/ncm-rs`; never overwrite unrelated work.
+- Update this map before EVERY commit, including amend/fixup. No agent attribution
+  or co-author trailers. Preserve required upstream licensing/provenance.
 
 ## Task routing
 
 | Need | Load |
 | --- | --- |
-| Goals/layout/build commands | [README.md](README.md), [Cargo.toml](Cargo.toml) |
-| Current milestone and phase gates | [docs/PLAN.md](docs/PLAN.md) |
-| NCM semantics, release configs, source evidence/bugs | [docs/RESEARCH.md](docs/RESEARCH.md) |
-| Architecture and provisional runtime contract | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Candidate tensor operations / opt-in features | [CUDA manifest](crates/ncm-backend-cuda/Cargo.toml), [ops.rs](crates/ncm-backend-cuda/src/ops.rs) |
-| Fixtures and regression tests | [test policy](docs/TESTING.md), [fixture README](tests/fixtures/README.md), [operators.rs](crates/ncm-backend-cuda/tests/operators.rs) |
-| Oracle and Python environment | [tools/reference/README.md](tools/reference/README.md) |
-| Scoped checkpoint exporter/loader and proposed general contract | [docs/ARTIFACTS.md](docs/ARTIFACTS.md), [ncm-io](crates/ncm-io/src/lib.rs), [exporter](tools/reference/sudoku_artifact.py) |
-| Upstream tracking/upgrades | [docs/UPSTREAM.md](docs/UPSTREAM.md), [upstream.toml](upstream.toml) |
-| Measured report / raw trials / reproducibility | [CUDA operator report](docs/results/2026-11-09-cuda-operators/README.md) |
-| Sudoku conversion/readback/model-oracle evidence | [artifact report](docs/results/2026-11-10-sudoku-artifacts/README.md), [trace generator](tools/reference/sudoku_trace.py) |
-| Publication policy and report tools | [docs/REPORTING.md](docs/REPORTING.md), [compare.py](tools/bench/compare.py) |
-| Agent rules / local checks | [AGENTS.md](AGENTS.md), [tools/check.sh](tools/check.sh) |
-| Weekly metadata-only upstream watcher | [.github/workflows/upstream-watch.yml](.github/workflows/upstream-watch.yml) |
+| Completed gate and precise scope | [docs/PHASE1.md](docs/PHASE1.md) |
+| Next stages | [docs/PLAN.md](docs/PLAN.md) |
+| Architecture / provisional model interface | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Upstream semantics and known bugs | [docs/RESEARCH.md](docs/RESEARCH.md) |
+| Artifact validation/security limits | [docs/ARTIFACTS.md](docs/ARTIFACTS.md), [ncm-io](crates/ncm-io/src/lib.rs) |
+| Oracle/export/build reproduction | [tools/reference/README.md](tools/reference/README.md) |
+| Shared golden schema and numerical tolerance | [tests/support/operators.rs](tests/support/operators.rs), [test policy](docs/TESTING.md) |
+| CUDA / MLX compositions | [CUDA ops](crates/ncm-backend-cuda/src/ops.rs), [MLX ops](crates/ncm-backend-mlx/src/ops.rs) |
+| Published evidence, including negative findings | [results index](docs/results/README.md), [Apple report](docs/results/2026-11-10-mlx-phase1/README.md) |
+| Reporting and upstream qualification | [docs/REPORTING.md](docs/REPORTING.md), [docs/UPSTREAM.md](docs/UPSTREAM.md), [upstream.toml](upstream.toml) |
+| Local checks / agent constraints | [tools/check.sh](tools/check.sh), [AGENTS.md](AGENTS.md) |
 
-## Pins / machines / important limitations
+## Pins, machines and caches
 
-- NCM research pin `c70274273f489abc73832b2b98584a8483b6b203`; HF inventory
-  `d342ce8aaea58830eef3b8ad473664673e41f692`. Not model-level Rust compatibility.
-- Candle 0.11.1, opt-in backend features `cpu` and `cuda`. Default build needs no
-  CUDA SDK. Model/shared backend abstraction and MLX integration remain provisional.
-- Supported Rust floor is now **1.99.1**, the tested conservative version, not
-  an assertion that all older releases fail. Candle 0.11.1 failed on the former
-  1.88 claim (`stdarch_x86_avx512`, target features, `__cpuid_count`); do not
-  restore that unverified support claim.
-- Linux: RTX 3060 Ti 8 GiB, driver 615.78.08, CUDA 13.4, Rust 1.99.1.
-  Successful release build env: `NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86
-  CARGO_BUILD_JOBS=4`. System default GCC is newer; keep the tested host compiler.
-- Offline Python venv `.reference/venv`: Python 3.14.9, Torch 2.15.0+cu132.
-  Full Linux lock is `tools/reference/requirements-linux.lock`; not suitable for Mac.
-- Mac: M1 Ultra 64 GiB, macOS 26.7.3, Xcode 27.2, Homebrew Rust 1.99.1.
-  Noninteractive SSH needs `PATH=/opt/homebrew/bin:$PATH` for Cargo/uv.
-- OWT weights absent at inspected HF revision; full upstream training pipeline
-  absent. Verified Sudoku-easy inputs are in ignored `artifacts/upstream/sudoku/easy`;
-  final tested bundle is `artifacts/canonical/sudoku-easy-qualified` (the name does
-  not imply release qualification). Clean pinned oracle checkout:
-  `.reference/upstream-ncm`. Disposable `/tmp` research paths are not required.
+- Upstream NCM: `c70274273f489abc73832b2b98584a8483b6b203`.
+- HF `hazyresearch/ncm-checkpoints`: `d342ce8aaea58830eef3b8ad473664673e41f692`.
+- Candle 0.11.1; optional `cpu`/`cuda`. Default builds need no GPU SDK.
+- mlx-rs 0.34.0 / mlx-sys 0.7.0 at immutable Git pin
+  `adf439bf5361d8a02955de7aaf651b0c45900945`, native MLX 0.32.2. Apple-only `mlx` feature;
+  non-Apple requests error, never fall back to CPU or Candle Metal.
+- Rust floor 1.99.1 is tested, conservative. Previous 1.88 failed Candle AVX-512
+  intrinsics; no claim that every intermediate release fails.
+- Linux: RTX 3060 Ti 8 GiB, driver 615.78.08, CUDA 13.4, Rust 1.99.1. Tested command:
+  `NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 ./tools/check.sh --cuda`.
+  System GCC 16 is not the tested CUDA host compiler.
+- Linux offline venv `.reference/venv`: Python 3.14.9, Torch 2.15.0+cu132;
+  `tools/reference/requirements-linux.lock` is not suitable for Mac.
+- Mac: M1 Ultra 64 GiB, macOS 26.7.3, Xcode 27.2, Rust 1.99.1. Noninteractive SSH:
+  `export PATH=/opt/homebrew/bin:$PATH`. Xcode lacks the optional Metal compiler.
+  No global tooling changed: `.reference/mlx-venv` holds Python 3.14.10, MLX/MLX-metal
+  0.32.2, NumPy 2.5.4; native include/share/lib copied to `.reference/mlx-native`.
+  Tested prebuilt wheel requires macOS 26.2+, older tuples unqualified.
+- Mac build/check env: `MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"`,
+  `RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib"`,
+  `RUSTDOCFLAGS="$RUSTFLAGS"`, `CARGO_BUILD_JOBS=8`, then `./tools/check.sh --mlx`.
+  Rust runtime needs only copied native libraries, not the Python venv.
+- Linux inputs: `artifacts/upstream/sudoku/easy`; tested canonical bundle on both
+  machines: `artifacts/canonical/sudoku-easy-qualified` (inspection profile only).
+  Clean pinned oracle checkout on both: `.reference/upstream-ncm`. All ignored.
+- Durable 56-trace archive: GitHub research prerelease `phase1-fixtures-v1` at
+  `bbdf422`; SHA-256 in original oracle report. Not an inference release.
 
-## Previous operator/validation milestone
+## Verified results and remaining limitations
 
-- 18 synthetic operator fixtures: matmul, conv/transposed-conv layouts (including
-  prime stride 89), group/layer/RMS norms, uneven/edge area and linear interpolation,
-  padded prefix attention, split-half RoPE resets and nontrivial FP16 rounding.
-- All 18 pass Candle CPU and real CUDA against fixed PyTorch CPU reference at
-  `atol=1e-5, rtol=1e-4`. PyTorch CUDA also passes. Three fresh-process timing runs
-  per runtime, five warmups and thirty trials/case/run, published with raw data.
-- Negative result: composed interpolation is much slower than PyTorch kernels.
-  No generation speedup, model quality or peak-memory claim. Optimization deferred.
-- Passed: workspace CPU-feature tests (5 Rust tests), CPU-feature Clippy with
-  warnings denied, formatting, CPU-feature rustdoc with warnings denied,
-  4 Python report-tool tests, Python compilation, local links/TOML validation,
-  measured-source SHA verification and whitespace checks.
-- Replaced `.github/workflows/ci.yml` with executable `tools/check.sh`: fmt,
-  default check, CPU-feature Clippy/tests/docs, Python report-tool tests/syntax;
-  opt-in `--cuda` adds CUDA Clippy plus a real-device release probe. No implicit
-  downloads, SSH, GPU fallback or tool installation. ShellCheck runs if present.
-- Passed script validation: `bash -n`, ShellCheck, help, unknown-argument exit 2,
-  complete default run invoked from `/tmp`, and complete `--cuda` run with the
-  tested compiler/architecture env. All 18 GPU cases passed; smoke output is
-  `reports/local-check-20261110T003546Z-2451498/cuda.json` (ignored local artifact).
-- This change affects validation orchestration/toolchain metadata only, not model
-  or operator execution. Prior public measurements remain historical and unchanged;
-  no new generation-quality/performance claim or full benchmark comparison.
+- All 18 fixed FP32 operator cases pass Candle CPU, CUDA, Rust MLX and adapted
+  Python MLX at unchanged `atol=1e-5, rtol=1e-4`. Largest MLX error ~4.77e-7.
+- All 238 source tensors preserved (58 codec, 144 generator, 36 training), exact
+  safetensors roundtrip plus exact CPU/CUDA/MLX readback. Original vs converted
+  upstream Python CUDA yields 56 exact traces across two synthetic boards/12 levels.
+- Five tokenizer goldens pass on both architectures. Rust input rejection tests,
+  seven artifact/security tests and two real-Metal tests pass. Loader checks
+  integrity, not manifest authenticity/model semantics; trusted directory/no
+  concurrent mutation required. Payload byte bounds are NOT peak-RSS guarantees.
+- Local Linux `--cuda` and Mac `--mlx` pass; Mac covers 15 base Rust tests plus two
+  Metal tests; seven Python report-tool tests pass. Five optional Torch exporter
+  tests also passed again during final Linux closure. No full model tests implied.
+- Three fresh-process runs/runtime, five warmups and thirty trials published.
+  Linux Rust/Python copied-load medians ~202/241 ms. Apple ~939/282 ms: Rust slower.
+  Apple repeated-load host peak RSS ~4.40 GiB Rust vs ~0.41 GiB Python; investigate
+  before production memory-efficiency claims. MLX active arrays return to zero,
+  allocator caches retain ~155 MiB; counters are not total host RSS or CUDA VRAM.
+- Both Apple load preflights execute a loaded-weight Metal kernel. Earlier
+  Python leaf-only observations were superseded before publication. Rust probe
+  also passes with a cleared environment/no reference venv; no Python linkage.
+- Candle composed interpolation remains slower than PyTorch. Torch fullgraph
+  compilation passes 17/18 cases but loses FP16-roundtrip rounding: compiled mixed
+  precision unsupported, no tolerance waiver. Eager FP32 remains the baseline.
+- No task-quality or model-generation speedup claim. Workstation noise/warm disk
+  caches disclosed. Generalized configs, TinyStories assets, mixed-precision models,
+  cached generation, packaging and training remain future phases. OWT weights and
+  the upstream full training pipeline remain unavailable.
 
-## Latest work and verification
+## Latest provenance and next actions
 
-- Added `sudoku-easy-inspection-v1`: exact input size/hash checks, weights-only
-  conversion, all 238 tensors preserved (58 codec, 144 generator, 36 training).
-  Canonical safetensors roundtrip and Candle CPU/CUDA upload/readback are byte-exact.
-- Added bounded copied `ncm-io` loading, integrity checks and seven rejection/load
-  tests. This authenticates neither the manifest nor model semantics; directory
-  mutation and trusted-parent constraints are documented. No general importer yet.
-- Added Rust Sudoku character codec and five pinned upstream golden cases; three
-  Rust tokenizer tests include invalid IDs/characters and Python whitespace edges.
-- Original vs canonical PyTorch CUDA model: 56 captures across two synthetic boards
-  and all 12 levels match bit-for-bit. No upstream patches, dense uncached FP32,
-  math SDPA and cloned accumulator captures. No official Sudoku quality claim.
-- Public report links compact raw results, persistent/derived inventories and
-  source hashes. Large 14 MiB trace archive is local/ignored; durable asset pending.
-  No loader/tokenizer timing or memory claims; this candidate is not release-qualified.
-- Added Hydra/OmegaConf/YAML and transitive packages to the reference Linux lock.
-  `tools/check.sh` syntax-checks all reference scripts without requiring Torch;
-  optional reference-venv exporter tests are invoked separately.
-- Passed full `tools/check.sh --cuda`: fmt, CPU/CUDA Clippy, 15 Rust tests, docs,
-  four Python aggregation tests, syntax and all 18 GPU operator fixtures. Also
-  five offline exporter tests, both artifact probes and the 56-trace comparison.
-  Local logs: `.reference/phase1-artifact-final-check.log`; final raw evidence:
-  `reports/phase1-artifact-qualified/`. Historical operator report is unchanged.
-- Previous local-validation milestone was pushed as `f7aad49`; prior operator
-  milestone is `3178aa1`. No MLX execution has occurred.
-
-## Linux Phase 1 gate closure
-
-- Added [load/tokenizer baseline](docs/results/2026-11-10-linux-baseline/README.md):
-  three fresh processes/runtime, five warmups and 30 trials. Rust/Python adapted
-  canonical-load medians 201.61/241.20 ms; host RSS and global driver memory snapshots
-  recorded, warm filesystem cache and background desktop GPU use disclosed.
-- `torch.compile(fullgraph=True)` passes 17/18 cases; FP16 roundtrip rounding fails.
-  Compiled mixed precision is explicitly unsupported; eager remains the baseline.
-- Durable model traces: GitHub prerelease `phase1-fixtures-v1` at `bbdf422`.
-  This is a research fixture asset, not an inference release.
-- Full local CUDA validation passes. Mac availability rechecked read-only: checkout
-  clean at `bbdf422`, rmlx/Ollama processes idle in sampled process listing. No MLX
-  build/run yet. Linux load scope is the inspection spike, not a general importer.
-
-## Apple candidate implementation (hardware qualification pending)
-
-- Added target-gated mlx-rs 0.34.0 at immutable Git pin
-  `adf439bf5361d8a02955de7aaf651b0c45900945` (`mlx-sys` 0.7.0, MLX 0.32.2), candidate
-  composed operators, real-Metal tests, synchronous evaluation microprobe and
-  checked copied unified-memory artifact/readback probe. No native Apple results
-  yet; build will use a project-local metallib directory, not alter global tooling.
-- Extracted the unchanged fixture schema/tolerances/comparator into
-  `tests/support/operators.rs`, shared by CUDA and MLX. Full Linux `--cuda` check
-  passed after extraction; unsupported non-Apple `mlx` requests fail explicitly.
-- First MLX run announced after Linux gate closure. Crates.io native source build
-  failed because Xcode's Metal compiler component is missing. No global tooling
-  changed. The Git pin above supports prebuilt MLX; Python 3.14.10 and MLX/MLX-metal
-  0.32.2 installed only in `.reference/mlx-venv`, and native include/share/lib copied
-  to `.reference/mlx-native` for Python-free Rust linking. Next: rebuild using that
-  native prefix and project-local rpath, then real-Metal qualification.
-
-- Prebuilt native MLX successfully compiled/linked its bindings; Rust candidate
-  needed `TryIndexOp` rather than `IndexOp` in scope (corrected). Added explicit
-  local `--mlx` checks and adapted Python MLX operator/load baselines, all still
-  pending real-device execution. Mac venv now also pins NumPy 2.5.4. The exact
-  tested Sudoku artifact was copied to a new ignored Mac cache directory.
-- Local default checks pass after these harness additions; no tolerance changes.
-
-## Apple hardware results (publication review in progress)
-
-- All 18 unchanged operator goldens and all 238 tensor readbacks pass on real
-  Metal. Three fresh-process Python/Rust MLX runs completed. `tools/check.sh --mlx`
-  passes CPU checks plus the two Metal tests, release Clippy, docs and the probe.
-- Rust probe also runs with a cleared environment and no Python venv on PATH;
-  native linkage contains no Python library. Tokenizer parity/timing passes on Mac.
-- Reviewing memory scopes exposed that the Python load preflight had not executed
-  a Metal kernel like Rust's preflight. Added matching loaded-weight square/eval
-  before measuring Python memory; rerunning both load baselines before publication.
-- Added a validated three-process result aggregator (three new unit tests) and
-  pinned Mac offline requirements. Negative findings and native build limitations
-  will be preserved in the phase-completion report; no optimization claim.
-
-## Next actions (do not skip gates)
-
-1. Announce/start the Apple Phase 1 pass: pinned mlx-rs, existing operator goldens,
-   artifact readback/loading/memory, native synchronization, local checks and reports.
-2. Keep compiled mixed precision and untested model features unsupported; preserve
-   baseline fixtures and publish negative findings without tolerance changes.
-3. Once Linux Phase 1 is ready, announce macOS/MLX work. Inspect and safely pull
-   reviewed pushed commits in the Mac checkout, then port/validate that phase.
-   Recheck availability if the session changes. No Mac gate is implicitly passed.
-4. Only after both Phase 1 gates pass, start Phase 2 in the same staggered order.
+- CUDA milestone `3178aa1`; local checks `f7aad49`; artifacts/traces `bbdf422`;
+  Linux load gate `e8b81c4`; MLX candidates `ee5f51a` / `8f18246`; measured operator/
+  Rust load sources `2d262e1`; matched Python load preflight/aggregation `2b19c87`.
+- Final Apple raw trials: `reports/phase1-final/mlx` and `mlx-load-matched` locally;
+  remote `reports/phase1-mlx/final` and `load-final`. Final remote local-check log:
+  `reports/phase1-mlx/check-closure.log`; Linux `.reference/phase1-linux-closure.log`.
+- Phase 1 goal is complete. Next plan stage is Phase 2 shared primitives/codec,
+  starting on Linux and only then Mac. Preserve golden/reference behavior; retain
+  aliasing-helper caveats and copied accumulator snapshots. Do not begin claiming
+  model compatibility from the operator/artifact evidence or hide negative baselines.

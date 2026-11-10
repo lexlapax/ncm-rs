@@ -1,8 +1,8 @@
 # Architecture proposal
 
-Status: implementation approved; backend contracts remain provisional pending
-Phase 1 spikes (Linux/CUDA first, then macOS/MLX). Crate boundaries do not imply
-complete working APIs or frozen abstractions.
+Status: [Phase 1 feasibility passed](PHASE1.md) on Linux/CUDA then macOS/MLX.
+The shared production backend trait remains provisional for Phase 2's model work;
+crate boundaries do not imply complete working APIs or frozen abstractions.
 
 ## Decision: one model, two runtime adapters
 
@@ -114,8 +114,9 @@ execution before turning it on. Never silently substitute a causal LLM kernel.
 
 ## Platform/build policy
 
-Phase 1 adds optional, target-specific dependencies and explicit CLI features
-`mlx` and `cuda`. Default CPU-only checks must not require a CUDA SDK or MLX.
+Phase 1 added optional, target-specific backend features `mlx` and `cuda`.
+CLI runtime wiring is still future work. Default CPU-only checks require neither
+a CUDA SDK nor MLX.
 Build each platform separately rather than treating `--all-features` on Linux
 as a valid cross-platform check. Unsupported target/runtime combinations fail
 clearly. A CPU test path must not be mistaken for actual CUDA coverage.
@@ -123,8 +124,8 @@ clearly. A CPU test path must not be mistaken for actual CUDA coverage.
 Pin supported Rust crate versions and native runtime tuples after spikes; record
 compiler, SDK, driver, GPU architecture and library versions with results. Start
 CUDA validation on the available Ampere GPU; verify flash kernels' capabilities
-rather than assume an H100-only optimization works there. Apple minimum OS and
-SDK support remain to be established on actual hardware.
+rather than assume an H100-only optimization works there. Apple qualification currently covers macOS 26.7.3 / Xcode 27.2 with prebuilt MLX 0.32.2;
+the selected wheel requires macOS 26.2+, but older tuples have not been tested.
 
 Keep `unsafe_code = deny` by default. Any necessary audited FFI/mmap exception is
 narrowly scoped with lifetime/ownership tests, never a blanket project-wide allow.

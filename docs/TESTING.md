@@ -128,15 +128,21 @@ non-Linux platform rather than falling back. Use the documented host compiler an
 compute capability environment variables. It writes one smoke report, not the
 three-process Python/Rust comparison required for performance changes.
 
+Opt-in `./tools/check.sh --mlx` adds release MLX Clippy, real-Metal tests, docs and
+the synchronized operator probe. It rejects non-Apple-Silicon targets. Configure
+the native MLX prefix/rpath using the [reference instructions](../tools/reference/README.md).
+This check never installs MLX, downloads weights or launches SSH automatically.
+
 Only the metadata-only scheduled upstream watcher remains on GitHub. Do not
-reintroduce build CI without user approval. Add future model suites/MLX checks to
+reintroduce build CI without user approval. Add future model suites to
 the local workflow as implemented. Full benchmark/quality reports are still
 required for releases and relevant changes, independent of where checks execute.
 Use separate platform feature selections, not cross-platform `--all-features`.
 
 Within every phase, Linux/CUDA completes its checks before macOS/MLX starts.
-The user has confirmed `macstudio` is available now; announce the first MLX run,
-and recheck availability if resuming later. Inspect its checkout before pulling.
+Phase 1 completed in that order; see the [acceptance checklist](PHASE1.md).
+Recheck `macstudio` availability before later hardware runs and inspect its checkout
+before pulling.
 Never run untrusted contribution code on persistent local/remote GPU machines or
 expose credentials to it. Only reviewed results become baseline/public reports.
 See [REPORTING.md](REPORTING.md) for publication and regression policy.

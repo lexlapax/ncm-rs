@@ -72,5 +72,55 @@ compare tensor hashes separately. Large traces and weights remain ignored; only
 small fixtures, inventories and reports are checked in. The optional Torch test
 suite above is separate from `tools/check.sh`, which needs no reference venv.
 
+## Apple Silicon / MLX Phase 1
+
+Tested tuple: Rust 1.99.1, mlx-rs Git pin in Cargo.lock (0.34.0), native MLX
+0.32.2, macOS 26.7.3 / Xcode 27.2, Python 3.14.10 for offline comparisons.
+Do not install the Linux Torch lock on the Mac. Rust never invokes Python.
+
+The tested Xcode installation lacked the optional Metal compiler component. Use
+the matching prebuilt native libraries instead of changing global Xcode tooling:
+
+```sh
+export PATH=/opt/homebrew/bin:$PATH
+uv venv --python 3.14.10 .reference/mlx-venv
+uv pip install --python .reference/mlx-venv/bin/python -r tools/reference/requirements-macos.lock
+.reference/mlx-venv/bin/python - <<'PY'
+import pathlib, shutil, sysconfig
+source = pathlib.Path(sysconfig.get_path('purelib')) / 'mlx'
+target = pathlib.Path('.reference/mlx-native')
+target.mkdir(exist_ok=False)
+for name in ('include', 'share', 'lib'):
+    shutil.copytree(source / name, target / name)
+PY
+export MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"
+export RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib"
+export RUSTDOCFLAGS="$RUSTFLAGS"
+export CARGO_BUILD_JOBS=8
+./tools/check.sh --mlx
+cargo build -p ncm-backend-mlx --features mlx --examples --release --locked
+mkdir -p reports/mlx-new
+target/release/examples/mlx_probe tests/fixtures/operators-v1.json reports/mlx-new/rust-operators.json
+.reference/mlx-venv/bin/python tools/reference/mlx_operators.py tests/fixtures/operators-v1.json reports/mlx-new/python-operators.json
+# Use the same verified canonical artifact from the Linux exporter; no pickle on Mac.
+target/release/examples/mlx_load_probe artifacts/canonical/sudoku-easy-qualified reports/mlx-new/rust-load.json
+.reference/mlx-venv/bin/python tools/reference/mlx_load_probe.py artifacts/canonical/sudoku-easy-qualified reports/mlx-new/python-load.json
+```
+
+The prebuilt native prefix contains only native include/share/lib files; it remains
+usable without the Python venv. The selected `macosx_26_0_arm64` wheel requires at
+least macOS 26.2; older OS/wheel tuples are unqualified. Do not reuse other projects'
+MLX dylibs. Match the native hashes in the [Apple report](../../docs/results/2026-11-10-mlx-phase1/README.md).
+A source build with an installed Metal compiler is possible but was not qualified
+here. The absolute local rpath is for this spike, not redistributable packaging.
+
+For reports, repeat in three fresh processes (five warmups, thirty trials each),
+alternating runtime order. Run the existing tokenizer probes on the Mac too. Use
+`/usr/bin/time -l` to record Rust process RSS and preserve the native MLX counters
+separately; unified memory is not CUDA VRAM. `tools/bench/phase1_summary.py` validates
+and aggregates the documented `rust/python-{operators,load,tokenizer}-{1,2,3}.json`
+layout. It rejects incomplete runs, failed checks, changed inputs/sources and
+nonfinite timing values. Python MLX is an **adapted** baseline, not upstream NCM.
+
 See [artifact security](../../docs/ARTIFACTS.md), [testing](../../docs/TESTING.md),
 and the [first measured report](../../docs/results/2026-11-09-cuda-operators/README.md).

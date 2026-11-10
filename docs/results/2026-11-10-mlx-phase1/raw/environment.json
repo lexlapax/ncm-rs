@@ -1,0 +1,43 @@
+{
+  "background": "idle inference services left intact; workstation not isolated",
+  "build_env": {
+    "CARGO_BUILD_JOBS": "8",
+    "MLX_SYS_PREBUILT": "$PWD/.reference/mlx-native",
+    "RUSTFLAGS": "-C link-arg=-Wl,-rpath,$PWD/.reference/mlx-native/lib"
+  },
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27) (Homebrew)",
+  "cmake": "cmake version 4.4.5",
+  "git_commit": "2d262e172aa9febcce3705315eefc36d3b31655c",
+  "git_status": "",
+  "hardware": {
+    "architecture": "applegpu_g13d",
+    "device_name": "Apple M1 Ultra",
+    "max_buffer_length": 41747087360,
+    "max_recommended_working_set_size": 55662788608,
+    "memory_size": 68719476736,
+    "resource_limit": 499000
+  },
+  "mlx_rs_git": "adf439bf5361d8a02955de7aaf651b0c45900945",
+  "native_sha256": {
+    "libjaccl.dylib": "9cfd72679ff35c593a1d46fd30d995cc4a131eed15733617efb1118001e74084",
+    "libmlx.dylib": "d24c7a9b9d55a76bfd3bbcd1d042251a185cbadcb6340c3244a6ffa3dcb7c7e8",
+    "mlx.metallib": "dc59d1cceb1a5c7e578232e6e41e28e2c73c9463ac6dbc3886c3ee17ffc270ed"
+  },
+  "native_source": "prebuilt MLX-metal wheel; copied native include/share/lib; no Python runtime dependency for Rust",
+  "packages": {
+    "mlx": "0.32.2",
+    "mlx-metal": "0.32.2",
+    "numpy": "2.5.4"
+  },
+  "python": "3.14.10",
+  "recorded_at_utc": "2026-11-10T01:56:51.278864+00:00",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)",
+  "schema_version": 1,
+  "system": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.3\nBuildVersion:\t\t25G416",
+  "wheel_tags": {
+    "mlx": "Wheel-Version: 1.0\nGenerator: setuptools (84.0.0)\nRoot-Is-Purelib: false\nTag: cp314-cp314-macosx_26_0_arm64\n\n",
+    "mlx-metal": "Wheel-Version: 1.0\nGenerator: setuptools (84.0.0)\nRoot-Is-Purelib: false\nTag: py3-none-macosx_26_0_arm64\n\n",
+    "numpy": "Wheel-Version: 1.0\nGenerator: meson\nRoot-Is-Purelib: false\nTag: cp314-cp314-macosx_14_0_arm64\nGenerator: delocate 0.13.0\n\n"
+  },
+  "xcode": "Xcode 27.2\nBuild version 27B52"
+}
