@@ -134,7 +134,9 @@ kernels, compiled mixed-precision policy or generation-cache work in this phase.
 - [x] Linux CPU/CUDA primitive/component parity: [component report](results/2026-11-10-phase2-primitives/README.md).
 - [x] Complete Linux codec parity: [full tiny/trained comparison](results/2026-11-10-phase2-codec/README.md),
   including free-running and fixed-code paths, near ties and uninstrumented outputs.
-- [ ] Sudoku regression plus TinyStories/HF tokenizer conversion/parity.
+- [x] Sudoku regression plus TinyStories/HF tokenizer conversion/parity on Linux:
+  [asset pins, safety, exact cases](results/2026-11-10-phase2-tokenizers/README.md).
+  Apple must repeat the same fixtures after Linux platform acceptance.
 - [ ] Published Linux reconstruction, performance and memory gate.
 - [ ] Corresponding Apple/MLX implementation, parity and measurements.
 - [ ] Both local checks, reports, context updates and reviewed commit/push closure.

@@ -7,8 +7,13 @@ Paper: https://arxiv.org/abs/2610.14162
 Upstream code is MIT licensed:
 Copyright (c) 2025 hermann kumbong
 The complete upstream license is retained in licenses/NCM-MIT.txt for
-translated/derived implementations, including the Sudoku tokenizer and operator
-semantics. Required upstream notices must be preserved.
+translated/derived implementations, including the Sudoku/byte-BPE tokenizers,
+shared codec and operator semantics. Required upstream notices must be preserved.
+
+Pinned tokenizer assets are recorded in tools/reference/tokenizer-sources.lock.json.
+Conversion retains NCM/OpenAI GPT-2 MIT notices and the Qwen/BERT Apache-2.0
+licenses in the generated bundles. The Rust Tokenizers/Oniguruma dependencies
+retain their own licenses; they are not relicensed under this project's MIT terms.
 
 This repository does not bundle upstream weights or evaluation datasets.
 Model, tokenizer and dataset licensing must be checked separately before

@@ -1,0 +1,73 @@
+{
+  "fixture_sha256": "5c937a5e5aef961d9361b7f5788929681b24e55c223886d11b5928169db23256",
+  "profiles": {
+    "bert": {
+      "all_passed": true,
+      "both_skip_modes": true,
+      "cleanup": false,
+      "decode_cases_including_encoded": 96,
+      "encode_cases": 89,
+      "eos_token_id": 101,
+      "manifest_sha256": "8042d9e1f380867272ee1b9d296ed060f19cacfecf249239c5332cda9c934efd",
+      "pad_token_id": 0,
+      "rejection_cases": 4,
+      "total_vocab_size": 30522,
+      "vocab_size": 30522
+    },
+    "gpt2": {
+      "all_passed": true,
+      "both_skip_modes": true,
+      "cleanup": false,
+      "decode_cases_including_encoded": 349,
+      "encode_cases": 89,
+      "eos_token_id": 50256,
+      "manifest_sha256": "c98e2a229ee71ff5031914d69fa1f9d093e60f62cc60f5ff1d8f12a6d2a0786b",
+      "pad_token_id": 50257,
+      "rejection_cases": 4,
+      "total_vocab_size": 50258,
+      "vocab_size": 50257
+    },
+    "qwen3": {
+      "all_passed": true,
+      "both_skip_modes": true,
+      "cleanup": false,
+      "decode_cases_including_encoded": 361,
+      "encode_cases": 89,
+      "eos_token_id": 151645,
+      "manifest_sha256": "e1f881e225d651271d01d4067b3308578eb836703fdd25cfb17e7a1b95fcd69a",
+      "pad_token_id": 151643,
+      "rejection_cases": 4,
+      "total_vocab_size": 151669,
+      "vocab_size": 151643
+    },
+    "tinystories": {
+      "all_passed": true,
+      "both_skip_modes": true,
+      "cleanup": false,
+      "decode_cases_including_encoded": 351,
+      "encode_cases": 89,
+      "eos_token_id": 0,
+      "manifest_sha256": "0f9da8645224160f1fdadeffb14cccede95a89948db12599d24865f1a859c6bb",
+      "pad_token_id": 1,
+      "rejection_cases": 4,
+      "total_vocab_size": 8192,
+      "vocab_size": 8192
+    }
+  },
+  "reference_versions": {
+    "regex": "2025.9.18",
+    "tokenizers": "0.22.2",
+    "transformers": "4.57.6"
+  },
+  "runtime": "rust-tokenizers",
+  "schema_version": 1,
+  "source_sha256": {
+    "Cargo.lock": "8ef2465be470843f2db0b7e63f96053cfb87f85b1b03343b190aa47083220de9",
+    "crates/ncm-tokenizers/examples/asset_probe.rs": "b40fb3614cc88ed8fba84a1ccb443527f2857245a39f2d53525f6d825153b7d2",
+    "crates/ncm-tokenizers/src/assets.rs": "781abbd0cdd4390a7d214f9cddc1cdbba56a9f544df357787dcecb13e2a3b42f",
+    "crates/ncm-tokenizers/src/bpe.rs": "e34d363a0535490af4a7ccd3edb2d678190bfc4a1dc932eb9abb439524c520d1",
+    "crates/ncm-tokenizers/src/lib.rs": "d010969aa4d40272efbc74e9039e96b5277ea67fc843c38dbe8d018c8f91e7c5",
+    "tools/reference/tokenizer-sources.lock.json": "a18d6ee183a54f16665896c6703ab2acd70644df912311038007057047df7ba4",
+    "tools/reference/tokenizers-v1.lock.json": "3ecb85212c334a0e85a4659cee2152dcd0230551ea68a51e8f7029ec49bf7fda"
+  }
+}

@@ -6,8 +6,9 @@ tests exist. There are seven report-tool tests. Phase 2 now has a declared
 [codec reference contract](PHASE2.md), a tiny synthetic CPU fixture and trained
 CUDA codec traces. The [complete shared Rust codec](results/2026-11-10-phase2-codec/README.md)
 passes tiny CPU/CUDA and all 642 trained CUDA traces, with all 2,500 code/output
-IDs exact and two near ties disclosed. Performance/memory acceptance, tokenizer
-assets and Apple codec parity remain pending; there is no official task-quality
+IDs exact and two near ties disclosed. [Pinned text tokenizer parity](results/2026-11-10-phase2-tokenizers/README.md)
+also passes on Linux (356 encode / 2,314 decode checks). Performance/memory
+acceptance and Apple codec/tokenizer parity remain pending; there is no official task-quality
 result. The [oracle audit](results/2026-11-10-phase2-oracle/README.md) retains its
 separate original-Python CPU/CUDA diagnostic failure. The remaining model gates below are still planned.
 

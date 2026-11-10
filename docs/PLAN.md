@@ -56,8 +56,8 @@ a Linux-only result does not pass this gate. No broad framework written in advan
 
 The [Phase 2 contract](PHASE2.md) fixes the initial model scope, tensor inventory,
 new numerical budgets and fixture semantics. Tiny CPU and trained CUDA reference
-captures and a passing Rust CUDA codec trace comparison exist. Tokenizer assets,
-Linux performance/memory acceptance and the Apple codec pass remain pending;
+captures, a passing Rust CUDA codec trace comparison and pinned tokenizer parity
+exist. Linux performance/memory acceptance and the Apple codec pass remain pending;
 neither complete platform gate is closed.
 
 Implement validated configs, backend operations and deterministic fixture harness.

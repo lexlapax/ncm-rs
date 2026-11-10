@@ -15,4 +15,6 @@ inspected_on = "2026-11-09"
 watch = "weekly"
 human_triage = "monthly-and-before-releases"
 automatic_pin_updates = false
-# Dataset/tokenizer revisions and individual file hashes are added in Phase 1.
+# Phase 2 tokenizer revisions/file hashes: tools/reference/tokenizer-sources.lock.json.
+# Canonical tokenizer manifests/payloads: tools/reference/tokenizers-v1.lock.json.
+# Dataset acquisition remains separately scoped; these pins do not qualify text models.

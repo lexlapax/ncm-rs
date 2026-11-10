@@ -6,8 +6,9 @@ Next-Concept Modeling for parallel, coarse-to-fine text generation.
 **Status: Phase 2 in progress; Phase 1 complete on Linux/CUDA and Apple Silicon/MLX.**
 All 18 operator goldens and 238 checkpoint tensor readbacks pass; scoped Sudoku
 conversion, a checked Rust artifact loader, text tokenizer and reference traces
-exist. The shared FP32 Sudoku codec now passes Linux/CUDA trace parity; tokenizer
-assets, performance/memory acceptance and the MLX codec pass remain pending.
+exist. The shared FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT text
+tokenizers now pass Linux parity; performance/memory acceptance and the MLX codec
+pass remain pending. Text tokenizer support does not imply full text-model inference.
 **No generator or inference CLI yet.** See the
 [Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
 Within each phase, Linux/CUDA is validated

@@ -28,6 +28,14 @@ execution now passes on CPU/CUDA, including complete free-running and fixed-code
 paths; trained CUDA qualification is reported separately. Phase 2 Apple execution
 remains pending the Linux platform gate.
 
+`tokenizers-v1.json` contains the four pinned text-tokenizer profiles: 356 encode
+cases and 2,314 decode comparisons across both special-token modes. It includes
+synthetic Unicode/whitespace/special-token cases, byte decoder cases and seeded
+mixed strings, not the downloaded vocabularies. Run `ncm-tokenizers`' `asset_probe`
+against separately converted canonical assets. See the
+[tokenizer report](../../docs/results/2026-11-10-phase2-tokenizers/README.md) for
+exact versions, source locks, conversion safety and reproduction.
+
 The operator fixture is not a checkpoint/model fixture. The scoped Sudoku oracle
 now generates 56 model traces from pinned weights; large traces, weights and
 licensed data remain outside Git. See [testing policy](../../docs/TESTING.md) and the

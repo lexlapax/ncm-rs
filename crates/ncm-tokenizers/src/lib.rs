@@ -1,4 +1,8 @@
-//! Text tokenization adapters. Only the upstream Sudoku character codec exists yet.
+//! Python-free Sudoku, byte-BPE and immutable HF tokenizer adapters.
+mod assets;
+mod bpe;
+pub use assets::{AssetError, TextTokenizer, TokenizerMetadata};
+pub use bpe::ByteBpe;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {

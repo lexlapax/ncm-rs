@@ -1,0 +1,21 @@
+{
+  "profiles": {
+    "bert": {
+      "manifest_sha256": "8042d9e1f380867272ee1b9d296ed060f19cacfecf249239c5332cda9c934efd",
+      "payload_sha256": "69cf2727e9dce02300bdee43415bdca9def3d9b6d5aa5616174d188aed2c76ad"
+    },
+    "gpt2": {
+      "manifest_sha256": "c98e2a229ee71ff5031914d69fa1f9d093e60f62cc60f5ff1d8f12a6d2a0786b",
+      "payload_sha256": "84b31bbffa6c15b5edf6b55ed92b543875d1ae100091a99ba065cf9b0a4ac5b8"
+    },
+    "qwen3": {
+      "manifest_sha256": "e1f881e225d651271d01d4067b3308578eb836703fdd25cfb17e7a1b95fcd69a",
+      "payload_sha256": "c2fef52317c75d9d20257e18eed7038cbb546683bc3918844d26f8449a597a24"
+    },
+    "tinystories": {
+      "manifest_sha256": "0f9da8645224160f1fdadeffb14cccede95a89948db12599d24865f1a859c6bb",
+      "payload_sha256": "fdf961a269fa4506a72d12056277450aaed13d31392b39fd640ff6db546516b4"
+    }
+  },
+  "schema_version": 1
+}

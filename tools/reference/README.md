@@ -96,6 +96,25 @@ config/codec/training files against the committed Phase 1 inventory, not an arbi
 replacement manifest. It requires the pinned clean source checkout and refuses
 existing output directories. It never loads pickle or starts an MLX job.
 
+## Phase 2 tokenizer assets
+
+`fetch_tokenizers.py OUTPUT --lock tools/reference/tokenizer-sources.lock.json`
+fetches only immutable tokenizer/config/license files, verifies Git/LFS identities
+and checks the reviewed size/SHA-256 manifest. It downloads no text-model weights.
+`convert_tokenizers.py SOURCE UPSTREAM OUTPUT` then verifies every source hash,
+interprets TinyStories' restricted data-only pickle opcodes without unpickling,
+and runs pinned upstream wrappers locally/offline. No unrestricted loading or
+remote-code fallback is allowed. Both commands require fresh output directories.
+
+Use the separate `requirements-tokenizers.lock` environment; do not replace the
+existing Torch reference environment. Canonical payload/manifest hashes are in
+`tokenizers-v1.lock.json`, with original license notices copied into each bundle.
+`tests/fixtures/tokenizers-v1.json` is the exact encode/decode oracle; the native
+`asset_probe` checks all four profiles and rejects tampering/symlinks. See the
+[full asset/parity report](../../docs/results/2026-11-10-phase2-tokenizers/README.md)
+for commands and the explicit Unicode-16/reference-version policy. This supports
+these wrappers, not arbitrary HF imports or full text-model inference.
+
 ## Apple Silicon / MLX Phase 1
 
 Tested tuple: Rust 1.99.1, mlx-rs Git pin in Cargo.lock (0.34.0), native MLX
