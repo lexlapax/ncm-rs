@@ -136,7 +136,12 @@ this follow-up changes only the separate tokenizer reader, not codec execution.
 
 ## Remaining work
 
-Pull the tokenizer-buffer follow-up on Mac, then qualify all trained Metal traces,
-real tokenizer goldens and repeated load/request stability. Collect the complete
-old/new/qualified-Python matrix and lifecycle evidence. Both extended gates are
-required; Phase 3 stays blocked.
+The tokenizer-buffer follow-up is pushed as `9058df8`, but its Mac pull/test
+command could not authenticate: the local SSH agent became unavailable, and a
+batch-mode retry was denied. Mac was last observed at `74c2ed3`. No Apple result
+for the additional tokenizer-buffer change is claimed. Restore authorized SSH
+access, recheck competing work/state, and safely pull the reviewed commit.
+
+Then qualify all trained Metal traces, real tokenizer goldens and repeated
+load/request stability. Collect the complete old/new/qualified-Python matrix
+and lifecycle evidence. Both extended gates are required; Phase 3 stays blocked.

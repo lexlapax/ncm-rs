@@ -288,7 +288,13 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   audits retained. Explicit optional `load_controls` applies unchanged paired-process
   uncertainty to checked loads too; malformed-trial regression passes. Evidence
   and exact configs are in the shared-loading report's `raw/` directory.
-- **Next: pull this tokenizer-buffer fix on Mac and complete Apple acceptance.**
-  Trained Metal traces, real tokenizers, repeated loads/requests, full three-way
-  performance/memory and separate lifecycle evidence remain. Neither diagnostics
-  nor Linux acceptance close Phase 2. Phase 3 and historical worktrees stay untouched.
+- Tokenizer-buffer follow-up pushed as `9058df8`. **Apple access is now blocked:**
+  SSH signing failed because the local authentication agent became unavailable;
+  `ssh-add -l` cannot connect and a BatchMode/IdentitiesOnly retry is denied.
+  No credentials/global tooling changed. User asked to restore/unlock SSH access.
+  Mac's last observed checkout is `74c2ed3`; the `9058df8` pull/testing command
+  did not run. Recheck availability/state once access returns, then pull safely.
+- **Next: complete Apple acceptance, not Phase 3.** Trained Metal traces, real
+  tokenizers, repeated loads/requests, full three-way performance/memory and
+  separate lifecycle evidence remain. Neither diagnostics nor Linux acceptance
+  close Phase 2. Historical worktrees and `.pi/` stay untouched.
