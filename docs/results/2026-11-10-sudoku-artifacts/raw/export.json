@@ -1,0 +1,11 @@
+{
+  "bit_exact_roundtrip": true,
+  "bundle_tensor_counts": {
+    "codec.safetensors": 58,
+    "generator.safetensors": 144,
+    "training.safetensors": 36
+  },
+  "manifest_sha256": "ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d9832",
+  "profile": "sudoku-easy-inspection-v1",
+  "source_tensors": 238
+}

@@ -8,8 +8,10 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
 - **Plan approved. Phase 1 in progress, Linux portion.** Within EVERY phase:
   Linux/CUDA first, then macOS/MLX; both must pass before advancing phases.
   Do not interpret this as completing the whole CUDA project before Apple work.
-- Linux CPU/CUDA candidate operators and synthetic fixtures now exist. There is
-  **no full model, checkpoint converter, inference CLI, or model-quality result**.
+- Linux CPU/CUDA operators, a scoped Sudoku checkpoint exporter/checked Rust
+  inspection loader, Sudoku text tokenizer and Python model traces now exist.
+  **No full Rust model, inference CLI or corpus-quality result.** The general
+  runtime importer and load-performance/memory qualification remain open.
 - `ssh macstudio` is authorized and the user has now confirmed it is **available
   for MLX**. Announce the first run when the Linux phase gate is ready; recheck
   availability if resuming in a later session. Only read-only inspection has
@@ -34,9 +36,10 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
 | Candidate tensor operations / opt-in features | [CUDA manifest](crates/ncm-backend-cuda/Cargo.toml), [ops.rs](crates/ncm-backend-cuda/src/ops.rs) |
 | Fixtures and regression tests | [test policy](docs/TESTING.md), [fixture README](tests/fixtures/README.md), [operators.rs](crates/ncm-backend-cuda/tests/operators.rs) |
 | Oracle and Python environment | [tools/reference/README.md](tools/reference/README.md) |
-| Checkpoint format/security (not implemented) | [docs/ARTIFACTS.md](docs/ARTIFACTS.md) |
+| Scoped checkpoint exporter/loader and proposed general contract | [docs/ARTIFACTS.md](docs/ARTIFACTS.md), [ncm-io](crates/ncm-io/src/lib.rs), [exporter](tools/reference/sudoku_artifact.py) |
 | Upstream tracking/upgrades | [docs/UPSTREAM.md](docs/UPSTREAM.md), [upstream.toml](upstream.toml) |
 | Measured report / raw trials / reproducibility | [CUDA operator report](docs/results/2026-11-09-cuda-operators/README.md) |
+| Sudoku conversion/readback/model-oracle evidence | [artifact report](docs/results/2026-11-10-sudoku-artifacts/README.md), [trace generator](tools/reference/sudoku_trace.py) |
 | Publication policy and report tools | [docs/REPORTING.md](docs/REPORTING.md), [compare.py](tools/bench/compare.py) |
 | Agent rules / local checks | [AGENTS.md](AGENTS.md), [tools/check.sh](tools/check.sh) |
 | Weekly metadata-only upstream watcher | [.github/workflows/upstream-watch.yml](.github/workflows/upstream-watch.yml) |
@@ -59,10 +62,12 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
 - Mac: M1 Ultra 64 GiB, macOS 26.7.3, Xcode 27.2, Homebrew Rust 1.99.1.
   Noninteractive SSH needs `PATH=/opt/homebrew/bin:$PATH` for Cargo/uv.
 - OWT weights absent at inspected HF revision; full upstream training pipeline
-  absent. No checkpoints downloaded yet. Research clones in `/tmp` are disposable;
-  do not make tools depend on their continued existence.
+  absent. Verified Sudoku-easy inputs are in ignored `artifacts/upstream/sudoku/easy`;
+  final tested bundle is `artifacts/canonical/sudoku-easy-qualified` (the name does
+  not imply release qualification). Clean pinned oracle checkout:
+  `.reference/upstream-ncm`. Disposable `/tmp` research paths are not required.
 
-## Latest work and verification
+## Previous operator/validation milestone
 
 - 18 synthetic operator fixtures: matmul, conv/transposed-conv layouts (including
   prime stride 89), group/layer/RMS norms, uneven/edge area and linear interpolation,
@@ -88,14 +93,41 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
   or operator execution. Prior public measurements remain historical and unchanged;
   no new generation-quality/performance claim or full benchmark comparison.
 
+## Latest work and verification
+
+- Added `sudoku-easy-inspection-v1`: exact input size/hash checks, weights-only
+  conversion, all 238 tensors preserved (58 codec, 144 generator, 36 training).
+  Canonical safetensors roundtrip and Candle CPU/CUDA upload/readback are byte-exact.
+- Added bounded copied `ncm-io` loading, integrity checks and seven rejection/load
+  tests. This authenticates neither the manifest nor model semantics; directory
+  mutation and trusted-parent constraints are documented. No general importer yet.
+- Added Rust Sudoku character codec and five pinned upstream golden cases; three
+  Rust tokenizer tests include invalid IDs/characters and Python whitespace edges.
+- Original vs canonical PyTorch CUDA model: 56 captures across two synthetic boards
+  and all 12 levels match bit-for-bit. No upstream patches, dense uncached FP32,
+  math SDPA and cloned accumulator captures. No official Sudoku quality claim.
+- Public report links compact raw results, persistent/derived inventories and
+  source hashes. Large 14 MiB trace archive is local/ignored; durable asset pending.
+  No loader/tokenizer timing or memory claims; this candidate is not release-qualified.
+- Added Hydra/OmegaConf/YAML and transitive packages to the reference Linux lock.
+  `tools/check.sh` syntax-checks all reference scripts without requiring Torch;
+  optional reference-venv exporter tests are invoked separately.
+- Passed full `tools/check.sh --cuda`: fmt, CPU/CUDA Clippy, 15 Rust tests, docs,
+  four Python aggregation tests, syntax and all 18 GPU operator fixtures. Also
+  five offline exporter tests, both artifact probes and the 56-trace comparison.
+  Local logs: `.reference/phase1-artifact-final-check.log`; final raw evidence:
+  `reports/phase1-artifact-qualified/`. Historical operator report is unchanged.
+- Previous local-validation milestone was pushed as `f7aad49`; prior operator
+  milestone is `3178aa1`. No MLX execution has occurred.
+
 ## Next actions (do not skip gates)
 
-1. Commit/push the local-validation change with this context update. The previous
-   CUDA operator milestone is already pushed as `3178aa1`.
-2. Continue Phase 1 Linux: trusted pinned checkpoint conversion, tensor inventory,
-   canonical artifact roundtrip, tokenizer IDs and full model-level oracle traces.
-   The synthetic operator suite is only a subset of Phase 1 acceptance.
-3. Once Linux Phase 1 is ready, announce macOS/MLX work (user reports availability
-   now). Inspect and safely pull reviewed commits in the Mac checkout, then
-   port/validate that phase there. Recheck availability if the session changes.
+1. Continue Linux Phase 1: measure cold-load/steady load and memory behavior, review
+   remaining runtime-contract/capability gaps, and publish the missing performance
+   evidence. Do not mistake inspection-profile integrity for a runtime model schema.
+2. Preserve/give durable access to the model trace archive; extend fixtures as
+   needed without changing established goldens merely to hide failures.
+3. Once Linux Phase 1 is ready, announce macOS/MLX work. Inspect and safely pull
+   reviewed pushed commits in the Mac checkout, then port/validate that phase.
+   Recheck availability if the session changes. No Mac gate is implicitly passed.
 4. Only after both Phase 1 gates pass, start Phase 2 in the same staggered order.

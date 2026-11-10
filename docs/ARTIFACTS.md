@@ -1,8 +1,43 @@
 # Canonical artifact contract proposal (v1)
 
-To implement in Phase 1; this document is not a working format/parser yet.
+The general contract below remains a proposal. A narrower Phase 1 inspection
+profile is implemented (see the next section); it is not yet a runtime-model schema.
 Canonical runtime files must be portable across both adapters and preserve the
 pinned Python reference without executable serialization.
+
+## Implemented inspection profile
+
+`tools/reference/sudoku_artifact.py` exports only the pinned Sudoku-easy pair as
+`sudoku-easy-inspection-v1`: `manifest.json`, `config.json`, `tokenizer.json`,
+`provenance.json`, `codec.safetensors`, `generator.safetensors`, and
+`training.safetensors`. All 238 source tensors retain names, layouts, shapes and
+F32/I64 dtypes; 36 EMA/count/hit buffers are separated, not discarded. This pair
+has no aliases or inference-statistic metadata. Unexpected sharing/metadata is
+rejected; unrestricted pickle is never retried. Input byte sizes and SHA-256 are
+pinned in the exporter. Outputs refuse preexisting destinations; the output parent
+must be trusted and not concurrently mutated.
+
+`ncm-io::Artifact::load` copies and validates declared file/tensor inventories and
+hashes. Limits: 4 MiB manifest, 256 MiB per payload, 512 MiB summed payloads, tensor
+rank 8. These are input-byte limits, **not peak-RSS guarantees**. It rejects unknown
+manifest fields, duplicate manifest-map keys, malformed hashes, unsupported pins,
+shape overflow, unexpected declared paths and nonregular/symlink leaf files/root.
+It ignores undeclared files on disk. Parent path components and the directory must
+be trusted, with no concurrent mutation; this is not an `openat`/`O_NOFOLLOW`
+sandbox. It never executes Python or downloads anything.
+
+Integrity is relative to the supplied manifest, not authentication of that manifest.
+Config/tokenizer/provenance JSON is syntax-checked but not model-semantically
+validated. A malicious replacement manifest can describe different tensors;
+callers need a trusted manifest digest plus later model-profile checks. The profile
+preserves upstream config rather than pretending all omitted defaults are resolved.
+Nonpersistent buffers are inventoried by the pinned oracle, not runtime-constructed
+by Rust yet. Do not use this inspection loader as a complete inference importer.
+
+See [reproduction commands](../tools/reference/README.md) and the
+[qualification report](results/2026-11-10-sudoku-artifacts/README.md).
+
+## Proposed general runtime layout
 
 ```text
 <artifact-root>/

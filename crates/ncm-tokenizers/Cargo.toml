@@ -1,12 +1,15 @@
 [package]
 name = "ncm-tokenizers"
-description = "Planned NCM text tokenization adapters"
+description = "NCM text tokenization adapters; Sudoku implemented"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
+
+[dev-dependencies]
+serde_json = "1"
 
 [lints]
 workspace = true

@@ -4,8 +4,9 @@ A planned Rust port of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
 **Status: Phase 1 approved and in progress.** Linux/CUDA candidate operators pass
-18 synthetic PyTorch parity cases; there is no complete model, checkpoint converter
-or inference command yet. Within each phase, Linux/CUDA is validated first, then
+18 synthetic PyTorch parity cases. A scoped Sudoku checkpoint exporter, checked
+Rust artifact loader, and Sudoku text tokenizer now exist; there is no complete
+Rust model or inference command yet. Within each phase, Linux/CUDA is validated first, then
 macOS/MLX. Both gates are required before advancing phases.
 
 ## Goals
@@ -49,8 +50,8 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 | `crates/ncm-backend-cuda` | Candidate Candle CPU/CUDA operators, fixture tests and microprobe |
 | `crates/ncm-backend-mlx` | Apple Silicon MLX adapter |
 | `crates/ncm-cli` | Future `ncm` command; currently a status-only executable |
-| `tools/reference` | Pinned Python operator oracle; checkpoint exporter still pending |
-| `tests/fixtures` | 18 synthetic FP32 operator cases and fixture policy |
+| `tools/reference` | Pinned operator/model oracles and scoped Sudoku checkpoint exporter |
+| `tests/fixtures` | 18 synthetic FP32 operator cases, Sudoku tokenizer goldens and fixture policy |
 | `tools/bench` | Validated aggregation of raw probe results |
 | `benches` | Benchmark protocol and reproduction links |
 
@@ -83,8 +84,9 @@ CPU fixtures and report-tool tests; `--cuda` additionally runs the real-device
 operator probe and writes a fresh report under `reports/`. It needs no Python
 Torch installation. A smoke report is not a full three-run benchmark comparison.
 
-For comparison methodology, see the report linked above. No model-level tests
-exist yet. `macstudio` is now available for the Apple pass; announce MLX work
+The [Sudoku artifact report](docs/results/2026-11-10-sudoku-artifacts/README.md)
+records byte-exact conversion, CPU/CUDA tensor readback and Python model traces.
+It does not establish Rust model parity or load-performance qualification. `macstudio` is now available for the Apple pass; announce MLX work
 when Linux Phase 1 is ready and recheck availability in later sessions.
 
 ## Provenance and license

@@ -1,0 +1,70 @@
+{
+  "cases": [
+    {
+      "decoded": "",
+      "decoded_skip_special": "",
+      "ids": [],
+      "text": ""
+    },
+    {
+      "decoded": "<BOS>__12|9<BOS>",
+      "decoded_skip_special": "__12|9",
+      "ids": [
+        11,
+        0,
+        0,
+        1,
+        2,
+        10,
+        9,
+        11
+      ],
+      "text": "<BOS> 0_12|9 B"
+    },
+    {
+      "decoded": "12",
+      "decoded_skip_special": "12",
+      "ids": [
+        1,
+        2
+      ],
+      "text": "1\u001c\u00a0\u2003\n2"
+    },
+    {
+      "decoded": "123456789|_________",
+      "decoded_skip_special": "123456789|_________",
+      "ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "text": "123456789|_________"
+    },
+    {
+      "decoded": "<BOS>",
+      "decoded_skip_special": "",
+      "ids": [
+        11
+      ],
+      "text": "\t<BOS>\r"
+    }
+  ],
+  "schema_version": 1,
+  "upstream_commit": "c70274273f489abc73832b2b98584a8483b6b203"
+}

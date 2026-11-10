@@ -842,6 +842,7 @@ name = "ncm-backend-cuda"
 version = "0.1.0"
 dependencies = [
  "candle-core",
+ "ncm-io",
  "serde",
  "serde_json",
  "sha2",
@@ -862,6 +863,14 @@ version = "0.1.0"
 [[package]]
 name = "ncm-io"
 version = "0.1.0"
+dependencies = [
+ "safetensors",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.21",
+]
 
 [[package]]
 name = "ncm-model"
@@ -870,6 +879,9 @@ version = "0.1.0"
 [[package]]
 name = "ncm-tokenizers"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
 
 [[package]]
 name = "nix"

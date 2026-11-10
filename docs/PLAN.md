@@ -19,7 +19,11 @@ contain no numerical cases. Commit/push scaffold; obtain review before Phase 1.
 
 Current milestone: Linux CPU/CUDA candidate operators pass 18 synthetic PyTorch
 fixtures, with a [public microprobe report](results/2026-11-09-cuda-operators/README.md).
-Checkpoint conversion/roundtrip, tokenizer and model-level traces remain open.
+The scoped Sudoku artifact milestone now has 238 byte-exact tensor roundtrips,
+CPU/CUDA readback, tokenizer goldens and 56 upstream Python model traces unchanged
+by conversion ([report](results/2026-11-10-sudoku-artifacts/README.md)). This is not
+a general runtime importer or Rust model parity. Load-performance/memory evidence
+and the remaining runtime-contract checks are still open.
 The Apple pass has not started. The user has now confirmed `macstudio` is available;
 announce MLX validation once Linux checks are complete (recheck availability in
 later sessions). No gate has been waived by the operator-only evidence.

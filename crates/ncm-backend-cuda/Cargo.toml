@@ -17,12 +17,17 @@ cuda = ["cpu", "candle-core/cuda"]
 candle-core = { version = "=0.11.1", optional = true, default-features = false }
 
 [dev-dependencies]
+ncm-io = { path = "../ncm-io" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 
 [[example]]
 name = "probe"
+required-features = ["cpu"]
+
+[[example]]
+name = "artifact_probe"
 required-features = ["cpu"]
 
 [lints]

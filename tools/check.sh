@@ -55,7 +55,7 @@ cargo test --workspace --features ncm-backend-cuda/cpu --locked
 RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -D warnings" \
     cargo doc --workspace --features ncm-backend-cuda/cpu --no-deps --locked
 python3 -m unittest discover -s tools/bench -p 'test_*.py' -v
-python3 -m py_compile tools/reference/operators.py tools/bench/compare.py
+python3 -m py_compile tools/reference/*.py tools/bench/compare.py
 
 if "$cuda"; then
     printf '%s\n' '== Explicit CUDA validation (real GPU required) =='

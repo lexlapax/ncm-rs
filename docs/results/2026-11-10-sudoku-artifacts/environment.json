@@ -1,0 +1,32 @@
+{
+  "base_commit": "f7aad49c3b904f76c86a3d5e36c3b552d2995000",
+  "build_env": {
+    "CARGO_BUILD_JOBS": "4",
+    "CUDA_COMPUTE_CAP": "86",
+    "NVCC_CCBIN": "/usr/bin/g++-15"
+  },
+  "candidate_changes_uncommitted_at_execution": true,
+  "gpu": "NVIDIA GeForce RTX 3060 Ti, 615.78.08, 8192 MiB",
+  "memory": null,
+  "mlx": "pending",
+  "performance": null,
+  "recorded_at_utc": "2026-11-10T01:05:27.047526+00:00",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Arch Linux rust 1:1.99.1-1)",
+  "schema_version": 1,
+  "source_sha256": {
+    "Cargo.lock": "9040c9e2ad9eb3001348c0cefabe80018497c92e60c07863926edd8c7af5df74",
+    "Cargo.toml": "40c4c32267df3392c1b40421a84a9d141975b5799b59dd54e899c2a1311d256d",
+    "crates/ncm-backend-cuda/Cargo.toml": "6e76c242d2ec16457b5faa01ce38bf1478e5b21a236d84235beb6d4222c5daca",
+    "crates/ncm-backend-cuda/examples/artifact_probe.rs": "3127afc0f2085731c31f85cf2474f5ac9631a96d16a437a2bde4172abafddc06",
+    "crates/ncm-io/Cargo.toml": "3c6df9e17bb344f409c9b74956714fa10c8b04beb8bacc47b3c2ffe1c87fb92f",
+    "crates/ncm-io/src/lib.rs": "e602f75473c597ae411ac2ea51609591711ae5b4703597a16f5a86598a3d7fc6",
+    "crates/ncm-io/tests/artifact.rs": "d3487d756049b31c137d7eaa378c6bc605e2d03e4259446c2cfd73ab1f214c97",
+    "crates/ncm-tokenizers/Cargo.toml": "170cb0fe715f7ca00c39e80aba103294ca92d3473a87ef69bfece04dbc433aca",
+    "crates/ncm-tokenizers/src/lib.rs": "9623f57feec9722f98ebddc7f7df8d589e2eea1fe2596cb8ca3552d6460369cb",
+    "tests/fixtures/sudoku-tokenizer-v1.json": "f648f5215bfe7a12eba8a2d5c46b44eddda3980f51721de7713971f6e8ab8e41",
+    "tools/reference/requirements-linux.lock": "014a3d5a6776ccd43d7e174e59e5f18e0db425a0e6c5a97338c448b20b247bf5",
+    "tools/reference/sudoku_artifact.py": "cfcae7d716fa7a9692c57019454bd28da5f8098c6d3bec32698795076dc0034e",
+    "tools/reference/sudoku_trace.py": "8f6b2409fac99f0d070de5fc5c98a61e2421202eb6d0ae53e36754d502676c62",
+    "tools/reference/test_sudoku_artifact.py": "763f4d8b1d7c7c986c0a540247d8f220ca3901cbf56435f65a5708daf237305e"
+  }
+}

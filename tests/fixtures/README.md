@@ -10,6 +10,14 @@ and review differences. Shapes, lengths, finite values, schema and upstream pin 
 validated before loading the Rust fixture tensors. Test tolerances are fixed in
 `crates/ncm-backend-cuda/tests/support/mod.rs`, not controlled by the fixture.
 
-This is not a checkpoint/model fixture. Large traces, weights and licensed data
-remain outside Git. See [testing policy](../../docs/TESTING.md) and the
+`sudoku-tokenizer-v1.json` contains five cases generated directly by the pinned
+upstream Sudoku tokenizer, including BOS, zero/blank normalization, separators
+and Python whitespace behavior. Rust encode/decode must match exactly; invalid
+Rust token IDs are rejected rather than permitting Python's negative indexing.
+Generate to a new file with `tools/reference/sudoku_trace.py`, never silently
+replace the established fixture.
+
+The operator fixture is not a checkpoint/model fixture. The scoped Sudoku oracle
+now generates 56 model traces from pinned weights; large traces, weights and
+licensed data remain outside Git. See [testing policy](../../docs/TESTING.md) and the
 [measurement report](../../docs/results/2026-11-09-cuda-operators/README.md).

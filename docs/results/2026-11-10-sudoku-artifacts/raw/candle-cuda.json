@@ -1,0 +1,16 @@
+{
+  "bundle_tensor_counts": {
+    "codec.safetensors": 58,
+    "generator.safetensors": 144,
+    "training.safetensors": 36
+  },
+  "byte_exact_readback": true,
+  "device": "cuda",
+  "manifest_sha256": "ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d9832",
+  "model_quality": null,
+  "performance": null,
+  "profile": "sudoku-easy-inspection-v1",
+  "runtime": "candle-0.11.1",
+  "schema_version": 1,
+  "upstream_commit": "c70274273f489abc73832b2b98584a8483b6b203"
+}
