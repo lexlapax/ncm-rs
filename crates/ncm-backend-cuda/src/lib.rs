@@ -11,6 +11,8 @@ mod codec;
 #[cfg(feature = "cpu")]
 pub mod ops;
 #[cfg(feature = "cpu")]
+pub mod resample;
+#[cfg(feature = "cpu")]
 mod runtime;
 #[cfg(feature = "cpu")]
 pub use runtime::CandleBackend;

@@ -22,6 +22,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         &[
             "crates/ncm-backend-cuda/src/codec.rs",
             "crates/ncm-backend-cuda/src/ops.rs",
+            "crates/ncm-backend-cuda/src/resample.rs",
             "crates/ncm-backend-cuda/src/runtime.rs",
             "crates/ncm-backend-cuda/examples/codec_trace.rs",
         ],

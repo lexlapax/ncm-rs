@@ -66,6 +66,7 @@ class Phase2SummaryTests(unittest.TestCase):
             self.assertEqual(len(codec(root)["measurements"]),12)
             mutations=[lambda r:r["measurements"].pop(),lambda r:r["measurements"].append(r["measurements"][0]),
                 lambda r:r["source_sha256"].update(test="changed"),lambda r:r.update(manifest_sha256="wrong"),
+                lambda r:r.update(diagnostic_profiling=True),
                 lambda r:r["measurements"][0].update(output_ids_sha256="wrong"),lambda r:r["measurements"][0].update(output_float_elements=0),
                 lambda r:r["measurements"][1].update(first_logits=[]),lambda r:r["instrumented_stages"][0]["cuda_stream_spans_ms"].pop("encoder_pre_quant"),
                 lambda r:r["measurements"][1]["first_logits"].__setitem__(0,.001)]

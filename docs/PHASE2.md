@@ -167,7 +167,12 @@ of the newly requested performance-remediation gate.
   amplification and tokenizer deficits; preserve execution performance and parity.
 - [ ] Accept both extended gates and publish final evidence and updated status.
 
-The [extension plan](PHASE2-PERFORMANCE.md) defines proposed non-inferiority bands,
+The [CUDA remediation milestone](results/2026-11-10-phase2-cuda-remediation/README.md)
+qualifies vectorized/fused/view/pool changes and publishes three-way measurements.
+Codec cells meet Python bands; TinyStories uncertainty and remaining measurement
+work keep Linux acceptance open. Apple optimization has not started.
+
+The [extension plan](PHASE2-PERFORMANCE.md) defines predeclared non-inferiority bands,
 source-cited research deliverables and blocking/exception rules. Historical
 slowness/high RSS is no longer accepted solely because it was disclosed. Narrow,
 profile-justified FP32 backend kernels may be investigated; speculative kernels,

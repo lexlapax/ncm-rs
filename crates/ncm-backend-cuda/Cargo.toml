@@ -11,11 +11,13 @@ publish = false
 [features]
 default = []
 cpu = ["dep:candle-core"]
-cuda = ["cpu", "candle-core/cuda"]
+cuda = ["cpu", "candle-core/cuda", "dep:candle-nn"]
 
 [dependencies]
 ncm-core = { path = "../ncm-core" }
 candle-core = { version = "=0.11.1", optional = true, default-features = false }
+# Same pinned runtime, for existing fused FP32 CUDA norms/softmax (no new kernels).
+candle-nn = { version = "=0.11.1", optional = true, default-features = false, features = ["cuda"] }
 
 [dev-dependencies]
 safetensors = "=0.8.0"
@@ -52,6 +54,10 @@ required-features = ["cpu"]
 [[example]]
 name = "resample_poc"
 required-features = ["cpu"]
+
+[[example]]
+name = "codec_profile"
+required-features = ["cuda"]
 
 [lints]
 workspace = true

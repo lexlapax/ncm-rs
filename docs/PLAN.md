@@ -82,6 +82,12 @@ The extension permits narrowly justified backend optimization, including audited
 kernels only when source research and profiling demonstrate a need; speculative
 kernels, reduced precision and generator/prefix caching remain out of scope.
 
+[CUDA remediation evidence](results/2026-11-10-phase2-cuda-remediation/README.md)
+now includes qualified production changes and three-way measurements: all codec
+latency cells meet the predeclared Python bands. Extended Linux acceptance remains
+open for uncertainty/audit/startup evidence; no Apple optimization or Phase 3 work
+has started.
+
 ### Required extension, in order
 
 1. Audit benchmark fairness, synchronization, retained outputs, startup/load/drop
@@ -101,7 +107,7 @@ kernels, reduced precision and generator/prefix caching remain out of scope.
 5. Publish both extended gates and update acceptance before Phase 3. Require
    comparable latency and memory versus Python within predeclared uncertainty,
    not just improvement over old Rust; preserve existing native advantages.
-   Proposed maximum bands and blocking/exception rules are in the detailed plan.
+   Predeclared maximum bands and blocking/exception rules are in the detailed plan.
 
 **Gate:** operator, block, encode/decode and reconstruction fixtures satisfy
 predeclared tolerances on both GPUs; exact stable argmin/argmax fixtures and layout

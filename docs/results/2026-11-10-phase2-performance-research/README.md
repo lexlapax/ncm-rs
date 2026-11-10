@@ -4,6 +4,9 @@ Status: **research/PoC only; neither extended platform gate passes yet**.
 The [extension plan](../../PHASE2-PERFORMANCE.md) remains in effect. This milestone
 changes report validation and adds an offline experiment, not production inference.
 No throughput gain or CUDA qualification is claimed from CPU results.
+Subsequent [production CUDA remediation](../2026-11-10-phase2-cuda-remediation/README.md)
+records the real-GPU follow-up, profiles, implementation and three-way measurements.
+[Acceptance bands](acceptance-v1.json) were declared before production changes.
 
 ## Measurement integrity repair
 
@@ -116,7 +119,7 @@ target/release/examples/resample_poc cpu f32 reports/phase2-performance-repeat/f
 python3 -m unittest discover -s tools/bench -p 'test_*.py' -v
 ```
 
-## Blockers and next experiments
+## Initial blockers and next experiments (historical, at `0da7fbe`)
 
 Preflight observed 28% GPU utilization and a resident llama-server (3,232 MiB),
 plus desktop applications. Three subsequent `pmon` samples show `-`, not reliable

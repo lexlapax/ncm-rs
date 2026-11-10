@@ -32,6 +32,7 @@ fn pool(b: &CandleBackend, reset: bool) -> Result<Value> {
         ("used_peak", CU_MEMPOOL_ATTR_USED_MEM_HIGH),
         ("reserved_current", CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT),
         ("reserved_peak", CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH),
+        ("release_threshold", CU_MEMPOOL_ATTR_RELEASE_THRESHOLD),
     ] {
         let mut value = 0u64;
         if reset && name.ends_with("peak") {
@@ -175,9 +176,17 @@ fn timed<T>(b: &CandleBackend, f: impl FnOnce() -> Result<T>) -> Result<(T, f64,
 }
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 4 || cfg!(debug_assertions) {
-        return Err("usage (release CUDA): codec_bench BUNDLE WORKLOAD NEW_REPORT".into());
+    if !(4..=5).contains(&args.len()) || cfg!(debug_assertions) {
+        return Err(
+            "usage (release CUDA): codec_bench BUNDLE WORKLOAD NEW_REPORT [--profile-block4]"
+                .into(),
+        );
     }
+    let profile_block4 = match args.get(4).map(String::as_str) {
+        None => false,
+        Some("--profile-block4") => true,
+        _ => return Err("unknown profiling option".into()),
+    };
     if std::path::Path::new(&args[3]).exists() {
         return Err("output exists".into());
     }
@@ -196,6 +205,9 @@ fn main() -> Result<()> {
         return Err("artifact differs from pinned inventory".into());
     }
     let b = CandleBackend::cuda(0)?;
+    if profile_block4 {
+        candle_core::cuda_backend::cudarc::driver::profiler_stop()?;
+    }
     b.evaluate(&[])?;
     let before = pool(&b, true)?;
     let clock = Instant::now();
@@ -239,6 +251,10 @@ fn main() -> Result<()> {
         for scope in ["encode", "decode", "reconstruct", "resident_decoder_block"] {
             b.evaluate(&[])?;
             pool(&b, true)?;
+            let selected = profile_block4 && batch == 4 && scope == "resident_decoder_block";
+            if selected {
+                candle_core::cuda_backend::cudarc::driver::profiler_start()?;
+            }
             let (first, first_ms, first_span) =
                 timed(&b, || call(&model, scope, &tokens, &codes, batch, &latent))?;
             let expected_hash = ids_hash(&first.ids);
@@ -261,6 +277,9 @@ fn main() -> Result<()> {
                 drop(output);
             }
             b.evaluate(&[])?;
+            if selected {
+                candle_core::cuda_backend::cudarc::driver::profiler_stop()?;
+            }
             rows.push(json!({"batch":batch,"scope":scope,"first_ms":first_ms,"first_cuda_stream_span_ms":first_span,
                 "trials_ms":wall,"cuda_stream_spans_ms":spans,"output_ids_sha256":expected_hash,"output_ids_count":output_count,
                 "output_float_elements":float_elements,"input_ids_sha256":ids_hash(&tokens),"supplied_codes_sha256":ids_hash(&codes),
@@ -276,6 +295,7 @@ fn main() -> Result<()> {
         "crates/ncm-backend-cuda/src/runtime.rs",
         "crates/ncm-backend-cuda/src/codec.rs",
         "crates/ncm-backend-cuda/src/ops.rs",
+        "crates/ncm-backend-cuda/src/resample.rs",
         "crates/ncm-core/src/config.rs",
         "crates/ncm-model/src/lib.rs",
         "crates/ncm-model/src/blocks.rs",
@@ -287,11 +307,11 @@ fn main() -> Result<()> {
         .into_iter()
         .map(|p| Ok((p, sha256(&fs::read(p)?))))
         .collect::<Result<_>>()?;
-    let report = json!({"schema_version":1,"runtime":"rust-candle","device":"cuda","workload_sha256":sha256(&workload_bytes),
+    let report = json!({"schema_version":1,"runtime":"rust-candle","device":"cuda","diagnostic_profiling":profile_block4,"workload_sha256":sha256(&workload_bytes),
         "manifest_sha256":sha256(&fs::read(std::path::Path::new(&args[1]).join("manifest.json"))?),"source_sha256":sources,
         "precision":"fp32","index_dtype":"u32","warmups":5,"trials":30,"first_load_ms":first_load_ms,"load_trials_ms":load_trials,
         "load_memory":load_memory,"measurements":rows,"instrumented_stages":stage_rows,"host_final":host()?,"cold_disk_cache":false,"context_initialization_timed":false,
-        "memory_scope":"CUDA default async pool used/reserved counters; excludes non-pool context/cuBLAS allocations; RSS is process high-water mark",
+        "memory_scope":"CUDA default async pool used/reserved counters, with explicit 128 MiB release threshold; not a hard capacity limit; excludes non-pool context/cuBLAS allocations; RSS is process high-water mark",
         "first_execution_ms":cold_ms,"first_execution_cuda_stream_span_ms":cold_span,
         "first_execution_scope":"batch-one reconstruction before component preparation",
         "compile_profile":"ahead-of-time release; no runtime graph compilation"});

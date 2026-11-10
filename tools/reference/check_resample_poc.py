@@ -1,4 +1,4 @@
-"""Compare finite PoC outputs with pinned Torch CPU interpolation, without timing."""
+"""Compare finite PoC outputs with pinned Torch interpolation, without timing."""
 import argparse
 import hashlib
 import json
@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--reference-device", choices=("cpu", "cuda"), default="cpu")
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError("output exists")
@@ -41,10 +42,12 @@ def main():
     for row in report["rows"]:
         b, i, o, c = (row[k] for k in ("batch", "input_length", "output_length", "channels"))
         x = ((torch.arange(b*i*c) * 73 % 1021).float() - 510).reshape(b, i, c) / 64
+        x = x.to(args.reference_device)
         if row["strided"]:
             x = x.transpose(1, 2).contiguous().transpose(1, 2)
         options = {"align_corners": False} if row["kind"] == "linear" else {}
         ref = F.interpolate(x.transpose(1, 2), size=o, mode=row["kind"], **options).transpose(1, 2).reshape(-1)
+        ref = ref.cpu()
         candidate = torch.tensor(row["output"], dtype=torch.float32)
         if ref.shape != candidate.shape or not torch.isfinite(candidate).all():
             raise ValueError("nonfinite or wrong-sized candidate")
@@ -54,7 +57,8 @@ def main():
         comparisons.append({k:v for k,v in row.items() if k != "output"} | {
             "elements": ref.numel(), "mismatches": mismatches,
             "max_abs_vs_torch": float(delta.max()), "max_budget_fraction": float((delta/budget).max())})
-    result = {"schema_version": 1, "scope": "PoC vs Torch CPU, not trained GPU qualification or performance",
+    result = {"schema_version": 1, "scope": f"PoC vs Torch {args.reference_device.upper()}, not trained GPU qualification or performance",
+              "reference_device": args.reference_device,
               "coordinate_math": report["coordinate_math"],
               "report_sha256": hashlib.sha256(raw).hexdigest(), "candidate_source_sha256": report["source_sha256"],
               "checker_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),

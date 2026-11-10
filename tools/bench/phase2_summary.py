@@ -46,6 +46,7 @@ def reports(root,prefix):
     for runs in result.values():
         for run in runs:
             require(run["schema_version"]==1 and run["warmups"]==5 and run["trials"]==30,"unsupported protocol")
+            require(run.get("diagnostic_profiling", False) is False,"profiled diagnostic is not an acceptance measurement")
             require(run["source_sha256"]==runs[0]["source_sha256"],"sources changed between processes")
     return result
 

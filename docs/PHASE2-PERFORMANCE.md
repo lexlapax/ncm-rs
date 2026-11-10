@@ -1,9 +1,12 @@
 # Phase 2 extension — performance research and remediation
 
-Status: implementation started; no production optimization or extended gate is
-qualified yet. [Initial research and PoC](results/2026-11-10-phase2-performance-research/README.md)
-fixes clean-checkout report reproduction and records CPU interpolation experiments.
-Quiet Linux baseline measurements and profiling are pending. The user reopened
+Status: [production CUDA remediation](results/2026-11-10-phase2-cuda-remediation/README.md)
+passes unchanged correctness and brings all codec latency cells within the Python
+bands. Extended Linux acceptance remains open for measurement uncertainty and the
+remaining audit/startup evidence; Apple optimization has not started. The
+[initial research](results/2026-11-10-phase2-performance-research/README.md) and
+[predeclared thresholds](results/2026-11-10-phase2-performance-research/acceptance-v1.json)
+remain immutable evidence. The user reopened
 Phase 2 after its correctness/measurement baseline was published. **Phase 3 is
 blocked until this extension passes Linux/CUDA first, then Apple/MLX.** Publishing
 negative results was necessary, but is no longer sufficient for Phase 2 closure.
@@ -169,14 +172,16 @@ Python MLX reference. No unmodified-upstream-Apple or pure-language speedup clai
 ## Acceptance and stop rules
 
 Before implementation, lock workload-specific thresholds from the refreshed
-baseline in a reviewed measurement manifest. Proposed default: candidate medians
+baseline in a reviewed measurement manifest. The Linux
+[manifest](results/2026-11-10-phase2-performance-research/acceptance-v1.json) now
+records these bands before production optimization. Candidate medians
 no more than 5% above the matched Python baseline for codec scopes B1/B2/B4 and
 codec/tokenizer loading/execution; p95 no more than 10% above. These are maximum
 non-inferiority bands, **not measured noise or a license to regress**. Target parity
 or better, not merely a reduction of the current 4–5× deficit. If uncertainty
 crosses a gate, collect more independent processes; never widen a band afterward.
 
-Apply the same proposed 5% ceiling to comparable whole-process peak host memory
+Apply the same locked 5% ceiling to comparable whole-process peak host memory
 and steady-state live memory versus Python, and prevent material regressions
 versus old Rust in metrics where Rust already leads. CUDA pool versus Torch
 allocator figures are not comparable whole-process peaks; report them separately
@@ -207,6 +212,7 @@ not close this extension.
 - [ ] Regression/performance checks and reproducible raw evidence for both devices;
       update plan, acceptance tracker, context and results index before closure.
 
-The original planning change performed no experiments. Subsequent research and
-PoC evidence is linked above; it does not establish production performance gains
-or CUDA/MLX qualification. Remaining deliverables must not be inferred as complete.
+The original planning change performed no experiments. Subsequent CUDA profiling,
+production changes, correctness and three-way measurements are linked above.
+They establish measured codec improvements, not full extended acceptance or MLX
+qualification. Remaining deliverables must not be inferred as complete.

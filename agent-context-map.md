@@ -16,6 +16,9 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   proposed acceptance bands and blocking rules. Explanation alone is not closure.
   Approved plan pushed as `7507d13`. Initial measurement-repair/research milestone
   is described in `docs/results/2026-11-10-phase2-performance-research/README.md`.
+  Latest: qualified production CUDA remediation and three-way results in
+  `docs/results/2026-11-10-phase2-cuda-remediation/README.md`; codec deficits are
+  removed in measured cells, but extended Linux acceptance is still open.
   No persistent goal was created or old completed goal rewritten by this request.
   Large-archive publication remains pending; no efficiency/inference-release claim.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
@@ -63,7 +66,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 | --- | --- |
 | Phase 2 contract / acceptance / remediation | [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md), [research and performance extension](docs/PHASE2-PERFORMANCE.md), [initial research/PoC](docs/results/2026-11-10-phase2-performance-research/README.md) |
 | Shared runtime and model | [core](crates/ncm-core/src/lib.rs), [config](crates/ncm-core/src/config.rs), [model](crates/ncm-model/src/lib.rs), [blocks](crates/ncm-model/src/blocks.rs), [codec](crates/ncm-model/src/codec.rs) |
-| CUDA adapter / known native fixes | [adapter](crates/ncm-backend-cuda/src/codec.rs), [operators](crates/ncm-backend-cuda/src/ops.rs), [component report](docs/results/2026-11-10-phase2-primitives/README.md) |
+| CUDA adapter / known native fixes | [adapter](crates/ncm-backend-cuda/src/codec.rs), [vectorized resampling](crates/ncm-backend-cuda/src/resample.rs), [pool policy](crates/ncm-backend-cuda/src/runtime.rs), [operators](crates/ncm-backend-cuda/src/ops.rs), [remediation](docs/results/2026-11-10-phase2-cuda-remediation/README.md) |
 | Phase 2 oracle and complete CUDA results | [oracle audit](docs/results/2026-11-10-phase2-oracle/README.md), [codec report](docs/results/2026-11-10-phase2-codec/README.md) |
 | Tokenizer identities, safety and parity | [tokenizer report](docs/results/2026-11-10-phase2-tokenizers/README.md), [source lock](tools/reference/tokenizer-sources.lock.json), [canonical lock](tools/reference/tokenizers-v1.lock.json) |
 | Fixtures / offline tools | [fixtures](tests/fixtures/README.md), [reference README](tools/reference/README.md) |
@@ -151,7 +154,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Reconstruction matches Python on 445/445 tokens and 5/5 sequences; recovery of
   original inputs is 437/445 (eight mixed-board differences), not losslessness or
   Sudoku-solving quality. Uninstrumented outputs match traced outputs.
-- Current native trace: `reports/phase2-codec/cuda-v2`, SHA-256
+- Historical native trace: `reports/phase2-codec/cuda-v2`, SHA-256
   `a3776cac0ba75eaeb9ebc9a30ebd03c131f0b4470f12f136b7ccc95fc25e0fa0`.
   Python reference traces: `reports/phase2-oracle/v1/`. Durable Phase 2 archive
   publication remains pending. Phase 1 archive exists at research prerelease
@@ -161,14 +164,14 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   Tiny pickle conversion interprets bounded data opcodes, never unpickles or calls
   constructors. Canonical HF JSON comes from offline trusted-code-disabled wrappers.
   Four real-asset mutations/profile are rejected; fresh conversions are identical.
-- Linux measurements: `reports/phase2-linux-v1`; all 30 fresh-process raw reports,
+- Historical Linux measurements: `reports/phase2-linux-v1`; all 30 fresh-process raw reports,
   telemetry and first logits are committed under `docs/results/2026-11-10-phase2-linux`.
   Three processes, five warmups, thirty trials; matching output hashes/counts and
   44,856 native benchmark logits pass. B1 reconstruct Rust/Python 18.890/4.668 ms;
   warm codec load 184.49/267.61 ms; host HWM ~559–562/1530–1540 MiB. Native pool
   counters exclude context/cuBLAS allocations; not interchangeable with Torch's
   allocator or device-global snapshots. Occupied workstation/clock variation disclosed.
-- Instrumented level spans identify intermediate composed resampling as the main
+- Historical instrumented level spans identify intermediate composed resampling as the main
   native cost. Original-Python fullgraph Inductor preflight fails on NumPy-based
   Phi module indexing; no compiled timing baseline is qualified. Tokenizer timings
   retain both skip modes and special/non-special throughput; Qwen native loading
@@ -188,7 +191,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - The shared trained-capture harness refactor preserves the CUDA trace hash exactly.
   Mac tokenizer probe passes all four profiles, including rejection cases and a
   cleared environment without Python. Canonical tokenizer assets are now on Mac.
-- Latest Linux `tools/check.sh --cuda` passes: 30 base Rust tests, real-CUDA codec
+- Historical Linux `tools/check.sh --cuda` passes: 30 base Rust tests, real-CUDA codec
   suite, all 18 unchanged operators, fmt/Clippy/docs/syntax. Twelve report-tool tests
   and all 18 offline reference tests pass. Tokenizer probe previously also passed
   with cleared env and no Python on PATH. Logs: `.reference/phase2-linux-check.log`,
@@ -205,21 +208,47 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   gate `fd1b482` (pushed). Preserve old reports/source hashes;
   do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
   task-quality data or an inference release.
-- **Next: quiet Linux baseline/profiling window, then production candidates.**
-  User was asked to arrange a quiet GPU window: preflight found 28% activity and
-  resident llama-server; later pmon `-` is not proof of inactivity. No processes
-  were stopped. Nsight tools absent from searched locations; installed CUPTI
-  injection samples may support project-local profiling without global changes.
-- Research inspected NVIDIA timing/profiling guidance, exact Candle kernel source,
-  pinned NCM paths and installed Torch interpolation headers. Existing Candle
-  bilinear CUDA uses FP64 sample arithmetic and was rejected as an FP32 shortcut.
-  Offline gather/mask resampling PoC only (no production integration): CPU f32
-  coordinates pass 360 rows / 753,984 values against Torch CPU; existing-style
-  f64 coordinates fail 228 values, retained in the research report. CUDA/trained
-  qualification and performance are pending; do not infer GPU behavior from CPU.
-- Checks: `./tools/check.sh` passes (CPU, fmt/Clippy/docs, 16 report tests), log
-  `.reference/phase2-performance-audit-check.log`; PoC f32 checker passes, f64
-  checker exits 1 as expected. Report tests cover clean checkout and tampering.
-  No new GPU timing, threshold calibration, extended gate or production gain
-  is claimed. Resume fair paired baselines and profiling; then Linux fixes before
-  Apple work. Phase 3 stays blocked; historical fixtures and `.pi/` untouched.
+- **CUDA remediation milestone:** vectorized FP32 gathers/area reduction, pinned
+  optional `candle-nn = 0.11.1` fused CUDA norms/softmax, immutable views and explicit
+  default-pool retention. No shared model/loader/tokenizer math or goldens changed.
+  CUDA default release threshold is now 128 MiB; explicit per-process shared-pool
+  API allows zero/custom policy. Not preallocation or a hard cache limit. Tests
+  cover real-CUDA policy/opt-out, broad resampling, stable ties and snapshots.
+- User authorized stopping `llama-server.service` (inactive, not disabled), closed
+  Chrome, then authorized continuing with Hyprland running. No other app was stopped
+  or global tooling/power changed. Local CUPTI sample traces identify launch count
+  16,756 → 1,312 for load + two B1 reconstructions. B4 bimodality was allocation:
+  fast/slow cuMemAllocAsync totals 0.636/20.497 ms with identical kernel work;
+  retention gives 0.642 ms. Extra reusable reservation is disclosed (96 vs 64 MiB).
+- Predeclared bands are in the research `acceptance-v1.json`, written before
+  production changes. Final interleaved old/new/Python reports are archived with
+  source/binary hashes, environment and telemetry in the remediation report.
+  B1/B2/B4 reconstruction old/new/Python medians: 18.165/3.285/4.659,
+  26.681/4.003/5.081, 28.949/5.134/5.859 ms. All codec median/p95 Python bands
+  pass descriptively. Warm load 195.88/194.45/286.25 ms; native host HWM ~580 MiB
+  remains favorable. Failed vectorized B4 and earlier comparison rounds retained.
+- Correctness: final `reports/phase2-codec/cuda-remediated-v1` passes all 642
+  trained traces/2,500 decisions with unchanged budgets; same two near ties and
+  437/445 input recovery. Native trace SHA-256:
+  `d180a52c011c8af15812d10941de8574b1671c2cd23de67e9abc828f7c5ecba4`.
+  360 synthetic CUDA rows / 753,984 values pass against pinned Torch CUDA (maximum
+  budget fraction 0.628). FP64-coordinate alternative still fails 228 values;
+  this GPU check is distinct from the earlier Torch-CPU comparison.
+- Validation: final `tools/check.sh --cuda` passed (log
+  `.reference/phase2-cuda-remediation-final-check.log`, also published). Final
+  `./tools/check.sh` passes, including 20 report tests; 21 offline reference tests
+  pass. A clean staged checkout with no ignored inputs exactly reproduces all six
+  matrix summaries (historical summarizer provenance excepted), six CUPTI profiles
+  and the control summary; evidence/source fingerprints and doc links verified.
+  Logs: `.reference/phase2-remediation-publication-check.log` and
+  `.reference/phase2-remediation-reference-tests.log`. Staged code/archives reviewed;
+  `.pi/`, executables, weights and large model-trace archives are not staged.
+- **Next: finish extended Linux acceptance, not Apple yet.** TinyStories native
+  old/new binaries are identical, but uncontrolled microsecond cells exceed bands.
+  Nine additional CPU-affinity-controlled process triplets have ratios <=1.020;
+  paired-process skip-special median interval [0.9772, 1.0551] still crosses 1.05.
+  Resolve uncertainty without waivers/hidden runs; complete whole-matrix fail-closed
+  audit and separate process/import/context-startup/teardown evidence. Then accept
+  Linux, recheck Mac availability/worktree, and safely pull reviewed pushed changes
+  for Apple loading/memory/tokenizer diagnosis. Phase 3 stays blocked; `.pi/` and
+  historical fixtures remain untouched.

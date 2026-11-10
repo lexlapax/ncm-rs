@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "status": "CUDA remediation evidence; extended Linux acceptance remains open",
+  "baseline_commit": "0da7fbe48cc21fba2125983985756bfc3867387b",
+  "final_measurement_directory": "reports/phase2-performance-linux-threeway-v2",
+  "source_sha256": {
+    "Cargo.lock": "2d29fad0869f1d0d0c84b31d254ef5c61e4ddd9a88c58ae7d54dfe2cc70d7d3f",
+    "crates/ncm-backend-cuda/Cargo.toml": "58333d26c4bf867b233899985ff9a84e9935d956da5e1779df3bc2bea8153351",
+    "crates/ncm-backend-cuda/examples/codec_bench.rs": "2648faa43e439efd82a0a318962dec6171d1a808e1fc4398f0496775f0b6e11a",
+    "crates/ncm-backend-cuda/examples/codec_profile.rs": "e6091d2e5985217bfd022379a4d2f4221246b23681dc21064858907301431e39",
+    "crates/ncm-backend-cuda/examples/support/stages.rs": "d716c58d5a9432615821a7a87509aee4210e2785d767a1be8c25eaec511339b5",
+    "crates/ncm-backend-cuda/src/codec.rs": "15e0e17523d080869da5dd88d9c32622abb3a724cbd034d3944cdd205c94d7ab",
+    "crates/ncm-backend-cuda/src/ops.rs": "caa0915004fcffbceb04506181668c0a516653fc321b29090eda83dc60df7be7",
+    "crates/ncm-backend-cuda/src/resample.rs": "afdd9121c6fd0bc09b47eae4cb5869e862953c1f1bb6bcb08b0517a6bd5f5626",
+    "crates/ncm-backend-cuda/src/runtime.rs": "bd4d31b3f9f5be2627577fa643314f3ac1b5530dbf5e565e71ce98c001bc191b",
+    "crates/ncm-backend-cuda/tests/pool_policy.rs": "ac3c459c39b1eae57b7e9efc3ecfd85d844016f3887b458b0445f47ec4df95bf",
+    "crates/ncm-backend-cuda/tests/resampling.rs": "bf7a02c81767c740fac67c8578081af73c8d3e5b4cea4835b16caed5d9f2aa0d",
+    "crates/ncm-core/src/config.rs": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+    "crates/ncm-io/src/lib.rs": "e602f75473c597ae411ac2ea51609591711ae5b4703597a16f5a86598a3d7fc6",
+    "crates/ncm-model/src/blocks.rs": "1e342a3c6d2d567d1dc7db59b95a51b08672b5389e4a105a07ee92c0657b31e6",
+    "crates/ncm-model/src/codec.rs": "84457b2fedef896ae3c286114b3e926bcfb6a4de4de37e828f04fd0f82537807",
+    "crates/ncm-model/src/lib.rs": "cc6f6f8fbbd85c4b87bee391a3918af0bcf97fbd048303972f80fa9b932e97c1",
+    "tools/bench/run_phase2_linux_comparison.py": "697f3ea4cad9282525cbfa650f31e0c57fae65e9178aebc7139821fbf656bdeb",
+    "tools/bench/summarize_cupti_trace.py": "ab3428bc7d5530bb5bdc904b148ca2c46370f9629e961c8d079b61b6606a86bb",
+    "tools/bench/summarize_tokenizer_control.py": "87d849bba2b3c81619d81c0dfb8b8bc9c303562269dba28cd6f14467f0ba2194",
+    "tools/bench/test_cupti_trace.py": "80a3a34d5985e035c7ca7b7efd5f3d0dd355b98ad698af37cef706aa08125c5f",
+    "tools/reference/check_resample_poc.py": "8d33c6618a734d2393b9cae3a721b9cb33c480fd68b48157a73f5cc8b28ca0af"
+  },
+  "binary_sha256": {
+    ".reference/phase2-performance-baseline-bin/codec_bench": "97d2dd688736e64e6b8d51d097cebaef7e1db2eb8f628fc00d3126c552009f26",
+    ".reference/phase2-performance-baseline-bin/asset_bench": "dc99bf5f5ad9ec1f9aea42bce60b3d7c8c213c13625bb03832356a6b6e3750a3",
+    "target/release/examples/codec_bench": "44e7804c0583861a7cb350a58374a70bcd33e68d46fa866684961723303e7cd6",
+    "target/release/examples/asset_bench": "dc99bf5f5ad9ec1f9aea42bce60b3d7c8c213c13625bb03832356a6b6e3750a3",
+    "target/release/examples/codec_trace": "9558ad5534e90aa1a155464268e4f52cc425609a7c985ade29293ad3dce66e67",
+    "target/release/examples/codec_profile": "e34918b1ff104a3cd8d2e8844f60e68df83bec908d197d5559b7bb23f7eb18e1"
+  },
+  "profiling": {
+    "scope": "NVIDIA installed sample; raw activity counts are diagnostic, not wall-time acceptance",
+    "sample_sha256": {
+      "/opt/cuda/extras/CUPTI/samples/cupti_trace_injection/Makefile": "e9227a3f14c8780ba1d9e657f8e8f78953ce143fd5a3e72c0106f12fd51eb0bc",
+      "/opt/cuda/extras/CUPTI/samples/cupti_trace_injection/cupti_trace_injection.cpp": "71e2f61067552e43849a87ed8c72efa66840034b8ee4c1a1c39b071b40d8fd25",
+      "/opt/cuda/extras/CUPTI/samples/common/nvtx/nvtx_payload_attributes.cpp": "b7ad3011a4ac4fa218d03b38fefc245ab7488a5af50fb90c13172214ad22dd1f",
+      "/opt/cuda/extras/CUPTI/samples/common/nvtx/nvtx_payload_parser.cpp": "cd519e1417a8dd6e470236e3533bea8a5564a0645ad54b50941c89881813d010"
+    },
+    "original_injection_library_sha256": "a9094878de40497015d7bc5996e76fd05d21e9a77b216e555cbd4c90df6076cf",
+    "checked_rebuild_library_sha256": "27b56aee9028b32af178b5f46bf31655abe48d2ac3e98d132ab9e0a17834ff6e",
+    "checked_rebuild_command": "NVCC_CCBIN=/usr/bin/g++-15 make -C /opt/cuda/extras/CUPTI/samples/cupti_trace_injection CUDA_INSTALL_PATH=/opt/cuda LIBNAME=\"$PWD/.reference/phase2-cupti/rebuilt.so\"",
+    "original_compile_invocation_retained": false
+  },
+  "files": {
+    "README.md": {
+      "bytes": 16906,
+      "sha256": "f5ecf20a496c5ff8a8ba5cf24033b8b8f321bf2ebfae107699ec958ebc6e8832"
+    },
+    "baseline-v1-summary.json": {
+      "bytes": 146210,
+      "sha256": "6651a85410ac432dbf4c972ba3353d77aa31c8070028f68076ae30c26e287987"
+    },
+    "profiles/codec-baseline-cupti.json": {
+      "bytes": 16570,
+      "sha256": "a0882f3c68cc3ba1242f22b1b73e7d99325688f55cb9e8f00d824933247e654c"
+    },
+    "profiles/codec-diagnostic-block4-b-cupti.json": {
+      "bytes": 9943,
+      "sha256": "37e8e33215ebba9537fb73365c932846a76ead0d85f8e25e3ea8554dcb3b3810"
+    },
+    "profiles/codec-diagnostic-block4-cupti.json": {
+      "bytes": 9936,
+      "sha256": "a84ea91a7ea90eca4512502dfef99b7e3975cdb4648c51d02ccfebb79f7cdc13"
+    },
+    "profiles/codec-diagnostic-block4-retained-cupti.json": {
+      "bytes": 10260,
+      "sha256": "5976177088e187693f886eab70d08d3d6467e4a2c424045ae12a40b27234152b"
+    },
+    "profiles/codec-remediated-cupti.json": {
+      "bytes": 17028,
+      "sha256": "443641b3e45e2bef1be301e8f41705fc915b96b6eb5debe6e8028208025e4c18"
+    },
+    "profiles/codec-vectorized-cupti.json": {
+      "bytes": 16379,
+      "sha256": "9425551064fa00394cd0720f40b71026304fcb1e767fb4d6757c1415532d20b2"
+    },
+    "raw/baseline-v1.tar.gz": {
+      "bytes": 1019375,
+      "sha256": "f9379384fd6f28c113fcf0043799d2f581231a3fac39e9ef589bff33f416a3fa"
+    },
+    "raw/cuda-check.log": {
+      "bytes": 11076,
+      "sha256": "58f955f8f6d44ea9fd7256fab58fdad54326937bc75fe63998c4a752f599828e"
+    },
+    "raw/cupti-profiles.tar.gz": {
+      "bytes": 7890483,
+      "sha256": "e907364e21a04d274939b7e457de3f100ec24aeaef3f8745c3321c59538f900d"
+    },
+    "raw/qualification.json": {
+      "bytes": 225047,
+      "sha256": "cdcfeece48b0d80948514e2855f38e53c5a2a36a6ef629ba5959befc2e7432b3"
+    },
+    "raw/resample-cuda-comparison.json": {
+      "bytes": 132773,
+      "sha256": "87e197e424e519a73161784281dba2150e736090ee8a9daac179df6d5b8cf254"
+    },
+    "raw/resample-f64-cuda-comparison.json": {
+      "bytes": 130116,
+      "sha256": "65c8c05d5b100c17af6089d12ad46a920e0c4cf8307f1c6197f45df6b3109e91"
+    },
+    "raw/threeway-v1.tar.gz": {
+      "bytes": 2519826,
+      "sha256": "610b14dd999c0ced9b626df6cb5faa6d5ce580e87dc29ef6f3a5ea0dc4b477cc"
+    },
+    "raw/threeway-v2.tar.gz": {
+      "bytes": 2517825,
+      "sha256": "d9a4d80d98fcb6615ff01e33721eee4fedc3210eb2f8afaf7417de45ed6c7387"
+    },
+    "raw/tiny-control-v1.tar.gz": {
+      "bytes": 55446,
+      "sha256": "e1dcf7874351db404b4de1ae402fadde95c2e3427e5dabfa4cbf8fecbf258cec"
+    },
+    "raw/vectorized-v1.tar.gz": {
+      "bytes": 1004476,
+      "sha256": "02c5e53b38b52668f13d2b77cb004e69245880dc6ce4dfd0a4f2e5f9624e307c"
+    },
+    "threeway-v1-candidate-summary.json": {
+      "bytes": 148588,
+      "sha256": "549c0dd6aa54575c42b177d1328c0e339df33ec7998d6baec386962608da8d48"
+    },
+    "threeway-v1-previous-summary.json": {
+      "bytes": 146325,
+      "sha256": "b6ffa8c7522f12e8e2aca2c897efe50e0d46ef7b6bda294ae3e9d03c4948acf2"
+    },
+    "threeway-v2-candidate-summary.json": {
+      "bytes": 148885,
+      "sha256": "33f547303600bf79835357ca746b7aa6b5a5ae019b10cf97e422a7270c6f2b2c"
+    },
+    "threeway-v2-previous-summary.json": {
+      "bytes": 146232,
+      "sha256": "00318c900bfdd13458fe33a473e95871b1ab936b51fc3f2bab941a92dfa4685a"
+    },
+    "tiny-control-summary.json": {
+      "bytes": 10578,
+      "sha256": "0bf6df5c80cdb178456f8d35ff619f98a7f6584e98d7e607a5b78c50ab4dd4ab"
+    },
+    "vectorized-v1-summary.json": {
+      "bytes": 146554,
+      "sha256": "35dc1919cfbebed7a39a6fc479db2ecc336f9a573a34fd7f14ba72a778ccfa85"
+    }
+  }
+}

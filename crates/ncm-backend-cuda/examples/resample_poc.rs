@@ -129,9 +129,17 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
                     };
                     let linear = Linear::new(input, output, fp32_coordinates, &device)?;
                     let area = Area::new(input, output, &device)?;
+                    let (linear_candidate, area_candidate) = if fp32_coordinates {
+                        (
+                            ncm_backend_cuda::resample::linear1d(&x, output)?,
+                            ncm_backend_cuda::resample::area1d(&x, output)?,
+                        )
+                    } else {
+                        (linear.apply(&x)?, area.apply(&x)?)
+                    };
                     for (kind, candidate, reference) in [
-                        ("linear", linear.apply(&x)?, ops::linear1d(&x, output)?),
-                        ("area", area.apply(&x)?, ops::area1d(&x, output)?),
+                        ("linear", linear_candidate, ops::linear1d(&x, output)?),
+                        ("area", area_candidate, ops::area1d(&x, output)?),
                     ] {
                         let candidate = candidate.flatten_all()?.to_vec1::<f32>()?;
                         let reference = reference.flatten_all()?.to_vec1::<f32>()?;
@@ -158,6 +166,7 @@ fn main() -> std::result::Result<(), Box<dyn Error>> {
     let report = json!({"schema_version":1,"device":args[1],"precision":"fp32","coordinate_math":args[2],
         "scope":"finite synthetic resampling PoC only; no timing or trained codec qualification",
         "source_sha256":ncm_io::sha256(include_bytes!("resample_poc.rs")),
+        "production_resample_sha256":ncm_io::sha256(include_bytes!("../src/resample.rs")),
         "rows":rows});
     let file = fs::OpenOptions::new()
         .write(true)

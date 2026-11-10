@@ -1,0 +1,765 @@
+{
+  "schema_version": 1,
+  "trace_sha256": "ecfdf4d3a21ae328620add8032afbb30ec966b046036d310a49dfdaabdf30400",
+  "scope": "Diagnostic CUPTI activity counts/sums, not acceptance timings or process peaks; API/kernel spans can overlap.",
+  "totals": {
+    "DRIVER": {
+      "count": 33746,
+      "sum_ns": 125697969
+    },
+    "RUNTIME": {
+      "count": 777,
+      "sum_ns": 10741252
+    },
+    "CONCURRENT_KERNEL": {
+      "count": 1312,
+      "sum_ns": 4450950
+    }
+  },
+  "events": [
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_Z10dot_kernelIfLi128ELi0E15cublasDotParamsI30cublasGemvTensorStridedBatchedIKfES1_IfEEEvT2_",
+      "count": 2,
+      "sum_ns": 3584,
+      "max_ns": 1792,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_Z16gemmSN_TN_kernelIfLi128ELi16ELi2ELi4ELi10ELi11ELb0E30cublasGemvTensorStridedBatchedIKfES2_S0_IfEEv22cublasGemmSmallNParamsIT7_T8_T9_T_E",
+      "count": 2,
+      "sum_ns": 7168,
+      "max_ns": 3616,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_Z16gemmSN_TN_kernelIfLi128ELi16ELi2ELi4ELi14ELi15ELb0E30cublasGemvTensorStridedBatchedIKfES2_S0_IfEEv22cublasGemmSmallNParamsIT7_T8_T9_T_E",
+      "count": 2,
+      "sum_ns": 8608,
+      "max_ns": 4416,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_Z16gemmSN_TN_kernelIfLi128ELi16ELi2ELi4ELi2ELi2ELb1E30cublasGemvTensorStridedBatchedIKfES2_S0_IfEEv22cublasGemmSmallNParamsIT7_T8_T9_T_E",
+      "count": 2,
+      "sum_ns": 4416,
+      "max_ns": 2208,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_Z16gemmSN_TN_kernelIfLi128ELi16ELi2ELi4ELi4ELi4ELb1E30cublasGemvTensorStridedBatchedIKfES2_S0_IfEEv22cublasGemmSmallNParamsIT7_T8_T9_T_E",
+      "count": 2,
+      "sum_ns": 4960,
+      "max_ns": 2496,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_Z16gemmSN_TN_kernelIfLi128ELi16ELi2ELi4ELi6ELi7ELb0E30cublasGemvTensorStridedBatchedIKfES2_S0_IfEEv22cublasGemmSmallNParamsIT7_T8_T9_T_E",
+      "count": 2,
+      "sum_ns": 6432,
+      "max_ns": 3296,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_Z20reduce_1Block_kernelIfLi128ELi7E30cublasGemvTensorStridedBatchedIfES0_IKfES1_EvPKT_S4_T2_iS6_S4_T3_T4_19cublasPointerMode_t18cublasLtEpilogue_tS0_IKN8biasTypeINS9_10value_typeES4_E4typeEE",
+      "count": 2,
+      "sum_ns": 3328,
+      "max_ns": 1664,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_ZN8cublasLt19splitKreduce_kernelILi32ELi16EiffffLb0EfffLb1ELb0ELb0ELb0EEEvNS_18cublasSplitKParamsIT4_EEPKT2_PKT8_PT7_PT3_PKS2_SF_PKT9_S6_PSG_PvlPS2_PiSL_SL_SF_SF_SF_SF_SF_",
+      "count": 54,
+      "sum_ns": 104320,
+      "max_ns": 5184,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_ZN8internal5gemvx6kernelIiiffffLb0ELb1ELb0ELb0ELi6ELb0E18cublasGemvParamsExIi30cublasGemvTensorStridedBatchedIKfES5_S3_IfEfEEENSt9enable_ifIXntT5_EvE4typeET11_",
+      "count": 4,
+      "sum_ns": 238372,
+      "max_ns": 61057,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "_ZN8internal5gemvx6kernelIiiffffLb0ELb1ELb1ELb0ELi7ELb0E18cublasGemvParamsExIi30cublasGemvTensorStridedBatchedIKfES5_S3_IfEfEEENSt9enable_ifIXntT5_EvE4typeET11_",
+      "count": 2,
+      "sum_ns": 124736,
+      "max_ns": 62528,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "affine_f32",
+      "count": 128,
+      "sum_ns": 176319,
+      "max_ns": 1600,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "ampere_sgemm_128x128_nn",
+      "count": 2,
+      "sum_ns": 32320,
+      "max_ns": 16160,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "ampere_sgemm_128x128_tn",
+      "count": 2,
+      "sum_ns": 25313,
+      "max_ns": 12705,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "ampere_sgemm_128x32_tn",
+      "count": 2,
+      "sum_ns": 26400,
+      "max_ns": 13216,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "ampere_sgemm_32x32_sliced1x4_tn",
+      "count": 16,
+      "sum_ns": 128096,
+      "max_ns": 11904,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "ampere_sgemm_64x32_sliced1x4_tn",
+      "count": 52,
+      "sum_ns": 611621,
+      "max_ns": 14561,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "badd_f32",
+      "count": 224,
+      "sum_ns": 580000,
+      "max_ns": 8352,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "bdiv_f32",
+      "count": 22,
+      "sum_ns": 74208,
+      "max_ns": 3552,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "bmul_f32",
+      "count": 100,
+      "sum_ns": 339553,
+      "max_ns": 6080,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "bsub_f32",
+      "count": 50,
+      "sum_ns": 77408,
+      "max_ns": 3520,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "col2im1d_f32",
+      "count": 4,
+      "sum_ns": 8960,
+      "max_ns": 2240,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "copy2d_u32",
+      "count": 24,
+      "sum_ns": 32704,
+      "max_ns": 1440,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "eq_f32",
+      "count": 26,
+      "sum_ns": 68833,
+      "max_ns": 3489,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "fast_max_f32",
+      "count": 2,
+      "sum_ns": 4895,
+      "max_ns": 2559,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "fast_min_f32",
+      "count": 24,
+      "sum_ns": 46975,
+      "max_ns": 2080,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "fast_min_u32",
+      "count": 26,
+      "sum_ns": 51007,
+      "max_ns": 2464,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "fast_sum_f32",
+      "count": 54,
+      "sum_ns": 115264,
+      "max_ns": 3328,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "fast_sum_small_f32",
+      "count": 18,
+      "sum_ns": 162784,
+      "max_ns": 21088,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "im2col1d_f32",
+      "count": 50,
+      "sum_ns": 279715,
+      "max_ns": 40129,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "is_u32_f32",
+      "count": 152,
+      "sum_ns": 382339,
+      "max_ns": 3904,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "layernorm_f32",
+      "count": 6,
+      "sum_ns": 26688,
+      "max_ns": 4640,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "rmsnorm_f32",
+      "count": 4,
+      "sum_ns": 10336,
+      "max_ns": 2592,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "softmax_f32",
+      "count": 2,
+      "sum_ns": 5376,
+      "max_ns": 2688,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "ucopy_f32",
+      "count": 168,
+      "sum_ns": 504158,
+      "max_ns": 3232,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "ugelu_erf_f32",
+      "count": 2,
+      "sum_ns": 7168,
+      "max_ns": 3584,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "usqr_f32",
+      "count": 50,
+      "sum_ns": 74395,
+      "max_ns": 1696,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "usqrt_f32",
+      "count": 2,
+      "sum_ns": 2656,
+      "max_ns": 1344,
+      "over_100us": 0
+    },
+    {
+      "kind": "CONCURRENT_KERNEL",
+      "name": "where_u8_u32",
+      "count": 26,
+      "sum_ns": 89535,
+      "max_ns": 4960,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuCtxGetCurrent",
+      "count": 13993,
+      "sum_ns": 821743,
+      "max_ns": 2812,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuCtxGetLimit",
+      "count": 1,
+      "sum_ns": 452,
+      "max_ns": 452,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuCtxSetCurrent",
+      "count": 1,
+      "sum_ns": 386,
+      "max_ns": 386,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDeviceGet",
+      "count": 5,
+      "sum_ns": 1367156,
+      "max_ns": 1366507,
+      "over_100us": 1
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDeviceGetAttribute",
+      "count": 335,
+      "sum_ns": 35060,
+      "max_ns": 3311,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDeviceGetCount",
+      "count": 3,
+      "sum_ns": 355,
+      "max_ns": 140,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDeviceGetDefaultMemPool",
+      "count": 1,
+      "sum_ns": 37700,
+      "max_ns": 37700,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDeviceGetName",
+      "count": 4,
+      "sum_ns": 10991,
+      "max_ns": 4583,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDeviceGetUuid",
+      "count": 3,
+      "sum_ns": 2030,
+      "max_ns": 1762,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDevicePrimaryCtxRelease_v2",
+      "count": 1,
+      "sum_ns": 108,
+      "max_ns": 108,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDevicePrimaryCtxRetain",
+      "count": 1,
+      "sum_ns": 75613646,
+      "max_ns": 75613646,
+      "over_100us": 1
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDeviceTotalMem_v2",
+      "count": 3,
+      "sum_ns": 112664,
+      "max_ns": 56178,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuDriverGetVersion",
+      "count": 3,
+      "sum_ns": 251,
+      "max_ns": 100,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuEventCreate",
+      "count": 4652,
+      "sum_ns": 666126,
+      "max_ns": 4049,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuEventDestroy_v2",
+      "count": 4652,
+      "sum_ns": 465178,
+      "max_ns": 2868,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuGetProcAddress_v2",
+      "count": 1360,
+      "sum_ns": 155005,
+      "max_ns": 1919,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuInit",
+      "count": 5,
+      "sum_ns": 2787,
+      "max_ns": 1152,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuKernelGetName",
+      "count": 94,
+      "sum_ns": 7980,
+      "max_ns": 579,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuLaunchKernel",
+      "count": 1164,
+      "sum_ns": 2048468,
+      "max_ns": 32658,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuLibraryGetKernel",
+      "count": 6,
+      "sum_ns": 14595,
+      "max_ns": 4523,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuLibraryLoadData",
+      "count": 5,
+      "sum_ns": 18025249,
+      "max_ns": 4584924,
+      "over_100us": 5
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuMemAllocAsync",
+      "count": 2326,
+      "sum_ns": 6387703,
+      "max_ns": 4924535,
+      "over_100us": 2
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuMemFreeAsync",
+      "count": 2326,
+      "sum_ns": 1230155,
+      "max_ns": 3945,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuMemPoolSetAttribute",
+      "count": 1,
+      "sum_ns": 356,
+      "max_ns": 356,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuMemcpyDtoDAsync_v2",
+      "count": 2,
+      "sum_ns": 21753,
+      "max_ns": 15025,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuMemcpyDtoHAsync_v2",
+      "count": 4,
+      "sum_ns": 38377,
+      "max_ns": 15777,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuMemcpyHtoDAsync_v2",
+      "count": 1088,
+      "sum_ns": 8629773,
+      "max_ns": 3158912,
+      "over_100us": 2
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuMemsetD8Async",
+      "count": 2,
+      "sum_ns": 10873,
+      "max_ns": 7290,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuModuleGetFunction",
+      "count": 1164,
+      "sum_ns": 387556,
+      "max_ns": 20757,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuModuleGetLoadingMode",
+      "count": 3,
+      "sum_ns": 261,
+      "max_ns": 121,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuModuleLoadData",
+      "count": 8,
+      "sum_ns": 8903616,
+      "max_ns": 4000060,
+      "over_100us": 7
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuModuleUnload",
+      "count": 8,
+      "sum_ns": 630261,
+      "max_ns": 243435,
+      "over_100us": 2
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuStreamGetCaptureInfo_v2",
+      "count": 334,
+      "sum_ns": 28270,
+      "max_ns": 787,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuStreamGetGreenCtx",
+      "count": 186,
+      "sum_ns": 34774,
+      "max_ns": 11870,
+      "over_100us": 0
+    },
+    {
+      "kind": "DRIVER",
+      "name": "cuStreamSynchronize",
+      "count": 2,
+      "sum_ns": 6311,
+      "max_ns": 3313,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaDeviceGetAttribute_v5000",
+      "count": 25,
+      "sum_ns": 854571,
+      "max_ns": 572024,
+      "over_100us": 2
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaDeviceSynchronize_v3020",
+      "count": 4,
+      "sum_ns": 11307,
+      "max_ns": 8775,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaEventCreateWithFlags_v3020",
+      "count": 18,
+      "sum_ns": 8286,
+      "max_ns": 2873,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaEventDestroy_v3020",
+      "count": 18,
+      "sum_ns": 4520,
+      "max_ns": 528,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaEventQuery_v3020",
+      "count": 2,
+      "sum_ns": 2749,
+      "max_ns": 1530,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaEventRecord_v3020",
+      "count": 56,
+      "sum_ns": 29261,
+      "max_ns": 3820,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaFree_v3020",
+      "count": 9,
+      "sum_ns": 198877,
+      "max_ns": 112418,
+      "over_100us": 1
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaGetDevice_v3020",
+      "count": 4,
+      "sum_ns": 6374,
+      "max_ns": 4203,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaGetDriverEntryPointByVersion_v12050",
+      "count": 3,
+      "sum_ns": 1207,
+      "max_ns": 539,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaGetLastError_v3020",
+      "count": 386,
+      "sum_ns": 32803,
+      "max_ns": 1927,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaGetSymbolAddress_v3020",
+      "count": 1,
+      "sum_ns": 138552,
+      "max_ns": 138552,
+      "over_100us": 1
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaLaunchKernelExC_v11060",
+      "count": 54,
+      "sum_ns": 1368708,
+      "max_ns": 1264934,
+      "over_100us": 1
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaLaunchKernel_v7000",
+      "count": 94,
+      "sum_ns": 257897,
+      "max_ns": 23349,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaMalloc_v3020",
+      "count": 3,
+      "sum_ns": 57080,
+      "max_ns": 32447,
+      "over_100us": 0
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags_v7000",
+      "count": 8,
+      "sum_ns": 5273349,
+      "max_ns": 2934222,
+      "over_100us": 3
+    },
+    {
+      "kind": "RUNTIME",
+      "name": "cudaOccupancyMaxActiveBlocksPerMultiprocessor_v6050",
+      "count": 92,
+      "sum_ns": 2495711,
+      "max_ns": 2302381,
+      "over_100us": 1
+    }
+  ],
+  "memcpy": {
+    "HTOD": {
+      "count": 1088,
+      "bytes": 59703176,
+      "sum_ns": 7187163
+    },
+    "DTOD": {
+      "count": 2,
+      "bytes": 2048,
+      "sum_ns": 2304
+    },
+    "DTOH": {
+      "count": 4,
+      "bytes": 3288,
+      "sum_ns": 4928
+    }
+  },
+  "memory_events": {
+    "ALLOCATION/DEVICE_STATIC": {
+      "count": 112,
+      "bytes": 17088
+    },
+    "ALLOCATION/DEVICE": {
+      "count": 2329,
+      "bytes": 160121744
+    },
+    "RELEASE/DEVICE": {
+      "count": 2329,
+      "bytes": 160121744
+    }
+  },
+  "summarizer_sha256": "ab3428bc7d5530bb5bdc904b148ca2c46370f9629e961c8d079b61b6606a86bb"
+}

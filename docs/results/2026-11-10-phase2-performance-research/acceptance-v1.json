@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "predeclared before production optimization; not an acceptance result",
+  "baseline_commit": "0da7fbe",
+  "historical_baseline_commit": "5dc9626",
+  "refreshed_baseline_directory": "reports/phase2-performance-linux-baseline-v1",
+  "comparison": "same-device candidate versus both refreshed previous Rust and qualified Python; no cross-device ratios",
+  "maximum_candidate_over_comparator_ratio": {
+    "median_latency": 1.05,
+    "p95_latency": 1.10,
+    "comparable_process_peak_host_memory": 1.05,
+    "comparable_steady_state_live_memory": 1.05
+  },
+  "matrix": {
+    "codec_batches": [1, 2, 4],
+    "codec_scopes": ["encode", "decode", "reconstruct", "resident_decoder_block"],
+    "tokenizer_profiles": ["bert", "gpt2", "qwen3", "tinystories"],
+    "tokenizer_scopes": ["encode", "decode", "decode_skip_special"],
+    "codec_and_tokenizer_checked_load": true
+  },
+  "sampling": {
+    "minimum_processes_per_runtime": 3,
+    "warmups": 5,
+    "trials_per_process": 30,
+    "independent_unit": "fresh process, not individual trial",
+    "uncertainty": "Additional paired processes required when process variability or tails could change a decision; no widening of thresholds, selecting fastest runs, or averaging away failing cells."
+  },
+  "initial_noise_findings": [
+    "Reconstruction process-median ranges are within about 1.2% on the refreshed Linux baseline.",
+    "Other cells remain noisy: B1 encode Rust about 6%, B1 decode Python about 9.7%, B4 resident block Rust about 66%. These cells require additional controlled measurements before acceptance.",
+    "User authorized stopping llama-server and closed Chrome. Hyprland/desktop activity remains and must be retained in telemetry. No clock/power or global tooling changes."
+  ],
+  "quality": "Unchanged Phase 1/2 tolerances, exact stable IDs/ties and all existing fixtures/traces; broadened PoC tests supplement, not replace them.",
+  "memory": "Do not compare CUDA default-pool counters as if equivalent to Torch allocator or whole-process VRAM. No memory advantage may excuse latency failure or vice versa.",
+  "stop_rule": "Unresolved material deficits or inconclusive hardware evidence keep Phase 2 open; only the user may authorize a contract exception."
+}

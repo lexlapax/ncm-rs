@@ -43,10 +43,11 @@ impl CodecBackend for CandleBackend {
         op!(self, [x], { x.reshape(shape) })
     }
     fn permute(&self, x: &Tensor, axes: &[usize]) -> Result<Tensor> {
-        op!(self, [x], { x.permute(axes)?.contiguous() })
+        // Preserve immutable views; consumers that require dense storage materialize it.
+        op!(self, [x], { x.permute(axes) })
     }
     fn narrow(&self, x: &Tensor, axis: usize, start: usize, len: usize) -> Result<Tensor> {
-        op!(self, [x], { x.narrow(axis, start, len)?.contiguous() })
+        op!(self, [x], { x.narrow(axis, start, len) })
     }
     fn add(&self, x: &Tensor, y: &Tensor) -> Result<Tensor> {
         op!(self, [x, y], { x.broadcast_add(y) })
@@ -136,6 +137,29 @@ impl CodecBackend for CandleBackend {
         eps: f64,
     ) -> Result<Tensor> {
         op!(self, [x, weight], {
+            #[cfg(feature = "cuda")]
+            if self.device().is_cuda() {
+                if !eps.is_finite() || eps <= 0.0 {
+                    candle_core::bail!("normalization epsilon must be positive and finite")
+                }
+                let zero;
+                let bias = match bias {
+                    Some(b) => {
+                        self.check_tensor(b, DType::F32)?;
+                        b
+                    }
+                    None => {
+                        zero = Tensor::zeros(weight.shape(), DType::F32, self.device())?;
+                        &zero
+                    }
+                };
+                return candle_nn::ops::layer_norm(
+                    &x.contiguous()?,
+                    &weight.contiguous()?,
+                    &bias.contiguous()?,
+                    eps as f32,
+                );
+            }
             let value = ops::layer_norm(x, eps)?.broadcast_mul(weight)?;
             match bias {
                 Some(b) => {
@@ -148,6 +172,17 @@ impl CodecBackend for CandleBackend {
     }
     fn rms_norm(&self, x: &Tensor, weight: &Tensor, eps: f64) -> Result<Tensor> {
         op!(self, [x, weight], {
+            #[cfg(feature = "cuda")]
+            if self.device().is_cuda() {
+                if !eps.is_finite() || eps <= 0.0 {
+                    candle_core::bail!("normalization epsilon must be positive and finite")
+                }
+                return candle_nn::ops::rms_norm(
+                    &x.contiguous()?,
+                    &weight.contiguous()?,
+                    eps as f32,
+                );
+            }
             ops::rms_norm(x, eps)?.broadcast_mul(weight)
         })
     }
@@ -165,6 +200,24 @@ impl CodecBackend for CandleBackend {
         mask: Option<&Tensor>,
     ) -> Result<Tensor> {
         op!(self, [q, k, v], {
+            #[cfg(feature = "cuda")]
+            if self.device().is_cuda() {
+                let (_, _, _, width) = q.dims4()?;
+                if width == 0 {
+                    candle_core::bail!("attention width is zero")
+                }
+                let scores = (q.contiguous()?.matmul(&k.contiguous()?.transpose(2, 3)?)?
+                    / (width as f64).sqrt())?;
+                let scores = match mask {
+                    Some(m) => {
+                        self.check_tensor(m, DType::F32)?;
+                        scores.broadcast_add(m)?
+                    }
+                    None => scores,
+                };
+                return candle_nn::ops::softmax_last_dim(&scores.contiguous()?)?
+                    .matmul(&v.contiguous()?);
+            }
             let zero;
             let mask = match mask {
                 Some(m) => {
@@ -240,10 +293,10 @@ impl CodecBackend for CandleBackend {
         })
     }
     fn area1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
-        op!(self, [x], { ops::area1d(x, length) })
+        op!(self, [x], { crate::resample::area1d(x, length) })
     }
     fn linear1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
-        op!(self, [x], { ops::linear1d(x, length) })
+        op!(self, [x], { crate::resample::linear1d(x, length) })
     }
     fn evaluate(&self, xs: &[Tensor]) -> Result<()> {
         op!(self, [], {
