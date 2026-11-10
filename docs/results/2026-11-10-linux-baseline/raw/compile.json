@@ -1,0 +1,83 @@
+{
+  "runtime": "torch.compile-fullgraph-default",
+  "torch_version": "2.15.0+cu132",
+  "fixture_sha256": "554d9540e212a93473dee9d362a6734d5bc23bd981d1550e69eb2aca9af6d024",
+  "source_sha256": "217ffd74b4dfc305ee593b7e1f30a2836b5160110c6014ca0a4a613036959663",
+  "timings": null,
+  "scope": "compilation capability only; eager report remains timing baseline",
+  "results": [
+    {
+      "name": "matmul_asymmetric",
+      "passed": true
+    },
+    {
+      "name": "conv1d_layout",
+      "passed": true
+    },
+    {
+      "name": "conv_transpose1d_layout",
+      "passed": true
+    },
+    {
+      "name": "conv_transpose1d_prime89",
+      "passed": true
+    },
+    {
+      "name": "group_norm_sequence_axes",
+      "passed": true
+    },
+    {
+      "name": "layer_norm",
+      "passed": true
+    },
+    {
+      "name": "rms_norm",
+      "passed": true
+    },
+    {
+      "name": "area1d_7_to_4",
+      "passed": true
+    },
+    {
+      "name": "area1d_89_to_13",
+      "passed": true
+    },
+    {
+      "name": "area1d_1_to_1",
+      "passed": true
+    },
+    {
+      "name": "area1d_3_to_7",
+      "passed": true
+    },
+    {
+      "name": "linear1d_3_to_7",
+      "passed": true
+    },
+    {
+      "name": "linear1d_1_to_9",
+      "passed": true
+    },
+    {
+      "name": "linear1d_7_to_3",
+      "passed": true
+    },
+    {
+      "name": "linear1d_7_to_7",
+      "passed": true
+    },
+    {
+      "name": "prefix_attention_padded",
+      "passed": true
+    },
+    {
+      "name": "rope_split_half_level_resets",
+      "passed": true
+    },
+    {
+      "name": "f16_roundtrip",
+      "passed": false,
+      "error": "Tensor-likes are not close!\n\nMismatched elements: 3 / 6 (50.0%)\nGreatest absolute difference: 0.0006000995635986328 at index (0, 2) (up to 1e-05 allowed)\nGreatest relative difference: 0.0003000497817993164 at index (0, 1) (up to 0.0001 allowed)"
+    }
+  ]
+}

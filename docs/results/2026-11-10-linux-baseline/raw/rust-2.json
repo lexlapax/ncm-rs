@@ -1,0 +1,62 @@
+{
+  "cold_disk_cache": false,
+  "context_initialization_timed": false,
+  "device": "cuda",
+  "device_memory_scope": "global driver snapshots; not process allocation peaks",
+  "device_used_bytes": {
+    "after_drop": 4791664640,
+    "after_trials": 4791664640,
+    "before": 4791664640,
+    "loaded": 4959436800
+  },
+  "first_load_ms": 208.966386,
+  "host_proc_status": [
+    "VmHWM:\t  551216 kB",
+    "VmRSS:\t  391852 kB"
+  ],
+  "manifest_sha256": "ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d9832",
+  "model_quality": null,
+  "runtime": "candle-0.11.1",
+  "schema_version": 1,
+  "scope": "read + validate file/tensor SHA256 + copied canonical load + upload + synchronize; destruction excluded",
+  "source_sha256": {
+    "loader": "e602f75473c597ae411ac2ea51609591711ae5b4703597a16f5a86598a3d7fc6",
+    "lock": "9040c9e2ad9eb3001348c0cefabe80018497c92e60c07863926edd8c7af5df74",
+    "probe": "6e608727616aff1fbae58f9cf300bb8192f1f1afa902281e35e1154d8642956c"
+  },
+  "tensor_bytes": 162300212,
+  "tensor_count": 238,
+  "trials_ms": [
+    201.075386,
+    201.827997,
+    201.083881,
+    202.233575,
+    210.37029700000002,
+    205.422715,
+    201.991991,
+    203.491037,
+    198.58799399999998,
+    201.624472,
+    201.344409,
+    202.006845,
+    198.332817,
+    201.100534,
+    208.834396,
+    203.32218799999998,
+    200.39293,
+    201.439394,
+    202.54034800000002,
+    201.983718,
+    202.715352,
+    200.996183,
+    203.44622800000002,
+    203.655859,
+    202.673124,
+    204.61126700000003,
+    199.317115,
+    201.154132,
+    200.678543,
+    202.525539
+  ],
+  "warmups": 5
+}

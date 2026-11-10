@@ -30,5 +30,9 @@ required-features = ["cpu"]
 name = "artifact_probe"
 required-features = ["cpu"]
 
+[[example]]
+name = "load_probe"
+required-features = ["cpu"]
+
 [lints]
 workspace = true

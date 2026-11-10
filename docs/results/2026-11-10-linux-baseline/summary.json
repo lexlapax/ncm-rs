@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "base_commit": "bbdf4222b734c4ebcb6cfa3ed1f23dbdf0c5f58c",
+  "source_sha256": {
+    "crates/ncm-backend-cuda/examples/load_probe.rs": "6e608727616aff1fbae58f9cf300bb8192f1f1afa902281e35e1154d8642956c",
+    "crates/ncm-io/src/lib.rs": "e602f75473c597ae411ac2ea51609591711ae5b4703597a16f5a86598a3d7fc6",
+    "crates/ncm-tokenizers/examples/tokenizer_probe.rs": "fe18aeebfa079dcbf74c5b6d8af50c943704db6c4c32dcefa6b267ab5f4518ce",
+    "crates/ncm-tokenizers/src/lib.rs": "9623f57feec9722f98ebddc7f7df8d589e2eea1fe2596cb8ca3552d6460369cb",
+    "tools/reference/load_probe.py": "78921d2e93c6685849da382f205820a224947665733f6408be29826b5c64f6fe",
+    "tools/reference/tokenizer_probe.py": "5b36376f81f71f917a74a364e063e0ddf2bfadd82bda05c7f4177f391a009891",
+    "tools/reference/compile_probe.py": "217ffd74b4dfc305ee593b7e1f30a2836b5160110c6014ca0a4a613036959663",
+    "tools/reference/operators.py": "205538200a3d2eb9e1b5432362ebcca60942059edd733a6610d0ec030baeabb2",
+    "Cargo.lock": "9040c9e2ad9eb3001348c0cefabe80018497c92e60c07863926edd8c7af5df74"
+  },
+  "results": {
+    "rust": {
+      "median_ms": 201.61068899999998,
+      "p95_ms": 205.422715,
+      "samples": 90,
+      "processes": 3,
+      "per_process_median_ms": [
+        201.5707765,
+        201.98785450000003,
+        200.74904750000002
+      ]
+    },
+    "python": {
+      "median_ms": 241.19768150194432,
+      "p95_ms": 248.25343399425037,
+      "samples": 90,
+      "processes": 3,
+      "per_process_median_ms": [
+        244.4724025008327,
+        240.48088749987073,
+        240.41981199843576
+      ]
+    },
+    "tokenizer-rust": {
+      "median_ms": 0.4708075,
+      "p95_ms": 0.487726,
+      "samples": 90,
+      "processes": 3,
+      "per_process_median_ms": [
+        0.475812,
+        0.4740805,
+        0.462989
+      ]
+    },
+    "tokenizer-python": {
+      "median_ms": 9.925368998665363,
+      "p95_ms": 10.072279001178686,
+      "samples": 90,
+      "processes": 3,
+      "per_process_median_ms": [
+        9.915599497617222,
+        9.976379998988705,
+        9.913698497257428
+      ]
+    }
+  },
+  "notes": "warm filesystem caches; background desktop GPU resident; not a model speedup",
+  "model_quality": null
+}

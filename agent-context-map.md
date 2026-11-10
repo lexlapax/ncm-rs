@@ -5,7 +5,7 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
 ## Current state / user decisions
 
 - Public repository: https://github.com/lexlapax/ncm-rs; `main`, remote `origin`.
-- **Plan approved. Phase 1 in progress, Linux portion.** Within EVERY phase:
+- **Plan approved. Phase 1 Linux spike accepted; Apple pass next.** Within EVERY phase:
   Linux/CUDA first, then macOS/MLX; both must pass before advancing phases.
   Do not interpret this as completing the whole CUDA project before Apple work.
 - Linux CPU/CUDA operators, a scoped Sudoku checkpoint exporter/checked Rust
@@ -120,13 +120,26 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
 - Previous local-validation milestone was pushed as `f7aad49`; prior operator
   milestone is `3178aa1`. No MLX execution has occurred.
 
+## Linux Phase 1 gate closure
+
+- Added [load/tokenizer baseline](docs/results/2026-11-10-linux-baseline/README.md):
+  three fresh processes/runtime, five warmups and 30 trials. Rust/Python adapted
+  canonical-load medians 201.61/241.20 ms; host RSS and global driver memory snapshots
+  recorded, warm filesystem cache and background desktop GPU use disclosed.
+- `torch.compile(fullgraph=True)` passes 17/18 cases; FP16 roundtrip rounding fails.
+  Compiled mixed precision is explicitly unsupported; eager remains the baseline.
+- Durable model traces: GitHub prerelease `phase1-fixtures-v1` at `bbdf422`.
+  This is a research fixture asset, not an inference release.
+- Full local CUDA validation passes. Mac availability rechecked read-only: checkout
+  clean at `bbdf422`, rmlx/Ollama processes idle in sampled process listing. No MLX
+  build/run yet. Linux load scope is the inspection spike, not a general importer.
+
 ## Next actions (do not skip gates)
 
-1. Continue Linux Phase 1: measure cold-load/steady load and memory behavior, review
-   remaining runtime-contract/capability gaps, and publish the missing performance
-   evidence. Do not mistake inspection-profile integrity for a runtime model schema.
-2. Preserve/give durable access to the model trace archive; extend fixtures as
-   needed without changing established goldens merely to hide failures.
+1. Announce/start the Apple Phase 1 pass: pinned mlx-rs, existing operator goldens,
+   artifact readback/loading/memory, native synchronization, local checks and reports.
+2. Keep compiled mixed precision and untested model features unsupported; preserve
+   baseline fixtures and publish negative findings without tolerance changes.
 3. Once Linux Phase 1 is ready, announce macOS/MLX work. Inspect and safely pull
    reviewed pushed commits in the Mac checkout, then port/validate that phase.
    Recheck availability if the session changes. No Mac gate is implicitly passed.
