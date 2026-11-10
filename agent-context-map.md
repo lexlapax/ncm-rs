@@ -9,6 +9,9 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   codec/tokenizer parity and matched three-process performance/memory evidence.
   Native codec is slower than eager Torch; this is not an efficiency claim.
   Apple/MLX implementation/testing is next; no Phase 2 Apple run has started.
+  **Paused for SSH authentication:** Mac is reachable, but the server-accepted
+  RSA key cannot sign (`agent refused operation`). User must unlock/approve the
+  local SSH agent and confirm `ssh macstudio true`; no remote changes were made.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -149,11 +152,15 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 ## Provenance and next actions
 
 - Phase 1 closure `650cc7d`; Phase 2 oracle `97a3125`, checked runtime `8492c27`,
-  components `a4a6344`, complete codec `bb77fef`, tokenizers `0396b56`. Linux runtime
-  gate closes in the accompanying milestone. Preserve old reports/source hashes;
+  components `a4a6344`, complete codec `bb77fef`, tokenizers `0396b56`, Linux runtime
+  gate `fd1b482` (pushed). Preserve old reports/source hashes;
   do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
   task-quality data or an inference release.
-- **Next: Apple/MLX gate.** Recheck Mac availability/worktree, announce the first
+- Connection recheck: initial SSH command timed out; bounded verbose retry reached
+  the known host and failed accepted-key signing, ending in permission denied.
+  Log `.reference/phase2-mac-connect.log` stays local. No authentication settings
+  or keys changed. This context-only update has no runtime impact; checked diff.
+- **Next: restore authorized SSH, then Apple/MLX gate.** Recheck Mac availability/worktree, announce the first
   Phase 2 MLX run after safely syncing reviewed pushed code/assets, implement the same
   shared codec via MLX, and repeat the identical fixtures/tokenizer checks and
   measurement protocol. Both platform gates plus durable evidence/acceptance
