@@ -50,7 +50,8 @@ def reports(root,prefix):
     return result
 
 
-def codec(root):
+def codec(root, device="cuda"):
+    require(device in ("cuda","metal"),"unsupported measurement device")
     runs=reports(root,"codec")
     workload=hashlib.sha256((ROOT/"tests/fixtures/codec-bench-v1.json").read_bytes()).hexdigest()
     anchor=hashlib.sha256((ROOT/"docs/results/2026-11-10-sudoku-artifacts/raw/artifact-manifest.json").read_bytes()).hexdigest()
@@ -59,7 +60,7 @@ def codec(root):
     indexed={}
     for runtime,group in runs.items():
         for i,run in enumerate(group):
-            require(run["workload_sha256"]==workload and run["precision"]=="fp32" and run["device"]=="cuda","workload/precision mismatch")
+            require(run["workload_sha256"]==workload and run["precision"]=="fp32" and run["device"]==device,"workload/precision mismatch")
             rows={(r["batch"],r["scope"]):r for r in run["measurements"]}
             require(len(run["measurements"])==len(rows)==12 and set(rows)=={(b,s) for b in (1,2,4) for s in SCOPES},"incomplete measurements")
             indexed[runtime,i]=rows
@@ -81,23 +82,25 @@ def codec(root):
                     else: require(row["first_logits"] is None,"unexpected logits")
             row={"batch":batch,"scope":scope,"quality":errors,"output_ids_sha256":baseline["output_ids_sha256"],"runtimes":{}}
             for runtime,rows in groups.items():
-                wall=aggregate(rows,"trials_ms"); span=aggregate(rows,"cuda_stream_spans_ms")
+                wall=aggregate(rows,"trials_ms")
+                span=aggregate(rows,"cuda_stream_spans_ms") if device=="cuda" else None
                 wall["ms_per_sample"]=wall["median_ms"]/batch;wall["samples_per_second"]=batch*1000/wall["median_ms"]
                 # Codec positions include Sudoku separators; these are not generated text tokens.
                 wall["input_or_output_positions_per_second"]=batch*89*1000/wall["median_ms"]
                 row["runtimes"][runtime]={"wall":wall,"stream_span":span,"first_ms":[r["first_ms"] for r in rows],
-                    "host_hwm_bytes":[r["host"]["VmHWM"] for r in rows],"allocator_bytes":[r["pool_bytes" if runtime=="rust" else "allocator_bytes"] for r in rows]}
+                    "host_hwm_bytes":[r["host"]["VmHWM"] for r in rows],"allocator_bytes":[r["pool_bytes" if runtime=="rust" and device=="cuda" else "allocator_bytes"] for r in rows]}
             row["python_over_rust_median_ratio"]=row["runtimes"]["python"]["wall"]["median_ms"]/row["runtimes"]["rust"]["wall"]["median_ms"]
             output.append(row)
     stages=[]
-    expected={"encoder_pre_quant","decoder_logits","output_selection"}|{f"encode.level_{i:02}" for i in range(12)}
+    expected={"encoder_pre_quant","decoder_logits","output_selection" if device=="cuda" else "output_selection_readback"}|{f"encode.level_{i:02}" for i in range(12)}
+    stage_key="cuda_stream_spans_ms" if device=="cuda" else "synchronized_stage_ms"
     for runtime,group in runs.items():
         for run in group:
             require([r["batch"] for r in run["instrumented_stages"]]==[1,2,4],"incomplete stage batches")
-            for row in run["instrumented_stages"]:require(set(row["cuda_stream_spans_ms"])==expected,"incomplete stage names")
+            for row in run["instrumented_stages"]:require(set(row[stage_key])==expected,"incomplete stage names")
         for index,batch in enumerate((1,2,4)):
             for name in sorted(expected):
-                samples=[{"values":r["instrumented_stages"][index]["cuda_stream_spans_ms"][name]} for r in group]
+                samples=[{"values":r["instrumented_stages"][index][stage_key][name]} for r in group]
                 stages.append({"runtime":runtime,"batch":batch,"stage":name,**aggregate(samples,"values")})
     loads={runtime:{"warm":aggregate(group,"load_trials_ms"),"first_ms":[r["first_load_ms"] for r in group],
         "first_execution_ms":[r["first_execution_ms"] for r in group],"load_memory":[r["load_memory"] for r in group],

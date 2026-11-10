@@ -7,17 +7,19 @@
 | [2026-11-10: Linux load/memory baseline](2026-11-10-linux-baseline/README.md) | Three-process loader/tokenizer measurements, compile capability | Linux Phase 1 passed; compiled FP16 rounding unsupported | Subsequent report below | Not measured |
 | [2026-11-10: Apple MLX phase gate](2026-11-10-mlx-phase1/README.md) | 18 operator cases, 238 tensors, load/memory/tokenizer comparisons | Prior Linux gate passed | Passed; slow/high-RSS Rust loading disclosed | Not measured |
 | [2026-11-10: Phase 2 codec oracle](2026-11-10-phase2-oracle/README.md) | 236 tiny / 642 trained codec traces; declared budgets | CUDA reference captured; Rust pending; CPU/CUDA diagnostic failure retained | Phase 2 not started | Reference only |
+| [2026-11-10: Phase 2 Apple runtime gate](2026-11-10-phase2-mlx/README.md) | 642-trace qualified adapted baseline; 30 matched fresh-process codec/tokenizer reports | Linux gate already passed | Measured; parity/output checks pass, high native host RSS retained | Not measured |
 
-**Phase 2 is in progress**: its reference contract and
+**Phase 2 gates are complete**: its reference contract and
 [checked shared-runtime construction](2026-11-10-phase2-runtime/README.md) and
 [Linux component parity](2026-11-10-phase2-primitives/README.md) exist.
 [Complete shared codec parity](2026-11-10-phase2-codec/README.md) now passes tiny
 CPU/CUDA and all 642 trained CUDA traces. [Pinned tokenizer assets](2026-11-10-phase2-tokenizers/README.md)
 pass exact Linux parity. The [Linux Phase 2 runtime gate](2026-11-10-phase2-linux/README.md)
-is complete with matched three-process codec/tokenizer latency, throughput and
-memory evidence, including slower native codec execution. [Apple codec/tokenizer
-parity](2026-11-10-phase2-mlx-codec/README.md) now passes, with the initial long-dot
-failure and FP32 projection correction retained. Apple measurements remain pending.
+and [Apple Phase 2 runtime gate](2026-11-10-phase2-mlx/README.md) are complete
+with matched three-process codec/tokenizer latency, throughput and memory evidence.
+The Apple codec/tokenizer [parity report](2026-11-10-phase2-mlx-codec/README.md)
+retains the initial long-dot failure and FP32 projection correction; the final
+Apple report retains high native host RSS and the adapted-baseline limitation.
 
 **Phase 1 is complete**; see the [acceptance checklist](../PHASE1.md). Earlier rows
 retain their historical scope. These are capability/baseline checks, **not** NCM

@@ -1,6 +1,6 @@
 # Phase 2 contract and acceptance tracker
 
-Status: Linux/CUDA gate complete; Apple/MLX parity passes, performance/memory pending.
+Status: Linux/CUDA and Apple/MLX Phase 2 gates complete; final publication review pending.
 Phase 1 evidence remains unchanged; this document declares Phase 2 criteria before
 Rust codec implementation. The confirmed scope includes Sudoku codec execution
 and TinyStories/GPT-2/Qwen/BERT tokenizer asset conversion/parity, not their full
@@ -141,9 +141,11 @@ kernels, compiled mixed-precision policy or generation-cache work in this phase.
   [three-process codec/tokenizer evidence](results/2026-11-10-phase2-linux/README.md).
   Native codec is slower than eager Torch; measured memory scopes differ. No
   efficiency claim or compiled-Python qualification is implied.
-- [ ] Corresponding Apple/MLX implementation, parity and measurements.
-  [Codec/tokenizer parity passes](results/2026-11-10-phase2-mlx-codec/README.md),
-  including real Metal local checks; measurements remain pending.
+- [x] Corresponding Apple/MLX implementation, parity and measurements:
+  [codec/tokenizer parity](results/2026-11-10-phase2-mlx-codec/README.md) and
+  [three-process runtime evidence](results/2026-11-10-phase2-mlx/README.md) pass.
+  The adapted Python MLX baseline is independently qualified against the unchanged
+  CUDA oracle; native host RSS remains a disclosed negative finding.
 - [ ] Both local checks, reports, context updates and reviewed commit/push closure.
 
 Missing hardware/artifact evidence remains pending. If progress requires changed

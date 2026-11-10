@@ -1,0 +1,387 @@
+{
+  "started_utc": "2026-11-10T07:05:42.540069+00:00",
+  "source_git_head": "4668ce5379306e6f5a1afddf43bb1132c7914758",
+  "source_git_status": "M Cargo.lock\n M crates/ncm-backend-cuda/examples/codec_trace.rs\n M crates/ncm-backend-mlx/Cargo.toml\n M crates/ncm-backend-mlx/src/lib.rs\n M crates/ncm-tokenizers/Cargo.toml\n M crates/ncm-tokenizers/examples/asset_bench.rs\n M tools/reference/text_tokenizer_bench.py\n?? crates/ncm-backend-mlx/examples/mlx_codec_bench.rs\n?? crates/ncm-backend-mlx/examples/mlx_codec_trace.rs\n?? crates/ncm-backend-mlx/examples/mlx_memory_probe.rs\n?? crates/ncm-backend-mlx/src/codec.rs\n?? crates/ncm-backend-mlx/tests/codec_components.rs\n?? tests/support/host_memory.rs\n?? tests/support/trained_codec.rs\n?? tools/bench/run_phase2_mlx.py\n?? tools/reference/mlx_codec.py\n?? tools/reference/mlx_codec_assets.py\n?? tools/reference/mlx_codec_bench.py\n?? tools/reference/mlx_codec_trace.py\n?? tools/reference/qualify_mlx_reference.py\n?? tools/reference/test_mlx_codec_assets.py",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27) (Homebrew)",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.3\nBuildVersion:\t\t25G416",
+  "xcode": "Xcode 27.2\nBuild version 27B52",
+  "cpu": "Apple M1 Ultra",
+  "memory_bytes": 68719476736,
+  "physical_cpus": 20,
+  "power_settings": "AC Power:\n Sleep On Power Button 1\n autorestartatconnect 0\n standby              0\n ttyskeepawake        1\n powernap             1\n displaysleep         30\n womp                 1\n networkoversleep     0\n sleep                1\n tcpkeepalive         1\n autorestart          0\n disksleep            10",
+  "thermal_status_before": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+  "commands": [
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/mlx-venv/bin/python",
+        "tools/reference/mlx_codec_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "tests/fixtures/codec-bench-v1.json",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-codec/python-mlx-v1",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/codec-python-1.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/mlx_codec_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "tests/fixtures/codec-bench-v1.json",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/codec-rust-1.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "bert",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-bert-python-1.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "bert",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-bert-rust-1.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "gpt2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-gpt2-python-1.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "gpt2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-gpt2-rust-1.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "qwen3",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-qwen3-python-1.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "qwen3",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-qwen3-rust-1.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "tinystories",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-tinystories-python-1.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "tinystories",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-tinystories-rust-1.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/mlx_codec_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "tests/fixtures/codec-bench-v1.json",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/codec-rust-2.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/mlx-venv/bin/python",
+        "tools/reference/mlx_codec_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "tests/fixtures/codec-bench-v1.json",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-codec/python-mlx-v1",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/codec-python-2.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "bert",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-bert-rust-2.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "bert",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-bert-python-2.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "gpt2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-gpt2-rust-2.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "gpt2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-gpt2-python-2.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "qwen3",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-qwen3-rust-2.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "qwen3",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-qwen3-python-2.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "tinystories",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-tinystories-rust-2.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "tinystories",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-tinystories-python-2.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/mlx-venv/bin/python",
+        "tools/reference/mlx_codec_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "tests/fixtures/codec-bench-v1.json",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-codec/python-mlx-v1",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/codec-python-3.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/mlx_codec_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "tests/fixtures/codec-bench-v1.json",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/codec-rust-3.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "bert",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-bert-python-3.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "bert",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-bert-rust-3.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "gpt2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-gpt2-python-3.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "gpt2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-gpt2-rust-3.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "qwen3",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-qwen3-python-3.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "qwen3",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-qwen3-rust-3.json"
+      ],
+      "cleared_environment": true
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/tokenizers-venv/bin/python",
+        "tools/reference/text_tokenizer_bench.py",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/upstream/tokenizers-v2",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm",
+        "tests/fixtures/tokenizers-v1.json",
+        "tinystories",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-tinystories-python-3.json"
+      ],
+      "cleared_environment": false
+    },
+    {
+      "argv": [
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/asset_bench",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tokenizers-qualified",
+        "tests/fixtures/tokenizers-v1.json",
+        "tinystories",
+        "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase2-mlx-v1/tokenizer-tinystories-rust-3.json"
+      ],
+      "cleared_environment": true
+    }
+  ],
+  "scope_notes": [
+    "Workstation desktop activity remains; no exclusive hardware reservation, global tooling or power changes.",
+    "CPU activity sampled every two seconds; GPU temperature/utilization not available without privileged tooling, not invented.",
+    "Native binaries run with cleared environment and PATH=/usr/bin:/bin; Python is offline orchestration/reference only.",
+    "Warm filesystem cache; context/import startup excluded; graph construction and synchronous evaluation included.",
+    "Unified MLX active/peak/cache and process RSS/HWM are distinct metrics, not separate VRAM."
+  ],
+  "source_sha256": "f5bdfc089235cbe55331080c6931972ae652d758128a382d4a32a44eff62d307",
+  "binary_sha256": {
+    "target/release/examples/mlx_codec_bench": "089976e91d2a219bc0a59717bdae5608be481a269180f929a53691ef469e0ca0",
+    "target/release/examples/asset_bench": "1e4f504af1751054bee1d590ddd7198e9e5ebe43351420bf39293cfdf08f1200",
+    ".reference/mlx-native/lib/libmlx.dylib": "d24c7a9b9d55a76bfd3bbcd1d042251a185cbadcb6340c3244a6ffa3dcb7c7e8",
+    ".reference/mlx-native/lib/mlx.metallib": "dc59d1cceb1a5c7e578232e6e41e28e2c73c9463ac6dbc3886c3ee17ffc270ed"
+  },
+  "mlx-venv": {
+    "python": "Python 3.14.10",
+    "packages": {
+      "mlx": "0.32.2",
+      "numpy": "2.5.4",
+      "mlx-metal": "0.32.2"
+    }
+  },
+  "tokenizers-venv": {
+    "python": "Python 3.14.10",
+    "packages": {
+      "packaging": "26.3",
+      "requests": "2.34.2",
+      "certifi": "2026.10.23",
+      "regex": "2025.9.18",
+      "numpy": "2.5.4",
+      "huggingface_hub": "0.36.2",
+      "safetensors": "0.8.0",
+      "tqdm": "4.70.1",
+      "urllib3": "2.8.0",
+      "PyYAML": "6.0.3",
+      "fsspec": "2026.9.0",
+      "transformers": "4.57.6",
+      "typing_extensions": "4.16.0",
+      "filelock": "4.2.10",
+      "hf-xet": "1.8.0",
+      "tokenizers": "0.22.2",
+      "charset-normalizer": "3.5.2",
+      "idna": "3.20"
+    }
+  },
+  "finished_utc": "2026-11-10T07:10:19.472766+00:00",
+  "thermal_status_after": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+}

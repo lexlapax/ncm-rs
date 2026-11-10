@@ -1,11 +1,13 @@
 # Phase 2 MLX codec and tokenizer parity
 
-**Correctness milestone, not the complete Apple runtime gate.** Linux acceptance
-was completed/pushed in `fd1b482` before this implementation. SSH authentication
-was restored by the user. The clean Mac checkout was fast-forwarded from Phase 1
-to `4668ce5`; uncommitted candidates were tested in a separate disposable Git
-worktree, never overlaid on the main checkout. Existing CPU work was left alone;
-builds used two jobs. Acceptance performance/memory measurements are still pending.
+**Correctness milestone, linked to the completed Apple runtime gate.** Linux
+acceptance was completed/pushed in `fd1b482` before this implementation. SSH
+authentication was restored by the user. The clean Mac checkout was fast-forwarded
+from Phase 1 to `4668ce5`; uncommitted candidates were tested in a separate
+disposable Git worktree, never overlaid on the main checkout. Existing CPU work
+was left alone; builds used two jobs. The independently-qualified same-device
+baseline and three-process performance/memory evidence are published in the
+[Apple runtime gate](../2026-11-10-phase2-mlx/README.md).
 
 ## Implementation and checks
 
@@ -125,8 +127,7 @@ and `tools/check.sh --mlx` on the Mac, including Clippy, docs, all existing fixt
 regressions and 11 report-tool tests. Native logs are local
 `.reference/phase2-mlx-v2-check.log` and `.reference/phase2-mlx-v2-components.log`.
 
-Next: independently qualify an adapted same-device Python baseline, implement
-matched codec/tokenizer measurements, investigate the historical Apple load/RSS
-weakness, and collect three fresh-process runs when competing work permits it.
-These execution-affecting changes remain **performance-unqualified** until that
-report exists. No Phase 3 work or overall Phase 2 completion is claimed.
+The later [Apple runtime gate](../2026-11-10-phase2-mlx/README.md) independently
+qualifies the adapted same-device Python baseline, publishes matched three-process
+codec/tokenizer measurements and retains the historical native load/RSS weakness.
+No Phase 3 work, generation claim or inference release is implied.

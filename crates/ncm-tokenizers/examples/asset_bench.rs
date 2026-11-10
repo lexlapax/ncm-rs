@@ -1,4 +1,7 @@
 //! Matched scalar encode/decode workload from the pinned parity fixture.
+#[path = "../../../tests/support/host_memory.rs"]
+mod memory;
+use memory::host;
 use ncm_tokenizers::TextTokenizer;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -14,25 +17,6 @@ struct Case {
 }
 fn digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
-}
-fn host() -> Result<Value> {
-    let status = fs::read_to_string("/proc/self/status")?;
-    let mut result = BTreeMap::new();
-    for key in ["VmRSS:", "VmHWM:"] {
-        let line = status
-            .lines()
-            .find(|l| l.starts_with(key))
-            .ok_or("missing memory counter")?;
-        result.insert(
-            key.trim_end_matches(':'),
-            line.split_whitespace()
-                .nth(1)
-                .ok_or("missing memory value")?
-                .parse::<u64>()?
-                * 1024,
-        );
-    }
-    Ok(json!(result))
 }
 fn timed<T>(f: impl FnOnce() -> Result<T>) -> Result<(T, f64)> {
     let start = Instant::now();
@@ -136,6 +120,7 @@ fn main() -> Result<()> {
     }
     let paths = [
         "crates/ncm-tokenizers/examples/asset_bench.rs",
+        "tests/support/host_memory.rs",
         "crates/ncm-tokenizers/src/bpe.rs",
         "crates/ncm-tokenizers/src/assets.rs",
         "Cargo.lock",

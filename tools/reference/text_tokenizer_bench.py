@@ -3,6 +3,7 @@ import argparse
 import importlib.metadata
 import json
 import os
+import resource
 from pathlib import Path
 import struct
 import subprocess
@@ -12,6 +13,9 @@ from convert_tokenizers import ROOT, UPSTREAM, VERSIONS, SPECIAL, data_pickle, v
 
 
 def host():
+    if sys.platform=="darwin":
+        rss=int(subprocess.check_output(["/bin/ps","-o","rss=","-p",str(os.getpid())],text=True))*1024
+        return {"VmRSS":rss,"VmHWM":resource.getrusage(resource.RUSAGE_SELF).ru_maxrss}
     lines = Path("/proc/self/status").read_text().splitlines()
     return {key:int(next(line for line in lines if line.startswith(key+":")).split()[1])*1024 for key in ("VmRSS","VmHWM")}
 

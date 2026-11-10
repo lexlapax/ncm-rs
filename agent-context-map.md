@@ -5,12 +5,14 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 ## Current state and user decisions
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
-- **Confirmed goal: complete Phase 2. Linux/CUDA gate is complete**, including
-  codec/tokenizer parity and matched three-process performance/memory evidence.
-  Native codec is slower than eager Torch; this is not an efficiency claim.
-  Apple/MLX codec and tokenizer parity now pass; **Apple performance/memory and
-  final publication remain pending**. SSH authentication was restored by the user.
-  The first Phase 2 MLX run was announced after Linux acceptance.
+- **Confirmed goal: complete Phase 2. Linux/CUDA and Apple/MLX gates are complete**,
+  including codec/tokenizer parity and matched three-process performance/memory
+  evidence. Linux native codec is slower than eager Torch; Apple native host RSS
+  is 3.40–4.42 GiB versus the adapted Python MLX baseline's 0.287–0.288 GiB.
+  Neither platform result is an efficiency, generation or full text-model claim.
+  SSH authentication was restored by the user; the first Phase 2 MLX run followed
+  Linux acceptance. Final reviewed commit/push and durable large-archive release
+  publication remain pending.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -29,6 +31,22 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Update this map before EVERY commit, including amend/fixup. No agent attribution
   or co-author trailers; preserve upstream licenses and technical provenance.
 - Persistent goal state is untracked `.pi/`; leave it untouched and unstaged.
+
+## Apple measurement acceptance
+
+- Independent Python MLX baseline passes all 642 unchanged trained traces and
+  2,500 decisions against the CUDA oracle. Three-process codec/tokenizer evidence,
+  raw telemetry and baseline qualification are prepared in
+  `docs/results/2026-11-10-phase2-mlx/`; its fail-closed summary reproduces
+  byte-for-byte from committed raw reports.
+- Host-only artifact loads reproduce high native RSS; diagnostics remain at
+  `reports/phase2-mlx-load-diagnostic`. No loader fix or efficiency claim.
+- Final summary-tool tests pass locally. On the M1 Ultra candidate worktree,
+  `./tools/check.sh --mlx` passed on 2026-11-10 with the pinned MLX prefix,
+  including real-Metal components/operators and 11 report-tool tests; the exact
+  measured source hashes were verified equal to the candidate files before this
+  check. MLX reference asset tests also pass in `.reference/mlx-venv`.
+- Preserve `.pi/` and the Mac candidate worktree's unrelated/uncommitted state.
 
 ## Task routing
 
@@ -162,7 +180,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   Mac tokenizer probe passes all four profiles, including rejection cases and a
   cleared environment without Python. Canonical tokenizer assets are now on Mac.
 - Latest Linux `tools/check.sh --cuda` passes: 30 base Rust tests, real-CUDA codec
-  suite, all 18 unchanged operators, fmt/Clippy/docs/syntax. Eleven report-tool tests
+  suite, all 18 unchanged operators, fmt/Clippy/docs/syntax. Twelve report-tool tests
   and all 18 offline reference tests pass. Tokenizer probe previously also passed
   with cleared env and no Python on PATH. Logs: `.reference/phase2-linux-check.log`,
   `.reference/phase2-linux-reference-tests.log`; reports retain exact fingerprints.
@@ -178,10 +196,9 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   gate `fd1b482` (pushed). Preserve old reports/source hashes;
   do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
   task-quality data or an inference release.
-- **Next: Apple measurement gate.** Qualify an adapted same-device Python baseline
-  independently against the unchanged CUDA oracle; implement matched codec and
-  tokenizer load/first/warm/throughput/RSS/native-memory measurements. Investigate
-  historical Apple loader RSS; use three processes/five warmups/thirty trials and
-  assess competing work before acceptance. Current MLX changes are explicitly
-  performance-unqualified. Large licensed oracle/native/tokenizer archives and
-  final acceptance publication remain pending; no Phase 3 or inference release.
+- **Next: final Phase 2 publication closure.** Review/stage the Apple report,
+  updated acceptance tracker and result index; ensure the context-map update is
+  staged, then commit/push only within authorization. Publish large licensed
+  oracle/native/tokenizer archives as durable release assets if authorized;
+  absence of that separate archive must remain visible. Do not begin Phase 3 or
+  claim an inference release.

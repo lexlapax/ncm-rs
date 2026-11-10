@@ -74,5 +74,22 @@ class Phase2SummaryTests(unittest.TestCase):
                 (root/"codec-rust-1.json").write_text(json.dumps(report))
                 with self.assertRaises(ValueError):codec(root)
 
+    def test_metal_stage_matrix_and_reject_mutation(self):
+        baseline=self.fixture();baseline["device"]="metal"
+        for row in baseline["instrumented_stages"]:
+            spans=row.pop("cuda_stream_spans_ms")
+            spans["output_selection_readback"]=spans.pop("output_selection")
+            row["synchronized_stage_ms"]=spans
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for runtime in ("rust","python"):
+                for i in range(1,4):(root/f"codec-{runtime}-{i}.json").write_text(json.dumps(baseline))
+            result=codec(root,"metal")
+            self.assertEqual(len(result["measurements"]),12)
+            self.assertTrue(all(row["runtimes"]["rust"]["stream_span"] is None for row in result["measurements"]))
+            mutated=copy.deepcopy(baseline);mutated["instrumented_stages"][0]["synchronized_stage_ms"].pop("encoder_pre_quant")
+            (root/"codec-rust-1.json").write_text(json.dumps(mutated))
+            with self.assertRaises(ValueError):codec(root,"metal")
+
 
 if __name__=="__main__":unittest.main()

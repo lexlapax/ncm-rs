@@ -36,5 +36,16 @@ required-features = ["mlx"]
 name = "mlx_codec_trace"
 required-features = ["mlx"]
 
+[[example]]
+name = "mlx_codec_bench"
+required-features = ["mlx"]
+
+[[example]]
+name = "mlx_memory_probe"
+required-features = ["mlx"]
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+libc = "0.2"
+
 [lints]
 workspace = true
