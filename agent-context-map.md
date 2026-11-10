@@ -136,15 +136,20 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
 
 ## Apple candidate implementation (hardware qualification pending)
 
-- Added target-gated `mlx-rs = 0.34.0` (`mlx-sys = 0.7.0`, MLX 0.32.2), candidate
+- Added target-gated mlx-rs 0.34.0 at immutable Git pin
+  `adf439bf5361d8a02955de7aaf651b0c45900945` (`mlx-sys` 0.7.0, MLX 0.32.2), candidate
   composed operators, real-Metal tests, synchronous evaluation microprobe and
   checked copied unified-memory artifact/readback probe. No native Apple results
   yet; build will use a project-local metallib directory, not alter global tooling.
 - Extracted the unchanged fixture schema/tolerances/comparator into
   `tests/support/operators.rs`, shared by CUDA and MLX. Full Linux `--cuda` check
   passed after extraction; unsupported non-Apple `mlx` requests fail explicitly.
-- First MLX run announced after Linux gate closure. Next step is safe pull/build
-  on the inspected clean Mac, then inspect failures rather than relax goldens.
+- First MLX run announced after Linux gate closure. Crates.io native source build
+  failed because Xcode's Metal compiler component is missing. No global tooling
+  changed. The Git pin above supports prebuilt MLX; Python 3.14.10 and MLX/MLX-metal
+  0.32.2 installed only in `.reference/mlx-venv`, and native include/share/lib copied
+  to `.reference/mlx-native` for Python-free Rust linking. Next: rebuild using that
+  native prefix and project-local rpath, then real-Metal qualification.
 
 ## Next actions (do not skip gates)
 
