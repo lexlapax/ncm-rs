@@ -34,6 +34,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 
 ## Apple measurement acceptance
 
+- `docs/PLAN.md` now records Phase 2 as complete, consistent with its contract
+  and both platform gate reports.
 - Independent Python MLX baseline passes all 642 unchanged trained traces and
   2,500 decisions against the CUDA oracle. Three-process codec/tokenizer evidence,
   raw telemetry and baseline qualification are published in

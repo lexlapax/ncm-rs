@@ -1,10 +1,12 @@
 # Phased port and validation plan
 
-The user approved implementation on 2026-11-09. Phases 0 and 1 are complete;
-Phase 2's Linux gate is complete; Apple parity passes, with measurements pending. **Within every phase, implement and validate Linux/CUDA first,
-then macOS/MLX.** Complete both platform gates before advancing to the next phase;
-do not finish the whole CUDA project before starting Apple work. GPU feasibility
-and artifact work precede committing to a detailed delivery estimate.
+The user approved implementation on 2026-11-09. Phases 0, 1 and 2 are complete.
+Phase 2 completed its Linux/CUDA gate before its Apple/MLX gate; both have passing
+quality, performance and memory evidence, with negative findings retained. **Within
+every phase, implement and validate Linux/CUDA first, then macOS/MLX.** Complete
+both platform gates before advancing to the next phase; do not finish the whole
+CUDA project before starting Apple work. GPU feasibility and artifact work precede
+committing to a detailed delivery estimate.
 
 ## Phase 0 — research, structure, and review (complete)
 
@@ -52,14 +54,17 @@ match; tiny operator fixtures execute on CPU, CUDA and MLX. Publish capability a
 baseline report, including unsupported operations. MLX needs Apple hardware access;
 a Linux-only result does not pass this gate. No broad framework written in advance.
 
-## Phase 2 — shared primitives and codec (in progress)
+## Phase 2 — shared primitives and codec (complete)
 
 The [Phase 2 contract](PHASE2.md) fixes the initial model scope, tensor inventory,
 new numerical budgets and fixture semantics. Tiny CPU and trained CUDA reference
-captures, a passing Rust CUDA codec trace comparison and pinned tokenizer parity
-exist. The [Linux quality/performance/memory gate](results/2026-11-10-phase2-linux/README.md)
-is complete, retaining the slower native codec result. [Apple codec/tokenizer parity](results/2026-11-10-phase2-mlx-codec/README.md)
-passes; Apple performance/memory acceptance remains pending.
+captures, passing Rust CUDA/MLX codec trace comparisons and pinned tokenizer parity
+are published. The [Linux quality/performance/memory gate](results/2026-11-10-phase2-linux/README.md)
+and [Apple quality/performance/memory gate](results/2026-11-10-phase2-mlx/README.md)
+are complete. Linux native codec latency is slower than eager Torch; Apple native
+host RSS is high, and the Apple baseline is an independently qualified adapted
+Python MLX port rather than unmodified upstream execution. These are retained
+negative findings, not waived gates or efficiency claims.
 
 Implement validated configs, backend operations and deterministic fixture harness.
 Port norms, split-half RoPE, bidirectional/prefix attention, GELU blocks,
