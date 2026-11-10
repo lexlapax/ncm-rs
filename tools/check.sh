@@ -4,21 +4,24 @@ set -euo pipefail
 
 usage() {
     printf '%s\n' \
-        'Usage: tools/check.sh [--cuda]' \
+        'Usage: tools/check.sh [--cuda|--mlx]' \
         '' \
         'Default: formatting, Clippy, CPU fixtures, docs and Python report-tool tests.' \
         '--cuda: additionally lint CUDA code and run the real-device operator probe.' \
+        '--mlx: additionally lint/test/probe MLX on Apple Silicon (native MLX required).'  \
         '' \
         'Requires Rust 1.99.1+, rustfmt, Clippy, and Python 3 (no Torch for these checks).' \
         'CUDA requires Linux, a compatible NVIDIA driver/toolkit and host C++ compiler.' \
         'Set NVCC_CCBIN, CUDA_COMPUTE_CAP and CARGO_BUILD_JOBS for your machine.' \
-        'MLX checks will be added when the Apple backend exists.'
+        'MLX native build/link environment is documented in tools/reference/README.md.'
 }
 
 cuda=false
+mlx=false
 case "${1:-}" in
     '') ;;
     --cuda) cuda=true ;;
+    --mlx) mlx=true ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
 esac
@@ -28,6 +31,11 @@ if (( $# > 1 )); then
 fi
 if "$cuda" && [[ "$(uname -s)" != Linux ]]; then
     printf '%s\n' '--cuda currently supports Linux only; no fallback.' >&2
+    exit 2
+fi
+
+if "$mlx" && { [[ "$(uname -s)" != Darwin ]] || [[ "$(uname -m)" != arm64 ]]; }; then
+    printf '%s\n' '--mlx requires Apple Silicon macOS; no fallback.' >&2
     exit 2
 fi
 
@@ -65,6 +73,17 @@ if "$cuda"; then
     cargo run -p ncm-backend-cuda --features cuda --example probe --release --locked -- \
         cuda tests/fixtures/operators-v1.json "$report_dir/cuda.json"
     printf 'CUDA smoke report: %s/cuda.json\n' "$report_dir"
+fi
+
+if "$mlx"; then
+    printf '%s\n' '== Explicit MLX validation (real Metal GPU required) =='
+    cargo clippy -p ncm-backend-mlx --all-targets --features mlx --release --locked -- -D warnings
+    cargo test -p ncm-backend-mlx --features mlx --release --locked
+    RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -D warnings" cargo doc -p ncm-backend-mlx --features mlx --no-deps --locked
+    report_dir="reports/local-mlx-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+    mkdir -p "$report_dir"
+    cargo run -p ncm-backend-mlx --features mlx --example mlx_probe --release --locked -- \
+        tests/fixtures/operators-v1.json "$report_dir/mlx.json"
 fi
 
 printf '%s\n' 'Requested checks passed. No model-quality or unrequested GPU validation is implied.'

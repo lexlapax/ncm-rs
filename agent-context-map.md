@@ -151,6 +151,13 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
   to `.reference/mlx-native` for Python-free Rust linking. Next: rebuild using that
   native prefix and project-local rpath, then real-Metal qualification.
 
+- Prebuilt native MLX successfully compiled/linked its bindings; Rust candidate
+  needed `TryIndexOp` rather than `IndexOp` in scope (corrected). Added explicit
+  local `--mlx` checks and adapted Python MLX operator/load baselines, all still
+  pending real-device execution. Mac venv now also pins NumPy 2.5.4. The exact
+  tested Sudoku artifact was copied to a new ignored Mac cache directory.
+- Local default checks pass after these harness additions; no tolerance changes.
+
 ## Next actions (do not skip gates)
 
 1. Announce/start the Apple Phase 1 pass: pinned mlx-rs, existing operator goldens,

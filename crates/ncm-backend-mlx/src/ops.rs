@@ -3,7 +3,7 @@ use mlx_rs::{
     Array,
     ops::{
         self,
-        indexing::{Ellipsis, IndexOp},
+        indexing::{Ellipsis, TryIndexOp},
     },
 };
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
