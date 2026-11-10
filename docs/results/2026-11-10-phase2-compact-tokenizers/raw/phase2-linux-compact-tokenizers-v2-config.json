@@ -1,0 +1,15 @@
+{
+  "device": "cuda",
+  "previous": "reports/phase2-performance-linux-compact-tokenizers-v2/previous",
+  "candidate": "reports/phase2-performance-linux-compact-tokenizers-v2/candidate",
+  "qualification": "reports/phase2-codec/cuda-shared-load-v1-qualification.json",
+  "lifecycle": "reports/phase2-linux-shared-lifecycle-v1.json",
+  "controls": {
+    "codec": "reports/phase2-performance-linux-compact-codec-control-v1",
+    "tinystories": "reports/phase2-performance-linux-compact-tiny-control-v2",
+    "bert": "reports/phase2-performance-linux-compact-bert-control-v2"
+  },
+  "load_controls": [
+    "codec"
+  ]
+}

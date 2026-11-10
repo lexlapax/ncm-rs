@@ -14,9 +14,24 @@ struct Raw {
     merges_hex: Vec<[String; 2]>,
 }
 
+struct Vocabulary {
+    bytes: Box<[u8]>,
+    offsets: Box<[u32]>,
+}
+impl Vocabulary {
+    fn len(&self) -> usize {
+        self.offsets.len() - 1
+    }
+    fn get(&self, id: usize) -> Option<&[u8]> {
+        let start = *self.offsets.get(id)? as usize;
+        let end = *self.offsets.get(id.checked_add(1)?)? as usize;
+        self.bytes.get(start..end)
+    }
+}
 pub struct ByteBpe {
-    vocab: Vec<Vec<u8>>,
-    merges: HashMap<(u32, u32), (usize, u32)>,
+    vocab: Vocabulary,
+    // Output ID is 258 + rank, so storing rank separately is redundant.
+    merges: HashMap<(u32, u32), u32>,
     pattern: Regex,
 }
 fn bad(message: &str) -> AssetError {
@@ -52,37 +67,49 @@ impl ByteBpe {
         {
             return Err(bad("invalid byte BPE schema/inventory"));
         }
-        let vocab: Vec<_> = raw
-            .vocab_hex
-            .iter()
-            .map(|v| hex(v))
-            .collect::<Result<_>>()?;
-        if vocab[0] != SPECIAL[0].as_bytes()
-            || vocab[1] != SPECIAL[1].as_bytes()
-            || (0..256).any(|i| vocab[i + 2] != [i as u8])
+        // One byte arena and a dense offset table instead of one allocation and
+        // three machine words per token. The bounded payload fits u32 offsets.
+        let mut bytes = Vec::with_capacity(raw.vocab_hex.iter().map(|v| v.len() / 2).sum());
+        let mut offsets = Vec::with_capacity(raw.vocab_hex.len() + 1);
+        offsets.push(0);
+        for token in &raw.vocab_hex {
+            bytes.extend(hex(token)?);
+            offsets
+                .push(u32::try_from(bytes.len()).map_err(|_| bad("vocabulary offset overflow"))?);
+        }
+        let vocab = Vocabulary {
+            bytes: bytes.into_boxed_slice(),
+            offsets: offsets.into_boxed_slice(),
+        };
+        if vocab.get(0) != Some(SPECIAL[0].as_bytes())
+            || vocab.get(1) != Some(SPECIAL[1].as_bytes())
+            || (0..256).any(|i| vocab.get(i + 2) != Some(&[i as u8][..]))
         {
             return Err(bad("special/byte ID layout differs"));
         }
-        let reverse: HashMap<_, _> = vocab
-            .iter()
-            .enumerate()
-            .map(|(i, v)| (v.clone(), i as u32))
+        let reverse: HashMap<_, _> = (0..vocab.len())
+            .map(|i| (vocab.get(i).expect("validated offset table"), i as u32))
             .collect();
         if reverse.len() != vocab.len() {
             return Err(bad("duplicate vocabulary bytes"));
         }
-        let mut merges = HashMap::new();
+        let mut merges = HashMap::with_capacity(raw.merges_hex.len());
         for (rank, pair) in raw.merges_hex.iter().enumerate() {
             let left = hex(&pair[0])?;
             let right = hex(&pair[1])?;
-            let (Some(&a), Some(&b)) = (reverse.get(&left), reverse.get(&right)) else {
+            let (Some(&a), Some(&b)) =
+                (reverse.get(left.as_slice()), reverse.get(right.as_slice()))
+            else {
                 return Err(bad("unknown merge operand"));
             };
             let output = (258 + rank) as u32;
             if a >= output
                 || b >= output
-                || [left, right].concat() != vocab[output as usize]
-                || merges.insert((a, b), (rank, output)).is_some()
+                || !left.iter().chain(&right).eq(vocab
+                    .get(output as usize)
+                    .expect("validated output ID")
+                    .iter())
+                || merges.insert((a, b), output).is_some()
             {
                 return Err(bad("inconsistent ranked merge"));
             }
@@ -127,13 +154,9 @@ impl ByteBpe {
                 loop {
                     let earliest = word
                         .windows(2)
-                        .filter_map(|p| {
-                            self.merges
-                                .get(&(p[0], p[1]))
-                                .map(|&(rank, id)| (rank, id, p[0], p[1]))
-                        })
+                        .filter_map(|p| self.merges.get(&(p[0], p[1])).map(|&id| (id, p[0], p[1])))
                         .min_by_key(|x| x.0);
-                    let Some((_, id, a, b)) = earliest else {
+                    let Some((id, a, b)) = earliest else {
                         break;
                     };
                     let mut merged = Vec::with_capacity(word.len());
@@ -181,7 +204,12 @@ impl ByteBpe {
                 bytes.extend_from_slice(value);
             }
         }
-        Ok(String::from_utf8_lossy(&bytes).into_owned())
+        // Reuse the output allocation for valid UTF-8; only malformed byte
+        // sequences need the pinned replacement-character conversion.
+        Ok(match String::from_utf8(bytes) {
+            Ok(text) => text,
+            Err(error) => String::from_utf8_lossy(error.as_bytes()).into_owned(),
+        })
     }
 }
 
@@ -196,6 +224,26 @@ mod tests {
         vocab.extend((0..=255).map(|b| vec![b]));
         vocab.extend([b"ab".to_vec(), b"abab".to_vec()]);
         serde_json::json!({"schema_version":1,"vocab_hex":vocab.iter().map(|v|v.iter().map(|b|format!("{b:02x}")).collect::<String>()).collect::<Vec<_>>(),"merges_hex":[["61","62"],["6162","6162"]]})
+    }
+    #[test]
+    fn packed_vocabulary_preserves_every_entry_and_bounds() {
+        let f = fixture();
+        let tokenizer = ByteBpe::from_json(&serde_json::to_vec(&f).unwrap()).unwrap();
+        let entries = f["vocab_hex"].as_array().unwrap();
+        assert_eq!(tokenizer.vocab.offsets.len(), entries.len() + 1);
+        let mut total = 0;
+        for (id, value) in entries.iter().enumerate() {
+            let bytes = hex(value.as_str().unwrap()).unwrap();
+            total += bytes.len();
+            assert_eq!(tokenizer.vocab.get(id), Some(bytes.as_slice()));
+        }
+        assert_eq!(tokenizer.vocab.bytes.len(), total);
+        assert!(tokenizer.vocab.get(entries.len()).is_none());
+        assert!(tokenizer.vocab.get(usize::MAX).is_none());
+        assert!(
+            tokenizer.vocab.offsets.len() * std::mem::size_of::<u32>()
+                < entries.len() * std::mem::size_of::<Vec<u8>>()
+        );
     }
     #[test]
     fn ranked_all_occurrence_merges_and_specials() {

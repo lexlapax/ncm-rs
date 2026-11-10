@@ -74,6 +74,18 @@ fn read(path: &Path, limit: usize) -> Result<Vec<u8>> {
 // The authenticated profiles fix the model kind. Deserialize that concrete model
 // directly, avoiding ModelWrapper's intermediate generic JSON tree; move the
 // complete tokenizer into the same runtime wrapper without cloning its vocabulary.
+fn total_vocab_size(tokenizer: &tokenizers::Tokenizer) -> usize {
+    use tokenizers::Model;
+    let model = tokenizer.get_model();
+    // Count the union without get_vocab_size(true)'s full vocabulary clone.
+    model.get_vocab_size()
+        + tokenizer
+            .get_added_vocabulary()
+            .get_vocab()
+            .keys()
+            .filter(|token| model.token_to_id(token).is_none())
+            .count()
+}
 fn parse_hf(payload: &[u8], profile: &str) -> Result<tokenizers::Tokenizer> {
     type Typed<M> = tokenizers::TokenizerImpl<
         M,
@@ -88,7 +100,7 @@ fn parse_hf(payload: &[u8], profile: &str) -> Result<tokenizers::Tokenizer> {
                 .into(),
         ),
         "gpt2" | "qwen3" => {
-            Ok(serde_json::from_slice::<Typed<tokenizers::models::bpe::BPE>>(payload)?.into())
+            Ok(serde_json::from_slice::<Typed<crate::hf_bpe::CanonicalBpe>>(payload)?.into())
         }
         _ => Err(invalid("unsupported HF profile")),
     }
@@ -137,7 +149,7 @@ impl TextTokenizer {
             "huggingface" => {
                 let tokenizer = parse_hf(&payload, &metadata.profile)?;
                 if tokenizer.get_vocab_size(false) != metadata.vocab_size
-                    || tokenizer.get_vocab_size(true) != metadata.total_vocab_size
+                    || total_vocab_size(&tokenizer) != metadata.total_vocab_size
                 {
                     return Err(invalid("HF vocabulary differs"));
                 }
@@ -207,6 +219,23 @@ fn cleanup(mut text: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn vocabulary_union_counts_overlapping_added_tokens_without_cloning() {
+        let model = tokenizers::models::wordpiece::WordPiece::builder()
+            .vocab([("[UNK]".into(), 0), ("a".into(), 1)])
+            .build()
+            .unwrap();
+        let mut tokenizer = tokenizers::Tokenizer::new(model);
+        for tokens in [vec!["a"], vec!["new", "[UNK]"], vec!["new", "other"]] {
+            tokenizer.add_tokens(
+                &tokens
+                    .into_iter()
+                    .map(|t| tokenizers::AddedToken::from(t, false))
+                    .collect::<Vec<_>>(),
+            );
+            assert_eq!(total_vocab_size(&tokenizer), tokenizer.get_vocab_size(true));
+        }
+    }
     #[test]
     fn bounded_asset_reads_reserve_once() {
         let root = tempfile::tempdir().unwrap();

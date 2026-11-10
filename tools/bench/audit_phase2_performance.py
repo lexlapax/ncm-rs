@@ -48,14 +48,16 @@ def audit(config):
     inputs[str(life_path)]=hashlib.sha256(life_path.read_bytes()).hexdigest()
     load_controls=config.get('load_controls',[])
     require(set(load_controls)<=set(config.get('controls',{})), 'load control missing reports')
-    controls={p:control(Path(path),p,include_load=p in load_controls) for p,path in config.get('controls',{}).items()}
+    from summarize_codec_load_control import summarize as codec_load_control
+    controls={p:(codec_load_control(Path(path),device) if p=='codec' else control(Path(path),p,include_load=p in load_controls))
+              for p,path in config.get('controls',{}).items()}
     for profile,path in config.get('controls',{}).items():
         directory=Path(path)
         environment=json.loads((directory/'environment.json').read_bytes())
         if environment.get('identical_tokenizer_binary_control',False):
             require(controls[profile]['native_binaries_identical'],'identity control requires identical binaries')
         for name in ('previous','candidate'):
-            filename=f'tokenizer-{profile}-rust-1.json'
+            filename='codec-rust-1.json' if profile=='codec' else f'tokenizer-{profile}-rust-1.json'
             a=json.loads((directory/name/filename).read_bytes())
             b=json.loads((roots[name]/filename).read_bytes())
             require(a['source_sha256']==b['source_sha256'],'follow-up sources differ from the matrix')

@@ -1,0 +1,248 @@
+== Local validation ==
+rustc 1.99.1 (58cf8f9c3 2026-10-13) (Homebrew)
+cargo 1.99.1 (5f94df478 2026-08-27) (Homebrew)
+Python 3.15.2
+    Checking ncm-tokenizers v0.1.0 (/Users/lexlapax/projects/lexlapax/ncm-rs/crates/ncm-tokenizers)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.17s
+    Checking ncm-tokenizers v0.1.0 (/Users/lexlapax/projects/lexlapax/ncm-rs/crates/ncm-tokenizers)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.40s
+   Compiling ncm-tokenizers v0.1.0 (/Users/lexlapax/projects/lexlapax/ncm-rs/crates/ncm-tokenizers)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.17s
+     Running unittests src/lib.rs (target/debug/deps/ncm_backend_cuda-30eb2ab98728536a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/codec_components.rs (target/debug/deps/codec_components-aea449a9d7113509)
+
+running 2 tests
+test batched_transpose_regression ... ok
+test cpu_codec_components ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/operators.rs (target/debug/deps/operators-cbd4b62691b84310)
+
+running 5 tests
+test comparison_rejects_nonfinite_and_detects_regressions ... ok
+test invalid_operator_parameters_are_rejected ... ok
+test all_masked_attention_rows_are_rejected ... ok
+test all_operator_fixtures_match_torch_on_cpu ... ok
+test invalid_shapes_values_and_schema_are_rejected ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/pool_policy.rs (target/debug/deps/pool_policy-d773a05199da4a8a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/resampling.rs (target/debug/deps/resampling-35e46ebe6c6fa446)
+
+running 1 test
+test cpu_resampling ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ncm_backend_mlx-8d465dfc39360276)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/codec_components.rs (target/debug/deps/codec_components-8c032d66c5eab517)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/operators.rs (target/debug/deps/operators-3fd513349afcb2c2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/ncm-ab6494d632e381a1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ncm_core-36741f133d58c870)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/config.rs (target/debug/deps/config-770226ee1906fa75)
+
+running 3 tests
+test ids_and_batch_shapes_are_checked_before_execution ... ok
+test validated_inventory_matches_both_reference_profiles ... ok
+test malformed_and_unsupported_configs_fail ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running unittests src/lib.rs (target/debug/deps/ncm_io-9a350eb9921bc09f)
+
+running 2 tests
+test read_tests::bounded_reads_reserve_once_and_keep_limits ... ok
+test read_tests::sha256_known_answers_cover_multiblock_hardware_path ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/artifact.rs (target/debug/deps/artifact-5d960d86e9966111)
+
+running 7 tests
+test rejects_duplicate_manifest_keys ... ok
+test rejects_unknown_manifest_fields ... ok
+test valid_copied_load_and_undeclared_access ... ok
+test rejects_symlink_files_and_roots ... ok
+test rejects_malformed_payload_even_with_matching_file_hash ... ok
+test rejects_corruption_truncation_and_extra_file_entries ... ok
+test rejects_tensor_shape_dtype_hash_duplicates_and_budget ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/ncm_model-b770e6a20d85a707)
+
+running 1 test
+test tests::artifact_envelope_is_bounded_and_strict ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/loading.rs (target/debug/deps/loading-6308f894a47b0be2)
+
+running 3 tests
+test tiny_weights_construct_checked_shared_state ... ok
+test malformed_file_and_backend_failure_propagate ... ok
+test invalid_inventories_and_layouts_allocate_nothing ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running unittests src/lib.rs (target/debug/deps/ncm_tokenizers-677603a462b9f331)
+
+running 11 tests
+test assets::tests::cleanup_matches_transformers_order ... ok
+test tests::whitespace_and_invalid_inputs ... ok
+test tests::punctuation_zero_and_special_tokens ... ok
+test tests::pinned_upstream_fixture ... ok
+test assets::tests::symlink_root_even_with_trailing_separator_is_rejected ... ok
+test assets::tests::malformed_unknown_and_tampered_manifests_fail ... ok
+test bpe::tests::invalid_metadata_merges_and_hex_fail ... ok
+test assets::tests::bounded_asset_reads_reserve_once ... ok
+test assets::tests::typed_loading_preserves_complete_runtime_configuration ... ok
+test bpe::tests::ranked_all_occurrence_merges_and_specials ... ok
+test bpe::tests::unicode_bytes_whitespace_and_no_implicit_normalization ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+   Doc-tests ncm_backend_cuda
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ncm_backend_mlx
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ncm_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ncm_io
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ncm_model
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ncm_tokenizers
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+ Documenting ncm-tokenizers v0.1.0 (/Users/lexlapax/projects/lexlapax/ncm-rs/crates/ncm-tokenizers)
+ Documenting ncm-backend-mlx v0.1.0 (/Users/lexlapax/projects/lexlapax/ncm-rs/crates/ncm-backend-mlx)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s
+   Generated /Users/lexlapax/projects/lexlapax/ncm-rs/target/doc/ncm_backend_cuda/index.html and 6 other files
+test_rejects_incompatible_and_incomplete_runs (test_compare.ComparisonTests.test_rejects_incompatible_and_incomplete_runs) ... ok
+test_rejects_nan_and_numerical_failure (test_compare.ComparisonTests.test_rejects_nan_and_numerical_failure) ... ok
+test_rejects_source_changes_and_duplicate_cases (test_compare.ComparisonTests.test_rejects_source_changes_and_duplicate_cases) ... ok
+test_valid_report (test_compare.ComparisonTests.test_valid_report) ... ok
+test_control_report_rejects_mutations (test_cupti_trace.CuptiTraceTests.test_control_report_rejects_mutations) ... ok
+test_counterbalanced_process_order (test_cupti_trace.CuptiTraceTests.test_counterbalanced_process_order) ... ok
+test_counts_not_wall_time (test_cupti_trace.CuptiTraceTests.test_counts_not_wall_time) ... ok
+test_process_resampling_preserves_identity (test_cupti_trace.CuptiTraceTests.test_process_resampling_preserves_identity) ... ok
+test_nonfinite_and_zero (test_phase1_summary.Phase1Tests.test_nonfinite_and_zero) ... ok
+test_rejects_incomplete_failure_and_changed_source (test_phase1_summary.Phase1Tests.test_rejects_incomplete_failure_and_changed_source) ... ok
+test_valid_and_percentiles (test_phase1_summary.Phase1Tests.test_valid_and_percentiles) ... ok
+test_lifecycle_requires_every_phase_and_identity (test_phase2_acceptance.AcceptanceTests.test_lifecycle_requires_every_phase_and_identity) ... ok
+test_quality_is_not_an_empty_or_relaxed_gate (test_phase2_acceptance.AcceptanceTests.test_quality_is_not_an_empty_or_relaxed_gate) ... ok
+test_clean_checkout_cli_reproduces_metrics (test_phase2_mlx_summary.MlxSummaryTests.test_clean_checkout_cli_reproduces_metrics) ... ok
+test_committed_anchor (test_phase2_mlx_summary.MlxSummaryTests.test_committed_anchor) ... ok
+test_modified_or_missing_anchor_is_not_replaced_by_local_files (test_phase2_mlx_summary.MlxSummaryTests.test_modified_or_missing_anchor_is_not_replaced_by_local_files) ... ok
+test_reject_changed_runtime_baseline_and_sources (test_phase2_mlx_summary.MlxSummaryTests.test_reject_changed_runtime_baseline_and_sources) ... ok
+test_fixed_float_budget (test_phase2_summary.Phase2SummaryTests.test_fixed_float_budget) ... ok
+test_full_matrix_and_reject_mutations (test_phase2_summary.Phase2SummaryTests.test_full_matrix_and_reject_mutations) ... ok
+test_metal_stage_matrix_and_reject_mutation (test_phase2_summary.Phase2SummaryTests.test_metal_stage_matrix_and_reject_mutation) ... ok
+test_statistics_and_trial_contract (test_phase2_summary.Phase2SummaryTests.test_statistics_and_trial_contract) ... ok
+test_tokenizer_matrix_and_output_rejection (test_phase2_summary.Phase2SummaryTests.test_tokenizer_matrix_and_output_rejection) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.666s
+
+OK
+== Explicit MLX validation (real Metal GPU required) ==
+    Finished `release` profile [optimized] target(s) in 0.12s
+    Finished `release` profile [optimized] target(s) in 0.11s
+     Running unittests src/lib.rs (target/release/deps/ncm_backend_mlx-7afc879a717898e7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/codec_components.rs (target/release/deps/codec_components-31c9b93805d19582)
+
+running 4 tests
+test metal_selection_shapes_and_snapshots ... ok
+test metal_full_span_projection ... ok
+test metal_batched_transpose ... ok
+test metal_codec_components ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/operators.rs (target/release/deps/operators-5586166bf00e7467)
+
+running 2 tests
+test invalid_parameters_and_masks ... ok
+test all_fixtures_on_real_metal ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+   Doc-tests ncm_backend_mlx
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+ Documenting ncm-backend-mlx v0.1.0 (/Users/lexlapax/projects/lexlapax/ncm-rs/crates/ncm-backend-mlx)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s
+   Generated /Users/lexlapax/projects/lexlapax/ncm-rs/target/doc/ncm_backend_mlx/index.html
+    Finished `release` profile [optimized] target(s) in 0.07s
+     Running `target/release/examples/mlx_probe tests/fixtures/operators-v1.json reports/local-mlx-20261110T201727Z-5795/mlx.json`
+Metal: 18 cases passed
+Requested checks passed. No model-quality or unrequested GPU validation is implied.

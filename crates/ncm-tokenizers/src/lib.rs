@@ -1,6 +1,7 @@
 //! Python-free Sudoku, byte-BPE and immutable HF tokenizer adapters.
 mod assets;
 mod bpe;
+mod hf_bpe;
 pub use assets::{AssetError, TextTokenizer, TokenizerMetadata};
 pub use bpe::ByteBpe;
 

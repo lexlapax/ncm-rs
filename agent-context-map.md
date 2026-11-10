@@ -288,13 +288,24 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   audits retained. Explicit optional `load_controls` applies unchanged paired-process
   uncertainty to checked loads too; malformed-trial regression passes. Evidence
   and exact configs are in the shared-loading report's `raw/` directory.
-- Tokenizer-buffer follow-up pushed as `9058df8`. **Apple access is now blocked:**
-  SSH signing failed because the local authentication agent became unavailable;
-  `ssh-add -l` cannot connect and a BatchMode/IdentitiesOnly retry is denied.
-  No credentials/global tooling changed. User asked to restore/unlock SSH access.
-  Mac's last observed checkout is `74c2ed3`; the `9058df8` pull/testing command
-  did not run. Recheck availability/state once access returns, then pull safely.
-- **Next: complete Apple acceptance, not Phase 3.** Trained Metal traces, real
-  tokenizers, repeated loads/requests, full three-way performance/memory and
-  separate lifecycle evidence remain. Neither diagnostics nor Linux acceptance
-  close Phase 2. Historical worktrees and `.pi/` stay untouched.
+- SSH restored by user; Mac availability/worktrees rechecked, clean main pulled
+  through `2c195ed`. Full Metal checks pass. Tokenizer-buffer candidate improves
+  Qwen to 86.97 ms / 455.25 MB HWM, but fresh Python is 145.97 ms / 288.59 MB:
+  memory still fails. No unrelated desktop work, tooling or credentials changed.
+- User requested reconsidering Rust structures for memory AND performance. New
+  candidate packs TinyStories bytes/u32 offsets, stores merge output IDs without
+  redundant ranks, borrows reverse lookups and moves valid UTF-8 output storage.
+  HF loading avoids full-vocabulary clones for size validation and untagged merge
+  trees, keeping the pinned runtime BPE and complete tokenizer visitor unchanged.
+  First packed decoder regression retained; ownership fix passes controlled timing.
+- Linux first: full CUDA checks, all tokenizer goldens/rejections, complete matrix,
+  30-triplet TinyStories/BERT controls and nine full-codec load-control triplets
+  pass all 78 comparisons. Qwen load 223.22/89.90/196.78 ms old/new/Python; HWM
+  194.49/81.56/240.10 MB. New checked-load control validates every codec report;
+  Apple controls explicitly have no affinity claim and require activity telemetry.
+  New MLX lifecycle/three-way tools await real Apple execution. Full details and
+  all failed/final evidence: `docs/results/2026-11-10-phase2-compact-tokenizers/`.
+- **Next: pull this compact candidate and finish Apple acceptance, not Phase 3.**
+  Validate new structures/memory, trained Metal traces, real tokenizers, repeated
+  loads/requests, full three-way performance/memory and separate lifecycle evidence.
+  Neither diagnostics nor Linux acceptance close Phase 2; preserve historical worktrees.

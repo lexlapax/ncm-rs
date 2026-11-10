@@ -48,7 +48,21 @@ MEMORY2 [ 1 ] memoryOperationType ALLOCATION, memoryKind DEVICE, size 32, addres
             report = json.loads(original); report["measurements"][0]["output_sha256"] = "wrong"
             path.write_text(json.dumps(report))
             with self.assertRaises(ValueError): control_summary(root)
-            path.write_bytes(original); path.unlink()
+            path.write_bytes(original)
+            env_path = root/"environment.json"
+            environment = json.loads(env_path.read_bytes())
+            environment["cpu_affinity"] = None
+            env_path.write_text(json.dumps(environment))
+            with self.assertRaises(ValueError): control_summary(root)
+            environment.update(platform="Darwin", control_policy="counterbalanced_fresh_processes")
+            env_path.write_text(json.dumps(environment))
+            with self.assertRaises(ValueError): control_summary(root)
+            (root/"cpu-activity.jsonl").write_text('{}\n')
+            self.assertIsNone(control_summary(root)["cpu_affinity"])
+            environment["telemetry_error"] = "sampler failed"
+            env_path.write_text(json.dumps(environment))
+            with self.assertRaises(ValueError): control_summary(root)
+            path.unlink()
             with self.assertRaises(ValueError): control_summary(root)
 
     def test_process_resampling_preserves_identity(self):

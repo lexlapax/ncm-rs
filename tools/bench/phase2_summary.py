@@ -51,9 +51,9 @@ def reports(root,prefix):
     return result
 
 
-def codec(root, device="cuda"):
+def codec(root, device="cuda", runs=None):
     require(device in ("cuda","metal"),"unsupported measurement device")
-    runs=reports(root,"codec")
+    runs=reports(root,"codec") if runs is None else runs
     workload=hashlib.sha256((ROOT/"tests/fixtures/codec-bench-v1.json").read_bytes()).hexdigest()
     anchor=hashlib.sha256((ROOT/"docs/results/2026-11-10-sudoku-artifacts/raw/artifact-manifest.json").read_bytes()).hexdigest()
     manifests={run["manifest_sha256"] for group in runs.values() for run in group}

@@ -44,6 +44,10 @@ required-features = ["mlx"]
 name = "mlx_memory_probe"
 required-features = ["mlx"]
 
+[[example]]
+name = "mlx_codec_lifecycle"
+required-features = ["mlx"]
+
 [target.'cfg(target_os = "macos")'.dev-dependencies]
 libc = "0.2"
 

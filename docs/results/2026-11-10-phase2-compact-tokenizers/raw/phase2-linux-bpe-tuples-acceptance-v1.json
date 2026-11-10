@@ -1,0 +1,726 @@
+{
+  "schema_version": 1,
+  "device": "cuda",
+  "all_passed": false,
+  "quality_passed": true,
+  "limits": {
+    "median": 1.05,
+    "p95": 1.1,
+    "comparable_host_memory": 1.05
+  },
+  "input_sha256": {
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/codec-rust-1.json": "940ac009de3152af14cd0af8f2e31385d3fdb2e29e4519b2f9c36a56d37327fb",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/codec-rust-2.json": "6c1abf671f18278a07e4027c31adb4e2df763be7f3cd61537ebb2b7dc76052fc",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/codec-rust-3.json": "b270726c31d4c3ee16d3a10dc36fb983f2c2e57805e8557b103470c5e8edf9d4",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/codec-python-1.json": "5b05c8522a372e4a78b4c129c31d28823f3c2294f5ecdd3cbb3a34a6b62ed525",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/codec-python-2.json": "c31ed215c534706518ddf1408ac55eb4aadaa2a710a28200ff4142ce42764e86",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/codec-python-3.json": "c906d7f854ea2d93eedc36c83b011551d09d22f6ed1b2f1a4824df7f761d809d",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-bert-rust-1.json": "e0b21912c98a73ee23d4adf13718169916f5028c7e2bcd93dde746b4ced0e03c",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-bert-rust-2.json": "f2fc21a58f7cacf0d224be6f69a811b26ff6c8dde0b77f4ffff08c47d5b181a2",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-bert-rust-3.json": "f49f6018aac8a1d4fb7509786c2a234cbfc444f7c9080e8206bb15425603a06e",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-bert-python-1.json": "16e4bf4b6704c2e81c52c934a64b9173ea4356c0441ccce0aafeaf6422e2dd96",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-bert-python-2.json": "ca3df56e02a533c13ea870806d83fbe9f02735799f976d4fdba09dbde8335d37",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-bert-python-3.json": "2b88eab8df7487b80d78727b533e358cdecf0ecb73f387c3f7f0490e902c61e8",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-gpt2-rust-1.json": "6dc2fafab1c531c9afc5a2311692a24eded0d66922be9e1efcf6fd919bc70489",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-gpt2-rust-2.json": "0eb2f88ad69eb41ea9ca7c5515ccb40ed1e7775c2124e1422d2a70d037ef2dc4",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-gpt2-rust-3.json": "597dfb8d5da61a891c6bb03e956d6a1357204107e194a889bb990b9c979ec763",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-gpt2-python-1.json": "f22f504254d8c9f9ca6377682403e62dec9f7390741de6269f02ab844dc7c8a9",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-gpt2-python-2.json": "4dddc864b5be06eb7e042c13c2fc762bc5370b2a9926a9390580d67d02db1723",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-gpt2-python-3.json": "4b6a42a12ff2b174b26502dea96cff564fbe1248fd228eec39a29329e58ef257",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-qwen3-rust-1.json": "28bcc11c3a004c31716d4d83c52b7f9d7038cb8a2022f7e7d200bdba00c2e6aa",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-qwen3-rust-2.json": "de301e4f5415ab509cd97fd28bb123565b442b0b2b9cf274d610cf0ea33c418f",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-qwen3-rust-3.json": "0b8cc494a73dca45d76cc834a4d1dcc711b72a57f2e627f0fbbf9f5b56a75909",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-qwen3-python-1.json": "17b287c9716e0d5968387257e35a45034f0d913f36ea1132abae4ca84d836f64",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-qwen3-python-2.json": "288c6d06275840f1aadfc59f5d885b5548fa6468bd4e427ff691b900a4bd2a30",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-qwen3-python-3.json": "08a969a4c716553cf2c26a9c4bfe4442f9445085d43aa8c1b5d7a2460329d648",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-tinystories-rust-1.json": "a924c2aaf0ddd6c5348b703b3191bfeda4dc1351988a10cb5524d59568220f0a",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-tinystories-rust-2.json": "f749903c463170997944a9fd0e22bda90ed22fd1bd4e03a2c0d7d2bc6034fe28",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-tinystories-rust-3.json": "7a131d24dd407e2b33dccd84e3d70f9a2b60a6d9420ff55081f1d4ddf0f39d10",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-tinystories-python-1.json": "9bd10546295ae4dfe31d6aa1b705a58e1b00b42a9880fda214c3e76d29f4624f",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-tinystories-python-2.json": "8f021a43cf1139914fc2209f665c76cbfdc186590f0fcf63c9f15122fb79d78f",
+    "reports/phase2-performance-linux-bpe-tuples-v1/previous/tokenizer-tinystories-python-3.json": "56b4e7dc7b43ebc9d9a25c470495386acfdc370ac1e53a695f36b7e4a03507b6",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/codec-rust-1.json": "fdf5634d5de2b71ea0da341f0977b95c73ecd00be3c5c4d9755c725182d0f701",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/codec-rust-2.json": "555af3a5f250701018d2adabf9811927b429a9f97629eeb38215b5ee2a25993f",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/codec-rust-3.json": "04fdf52f13ae273475e6f2eb47262380ec7b9746d14f9dfa911e86143daea71e",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/codec-python-1.json": "5b05c8522a372e4a78b4c129c31d28823f3c2294f5ecdd3cbb3a34a6b62ed525",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/codec-python-2.json": "c31ed215c534706518ddf1408ac55eb4aadaa2a710a28200ff4142ce42764e86",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/codec-python-3.json": "c906d7f854ea2d93eedc36c83b011551d09d22f6ed1b2f1a4824df7f761d809d",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-bert-rust-1.json": "31952df51816caaa0aefe8e4914f9ddbe33692700739fc68e19d03241bad092a",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-bert-rust-2.json": "d60b50cad9c6e70d824500b0a5e0cfaf7a6b40b01c6209ae5dd8f4aeb78714ab",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-bert-rust-3.json": "d34ff0da1c8e02f3fda66d20ece9e62a106792e111bceddf8674879fe0d01ec9",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-bert-python-1.json": "16e4bf4b6704c2e81c52c934a64b9173ea4356c0441ccce0aafeaf6422e2dd96",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-bert-python-2.json": "ca3df56e02a533c13ea870806d83fbe9f02735799f976d4fdba09dbde8335d37",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-bert-python-3.json": "2b88eab8df7487b80d78727b533e358cdecf0ecb73f387c3f7f0490e902c61e8",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-gpt2-rust-1.json": "bf4beb39abeaa35284a5fae71a0ace29c5a09b09e0d771298aa1ceea7e83136c",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-gpt2-rust-2.json": "63eded3a556aa931d054aa09b51aafe7a824e0c0d3efceb6d70632584de55e79",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-gpt2-rust-3.json": "e59c78a8983d4406f0f55ef439b1bb8a8f68e0da7460bcda58d760e7cef88d15",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-gpt2-python-1.json": "f22f504254d8c9f9ca6377682403e62dec9f7390741de6269f02ab844dc7c8a9",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-gpt2-python-2.json": "4dddc864b5be06eb7e042c13c2fc762bc5370b2a9926a9390580d67d02db1723",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-gpt2-python-3.json": "4b6a42a12ff2b174b26502dea96cff564fbe1248fd228eec39a29329e58ef257",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-qwen3-rust-1.json": "1eb268321ac6e4ff76d3ce8ed8e1277fea7421581e927488de27b786a2355b59",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-qwen3-rust-2.json": "539fbea82d309938ad28094385103d244201f6bc78fd6f1f8a7161e3f717394a",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-qwen3-rust-3.json": "e35e01f94fbe9a518abe5b74a212271d66da7186394a1625c6160baf667f34da",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-qwen3-python-1.json": "17b287c9716e0d5968387257e35a45034f0d913f36ea1132abae4ca84d836f64",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-qwen3-python-2.json": "288c6d06275840f1aadfc59f5d885b5548fa6468bd4e427ff691b900a4bd2a30",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-qwen3-python-3.json": "08a969a4c716553cf2c26a9c4bfe4442f9445085d43aa8c1b5d7a2460329d648",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-tinystories-rust-1.json": "76b565c0e7f6985bdc655bbeca317afa2d8c67ff98bbe6b5b2f49072b19499f8",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-tinystories-rust-2.json": "d2df4cb59ae23f721d67ca8f091743ac7d1b7f16a19e88bc5ce5d916a571b467",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-tinystories-rust-3.json": "c3a839861635d4a0767244bbdab80c7474122467ab48cd47b8902e8afe08bddf",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-tinystories-python-1.json": "9bd10546295ae4dfe31d6aa1b705a58e1b00b42a9880fda214c3e76d29f4624f",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-tinystories-python-2.json": "8f021a43cf1139914fc2209f665c76cbfdc186590f0fcf63c9f15122fb79d78f",
+    "reports/phase2-performance-linux-bpe-tuples-v1/candidate/tokenizer-tinystories-python-3.json": "56b4e7dc7b43ebc9d9a25c470495386acfdc370ac1e53a695f36b7e4a03507b6",
+    "reports/phase2-codec/cuda-shared-load-v1-qualification.json": "cdcfeece48b0d80948514e2855f38e53c5a2a36a6ef629ba5959befc2e7432b3",
+    "reports/phase2-linux-shared-lifecycle-v1.json": "6b6554fd0d10c3d1d428f1b3bdd5ae0cec4697731f184c3d70587c2154ee4b66"
+  },
+  "controls": {},
+  "cells": [
+    {
+      "cell": "codec/1/encode",
+      "comparator": "previous",
+      "median_ratio": 0.19128242053514594,
+      "p95_ratio": 0.168016595706329,
+      "process_median_envelope_ratio": 0.19759851576131163,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/encode",
+      "comparator": "python",
+      "median_ratio": 0.5749305060825723,
+      "p95_ratio": 0.5835827830223828,
+      "process_median_envelope_ratio": 0.58116920889892,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/decode",
+      "comparator": "previous",
+      "median_ratio": 0.1459235162064014,
+      "p95_ratio": 0.14862933489641933,
+      "process_median_envelope_ratio": 0.15128525885809935,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/decode",
+      "comparator": "python",
+      "median_ratio": 0.808068530127536,
+      "p95_ratio": 0.7660951428994549,
+      "process_median_envelope_ratio": 0.8354694289072883,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 0.1556851638696328,
+      "p95_ratio": 0.1693303408099088,
+      "process_median_envelope_ratio": 0.17612878427882292,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.6373451926872743,
+      "p95_ratio": 0.6894239525321622,
+      "process_median_envelope_ratio": 0.7020437552194005,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.5700674966928393,
+      "p95_ratio": 0.6164494830893904,
+      "process_median_envelope_ratio": 0.5731063379577511,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.6783516178566239,
+      "p95_ratio": 0.6719954879414166,
+      "process_median_envelope_ratio": 0.6990688856740762,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/encode",
+      "comparator": "previous",
+      "median_ratio": 0.1644598330590501,
+      "p95_ratio": 0.16404624286718167,
+      "process_median_envelope_ratio": 0.16589137764077325,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/encode",
+      "comparator": "python",
+      "median_ratio": 0.6772831773352884,
+      "p95_ratio": 0.6757725834815701,
+      "process_median_envelope_ratio": 0.6841911296520313,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/decode",
+      "comparator": "previous",
+      "median_ratio": 0.1328472002207528,
+      "p95_ratio": 0.13431308946949405,
+      "process_median_envelope_ratio": 0.13406806603637014,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/decode",
+      "comparator": "python",
+      "median_ratio": 0.91941133778815,
+      "p95_ratio": 0.9245816392035342,
+      "process_median_envelope_ratio": 0.9241694917451639,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 0.1497893313471315,
+      "p95_ratio": 0.14954440396940558,
+      "process_median_envelope_ratio": 0.1507222409446586,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.776192120098489,
+      "p95_ratio": 0.7619790725880277,
+      "process_median_envelope_ratio": 0.7803300691013006,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.5787873162037724,
+      "p95_ratio": 0.6284470282276134,
+      "process_median_envelope_ratio": 0.5819521430123211,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.809438671128573,
+      "p95_ratio": 0.814598722365556,
+      "process_median_envelope_ratio": 0.8289558092814728,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/encode",
+      "comparator": "previous",
+      "median_ratio": 0.19236409720259298,
+      "p95_ratio": 0.19271463516377335,
+      "process_median_envelope_ratio": 0.19305318000175906,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/encode",
+      "comparator": "python",
+      "median_ratio": 0.7650424245361035,
+      "p95_ratio": 0.7615140232856575,
+      "process_median_envelope_ratio": 0.7685970989301584,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/decode",
+      "comparator": "previous",
+      "median_ratio": 0.16051435879274062,
+      "p95_ratio": 0.16087983140198545,
+      "process_median_envelope_ratio": 0.16139552196200407,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/decode",
+      "comparator": "python",
+      "median_ratio": 0.9925827661048068,
+      "p95_ratio": 0.9910846605946971,
+      "process_median_envelope_ratio": 1.005592702264267,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 0.17769293643377485,
+      "p95_ratio": 0.177927881865885,
+      "process_median_envelope_ratio": 0.17890748242144433,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.8625243912856202,
+      "p95_ratio": 0.8585168661709474,
+      "process_median_envelope_ratio": 0.8700688378052022,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.37624955365126633,
+      "p95_ratio": 0.4008008460876146,
+      "process_median_envelope_ratio": 0.5927185172198993,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.9813178463367622,
+      "p95_ratio": 0.9732234839079886,
+      "process_median_envelope_ratio": 1.0085749751989757,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/encode",
+      "comparator": "previous",
+      "median_ratio": 1.0383408500062545,
+      "p95_ratio": 1.0275843434901686,
+      "process_median_envelope_ratio": 1.0762008766361961,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "bert/encode",
+      "comparator": "python",
+      "median_ratio": 0.4902284163356564,
+      "p95_ratio": 0.4674512987572614,
+      "process_median_envelope_ratio": 0.5112855643936328,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode",
+      "comparator": "previous",
+      "median_ratio": 1.0183038385263452,
+      "p95_ratio": 1.0084227152816256,
+      "process_median_envelope_ratio": 1.0597856115474347,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "bert/decode",
+      "comparator": "python",
+      "median_ratio": 0.5595815644897908,
+      "p95_ratio": 0.5710756596347881,
+      "process_median_envelope_ratio": 0.5907275533532697,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 1.0160386680112865,
+      "p95_ratio": 0.9963830733667316,
+      "process_median_envelope_ratio": 1.044976550023379,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.534122832429401,
+      "p95_ratio": 0.5429493273375309,
+      "process_median_envelope_ratio": 0.5522464804652142,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/encode",
+      "comparator": "previous",
+      "median_ratio": 0.9661891550698557,
+      "p95_ratio": 0.8951792584670637,
+      "process_median_envelope_ratio": 1.022549627049087,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/encode",
+      "comparator": "python",
+      "median_ratio": 0.42770902895966617,
+      "p95_ratio": 0.4143874476349102,
+      "process_median_envelope_ratio": 0.43337775230393266,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9896561867506113,
+      "p95_ratio": 0.9739510504148908,
+      "process_median_envelope_ratio": 1.0129790246924506,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode",
+      "comparator": "python",
+      "median_ratio": 0.23165518124144124,
+      "p95_ratio": 0.23147261803590824,
+      "process_median_envelope_ratio": 0.23748403671867246,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.9823825262250323,
+      "p95_ratio": 0.9949703767069035,
+      "process_median_envelope_ratio": 1.0128451209494913,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.24341423324656428,
+      "p95_ratio": 0.24759484947941157,
+      "process_median_envelope_ratio": 0.24746546452096693,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/encode",
+      "comparator": "previous",
+      "median_ratio": 0.8654990964640518,
+      "p95_ratio": 0.8095280859235622,
+      "process_median_envelope_ratio": 0.8895182912741679,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/encode",
+      "comparator": "python",
+      "median_ratio": 0.45985756447275755,
+      "p95_ratio": 0.45724457825867754,
+      "process_median_envelope_ratio": 0.4678830648644067,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode",
+      "comparator": "previous",
+      "median_ratio": 0.927224251999605,
+      "p95_ratio": 0.8628874394718697,
+      "process_median_envelope_ratio": 1.054979870297285,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "qwen3/decode",
+      "comparator": "python",
+      "median_ratio": 0.2221342871727533,
+      "p95_ratio": 0.22574130946315674,
+      "process_median_envelope_ratio": 0.23341615480983807,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.9685033609612091,
+      "p95_ratio": 0.937953973533591,
+      "process_median_envelope_ratio": 1.0,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.23733669863066392,
+      "p95_ratio": 0.2410077250150647,
+      "process_median_envelope_ratio": 0.24581551034404053,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/encode",
+      "comparator": "previous",
+      "median_ratio": 0.9927696268957102,
+      "p95_ratio": 1.0020610626387456,
+      "process_median_envelope_ratio": 1.002566556742434,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/encode",
+      "comparator": "python",
+      "median_ratio": 0.0889136597168689,
+      "p95_ratio": 0.09012260876210967,
+      "process_median_envelope_ratio": 0.09009631164456149,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode",
+      "comparator": "previous",
+      "median_ratio": 1.0899420712083745,
+      "p95_ratio": 1.032927878117705,
+      "process_median_envelope_ratio": 1.1156725346094685,
+      "original_point_pass": false,
+      "passed": false
+    },
+    {
+      "cell": "tinystories/decode",
+      "comparator": "python",
+      "median_ratio": 0.05685949147039172,
+      "p95_ratio": 0.0582083295185987,
+      "process_median_envelope_ratio": 0.057932917398911335,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 1.028357501016398,
+      "p95_ratio": 1.061521322027604,
+      "process_median_envelope_ratio": 1.084864940128098,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "tinystories/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.030294319841823344,
+      "p95_ratio": 0.03362354428851927,
+      "process_median_envelope_ratio": 0.031175757803406586,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/checked_load",
+      "comparator": "previous",
+      "median_ratio": 1.050004983175448,
+      "p95_ratio": 0.9868009230211349,
+      "process_median_envelope_ratio": 1.0644542541029272,
+      "original_point_pass": false,
+      "passed": false
+    },
+    {
+      "cell": "codec/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.6633941055959932,
+      "p95_ratio": 0.6501897033737695,
+      "process_median_envelope_ratio": 0.7380333283134268,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9929934848158518,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.3658476104039735,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.995777180048221,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.35435404159506434,
+      "passed": true
+    },
+    {
+      "cell": "bert/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.6414131810873545,
+      "p95_ratio": 0.6428510311129323,
+      "process_median_envelope_ratio": 0.685009666129872,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.32695183779857667,
+      "p95_ratio": 0.33714158830695795,
+      "process_median_envelope_ratio": 0.3695183892092665,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9355394691485694,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.2462236334769789,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.8924641893294581,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.1954801746089487,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.4492742819449346,
+      "p95_ratio": 0.4314248751937567,
+      "process_median_envelope_ratio": 0.5444290420261905,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.3878257272071307,
+      "p95_ratio": 0.36626028472668165,
+      "process_median_envelope_ratio": 0.42952595391290266,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.5014707848642866,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.26398958260012667,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.5014707848642866,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.2653624367637174,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.44724344753038225,
+      "p95_ratio": 0.477567637429326,
+      "process_median_envelope_ratio": 0.49608353055459303,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.5200773781933143,
+      "p95_ratio": 0.5620778193861433,
+      "process_median_envelope_ratio": 0.6413094359488702,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.46398786959818045,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.3749808526933878,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.46398786959818045,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.3749808526933878,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.9947697759831667,
+      "p95_ratio": 1.0228555829568646,
+      "process_median_envelope_ratio": 1.0086949582481355,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.132049651969877,
+      "p95_ratio": 0.13822485770654525,
+      "process_median_envelope_ratio": 0.13297032236317172,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9523052464228935,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.16582691988262002,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9523052464228935,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.16582691988262002,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Observed per-process median envelope used for three-process cells; control intervals resample whole paired processes.",
+    "Memory uses maximum observed process RSS/HWM, not allocator counters as interchangeable device peaks.",
+    "Lifecycle is separately measured, not an invented disk-cold or steady-state timing."
+  ],
+  "audit_source_sha256": "9a0c0fff381906cd3b3b1c7db4ffe66779aad9eeabc98e851415758f4c57b53c"
+}

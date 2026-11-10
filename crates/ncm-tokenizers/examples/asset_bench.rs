@@ -123,6 +123,7 @@ fn main() -> Result<()> {
         "tests/support/host_memory.rs",
         "crates/ncm-tokenizers/src/bpe.rs",
         "crates/ncm-tokenizers/src/assets.rs",
+        "crates/ncm-tokenizers/src/hf_bpe.rs",
         "Cargo.lock",
     ];
     let sources: BTreeMap<_, _> = paths

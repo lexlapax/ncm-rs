@@ -1,0 +1,19 @@
+{
+  "raw/apple-buffer-diagnostics.tar.gz": "a38f94d8630ed22b6c03d4d4a774db68af31db4e6299ff2c82602ac389dd560c",
+  "raw/cuda-check.log": "ce27770f9f94a25e8849e547d972c4e6ac77f2ce8c494f9054e35f7f44e7b02e",
+  "raw/linux-bpe-tuples-v1.tar.gz": "a0806ff4aafca795459e7f4d209e6e035b82e6945acab8d2a3d1e31e07393b99",
+  "raw/linux-compact-bert-control-v2.tar.gz": "d5dffa2c2fde64217276627fbf2769ba310556eec5b634cde73571b493d54d4c",
+  "raw/linux-compact-codec-control-v1.tar.gz": "fbb808e1243a415eb28870773fd1f920dffc1e9b3cf03b6fd840ca3a3bce4f60",
+  "raw/linux-compact-tiny-control-v1.tar.gz": "1a32a580da4450553ba664640f4b18ec3e23a6ffcc318dfdb495d3c327d4eb89",
+  "raw/linux-compact-tiny-control-v2.tar.gz": "483070896c0bd1110d5aa182828997f34709bd3a86f469282ce8f6b34019a8b4",
+  "raw/linux-compact-tokenizers-v1.tar.gz": "6d1e93dbded56ef17c694ae24919a0eea175414a44460d613938613538eb428f",
+  "raw/linux-compact-tokenizers-v2.tar.gz": "0390653c86e0a33cd8b18916820139dce5e1c7b34518fa6bb11e5f0dbbd78080",
+  "raw/phase2-compact-tokenizers-v2-parity.json": "afea525a531986db3632f7c138e0f2a169fad7c843c7845ae108f69336b93c29",
+  "raw/phase2-linux-bpe-tuples-acceptance-v1.json": "dc2d301318b9c370f1c6b4c424ed8eb91ec6b80e1cd53fc2651a5e92bcb1bd32",
+  "raw/phase2-linux-compact-tokenizers-acceptance-v1.json": "287f9bc0b1d9c048f988283a0d6cae522fdaeb5c373d2e63daf163770e538199",
+  "raw/phase2-linux-compact-tokenizers-acceptance-v2.json": "64377f4cd2d79201e9f1d8e9aab3ed977c86d0ea5a2580cc631bd73ea08463bf",
+  "raw/phase2-linux-compact-tokenizers-v2-acceptance-v1.json": "479db8fa7c52424e60cda0d73345843305bd720adffddbc745e4fe9695115f76",
+  "raw/phase2-linux-compact-tokenizers-v2-acceptance-v2.json": "2ba9f679b10b41f50f196d99da7789e822be23a692eac280b9cdc5244388e36a",
+  "raw/phase2-linux-compact-tokenizers-v2-config.json": "67a02afd6aa499ccbefc1d809433ece3e26776bea2627bb09be54f13cc89e6c3",
+  "raw/token-buffer-mlx-check.log": "0eeff7d6ad78dca4dbc74603afaf441cc4b54664e453c5df14c52703e21f806e"
+}
