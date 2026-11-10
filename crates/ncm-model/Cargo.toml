@@ -1,12 +1,19 @@
 [package]
 name = "ncm-model"
-description = "Planned shared NCM codec and generation logic"
+description = "Shared NCM codec configuration and checked model loading"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
+
+[dependencies]
+ncm-core = { path = "../ncm-core" }
+ncm-io = { path = "../ncm-io" }
+safetensors = "=0.8.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [lints]
 workspace = true

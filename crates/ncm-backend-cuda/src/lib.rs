@@ -8,3 +8,7 @@ compile_error!("The ncm CUDA runtime currently supports Linux only");
 
 #[cfg(feature = "cpu")]
 pub mod ops;
+#[cfg(feature = "cpu")]
+mod runtime;
+#[cfg(feature = "cpu")]
+pub use runtime::CandleBackend;
