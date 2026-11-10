@@ -1,12 +1,34 @@
 [package]
 name = "ncm-backend-mlx"
-description = "Planned MLX backend for NCM on Apple Silicon"
+description = "Candidate MLX operators for NCM on Apple Silicon"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
+
+[features]
+default = []
+mlx = ["dep:mlx-rs", "dep:ncm-io", "dep:safetensors"]
+
+[target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
+mlx-rs = { version = "=0.34.0", optional = true, features = ["safetensors"] }
+ncm-io = { path = "../ncm-io", optional = true }
+safetensors = { version = "=0.8.0", optional = true }
+
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[[example]]
+name = "mlx_probe"
+required-features = ["mlx"]
+
+[[example]]
+name = "mlx_load_probe"
+required-features = ["mlx"]
 
 [lints]
 workspace = true

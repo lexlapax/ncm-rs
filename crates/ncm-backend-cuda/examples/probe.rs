@@ -65,12 +65,16 @@ fn main() -> Result<()> {
             .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
             .unwrap_or_else(|| "unavailable".into())
     };
-    let sources: [(&str, &[u8]); 6] = [
+    let sources: [(&str, &[u8]); 7] = [
         ("lib.rs", include_bytes!("../src/lib.rs")),
         ("Cargo.toml", include_bytes!("../Cargo.toml")),
         ("ops.rs", include_bytes!("../src/ops.rs")),
         ("probe.rs", include_bytes!("probe.rs")),
         ("support.rs", include_bytes!("../tests/support/mod.rs")),
+        (
+            "contract.rs",
+            include_bytes!("../../../tests/support/operators.rs"),
+        ),
         ("Cargo.lock", include_bytes!("../../../Cargo.lock")),
     ];
     let hashes: std::collections::BTreeMap<_, _> = sources

@@ -134,6 +134,18 @@ Last updated: 2026-11-10 UTC. Read this first; load linked documents only as nee
   clean at `bbdf422`, rmlx/Ollama processes idle in sampled process listing. No MLX
   build/run yet. Linux load scope is the inspection spike, not a general importer.
 
+## Apple candidate implementation (hardware qualification pending)
+
+- Added target-gated `mlx-rs = 0.34.0` (`mlx-sys = 0.7.0`, MLX 0.32.2), candidate
+  composed operators, real-Metal tests, synchronous evaluation microprobe and
+  checked copied unified-memory artifact/readback probe. No native Apple results
+  yet; build will use a project-local metallib directory, not alter global tooling.
+- Extracted the unchanged fixture schema/tolerances/comparator into
+  `tests/support/operators.rs`, shared by CUDA and MLX. Full Linux `--cuda` check
+  passed after extraction; unsupported non-Apple `mlx` requests fail explicitly.
+- First MLX run announced after Linux gate closure. Next step is safe pull/build
+  on the inspected clean Mac, then inspect failures rather than relax goldens.
+
 ## Next actions (do not skip gates)
 
 1. Announce/start the Apple Phase 1 pass: pinned mlx-rs, existing operator goldens,
