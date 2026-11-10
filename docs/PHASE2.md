@@ -1,6 +1,9 @@
 # Phase 2 contract and acceptance tracker
 
-Status: complete. Linux/CUDA and Apple/MLX Phase 2 gates are accepted and published.
+Status: **reopened at user request for performance research and remediation**.
+The original Linux/CUDA and Apple/MLX correctness/measurement baselines are
+published; their negative performance findings now block advancement to Phase 3.
+See [the extension plan](PHASE2-PERFORMANCE.md) for ordered work and new gates.
 Phase 1 evidence remains unchanged; this document declares Phase 2 criteria before
 Rust codec implementation. The confirmed scope includes Sudoku codec execution
 and TinyStories/GPT-2/Qwen/BERT tokenizer asset conversion/parity, not their full
@@ -124,7 +127,10 @@ host/native allocator memory observations. Profile the known Apple load/RSS issu
 before any efficiency claim. Preserve negative findings; no speculative custom
 kernels, compiled mixed-precision policy or generation-cache work in this phase.
 
-## Acceptance tracker
+## Original baseline acceptance (historical, still valid)
+
+The completed items below establish correctness and measurement, not satisfaction
+of the newly requested performance-remediation gate.
 
 - [x] Reference contract, fixtures and supported tensor/config inventory: see the
   [oracle audit](results/2026-11-10-phase2-oracle/README.md). This is not Rust parity.
@@ -149,6 +155,23 @@ kernels, compiled mixed-precision policy or generation-cache work in this phase.
 - [x] Both local checks, reports, context updates and reviewed commit/push closure:
   acceptance evidence is published in `7a74fb3`. Large licensed trace/tokenizer
   archives remain separate release assets pending explicit publication authorization.
+
+## Extended acceptance (required before Phase 3)
+
+- [ ] Audit fair scopes, synchronization and clean-checkout report reproduction;
+  refresh paired baselines and declare noise-aware thresholds before optimization.
+- [ ] Complete source/documentation/upstream research and causal profiling on Linux.
+- [ ] Fix Linux codec/loading/tokenizer deficits; retain unchanged correctness and
+  publish candidate versus previous Rust versus Python performance/memory evidence.
+- [ ] After Linux acceptance, research and fix Apple load time/host-memory
+  amplification and tokenizer deficits; preserve execution performance and parity.
+- [ ] Accept both extended gates and publish final evidence and updated status.
+
+The [extension plan](PHASE2-PERFORMANCE.md) defines proposed non-inferiority bands,
+source-cited research deliverables and blocking/exception rules. Historical
+slowness/high RSS is no longer accepted solely because it was disclosed. Narrow,
+profile-justified FP32 backend kernels may be investigated; speculative kernels,
+precision changes, weaker validation and generator caching remain out of scope.
 
 Missing hardware/artifact evidence remains pending. If progress requires changed
 compatibility requirements, unavailable resources or unsafe conversion, stop and

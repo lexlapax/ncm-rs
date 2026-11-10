@@ -5,14 +5,17 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 ## Current state and user decisions
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
-- **Confirmed goal: complete Phase 2. Linux/CUDA and Apple/MLX gates are complete**,
-  including codec/tokenizer parity and matched three-process performance/memory
-  evidence. Linux native codec is slower than eager Torch; Apple native host RSS
-  is 3.40–4.42 GiB versus the adapted Python MLX baseline's 0.287–0.288 GiB.
-  Neither platform result is an efficiency, generation or full text-model claim.
-  SSH authentication was restored by the user; the first Phase 2 MLX run followed
-  Linux acceptance. Acceptance evidence commit `7a74fb3` is pushed; durable
-  large-archive release publication remains separately pending authorization.
+- **Phase 2 reopened at user request: research, investigate and fix native
+  performance/memory deficits before Phase 3.** User authorized committing/pushing
+  the extension and implementing it, including research and quick PoCs; ask about
+  blockers or consequential choices. The original correctness and
+  measurement baseline (`7a74fb3`, closure `5dc9626`) remains historical evidence:
+  CUDA reconstruction is roughly 4–5× slower than eager Torch; Apple checked load
+  is about 3.25× slower and host HWM 3.40–4.42 GiB versus 0.287–0.288 GiB Python.
+  See `docs/PHASE2-PERFORMANCE.md` for research, measurement audit, ordered fixes,
+  proposed acceptance bands and blocking rules. Explanation alone is not closure.
+  No persistent goal was created or old completed goal rewritten by this request.
+  Large-archive publication remains pending; no efficiency/inference-release claim.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -32,10 +35,10 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   or co-author trailers; preserve upstream licenses and technical provenance.
 - Persistent goal state is untracked `.pi/`; leave it untouched and unstaged.
 
-## Apple measurement acceptance
+## Historical Apple measurement acceptance
 
-- `docs/PLAN.md` now records Phase 2 as complete, consistent with its contract
-  and both platform gate reports.
+- `docs/PLAN.md` and `docs/PHASE2.md` now distinguish the accepted original
+  baseline from the reopened performance-remediation extension.
 - Independent Python MLX baseline passes all 642 unchanged trained traces and
   2,500 decisions against the CUDA oracle. Three-process codec/tokenizer evidence,
   raw telemetry and baseline qualification are published in
@@ -54,7 +57,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 
 | Need | Load |
 | --- | --- |
-| Phase 2 contract / acceptance | [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md) |
+| Phase 2 contract / acceptance / remediation | [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md), [research and performance extension](docs/PHASE2-PERFORMANCE.md) |
 | Shared runtime and model | [core](crates/ncm-core/src/lib.rs), [config](crates/ncm-core/src/config.rs), [model](crates/ncm-model/src/lib.rs), [blocks](crates/ncm-model/src/blocks.rs), [codec](crates/ncm-model/src/codec.rs) |
 | CUDA adapter / known native fixes | [adapter](crates/ncm-backend-cuda/src/codec.rs), [operators](crates/ncm-backend-cuda/src/ops.rs), [component report](docs/results/2026-11-10-phase2-primitives/README.md) |
 | Phase 2 oracle and complete CUDA results | [oracle audit](docs/results/2026-11-10-phase2-oracle/README.md), [codec report](docs/results/2026-11-10-phase2-codec/README.md) |
@@ -198,6 +201,14 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   gate `fd1b482` (pushed). Preserve old reports/source hashes;
   do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
   task-quality data or an inference release.
-- **Next: Phase 2 is closed.** Publish large licensed oracle/native/tokenizer
-  archives as durable release assets only if authorized; their absence remains
-  visible. Do not begin Phase 3 or claim an inference release without a new goal.
+- **Next: execute the approved Phase 2 extension.** Audit measurement
+  fairness/reproducibility, refresh Linux baselines, lock thresholds, research and
+  profile causes, then implement and accept Linux fixes before Apple work.
+  Initial source review found per-position CUDA resampling compositions and an
+  Apple summary-tool dependency on ignored baseline files; neither is fixed here.
+  Initial plan commit is documentation-only: no runtime edits or GPU experiments.
+  Local Markdown links in all five changed/new documents and `git diff --check`
+  pass. Hardware preflight finds 28% GPU activity with a resident llama-server;
+  Nsight tools are not on PATH. Establish a quiet window before acceptance timings;
+  do not stop unrelated processes or install global tools without approval.
+  Phase 3 stays blocked; historical reports/fixtures and `.pi/` remain untouched.

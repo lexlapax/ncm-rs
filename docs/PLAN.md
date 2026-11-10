@@ -1,8 +1,10 @@
 # Phased port and validation plan
 
-The user approved implementation on 2026-11-09. Phases 0, 1 and 2 are complete.
-Phase 2 completed its Linux/CUDA gate before its Apple/MLX gate; both have passing
-quality, performance and memory evidence, with negative findings retained. **Within
+The user approved implementation on 2026-11-09. Phases 0 and 1 are complete.
+**Phase 2 is reopened for performance research and remediation at the user's
+request. Phase 3 is blocked.** Its original correctness/measurement baselines were
+published in Linux-then-Apple order, but merely documenting slower native execution
+or excessive memory no longer satisfies the extended acceptance gate. **Within
 every phase, implement and validate Linux/CUDA first, then macOS/MLX.** Complete
 both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
@@ -54,17 +56,19 @@ match; tiny operator fixtures execute on CPU, CUDA and MLX. Publish capability a
 baseline report, including unsupported operations. MLX needs Apple hardware access;
 a Linux-only result does not pass this gate. No broad framework written in advance.
 
-## Phase 2 — shared primitives and codec (complete)
+## Phase 2 — shared primitives, codec and performance remediation (reopened)
 
 The [Phase 2 contract](PHASE2.md) fixes the initial model scope, tensor inventory,
 new numerical budgets and fixture semantics. Tiny CPU and trained CUDA reference
 captures, passing Rust CUDA/MLX codec trace comparisons and pinned tokenizer parity
 are published. The [Linux quality/performance/memory gate](results/2026-11-10-phase2-linux/README.md)
 and [Apple quality/performance/memory gate](results/2026-11-10-phase2-mlx/README.md)
-are complete. Linux native codec latency is slower than eager Torch; Apple native
-host RSS is high, and the Apple baseline is an independently qualified adapted
-Python MLX port rather than unmodified upstream execution. These are retained
-negative findings, not waived gates or efficiency claims.
+established the original measured baseline. Linux native codec latency is roughly
+4–5× slower than eager Torch; Apple checked loading is about 3.25× slower with
+roughly 12–15× higher process host HWM than its independently qualified adapted
+Python MLX baseline. These deficits now require investigation **and remediation**,
+not merely disclosure. Historical reports remain valid but do not close this
+extension; see the [detailed research and remediation plan](PHASE2-PERFORMANCE.md).
 
 Implement validated configs, backend operations and deterministic fixture harness.
 Port norms, split-half RoPE, bidirectional/prefix attention, GELU blocks,
@@ -72,16 +76,44 @@ convolution/cascade samplers, exact area/linear interpolation, quantizer codeboo
 and residual accumulation. Then codec encoder, pre-quant normalization, decoder,
 encode/decode and explicit per-level snapshots.
 
-Start FP32, with simple composed ops; add no speculative custom kernels.
-Implement Sudoku tokenization and HF/TinyStories asset conversion in parallel.
-Use a tiny CPU oracle for continuous integration, not a high-performance CPU product.
+The original FP32 correctness-first implementation and Sudoku/HF/TinyStories
+asset conversion are complete. Preserve these semantics and the tiny CPU oracle.
+The extension permits narrowly justified backend optimization, including audited
+kernels only when source research and profiling demonstrate a need; speculative
+kernels, reduced precision and generator/prefix caching remain out of scope.
+
+### Required extension, in order
+
+1. Audit benchmark fairness, synchronization, retained outputs, startup/load/drop
+   scope and clean-checkout reproducibility. Refresh old Rust and Python baselines,
+   measure process-level noise and lock acceptance thresholds before changing code.
+2. Research pinned NCM/PyTorch/Candle implementations, native CUDA APIs and relevant
+   upstream findings. Profile CPU submission, kernel launches, layout copies,
+   reductions, allocations and I/O. Produce source-cited, testable causal findings.
+3. Fix Linux/CUDA deficits first: per-position resampling compositions are an
+   initial hypothesis, not the only target. Also investigate decoder scaling,
+   selection, shared checked loading and tokenizer loading. Qualify every change
+   against unchanged outputs and publish old-Rust/new-Rust/Python comparisons.
+4. Only after extended Linux acceptance, research/profile Apple MLX ownership,
+   host allocations and allocator retention. Fix slow/high-RSS codec loading and
+   tokenizer load deficits without losing the existing execution advantage.
+   Any further shared fix returns through Linux validation before Apple testing.
+5. Publish both extended gates and update acceptance before Phase 3. Require
+   comparable latency and memory versus Python within predeclared uncertainty,
+   not just improvement over old Rust; preserve existing native advantages.
+   Proposed maximum bands and blocking/exception rules are in the detailed plan.
 
 **Gate:** operator, block, encode/decode and reconstruction fixtures satisfy
 predeclared tolerances on both GPUs; exact stable argmin/argmax fixtures and layout
 checks pass. Report reconstruction agreement versus Python, not an unrealistic
-claim that this lossy codec recovers all arbitrary text perfectly.
+claim that this lossy codec recovers all arbitrary text perfectly. Additionally,
+all extended performance/memory criteria in [PHASE2-PERFORMANCE.md](PHASE2-PERFORMANCE.md)
+must pass on both platforms. Explanations without fixes do not suffice; remaining
+material deficits block closure unless the user explicitly accepts an exception.
 
 ## Phase 3 — end-to-end Sudoku vertical slice
+
+**Not started; blocked on the extended Phase 2 performance/memory gates.**
 
 Implement shared generator, raw prefix path, learned level-zero queries, level
 embeddings/RoPE, untied heads, eager level loop, greedy selection and final codec
