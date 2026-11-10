@@ -278,8 +278,17 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   (`reports/phase2-linux-shared-load-acceptance-v2.json`). Qwen load 194.80/107.75/
   172.34 ms old/new/Python. Linux codec/tokenizer benchmark binaries remain byte-
   identical after the Apple-only feature addition; Linux SHA features unchanged.
-- **Next: pull this shared candidate on Mac and test it, not close Phase 2 yet.**
-  Run allocation and repeated-load/request probes, all Metal traces/checks and
-  fresh old/new/Python measurements plus lifecycle evidence. Return any further
-  shared changes through Linux validation. Both runtime gates are still required;
-  Phase 3, `.pi/` and historical goldens remain untouched.
+- Shared change pushed as `74c2ed3`, pulled on Mac; full `tools/check.sh --mlx`
+  passes. First codec diagnostic: 180.06 ms / 293.63 MB HWM versus old 944.17 ms /
+  4.81 GB and Python 270.58 ms / 309.10 MB. Qwen is faster (93.79 ms) but still
+  634.52 MB HWM; allocation stack identifies its separate read-buffer reallocations.
+- Follow-up reserves checked tokenizer file length + EOF byte, with boundary tests.
+  Returned through Linux first: full CUDA checks, real tokenizer goldens/rejections,
+  fresh whole matrix and 30-triplet controls pass all 78 comparisons. Negative
+  audits retained. Explicit optional `load_controls` applies unchanged paired-process
+  uncertainty to checked loads too; malformed-trial regression passes. Evidence
+  and exact configs are in the shared-loading report's `raw/` directory.
+- **Next: pull this tokenizer-buffer fix on Mac and complete Apple acceptance.**
+  Trained Metal traces, real tokenizers, repeated loads/requests, full three-way
+  performance/memory and separate lifecycle evidence remain. Neither diagnostics
+  nor Linux acceptance close Phase 2. Phase 3 and historical worktrees stay untouched.

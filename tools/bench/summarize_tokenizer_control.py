@@ -25,7 +25,7 @@ def interval(candidate, comparator, rng, repeats=10000):
             for name, values in zip(("median_ratio", "p95_ratio"), samples)}
 
 
-def summarize(root, profile="tinystories"):
+def summarize(root, profile="tinystories", include_load=False):
     environment = json.loads((root/"environment.json").read_bytes())
     require(profile in ("bert", "gpt2", "qwen3", "tinystories") and profile in environment["workloads"] and environment["cpu_affinity"] is not None,
             "not an affinity-controlled tokenizer run")
@@ -50,9 +50,13 @@ def summarize(root, profile="tinystories"):
             require([row["scope"] for row in run["measurements"]] == ["encode", "decode", "decode_skip_special"], "wrong scope")
     rng = {name: random.Random(20261110) for name in ("previous", "python")}
     rows = []
-    for index, scope in enumerate(("encode", "decode", "decode_skip_special")):
-        require(len({run["measurements"][index]["output_sha256"] for group in groups.values() for run in group}) == 1, "output mismatch")
-        trials = {name: [r["measurements"][index]["trials_ms"] for r in group] for name, group in groups.items()}
+    scopes = ("encode", "decode", "decode_skip_special") + (("checked_load",) if include_load else ())
+    for index, scope in enumerate(scopes):
+        if scope == "checked_load":
+            trials = {name: [r["load_trials_ms"] for r in group] for name, group in groups.items()}
+        else:
+            require(len({run["measurements"][index]["output_sha256"] for group in groups.values() for run in group}) == 1, "output mismatch")
+            trials = {name: [r["measurements"][index]["trials_ms"] for r in group] for name, group in groups.items()}
         require(all(len(r) == 30 for group in trials.values() for r in group), "wrong trial count")
         summaries = {name: stats([v for r in group for v in r]) | {"process_medians_ms": [statistics.median(r) for r in group]}
                      for name, group in trials.items()}

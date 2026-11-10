@@ -33,8 +33,13 @@ MEMORY2 [ 1 ] memoryOperationType ALLOCATION, memoryKind DEVICE, size 32, addres
             root = Path(tmp)
             with tarfile.open(archive) as bundle: bundle.extractall(root, filter="data")
             self.assertTrue(control_summary(root)["native_binaries_identical"])
+            self.assertEqual(control_summary(root, include_load=True)["measurements"][-1]["scope"], "checked_load")
             path = root/"candidate/tokenizer-tinystories-rust-1.json"
             original = path.read_bytes()
+            report = json.loads(original); report["load_trials_ms"] = [1.]
+            path.write_text(json.dumps(report))
+            with self.assertRaises(ValueError): control_summary(root, include_load=True)
+            path.write_bytes(original)
             for key, value in (("runtime", "wrong"), ("warmups", 0), ("manifest_sha256", "0"*64),
                                ("fixture_sha256", "0"*64), ("source_sha256", {})):
                 report = json.loads(original); report[key] = value

@@ -56,7 +56,13 @@ fn read(path: &Path, limit: usize) -> Result<Vec<u8>> {
     if !meta.is_file() || meta.file_type().is_symlink() || meta.len() > limit as u64 {
         return Err(invalid("invalid or oversized asset file"));
     }
+    // Preserve the byte bound while avoiding geometric read-buffer reallocations.
+    let capacity =
+        usize::try_from(meta.len() + 1).map_err(|_| invalid("asset capacity overflow"))?;
     let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(capacity)
+        .map_err(|_| invalid("asset allocation failed"))?;
     fs::File::open(path)?
         .take(limit as u64 + 1)
         .read_to_end(&mut bytes)?;
@@ -201,6 +207,21 @@ fn cleanup(mut text: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bounded_asset_reads_reserve_once() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("payload");
+        for length in [0, 1, 32768, 1024 * 1024 + 17] {
+            let bytes = vec![42u8; length];
+            fs::write(&path, &bytes).unwrap();
+            let loaded = read(&path, length).unwrap();
+            assert_eq!(loaded, bytes);
+            assert_eq!(loaded.capacity(), length + 1);
+            if length > 0 {
+                assert!(read(&path, length - 1).is_err());
+            }
+        }
+    }
     #[test]
     fn typed_loading_preserves_complete_runtime_configuration() {
         for (profile, model) in [

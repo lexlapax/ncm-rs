@@ -1,0 +1,15 @@
+{
+  "device": "cuda",
+  "previous": "reports/phase2-performance-linux-token-buffer-v1/previous",
+  "candidate": "reports/phase2-performance-linux-token-buffer-v1/candidate",
+  "qualification": "reports/phase2-codec/cuda-shared-load-v1-qualification.json",
+  "lifecycle": "reports/phase2-linux-shared-lifecycle-v1.json",
+  "controls": {
+    "bert": "reports/phase2-performance-linux-token-buffer-controls-v1",
+    "gpt2": "reports/phase2-performance-linux-token-buffer-controls-v1",
+    "tinystories": "reports/phase2-performance-linux-token-buffer-controls-v1"
+  },
+  "load_controls": [
+    "tinystories"
+  ]
+}

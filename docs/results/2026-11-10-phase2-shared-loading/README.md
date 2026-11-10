@@ -105,10 +105,38 @@ before/after this addition (`raw/linux-binaries.sha256` verified with
 only sha2-asm, with no unrelated updates. The matrix's pre-feature source hashes
 remain unchanged evidence; no hidden rerun/relabeling. Final full CUDA checks pass.
 
+## Apple first candidate and tokenizer-buffer follow-up
+
+After pulling `74c2ed3`, full `tools/check.sh --mlx` passes. The first unprofiled
+Apple codec candidate loads in **180.06 ms**, host HWM **293,634,048 bytes**, versus
+old **944.17 ms / 4,808,605,696 bytes** and Python **270.58 ms / 309,100,544 bytes**.
+Host-only artifact load/drop remains approximately 182 MB over 36 iterations.
+These are diagnostics, not a completed three-process Apple acceptance matrix.
+
+Qwen load improves to **93.79 ms**, but HWM remains **634,519,552 bytes**. Its
+allocation capture independently identifies the tokenizer loader's separate
+`assets::read → RawVec::finish_grow → realloc` path. Apply the same checked-length
+plus EOF reservation there; new boundary tests retain all byte/path/hash checks.
+The preceding candidate and its negative Qwen memory result remain archived in
+`raw/apple-shared-diagnostics.tar.gz`, with the Metal check log adjacent.
+
+This additional shared fix returned through Linux first: full CUDA checks and
+all real tokenizer goldens/rejections pass. A new complete three-way matrix and
+fixed 30-triplet BERT/GPT-2/TinyStories controls yield **78 passing comparisons**
+in `raw/phase2-linux-token-buffer-acceptance-v3.json`. Initial failed/uncertain
+v1/v2 audits remain beside it. The control summarizer now optionally includes
+checked-load trials with exactly the same whole-process bootstrap and unchanged
+bands; the audit opts into that evidence explicitly through `load_controls`.
+Default historical control output remains unchanged. Malformed load-trial counts
+are regression-tested. No identity substitution is used for changed binaries.
+`raw/phase2-linux-token-buffer-config.json` records every input; unpack the two
+`linux-token-buffer-*.tar.gz` archives to their configured report directories.
+Lifecycle and trained codec qualification remain from the preceding shared change;
+this follow-up changes only the separate tokenizer reader, not codec execution.
+
 ## Remaining work
 
-Pull this reviewed pushed change on Mac, run the new candidates and allocation
-probes, then separately qualify all Metal traces/operators/tokenizers and compare
-old/new/qualified-Python quality, latency, throughput and memory. Confirm repeated
-load/drop and request stability. If another shared change is needed, return through
-Linux validation again. Both extended gates are required; Phase 3 stays blocked.
+Pull the tokenizer-buffer follow-up on Mac, then qualify all trained Metal traces,
+real tokenizer goldens and repeated load/request stability. Collect the complete
+old/new/qualified-Python matrix and lifecycle evidence. Both extended gates are
+required; Phase 3 stays blocked.

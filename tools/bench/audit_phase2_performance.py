@@ -46,7 +46,9 @@ def audit(config):
     require(len(life['runs'])==9 and {(r['runtime'],r['repeat']) for r in life['runs']}=={(n,i) for n in ('previous','candidate','python') for i in (1,2,3)},'incomplete lifecycle')
     require(len({validate(r['phases']) for r in life['runs']})==1,'lifecycle output mismatch')
     inputs[str(life_path)]=hashlib.sha256(life_path.read_bytes()).hexdigest()
-    controls={p:control(Path(path),p) for p,path in config.get('controls',{}).items()}
+    load_controls=config.get('load_controls',[])
+    require(set(load_controls)<=set(config.get('controls',{})), 'load control missing reports')
+    controls={p:control(Path(path),p,include_load=p in load_controls) for p,path in config.get('controls',{}).items()}
     for profile,path in config.get('controls',{}).items():
         directory=Path(path)
         environment=json.loads((directory/'environment.json').read_bytes())
@@ -81,7 +83,8 @@ def audit(config):
             timing(f"{profile}/{y['scope']}",y['runtimes']['rust']['timing'],x['runtimes']['rust']['timing'],y['runtimes']['python']['timing'],follow['measurements'][i] if follow else None)
         groups.append((profile,a['loads'],b['loads']))
     for label,a,b in groups:
-        timing(label+'/checked_load',b['rust']['warm'],a['rust']['warm'],b['python']['warm'])
+        follow=controls[label]['measurements'][-1] if label in load_controls else None
+        timing(label+'/checked_load',b['rust']['warm'],a['rust']['warm'],b['python']['warm'],follow)
         for metric in ('VmHWM','VmRSS'):
             current=max(r[metric] for r in b['rust']['host_final'])
             for name,other in [('previous',a['rust']),('python',b['python'])]:
