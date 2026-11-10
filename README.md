@@ -62,28 +62,30 @@ contract remain provisional; the status-only CLI has no runtime features yet.
 correctness passes, but composed resampling is substantially slower than PyTorch.
 These tiny microprobes establish no NCM quality or generation speedup.
 
-## Scaffold checks
+## Local checks
 
-Rust 1.88+ (edition 2024); CI checks the declared minimum and current stable.
-
-```sh
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo test --workspace --locked
-cargo run -p ncm-cli --locked
-```
-
-These default commands validate the scaffold and reporting dependencies. Run the
-actual operator regression suite with:
+Rust **1.99.1+** (edition 2024), rustfmt, Clippy and Python 3. This is a
+conservative tested toolchain floor, not a claim that every older version fails.
+The earlier Rust 1.88 claim was invalid: Candle 0.11.1 uses x86 intrinsics that
+are unstable on that compiler. Build CI has been replaced with local validation
+at the user's request; only the metadata-only upstream watcher runs on GitHub.
 
 ```sh
-cargo test -p ncm-backend-cuda --features cpu --locked
-python3 -m unittest discover -s tools/bench -v
+./tools/check.sh
+# Optional: additionally validate on the local NVIDIA GPU (tested Linux setup).
+NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 \
+  ./tools/check.sh --cuda
 ```
 
-For CUDA builds and synchronized timing commands, see the report linked above.
-No model-level tests exist yet. `macstudio` is authorized for Apple validation,
-but coordinate its competing workloads with the user before starting MLX runs.
+The script works from any working directory, fails on the first error, does not
+install tools or download weights, and never launches SSH jobs. The default runs
+CPU fixtures and report-tool tests; `--cuda` additionally runs the real-device
+operator probe and writes a fresh report under `reports/`. It needs no Python
+Torch installation. A smoke report is not a full three-run benchmark comparison.
+
+For comparison methodology, see the report linked above. No model-level tests
+exist yet. `macstudio` is now available for the Apple pass; announce MLX work
+when Linux Phase 1 is ready and recheck availability in later sessions.
 
 ## Provenance and license
 

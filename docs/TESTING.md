@@ -113,21 +113,30 @@ so scoring can be rerun without regeneration. Define non-inferiority margins on 
 fixed validation set before running held-out comparisons; deterministic compatible
 profiles should match, stochastic profiles need uncertainty-aware comparisons.
 
-## CI and hardware policy
+## Local validation and hardware policy
 
-Current CI: minimum Rust/stable build+test including opt-in CPU operator fixtures,
-stable fmt/Clippy/docs, Python report-tool tests, and a scheduled upstream watch.
-CUDA probes are manual on real hardware; no automated GPU or model-quality job exists.
-Within each phase, Linux/CUDA completes its checks before macOS/MLX starts.
-Notify the user before MLX runs on `macstudio` because it has competing workloads.
+At the user's request, GitHub build CI is removed. Run `./tools/check.sh` before
+committing: fmt, default build check, CPU-feature Clippy/tests/docs, and Python
+report-tool tests/syntax checks. This needs Rust 1.99.1+, rustfmt, Clippy and Python
+3, but no Torch or GPU SDK. ShellCheck runs too when installed. The old Rust 1.88
+support claim failed on Candle's x86 intrinsics; 1.99.1 is the tested conservative
+floor. Supporting older toolchains requires explicit local qualification.
 
-Planned CI: lightweight default CPU checks every PR; target-specific SDK builds;
-small fixtures on dedicated Apple Silicon and CUDA runners; full checkpoint suites
-on approved candidate commits; full benchmark/quality matrix before releases or
-upstream pin changes. Use separate platform feature selections, not cross-platform
-`--all-features`. Pin reusable actions/toolchains as part of hardening.
+Opt-in `./tools/check.sh --cuda` additionally lints the CUDA feature and runs the
+real-device probe in release mode, refusing a missing CUDA feature/device or a
+non-Linux platform rather than falling back. Use the documented host compiler and
+compute capability environment variables. It writes one smoke report, not the
+three-process Python/Rust comparison required for performance changes.
 
-Never run untrusted fork PR code on persistent self-hosted GPU runners or publish
-credentials to them. Use approved workflow dispatch/protected environments or
-isolated ephemeral runners. Only reviewed results become baseline/public reports.
+Only the metadata-only scheduled upstream watcher remains on GitHub. Do not
+reintroduce build CI without user approval. Add future model suites/MLX checks to
+the local workflow as implemented. Full benchmark/quality reports are still
+required for releases and relevant changes, independent of where checks execute.
+Use separate platform feature selections, not cross-platform `--all-features`.
+
+Within every phase, Linux/CUDA completes its checks before macOS/MLX starts.
+The user has confirmed `macstudio` is available now; announce the first MLX run,
+and recheck availability if resuming later. Inspect its checkout before pulling.
+Never run untrusted contribution code on persistent local/remote GPU machines or
+expose credentials to it. Only reviewed results become baseline/public reports.
 See [REPORTING.md](REPORTING.md) for publication and regression policy.

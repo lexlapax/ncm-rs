@@ -21,11 +21,15 @@
 - The implementation plan is approved. Within EVERY phase, complete Linux/CUDA
   work and validation first, then macOS/MLX. Both runtime gates must pass before
   advancing phases. Consult the context map for the current phase and blockers.
-- `ssh macstudio` is authorized for Apple testing. It has competing workloads:
-  **notify the user and coordinate availability before starting MLX workloads**.
+- `ssh macstudio` is authorized for Apple testing. The user has now confirmed
+  availability; announce the first MLX run when the Linux phase gate is ready.
+  If testing resumes in a later session, recheck availability for competing work.
   Inspect remote state before syncing; never overwrite unrelated work or change
   global tooling unnecessarily. Pull reviewed pushed commits into
   `~/projects/lexlapax/ncm-rs` rather than overwriting that checkout.
+- Build/test validation is local through `tools/check.sh` (opt-in `--cuda`).
+  Do not restore GitHub build CI without approval. The metadata-only weekly
+  upstream watcher is separate and remains enabled.
 - Keep unsafe code narrowly audited, dependencies deliberate, secrets/weights/data
   out of Git, and untrusted code off persistent GPU runners. Respect licenses.
 - No agent attribution in code, comments, documentation, generated files or commit

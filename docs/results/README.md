@@ -2,7 +2,7 @@
 
 | Report | Scope | CUDA | MLX | Model quality |
 | --- | --- | --- | --- | --- |
-| [2026-11-09: operator capability spike](2026-11-09-cuda-operators/README.md) | 18 synthetic cases; three fresh-process timing runs per runtime | Measured, parity passed; slower composed resampling reported | Pending, coordinate workloads first | Not measured |
+| [2026-11-09: operator capability spike](2026-11-09-cuda-operators/README.md) | 18 synthetic cases; three fresh-process timing runs per runtime | Measured, parity passed; slower composed resampling reported | Pending Linux gate; Mac now available | Not measured |
 
 These are operator measurements, **not** NCM generation benchmarks. Phase 1's
 checkpoint conversion/model fixtures and the Apple pass remain incomplete.

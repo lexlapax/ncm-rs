@@ -49,8 +49,8 @@ Use separate version identities:
 5. Port the change in shared Rust logic and both adapters. Keep legacy profile
    support where feasible; otherwise document the breaking boundary and migration.
 6. Run old-profile regression, new numerical/model parity, then affected quality
-   and performance suites on CUDA and Apple Silicon. A green CPU CI cannot qualify
-   a GPU change. Compare old Python vs new Python to distinguish intentional
+   and performance suites on CUDA and Apple Silicon. Passing local CPU checks
+   cannot qualify a GPU change. Compare old Python vs new Python to distinguish intentional
    upstream behavior changes from a Rust regression.
 7. Publish the four-way comparison where applicable: old/new upstream Python and
    old/new Rust. Include fixed artifact comparisons and new-artifact comparisons

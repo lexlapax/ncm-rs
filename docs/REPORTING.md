@@ -112,8 +112,10 @@ warmup/trial counts, command line and benchmark harness commit. Never include se
   and environments. The user approved public repository visibility; committed
   summaries and release assets will be public. A later GitHub Pages site should
   render the same reviewed summaries, not separate unverifiable charts.
-- A later CI workflow may publish approved reports with narrowly scoped credentials.
-  Never auto-publish untrusted PR outputs or run fork code on persistent GPU hosts.
+- Build/test checks run locally at the user's request. Publish reviewed reports
+  through commits/release assets; adding any build or publication CI needs separate
+  approval. Never auto-publish untrusted PR outputs or run fork code on persistent
+  GPU hosts.
 
 ## Required summary columns
 

@@ -20,9 +20,11 @@ contain no numerical cases. Commit/push scaffold; obtain review before Phase 1.
 Current milestone: Linux CPU/CUDA candidate operators pass 18 synthetic PyTorch
 fixtures, with a [public microprobe report](results/2026-11-09-cuda-operators/README.md).
 Checkpoint conversion/roundtrip, tokenizer and model-level traces remain open.
-The Apple pass has not started. `macstudio` has other workloads; notify the user
-and coordinate availability before launching MLX validation. No phase gate has
-been waived or marked complete by the operator-only evidence.
+The Apple pass has not started. The user has now confirmed `macstudio` is available;
+announce MLX validation once Linux checks are complete (recheck availability in
+later sessions). No gate has been waived by the operator-only evidence.
+Build/test checks now run locally via `tools/check.sh`, not GitHub build CI;
+the weekly upstream metadata watcher remains enabled.
 
 1. Pin Python NCM, Torch/dependencies, HF checkpoint/data/tokenizer revisions and
    checksums. Start with Sudoku easy, then TinyStories. Download only needed files.
