@@ -158,10 +158,10 @@ of the newly requested performance-remediation gate.
 
 ## Extended acceptance (required before Phase 3)
 
-- [ ] Audit fair scopes, synchronization and clean-checkout report reproduction;
+- [x] Audit fair scopes, synchronization and clean-checkout report reproduction;
   refresh paired baselines and declare noise-aware thresholds before optimization.
-- [ ] Complete source/documentation/upstream research and causal profiling on Linux.
-- [ ] Fix Linux codec/loading/tokenizer deficits; retain unchanged correctness and
+- [x] Complete source/documentation/upstream research and causal profiling on Linux.
+- [x] Fix Linux codec/loading/tokenizer deficits; retain unchanged correctness and
   publish candidate versus previous Rust versus Python performance/memory evidence.
 - [ ] After Linux acceptance, research and fix Apple load time/host-memory
   amplification and tokenizer deficits; preserve execution performance and parity.
@@ -169,8 +169,9 @@ of the newly requested performance-remediation gate.
 
 The [CUDA remediation milestone](results/2026-11-10-phase2-cuda-remediation/README.md)
 qualifies vectorized/fused/view/pool changes and publishes three-way measurements.
-Codec cells meet Python bands; TinyStories uncertainty and remaining measurement
-work keep Linux acceptance open. Apple optimization has not started.
+[Extended Linux acceptance](results/2026-11-10-phase2-linux-acceptance/README.md)
+now passes, including uncertainty controls, lifecycle evidence and a whole-matrix
+audit. Apple remediation is next; Phase 2 as a whole is not yet accepted.
 
 The [extension plan](PHASE2-PERFORMANCE.md) defines predeclared non-inferiority bands,
 source-cited research deliverables and blocking/exception rules. Historical

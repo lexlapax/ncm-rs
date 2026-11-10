@@ -25,27 +25,27 @@ def interval(candidate, comparator, rng, repeats=10000):
             for name, values in zip(("median_ratio", "p95_ratio"), samples)}
 
 
-def summarize(root):
+def summarize(root, profile="tinystories"):
     environment = json.loads((root/"environment.json").read_bytes())
-    require(environment["workloads"] == ["tinystories"] and environment["cpu_affinity"] is not None,
-            "not an affinity-controlled TinyStories run")
+    require(profile in ("bert", "gpt2", "qwen3", "tinystories") and profile in environment["workloads"] and environment["cpu_affinity"] is not None,
+            "not an affinity-controlled tokenizer run")
     count = environment["repeats"]
     require(count >= 3, "insufficient processes")
     fixture = (ROOT/"tests/fixtures/tokenizers-v1.json").read_bytes()
-    manifest = json.loads(fixture)["profiles"]["tinystories"]["manifest_sha256"]
+    manifest = json.loads(fixture)["profiles"][profile]["manifest_sha256"]
     groups = {}
     fingerprints = {}
     for name in ("previous", "candidate", "python"):
         suffix = "python" if name == "python" else "rust"
-        paths = [root/name/f"tokenizer-tinystories-{suffix}-{i}.json" for i in range(1,count+1)]
-        require(set((root/name).glob(f"tokenizer-tinystories-{suffix}-*.json")) == set(paths), "missing/extra processes")
+        paths = [root/name/f"tokenizer-{profile}-{suffix}-{i}.json" for i in range(1,count+1)]
+        require(set((root/name).glob(f"tokenizer-{profile}-{suffix}-*.json")) == set(paths), "missing/extra processes")
         groups[name] = [json.loads(p.read_bytes()) for p in paths]
         fingerprints[name] = [hashlib.sha256(p.read_bytes()).hexdigest() for p in paths]
         for run in groups[name]:
             require(run["schema_version"] == 1 and run["warmups"] == 5 and run["trials"] == 30, "protocol mismatch")
             require(run["runtime"] == ("pinned-python-tokenizers" if name == "python" else "rust-tokenizers"), "runtime mismatch")
             require(run["fixture_sha256"] == hashlib.sha256(fixture).hexdigest() and run["manifest_sha256"] == manifest, "unpinned assets")
-            require(run["profile"] == "tinystories" and run["strings_per_trial"] == 89, "wrong workload")
+            require(run["profile"] == profile and run["strings_per_trial"] == 89, "wrong workload")
             require(run["source_sha256"] == groups[name][0]["source_sha256"], "changing sources")
             require([row["scope"] for row in run["measurements"]] == ["encode", "decode", "decode_skip_special"], "wrong scope")
     rng = {name: random.Random(20261110) for name in ("previous", "python")}
@@ -71,8 +71,9 @@ def summarize(root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path); parser.add_argument("output", type=Path)
+    parser.add_argument("--profile", choices=("bert", "gpt2", "qwen3", "tinystories"), default="tinystories")
     args = parser.parse_args()
-    result = summarize(args.directory)
+    result = summarize(args.directory, args.profile)
     result["summarizer_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     with args.output.open("x") as file:
         json.dump(result, file, indent=2, allow_nan=False); file.write("\n")

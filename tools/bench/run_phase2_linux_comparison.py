@@ -35,6 +35,8 @@ def main():
     parser.add_argument("--workloads", nargs="+", choices=("codec", "bert", "gpt2", "qwen3", "tinystories"),
                         default=["codec", "bert", "gpt2", "qwen3", "tinystories"])
     parser.add_argument("--cpu", type=int, help="same process-local CPU affinity for all three runtimes")
+    parser.add_argument("--identical-tokenizer-binary", action="store_true",
+                        help="control executable-path effects only after verifying byte-identical native binaries")
     args = parser.parse_args()
     previous = args.previous_checkout.resolve()
     old_bins = args.previous_binaries.resolve()
@@ -54,6 +56,9 @@ def main():
     for runtime, directory in bins.items():
         fingerprints[runtime] = {name: hashlib.sha256((directory/name).read_bytes()).hexdigest()
                                  for name in ("codec_bench", "asset_bench")}
+    if args.identical_tokenizer_binary:
+        if "codec" in args.workloads or fingerprints["previous"]["asset_bench"] != fingerprints["candidate"]["asset_bench"]:
+            raise ValueError("identity control requires tokenizer-only work and byte-identical binaries")
     output.mkdir(parents=True, exist_ok=False)
     for name in ("previous", "candidate", "python"):
         (output/name).mkdir()
@@ -68,6 +73,7 @@ def main():
         "gpu": capture(["nvidia-smi", "--query-gpu=name,driver_version,memory.total,memory.used,power.limit,utilization.gpu", "--format=csv"]),
         "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "repeats": args.repeats, "workloads": args.workloads, "cpu_affinity": args.cpu,
+        "identical_tokenizer_binary_control": args.identical_tokenizer_binary,
         "commands": [], "paired_python": "Same Python report reused for previous/candidate comparison; not independent duplicates.",
         "limitations": ["Live desktop; telemetry retained. No clock/power/global tooling changes.",
                         "Warm filesystem cache; existing harness excludes Python imports and CUDA context startup.",
@@ -115,7 +121,8 @@ def main():
                                 command = [str(ROOT/".reference/tokenizers-venv/bin/python"), "tools/reference/text_tokenizer_bench.py",
                                            str(ROOT/"artifacts/upstream/tokenizers-v2"), str(ROOT/".reference/upstream-ncm")]
                             else:
-                                command = [str(bins[runtime]/"asset_bench"), str(ROOT/"artifacts/canonical/tokenizers-qualified")]
+                                binary = bins["candidate" if args.identical_tokenizer_binary else runtime]/"asset_bench"
+                                command = [str(binary), str(ROOT/"artifacts/canonical/tokenizers-qualified")]
                             command += ["tests/fixtures/tokenizers-v1.json", profile, str(report)]
                         run(command, cwd, runtime, report)
                         if runtime == "python":

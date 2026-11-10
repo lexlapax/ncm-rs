@@ -84,9 +84,9 @@ kernels, reduced precision and generator/prefix caching remain out of scope.
 
 [CUDA remediation evidence](results/2026-11-10-phase2-cuda-remediation/README.md)
 now includes qualified production changes and three-way measurements: all codec
-latency cells meet the predeclared Python bands. Extended Linux acceptance remains
-open for uncertainty/audit/startup evidence; no Apple optimization or Phase 3 work
-has started.
+latency cells meet the predeclared Python bands. [Extended Linux acceptance](results/2026-11-10-phase2-linux-acceptance/README.md)
+now passes uncertainty/audit/startup follow-ups. Apple remediation is next;
+Phase 3 remains blocked.
 
 ### Required extension, in order
 

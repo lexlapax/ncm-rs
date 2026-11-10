@@ -13,8 +13,8 @@
 [extension plan](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).
 [Production CUDA remediation](2026-11-10-phase2-cuda-remediation/README.md) now
 passes unchanged correctness and removes the codec latency deficit in three-way
-measurements. Uncertainty/audit/startup work remains; no extended performance gate
-is accepted yet. The following are historical baseline
+measurements. [Extended Linux acceptance](2026-11-10-phase2-linux-acceptance/README.md)
+now passes; Apple remediation and its extended gate remain pending. The following are historical baseline
 acceptances, not acceptance of the new performance gate. Its reference contract and
 [checked shared-runtime construction](2026-11-10-phase2-runtime/README.md) and
 [Linux component parity](2026-11-10-phase2-primitives/README.md) exist.

@@ -56,6 +56,10 @@ name = "resample_poc"
 required-features = ["cpu"]
 
 [[example]]
+name = "codec_lifecycle"
+required-features = ["cuda"]
+
+[[example]]
 name = "codec_profile"
 required-features = ["cuda"]
 

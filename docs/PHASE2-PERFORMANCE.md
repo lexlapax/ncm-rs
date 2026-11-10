@@ -2,8 +2,9 @@
 
 Status: [production CUDA remediation](results/2026-11-10-phase2-cuda-remediation/README.md)
 passes unchanged correctness and brings all codec latency cells within the Python
-bands. Extended Linux acceptance remains open for measurement uncertainty and the
-remaining audit/startup evidence; Apple optimization has not started. The
+bands. [Extended Linux acceptance now passes](results/2026-11-10-phase2-linux-acceptance/README.md),
+including controlled uncertainty follow-ups and separate startup/teardown evidence.
+Apple remediation is next. The
 [initial research](results/2026-11-10-phase2-performance-research/README.md) and
 [predeclared thresholds](results/2026-11-10-phase2-performance-research/acceptance-v1.json)
 remain immutable evidence. The user reopened
@@ -205,9 +206,9 @@ not close this extension.
 
 ## Completion checklist
 
-- [ ] Measurement audit, clean-checkout reproduction and baseline/noise thresholds.
-- [ ] Source-cited Linux research, profiles and ranked causal hypotheses.
-- [ ] Linux fixes, unchanged correctness, three-way measurements and extended gate.
+- [x] Measurement audit, clean-checkout reproduction and baseline/noise thresholds.
+- [x] Source-cited Linux research, profiles and ranked causal hypotheses.
+- [x] Linux fixes, unchanged correctness, three-way measurements and extended gate.
 - [ ] Apple research, allocation diagnosis, fixes and extended gate after Linux.
 - [ ] Regression/performance checks and reproducible raw evidence for both devices;
       update plan, acceptance tracker, context and results index before closure.

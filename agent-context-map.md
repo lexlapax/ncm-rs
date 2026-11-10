@@ -18,7 +18,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   is described in `docs/results/2026-11-10-phase2-performance-research/README.md`.
   Latest: qualified production CUDA remediation and three-way results in
   `docs/results/2026-11-10-phase2-cuda-remediation/README.md`; codec deficits are
-  removed in measured cells, but extended Linux acceptance is still open.
+  removed in measured cells. The extended Linux gate now passes:
+  `docs/results/2026-11-10-phase2-linux-acceptance/README.md`.
   No persistent goal was created or old completed goal rewritten by this request.
   Large-archive publication remains pending; no efficiency/inference-release claim.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
@@ -243,12 +244,23 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   Logs: `.reference/phase2-remediation-publication-check.log` and
   `.reference/phase2-remediation-reference-tests.log`. Staged code/archives reviewed;
   `.pi/`, executables, weights and large model-trace archives are not staged.
-- **Next: finish extended Linux acceptance, not Apple yet.** TinyStories native
-  old/new binaries are identical, but uncontrolled microsecond cells exceed bands.
-  Nine additional CPU-affinity-controlled process triplets have ratios <=1.020;
-  paired-process skip-special median interval [0.9772, 1.0551] still crosses 1.05.
-  Resolve uncertainty without waivers/hidden runs; complete whole-matrix fail-closed
-  audit and separate process/import/context-startup/teardown evidence. Then accept
-  Linux, recheck Mac availability/worktree, and safely pull reviewed pushed changes
-  for Apple loading/memory/tokenizer diagnosis. Phase 3 stays blocked; `.pi/` and
-  historical fixtures remain untouched.
+- **Extended Linux acceptance passes; next is Apple remediation.** Fixed 30-triplet
+  TinyStories and nine-triplet GPT-2 affinity controls close execution uncertainty.
+  Qwen's first nine-triplet control still failed uncertainty; a fixed 30-triplet
+  identity/path control (only allowed for byte-identical native binaries) passes.
+  All negative runs are retained; no tokenizer optimization or proven path cause
+  is claimed. Whole-matrix audit passes 78 comparisons with unchanged bands and
+  qualified traces. Fresh-process startup/load/execute/drop/exit evidence is now
+  separate from steady-state timing. See the Linux acceptance report for metrics.
+- Latest `./tools/check.sh --cuda` passes, including 22 report tests; log
+  `.reference/phase2-linux-acceptance-check.log`, also published. Audit:
+  `reports/phase2-linux-acceptance-v2.json`; controls are archived in the new report.
+  A clean staged checkout exactly regenerates acceptance from committed archives
+  and passes all 22 report tests; staged scope/diff checked before publication.
+  Shared lifecycle harness compiled against both old/current CUDA and exact solved
+  outputs agree across all nine processes. No production change in this follow-up.
+- Recheck Mac availability/worktree before its first remediation run and safely
+  pull reviewed pushed commits. Preserve its historical candidate worktree. Diagnose
+  host read/parse/hash/preflight/upload/drop allocations and tokenizer load costs;
+  any shared fix must return through Linux validation before Apple tests. Both
+  runtime gates remain required before Phase 3; `.pi/` and goldens are untouched.

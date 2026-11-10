@@ -1,0 +1,12 @@
+{
+  "device": "cuda",
+  "previous": "reports/phase2-performance-linux-threeway-v2/previous",
+  "candidate": "reports/phase2-performance-linux-threeway-v2/candidate",
+  "qualification": "docs/results/2026-11-10-phase2-cuda-remediation/raw/qualification.json",
+  "lifecycle": "reports/phase2-linux-lifecycle-v2.json",
+  "controls": {
+    "tinystories": "reports/phase2-performance-linux-tiny-control-v2",
+    "gpt2": "reports/phase2-performance-linux-hf-control-v1",
+    "qwen3": "reports/phase2-performance-linux-qwen-identity-v1"
+  }
+}
