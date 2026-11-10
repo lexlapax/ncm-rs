@@ -49,5 +49,9 @@ required-features = ["cpu"]
 name = "load_probe"
 required-features = ["cpu"]
 
+[[example]]
+name = "resample_poc"
+required-features = ["cpu"]
+
 [lints]
 workspace = true

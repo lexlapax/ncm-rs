@@ -10,7 +10,8 @@
 | [2026-11-10: Phase 2 Apple runtime gate](2026-11-10-phase2-mlx/README.md) | 642-trace qualified adapted baseline; 30 matched fresh-process codec/tokenizer reports | Linux gate already passed | Measured; parity/output checks pass, high native host RSS retained | Not measured |
 
 **Phase 2 is reopened for performance research and remediation**; see the
-[extension plan](../PHASE2-PERFORMANCE.md). The following are historical baseline
+[extension plan](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).
+No extended performance gate is accepted yet. The following are historical baseline
 acceptances, not acceptance of the new performance gate. Its reference contract and
 [checked shared-runtime construction](2026-11-10-phase2-runtime/README.md) and
 [Linux component parity](2026-11-10-phase2-primitives/README.md) exist.

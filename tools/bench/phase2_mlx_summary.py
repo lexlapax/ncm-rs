@@ -6,13 +6,19 @@ from pathlib import Path
 from phase2_summary import ROOT, require, reports, codec, tokenizers
 
 
+# Immutable, reviewed baseline evidence, available in a clean checkout. Neither
+# ignored local captures nor files beside a measurement may replace this anchor.
+BASELINE = "docs/results/2026-11-10-phase2-mlx/raw"
+CAPTURE_SHA256 = "1240cfccb38359ef6198ff58b8521e51c471968ce77e6d4c032fa71ea37e05e1"
+QUALIFICATION_SHA256 = "34791da31d417939c472cb462566fc0c5abc3aeee3d46ca69ab396d4720bf4ba"
+
+
 def check_baseline(root):
-    # Benchmark runs stay separate from the fixed, independently-qualified
-    # baseline evidence. Do not permit a copied or substituted baseline beside
-    # the mutable measurement directory.
-    baseline_root=ROOT/"reports/phase2-codec/python-mlx-v1"
-    capture_raw=(baseline_root/"report.json").read_bytes();capture=json.loads(capture_raw)
-    quality_raw=(ROOT/"reports/phase2-codec/python-mlx-v1-qualification.json").read_bytes();quality=json.loads(quality_raw)
+    capture_raw=(ROOT/BASELINE/"python-mlx-baseline-report.json").read_bytes()
+    quality_raw=(ROOT/BASELINE/"python-mlx-baseline-qualification.json").read_bytes()
+    require(hashlib.sha256(capture_raw).hexdigest()==CAPTURE_SHA256,"baseline capture changed")
+    require(hashlib.sha256(quality_raw).hexdigest()==QUALIFICATION_SHA256,"baseline qualification changed")
+    capture=json.loads(capture_raw);quality=json.loads(quality_raw)
     oracle_raw=(ROOT/"docs/results/2026-11-10-phase2-oracle/raw/sudoku-cuda.json").read_bytes();oracle=json.loads(oracle_raw)
     sha=lambda b:hashlib.sha256(b).hexdigest()
     require(capture["runtime"]=="python-mlx-adapted" and capture["device"]=="metal","incorrect baseline runtime")

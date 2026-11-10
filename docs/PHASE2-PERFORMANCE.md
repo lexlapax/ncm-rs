@@ -1,6 +1,9 @@
 # Phase 2 extension — performance research and remediation
 
-Status: planned, not implemented or performance-qualified. The user reopened
+Status: implementation started; no production optimization or extended gate is
+qualified yet. [Initial research and PoC](results/2026-11-10-phase2-performance-research/README.md)
+fixes clean-checkout report reproduction and records CPU interpolation experiments.
+Quiet Linux baseline measurements and profiling are pending. The user reopened
 Phase 2 after its correctness/measurement baseline was published. **Phase 3 is
 blocked until this extension passes Linux/CUDA first, then Apple/MLX.** Publishing
 negative results was necessary, but is no longer sufficient for Phase 2 closure.
@@ -56,10 +59,11 @@ owns broad optimization; measured Phase 2 deficits must be addressed now.
   not disk-cold. Add a separately labeled startup measurement; do not flush global
   caches or change machine configuration without authorization.
 - Test report regeneration from a clean checkout without ignored local reports.
-  In particular, `phase2_mlx_summary.py` currently reads baseline qualification
-  from ignored `reports/` despite the report advertising a committed-only recheck.
-  Fix this reproducibility gap with authenticated evidence selection and tests,
-  not a permissive fallback. Exercise schema/source/runtime/output mutations.
+  The initial audit found `phase2_mlx_summary.py` read baseline qualification
+  from ignored `reports/` despite advertising a committed-only recheck. This gap
+  is now fixed with checksum-pinned committed evidence and clean-checkout/mutation
+  tests, not a permissive fallback. Continue auditing schema/source/runtime/output
+  checks and timing equivalence before accepting measurements.
 - Establish noise from independent paired process runs; at least three processes,
   five warmups and thirty trials each, more processes when uncertain. Record
   median, p95, dispersion and per-process results. Avoid treating 90 trials as
@@ -203,5 +207,6 @@ not close this extension.
 - [ ] Regression/performance checks and reproducible raw evidence for both devices;
       update plan, acceptance tracker, context and results index before closure.
 
-This planning change performs no runtime modification, GPU experiment or external
-literature review. Those are explicit execution deliverables, not fabricated work.
+The original planning change performed no experiments. Subsequent research and
+PoC evidence is linked above; it does not establish production performance gains
+or CUDA/MLX qualification. Remaining deliverables must not be inferred as complete.

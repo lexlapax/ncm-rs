@@ -14,6 +14,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   is about 3.25× slower and host HWM 3.40–4.42 GiB versus 0.287–0.288 GiB Python.
   See `docs/PHASE2-PERFORMANCE.md` for research, measurement audit, ordered fixes,
   proposed acceptance bands and blocking rules. Explanation alone is not closure.
+  Approved plan pushed as `7507d13`. Initial measurement-repair/research milestone
+  is described in `docs/results/2026-11-10-phase2-performance-research/README.md`.
   No persistent goal was created or old completed goal rewritten by this request.
   Large-archive publication remains pending; no efficiency/inference-release claim.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
@@ -42,8 +44,10 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - Independent Python MLX baseline passes all 642 unchanged trained traces and
   2,500 decisions against the CUDA oracle. Three-process codec/tokenizer evidence,
   raw telemetry and baseline qualification are published in
-  `docs/results/2026-11-10-phase2-mlx/`; its fail-closed summary reproduces
-  byte-for-byte from committed raw reports.
+  `docs/results/2026-11-10-phase2-mlx/`. The extension fixes the summary's hidden
+  dependency on ignored baseline files using checksum-pinned committed evidence.
+  A clean-checkout test reproduces all historical metrics exactly; only current
+  summarizer source hashes differ. Historical reports are not rewritten.
 - Host-only artifact loads reproduce high native RSS; diagnostics remain at
   `reports/phase2-mlx-load-diagnostic`. No loader fix or efficiency claim.
 - Final summary-tool tests pass locally. On the M1 Ultra candidate worktree,
@@ -57,7 +61,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 
 | Need | Load |
 | --- | --- |
-| Phase 2 contract / acceptance / remediation | [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md), [research and performance extension](docs/PHASE2-PERFORMANCE.md) |
+| Phase 2 contract / acceptance / remediation | [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md), [research and performance extension](docs/PHASE2-PERFORMANCE.md), [initial research/PoC](docs/results/2026-11-10-phase2-performance-research/README.md) |
 | Shared runtime and model | [core](crates/ncm-core/src/lib.rs), [config](crates/ncm-core/src/config.rs), [model](crates/ncm-model/src/lib.rs), [blocks](crates/ncm-model/src/blocks.rs), [codec](crates/ncm-model/src/codec.rs) |
 | CUDA adapter / known native fixes | [adapter](crates/ncm-backend-cuda/src/codec.rs), [operators](crates/ncm-backend-cuda/src/ops.rs), [component report](docs/results/2026-11-10-phase2-primitives/README.md) |
 | Phase 2 oracle and complete CUDA results | [oracle audit](docs/results/2026-11-10-phase2-oracle/README.md), [codec report](docs/results/2026-11-10-phase2-codec/README.md) |
@@ -201,14 +205,21 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   gate `fd1b482` (pushed). Preserve old reports/source hashes;
   do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
   task-quality data or an inference release.
-- **Next: execute the approved Phase 2 extension.** Audit measurement
-  fairness/reproducibility, refresh Linux baselines, lock thresholds, research and
-  profile causes, then implement and accept Linux fixes before Apple work.
-  Initial source review found per-position CUDA resampling compositions and an
-  Apple summary-tool dependency on ignored baseline files; neither is fixed here.
-  Initial plan commit is documentation-only: no runtime edits or GPU experiments.
-  Local Markdown links in all five changed/new documents and `git diff --check`
-  pass. Hardware preflight finds 28% GPU activity with a resident llama-server;
-  Nsight tools are not on PATH. Establish a quiet window before acceptance timings;
-  do not stop unrelated processes or install global tools without approval.
-  Phase 3 stays blocked; historical reports/fixtures and `.pi/` remain untouched.
+- **Next: quiet Linux baseline/profiling window, then production candidates.**
+  User was asked to arrange a quiet GPU window: preflight found 28% activity and
+  resident llama-server; later pmon `-` is not proof of inactivity. No processes
+  were stopped. Nsight tools absent from searched locations; installed CUPTI
+  injection samples may support project-local profiling without global changes.
+- Research inspected NVIDIA timing/profiling guidance, exact Candle kernel source,
+  pinned NCM paths and installed Torch interpolation headers. Existing Candle
+  bilinear CUDA uses FP64 sample arithmetic and was rejected as an FP32 shortcut.
+  Offline gather/mask resampling PoC only (no production integration): CPU f32
+  coordinates pass 360 rows / 753,984 values against Torch CPU; existing-style
+  f64 coordinates fail 228 values, retained in the research report. CUDA/trained
+  qualification and performance are pending; do not infer GPU behavior from CPU.
+- Checks: `./tools/check.sh` passes (CPU, fmt/Clippy/docs, 16 report tests), log
+  `.reference/phase2-performance-audit-check.log`; PoC f32 checker passes, f64
+  checker exits 1 as expected. Report tests cover clean checkout and tampering.
+  No new GPU timing, threshold calibration, extended gate or production gain
+  is claimed. Resume fair paired baselines and profiling; then Linux fixes before
+  Apple work. Phase 3 stays blocked; historical fixtures and `.pi/` untouched.
