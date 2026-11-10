@@ -259,8 +259,27 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   and passes all 22 report tests; staged scope/diff checked before publication.
   Shared lifecycle harness compiled against both old/current CUDA and exact solved
   outputs agree across all nine processes. No production change in this follow-up.
-- Recheck Mac availability/worktree before its first remediation run and safely
-  pull reviewed pushed commits. Preserve its historical candidate worktree. Diagnose
-  host read/parse/hash/preflight/upload/drop allocations and tokenizer load costs;
-  any shared fix must return through Linux validation before Apple tests. Both
-  runtime gates remain required before Phase 3; `.pi/` and goldens are untouched.
+- Mac availability/state rechecked after `7aee602`: main was clean and safely
+  fast-forwarded; old binaries saved in `.reference/phase2-mlx-baseline-bin`, clean
+  old source in `.reference/phase2-mlx-baseline` (`5dc9626`). Historical candidate
+  worktree inspected and untouched. First remediation diagnostics announced/run.
+  Fresh old load ~944 ms and host HWM 4.81 GB reproduce the deficits. Allocation
+  stacks identify `bounded_read → RawVec::finish_grow → realloc`; VM maps show
+  freed large malloc regions. CPU sample: 2,187/2,222 main-thread samples in SHA-256.
+- Shared candidate: reserve checked read length + EOF byte; deserialize authenticated
+  BPE/WordPiece tokenizer models directly into the same runtime wrapper; enable
+  pinned sha2 0.10.9 `asm` only on macOS/AArch64 (explicit sha2-asm 0.6.4 addition).
+  No checksums/preflight/path checks, payloads, precision or algorithms removed.
+  Details/evidence: `docs/results/2026-11-10-phase2-shared-loading/README.md`.
+- Linux revalidation precedes Apple candidate tests: full `tools/check.sh --cuda`
+  passes (`.reference/phase2-shared-load-final-check.log`), all 642 traces/2,500
+  decisions and real tokenizer goldens/rejections pass; 21 offline reference tests
+  pass. Fresh three-way matrix and 30-triplet controls yield 78 passing comparisons
+  (`reports/phase2-linux-shared-load-acceptance-v2.json`). Qwen load 194.80/107.75/
+  172.34 ms old/new/Python. Linux codec/tokenizer benchmark binaries remain byte-
+  identical after the Apple-only feature addition; Linux SHA features unchanged.
+- **Next: pull this shared candidate on Mac and test it, not close Phase 2 yet.**
+  Run allocation and repeated-load/request probes, all Metal traces/checks and
+  fresh old/new/Python measurements plus lifecycle evidence. Return any further
+  shared changes through Linux validation. Both runtime gates are still required;
+  Phase 3, `.pi/` and historical goldens remain untouched.

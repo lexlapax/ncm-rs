@@ -65,6 +65,29 @@ fn read(path: &Path, limit: usize) -> Result<Vec<u8>> {
     }
     Ok(bytes)
 }
+// The authenticated profiles fix the model kind. Deserialize that concrete model
+// directly, avoiding ModelWrapper's intermediate generic JSON tree; move the
+// complete tokenizer into the same runtime wrapper without cloning its vocabulary.
+fn parse_hf(payload: &[u8], profile: &str) -> Result<tokenizers::Tokenizer> {
+    type Typed<M> = tokenizers::TokenizerImpl<
+        M,
+        tokenizers::normalizers::NormalizerWrapper,
+        tokenizers::pre_tokenizers::PreTokenizerWrapper,
+        tokenizers::processors::PostProcessorWrapper,
+        tokenizers::decoders::DecoderWrapper,
+    >;
+    match profile {
+        "bert" => Ok(
+            serde_json::from_slice::<Typed<tokenizers::models::wordpiece::WordPiece>>(payload)?
+                .into(),
+        ),
+        "gpt2" | "qwen3" => {
+            Ok(serde_json::from_slice::<Typed<tokenizers::models::bpe::BPE>>(payload)?.into())
+        }
+        _ => Err(invalid("unsupported HF profile")),
+    }
+}
+
 impl TextTokenizer {
     /// Only the four reviewed Phase 2 manifests/payloads are supported. Trusted
     /// parent directories/no concurrent mutation are required (not a path sandbox).
@@ -106,8 +129,7 @@ impl TextTokenizer {
                 Implementation::ByteBpe(Box::new(bpe))
             }
             "huggingface" => {
-                let tokenizer = tokenizers::Tokenizer::from_bytes(&payload)
-                    .map_err(|e| invalid(&e.to_string()))?;
+                let tokenizer = parse_hf(&payload, &metadata.profile)?;
                 if tokenizer.get_vocab_size(false) != metadata.vocab_size
                     || tokenizer.get_vocab_size(true) != metadata.total_vocab_size
                 {
@@ -179,6 +201,42 @@ fn cleanup(mut text: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn typed_loading_preserves_complete_runtime_configuration() {
+        for (profile, model) in [
+            (
+                "gpt2",
+                serde_json::json!({"type":"BPE", "vocab":{"[UNK]":0,"a":1,"b":2}, "merges":[], "unk_token":"[UNK]"}),
+            ),
+            (
+                "bert",
+                serde_json::json!({"type":"WordPiece", "vocab":{"[UNK]":0,"a":1,"b":2}, "unk_token":"[UNK]", "continuing_subword_prefix":"##", "max_input_chars_per_word":100}),
+            ),
+        ] {
+            let bytes = serde_json::to_vec(&serde_json::json!({"version":"1.0", "model":model,
+                "added_tokens":[{"id":3,"content":"[PAD]","single_word":false,"lstrip":false,"rstrip":false,"normalized":false,"special":true}],
+                "normalizer":null,"pre_tokenizer":null,"post_processor":null,"decoder":null,"padding":null,"truncation":null})).unwrap();
+            let original = tokenizers::Tokenizer::from_bytes(&bytes).unwrap();
+            let typed = parse_hf(&bytes, profile).unwrap();
+            assert_eq!(
+                serde_json::to_value(&original).unwrap(),
+                serde_json::to_value(&typed).unwrap()
+            );
+            for text in ["", "ab", "a", "[PAD]", "é"] {
+                assert_eq!(
+                    original.encode(text, true).unwrap().get_ids(),
+                    typed.encode(text, true).unwrap().get_ids()
+                );
+            }
+            for skip in [false, true] {
+                assert_eq!(
+                    original.decode(&[0, 1, 3], skip).unwrap(),
+                    typed.decode(&[0, 1, 3], skip).unwrap()
+                );
+            }
+            assert!(parse_hf(&bytes, "unknown").is_err());
+        }
+    }
     #[test]
     fn cleanup_matches_transformers_order() {
         assert_eq!(cleanup("I 'm sure ! do n't .".into()), "I'm sure! don't.");

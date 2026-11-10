@@ -15,6 +15,11 @@ serde_json = "1"
 sha2 = "0.10"
 thiserror = "2"
 
+# sha2 0.10.9 requires this feature for runtime-detected AArch64 SHA-256.
+# Keep the existing Linux/x86 implementation unchanged.
+[target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
+sha2 = { version = "0.10", features = ["asm"] }
+
 [dev-dependencies]
 tempfile = "3"
 

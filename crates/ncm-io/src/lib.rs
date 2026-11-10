@@ -150,7 +150,13 @@ fn bounded_read(path: &Path, limit: u64) -> Result<Vec<u8>> {
     }
     // Read once; validation and tensor use share these owned bytes. The artifact directory
     // must not be concurrently mutated by an untrusted process (no O_NOFOLLOW portability claim).
+    // One spare byte permits bounded EOF/growth detection without geometric
+    // reallocations. Freed intermediate buffers can remain resident on Darwin.
+    let capacity =
+        usize::try_from(meta.len() + 1).map_err(|_| invalid("file capacity overflow"))?;
     let mut data = Vec::new();
+    data.try_reserve_exact(capacity)
+        .map_err(|_| invalid("file allocation failed"))?;
     fs::File::open(path)?
         .take(limit + 1)
         .read_to_end(&mut data)?;
@@ -264,5 +270,40 @@ impl Artifact {
             .get(name)
             .map(Vec::as_slice)
             .ok_or_else(|| invalid("undeclared artifact file"))
+    }
+}
+
+#[cfg(test)]
+mod read_tests {
+    use super::*;
+    #[test]
+    fn sha256_known_answers_cover_multiblock_hardware_path() {
+        assert_eq!(
+            sha256(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+        assert_eq!(
+            sha256(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(
+            sha256(&vec![b'a'; 1_000_000]),
+            "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0"
+        );
+    }
+    #[test]
+    fn bounded_reads_reserve_once_and_keep_limits() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("bytes");
+        for length in [0, 1, 31, 32768, 1024 * 1024 + 17] {
+            let bytes = vec![42u8; length];
+            fs::write(&path, &bytes).unwrap();
+            let loaded = bounded_read(&path, length as u64).unwrap();
+            assert_eq!(loaded, bytes);
+            assert_eq!(loaded.capacity(), length + 1);
+            if length > 0 {
+                assert!(bounded_read(&path, length as u64 - 1).is_err());
+            }
+        }
     }
 }

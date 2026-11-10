@@ -1,0 +1,726 @@
+{
+  "schema_version": 1,
+  "device": "cuda",
+  "all_passed": false,
+  "quality_passed": true,
+  "limits": {
+    "median": 1.05,
+    "p95": 1.1,
+    "comparable_host_memory": 1.05
+  },
+  "input_sha256": {
+    "reports/phase2-performance-linux-shared-load-v1/previous/codec-rust-1.json": "fc4d077173818823c3b3e4c4b4f08919cd1fa2eb856049314eee0defbebac5d2",
+    "reports/phase2-performance-linux-shared-load-v1/previous/codec-rust-2.json": "5ecf0efb1c26eedbaac0910b761ab25738c4d69a73b0d220b566de818f0b6ab8",
+    "reports/phase2-performance-linux-shared-load-v1/previous/codec-rust-3.json": "361f89ce34a8eae20a016e9389e30821d3b0190bd00d6d8ea9fa74087ee13726",
+    "reports/phase2-performance-linux-shared-load-v1/previous/codec-python-1.json": "23cd30c0207a9820d0a77530dce79703c517f81db1096d816125bd0ae56a7be2",
+    "reports/phase2-performance-linux-shared-load-v1/previous/codec-python-2.json": "61dbe54df28de3d9877ce4b761dab129d26b06dd207f7d18787aa9c2cbee95df",
+    "reports/phase2-performance-linux-shared-load-v1/previous/codec-python-3.json": "d004df503db10c06cb0ea1da88d3cfafca79b3439c1b0c0f9f55702e8b6a8c1b",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-bert-rust-1.json": "a0f9d8314d2747e3839c96aec3682d28d52a82f59b9e8efeb750ab8b0649ad75",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-bert-rust-2.json": "14eb5667376b70979e8148ebc858ad7b48a045b7d670a51086ddbd1f7be51af3",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-bert-rust-3.json": "e0f67c576cd6921ab49c3a34c450cd851572ad7d0cb37c5e1c513dba0ff6f8f8",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-bert-python-1.json": "1508d9c02f0e776bcb210b7778181ce35b5d216724d1e81552277c8418278fa0",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-bert-python-2.json": "26d8bfb33dcc6708e6f2f7d4d16d2985c6ca80e2dbfda2650f2baf35e4ad24a8",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-bert-python-3.json": "8fe33915d8aefb2e35ea6353cf53842a2ede13e5863abecf0906356690350639",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-gpt2-rust-1.json": "0f44a08d32733c1448dbb2fd7ea2c051995defedefba6c5fec731a61997edf12",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-gpt2-rust-2.json": "223b10fcd168e7570986f3ea75db516d065f0910d86f8f4abceb624016c63f5e",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-gpt2-rust-3.json": "870760ade6b807b3d490a50f2c466903a6b92f89d7028d5424441f5b65563a25",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-gpt2-python-1.json": "713904f1afa9287fdd4c7465f551e93bb4dd772126c1045e49ccbdd1e6e0c604",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-gpt2-python-2.json": "7a39b7fd747ed314230b8c944da648a91888ba5791ef5772546b3cf5e263e695",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-gpt2-python-3.json": "0dae153b8c900f768bfde5030c0f04a5fa9bfddb9b331284930492f83e409bb2",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-qwen3-rust-1.json": "47ff8b70ed07645db4e975a7cec463872f8977f44bb2dd61a62551b766c997d8",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-qwen3-rust-2.json": "d9a4b5fac893e01a408fd59542d39bcb09d26994757c590187888d7f5f089a93",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-qwen3-rust-3.json": "b6b93153c3d1d4eea132bb545b9175bbdb864e178f0013017cdf694148e43509",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-qwen3-python-1.json": "fac31ea2aa6425122452ecb62b06fe11bceb33811040c93706c914bdc6ceebc5",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-qwen3-python-2.json": "32905ac057997764112dc2400b23607b6a7972c95e29c72c12721eebe26268ef",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-qwen3-python-3.json": "a2da365b69bb20362406b76607ae8b913cd3b528f75b20fa41efbcf7d2567e65",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-tinystories-rust-1.json": "36816d881ac7a40e61f121fe3ca3f550ab21c5735e3654a29f755e31959137d4",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-tinystories-rust-2.json": "baf0eee77988ea702219b2afbc5f2c615c756530e8adbbdc347433f6eac764b0",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-tinystories-rust-3.json": "1a24b374d7d61e5acdb7b16681c5ee4ffd643edb8d00e395d9eb465e6e2e1d93",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-tinystories-python-1.json": "307eebe1f31fd1e9a38f81420f639cafe10b2c6cd33e9cbea8c515270f1aa045",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-tinystories-python-2.json": "d7a09f92d294f7f0b12158b486ba774afe9b9c87be65fbaaaa1c116d7fb5b618",
+    "reports/phase2-performance-linux-shared-load-v1/previous/tokenizer-tinystories-python-3.json": "f8975946ebb6267281538b992144890ff1b30ac711537fe3868e686237a34eb4",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/codec-rust-1.json": "8481061af34631c710f3af0fe02d31e955f32b1be0c860e45f22d60728b0772d",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/codec-rust-2.json": "e0458482f89f497cbc507f293e87f903666f5dfd4e0ed685f22acb38c2f474ad",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/codec-rust-3.json": "770d62ba2b085333126d5d0ecded9e58a89cab568fa8d42707b6a656780e31d8",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/codec-python-1.json": "23cd30c0207a9820d0a77530dce79703c517f81db1096d816125bd0ae56a7be2",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/codec-python-2.json": "61dbe54df28de3d9877ce4b761dab129d26b06dd207f7d18787aa9c2cbee95df",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/codec-python-3.json": "d004df503db10c06cb0ea1da88d3cfafca79b3439c1b0c0f9f55702e8b6a8c1b",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-bert-rust-1.json": "b8ec26ad87eea9513eafd148d36c1452d4a1f1358042527978ee325ae8f7b8c5",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-bert-rust-2.json": "9016f777aa205b1ee2bb6b24bf4c83208e24e5fa43a36c08a04d4e30c484146c",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-bert-rust-3.json": "4ad97bc1a8fc8862bdb117179a18603d4fded15c1275f6df620cb5204412797d",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-bert-python-1.json": "1508d9c02f0e776bcb210b7778181ce35b5d216724d1e81552277c8418278fa0",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-bert-python-2.json": "26d8bfb33dcc6708e6f2f7d4d16d2985c6ca80e2dbfda2650f2baf35e4ad24a8",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-bert-python-3.json": "8fe33915d8aefb2e35ea6353cf53842a2ede13e5863abecf0906356690350639",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-gpt2-rust-1.json": "c87e3ec4649f1b149163e51791f780d1fde419674076b216997f88ca7f05c8d9",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-gpt2-rust-2.json": "15553f1023d3ca092fe564a428e9756dc81e07343a41c78a5866ad0ed6140aa2",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-gpt2-rust-3.json": "acc7993081f833f020dfa2cac02253cf211ff15b2de7166ab226ee686633730f",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-gpt2-python-1.json": "713904f1afa9287fdd4c7465f551e93bb4dd772126c1045e49ccbdd1e6e0c604",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-gpt2-python-2.json": "7a39b7fd747ed314230b8c944da648a91888ba5791ef5772546b3cf5e263e695",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-gpt2-python-3.json": "0dae153b8c900f768bfde5030c0f04a5fa9bfddb9b331284930492f83e409bb2",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-qwen3-rust-1.json": "8477e8656af58e4e1910571b006dca7a840e5c92a16b4185800c8ca148e6c459",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-qwen3-rust-2.json": "0c9245e4c695f86706784aac77ec02788549c046a863a182a2890b1961a49e81",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-qwen3-rust-3.json": "c0e3ef4d9d76cc9f4452beaa777db3c25b2142e18296c8f43521e92dae96f227",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-qwen3-python-1.json": "fac31ea2aa6425122452ecb62b06fe11bceb33811040c93706c914bdc6ceebc5",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-qwen3-python-2.json": "32905ac057997764112dc2400b23607b6a7972c95e29c72c12721eebe26268ef",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-qwen3-python-3.json": "a2da365b69bb20362406b76607ae8b913cd3b528f75b20fa41efbcf7d2567e65",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-tinystories-rust-1.json": "7a1cf859b5a762996d725e2c0ff7897f4fcda647f84ea574c48537ac7e0fc36a",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-tinystories-rust-2.json": "c6b93b9ba20697a7ff88be35401ab725a8eacc9135b59dfdcab0f9eca764f61a",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-tinystories-rust-3.json": "482e571f36dfd44aea54170726063b9cf374bd9647e4623d958f4d2ccccd87c8",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-tinystories-python-1.json": "307eebe1f31fd1e9a38f81420f639cafe10b2c6cd33e9cbea8c515270f1aa045",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-tinystories-python-2.json": "d7a09f92d294f7f0b12158b486ba774afe9b9c87be65fbaaaa1c116d7fb5b618",
+    "reports/phase2-performance-linux-shared-load-v1/candidate/tokenizer-tinystories-python-3.json": "f8975946ebb6267281538b992144890ff1b30ac711537fe3868e686237a34eb4",
+    "reports/phase2-codec/cuda-shared-load-v1-qualification.json": "cdcfeece48b0d80948514e2855f38e53c5a2a36a6ef629ba5959befc2e7432b3",
+    "reports/phase2-linux-lifecycle-v2.json": "3035476fd5f08c9b183719f937dfbf5942ed305aef407c366c527e4ea7d4ca05"
+  },
+  "controls": {},
+  "cells": [
+    {
+      "cell": "codec/1/encode",
+      "comparator": "previous",
+      "median_ratio": 0.18704418036430265,
+      "p95_ratio": 0.18514242120940577,
+      "process_median_envelope_ratio": 0.1882370706387336,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/encode",
+      "comparator": "python",
+      "median_ratio": 0.5760948361830832,
+      "p95_ratio": 0.5701700235025563,
+      "process_median_envelope_ratio": 0.5780580719113074,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/decode",
+      "comparator": "previous",
+      "median_ratio": 0.14431316534762673,
+      "p95_ratio": 0.1437763860452776,
+      "process_median_envelope_ratio": 0.14504901754367192,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/decode",
+      "comparator": "python",
+      "median_ratio": 0.7478878331525268,
+      "p95_ratio": 0.7531685232358722,
+      "process_median_envelope_ratio": 0.8152565556801816,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 0.15506918584388887,
+      "p95_ratio": 0.16457935397214324,
+      "process_median_envelope_ratio": 0.15664279851549048,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.6468191326466478,
+      "p95_ratio": 0.642811347474805,
+      "process_median_envelope_ratio": 0.6552284582644645,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.5733942136738321,
+      "p95_ratio": 0.5719578391108303,
+      "process_median_envelope_ratio": 0.5776045564551402,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/1/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.6673507794112767,
+      "p95_ratio": 0.6283942324758087,
+      "process_median_envelope_ratio": 0.686259342341047,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/encode",
+      "comparator": "previous",
+      "median_ratio": 0.1650960922888095,
+      "p95_ratio": 0.1641201081162333,
+      "process_median_envelope_ratio": 0.1660369368278795,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/encode",
+      "comparator": "python",
+      "median_ratio": 0.6876419695412392,
+      "p95_ratio": 0.6838962971940906,
+      "process_median_envelope_ratio": 0.6905844624838461,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/decode",
+      "comparator": "previous",
+      "median_ratio": 0.13233333677150352,
+      "p95_ratio": 0.13446199447714294,
+      "process_median_envelope_ratio": 0.13293732341093195,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/decode",
+      "comparator": "python",
+      "median_ratio": 0.926801434336737,
+      "p95_ratio": 0.9466781498091458,
+      "process_median_envelope_ratio": 0.9314504582711057,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 0.1493871888283783,
+      "p95_ratio": 0.14829206264700084,
+      "process_median_envelope_ratio": 0.14973866028095056,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.7834249671677603,
+      "p95_ratio": 0.7667384438093979,
+      "process_median_envelope_ratio": 0.7863591645105017,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.5829141979645253,
+      "p95_ratio": 0.5817087692020035,
+      "process_median_envelope_ratio": 0.5861108338739458,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/2/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.790128776918816,
+      "p95_ratio": 0.7549409699931157,
+      "process_median_envelope_ratio": 0.810597736099358,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/encode",
+      "comparator": "previous",
+      "median_ratio": 0.19236218355538456,
+      "p95_ratio": 0.19329424229312223,
+      "process_median_envelope_ratio": 0.1932718387679098,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/encode",
+      "comparator": "python",
+      "median_ratio": 0.773235225123771,
+      "p95_ratio": 0.7600547134835348,
+      "process_median_envelope_ratio": 0.7771936545527768,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/decode",
+      "comparator": "previous",
+      "median_ratio": 0.1607710533723777,
+      "p95_ratio": 0.1595927533816957,
+      "process_median_envelope_ratio": 0.16114853206254462,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/decode",
+      "comparator": "python",
+      "median_ratio": 0.9947622996881417,
+      "p95_ratio": 0.9746656787567194,
+      "process_median_envelope_ratio": 1.003993131425362,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/reconstruct",
+      "comparator": "previous",
+      "median_ratio": 0.17739452636735747,
+      "p95_ratio": 0.17697221516839412,
+      "process_median_envelope_ratio": 0.1776886078572325,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/reconstruct",
+      "comparator": "python",
+      "median_ratio": 0.870486123462185,
+      "p95_ratio": 0.8512761442568425,
+      "process_median_envelope_ratio": 0.8788373798483887,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/resident_decoder_block",
+      "comparator": "previous",
+      "median_ratio": 0.5890157793929364,
+      "p95_ratio": 0.3855723723453077,
+      "process_median_envelope_ratio": 0.5920554388455922,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/4/resident_decoder_block",
+      "comparator": "python",
+      "median_ratio": 0.9524222307654502,
+      "p95_ratio": 0.931134709654894,
+      "process_median_envelope_ratio": 1.000482733049969,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/encode",
+      "comparator": "previous",
+      "median_ratio": 1.0307540293094435,
+      "p95_ratio": 1.0267840219750703,
+      "process_median_envelope_ratio": 1.053387511614375,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "bert/encode",
+      "comparator": "python",
+      "median_ratio": 0.49475617024314616,
+      "p95_ratio": 0.48337655858701,
+      "process_median_envelope_ratio": 0.5016066497158498,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9902953707327471,
+      "p95_ratio": 0.9900067848779963,
+      "process_median_envelope_ratio": 1.0101135381692024,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode",
+      "comparator": "python",
+      "median_ratio": 0.5667919181239051,
+      "p95_ratio": 0.56825853707012,
+      "process_median_envelope_ratio": 0.5747688939050624,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.9915941959684857,
+      "p95_ratio": 0.9832871325819097,
+      "process_median_envelope_ratio": 1.0224503685440582,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.5273128895113929,
+      "p95_ratio": 0.5317138105698227,
+      "process_median_envelope_ratio": 0.5396424448031858,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/encode",
+      "comparator": "previous",
+      "median_ratio": 1.0127026169806526,
+      "p95_ratio": 0.9746620031995985,
+      "process_median_envelope_ratio": 1.0546155628156915,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "gpt2/encode",
+      "comparator": "python",
+      "median_ratio": 0.44226627661973045,
+      "p95_ratio": 0.4456360584427855,
+      "process_median_envelope_ratio": 0.4565623532766493,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9848725391380331,
+      "p95_ratio": 1.0047734883953414,
+      "process_median_envelope_ratio": 1.0120046660630961,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode",
+      "comparator": "python",
+      "median_ratio": 0.22944353236523518,
+      "p95_ratio": 0.23571429977240854,
+      "process_median_envelope_ratio": 0.242649353078812,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 1.0031898314989773,
+      "p95_ratio": 1.0096758434845643,
+      "process_median_envelope_ratio": 1.0155559901562934,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.24493763470757757,
+      "p95_ratio": 0.24829149914332946,
+      "process_median_envelope_ratio": 0.25813219905387735,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/encode",
+      "comparator": "previous",
+      "median_ratio": 0.8927938038381662,
+      "p95_ratio": 0.9012225627715974,
+      "process_median_envelope_ratio": 0.9336033337087507,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/encode",
+      "comparator": "python",
+      "median_ratio": 0.4655856892057549,
+      "p95_ratio": 0.4767696878810782,
+      "process_median_envelope_ratio": 0.5042805175466258,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9118510087762197,
+      "p95_ratio": 0.8715287677481894,
+      "process_median_envelope_ratio": 0.9586626498371189,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode",
+      "comparator": "python",
+      "median_ratio": 0.22238594739472364,
+      "p95_ratio": 0.22396905154258365,
+      "process_median_envelope_ratio": 0.2343033545698832,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 0.9398177419218869,
+      "p95_ratio": 0.9148121164780195,
+      "process_median_envelope_ratio": 1.0129108385585337,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.23684322307344316,
+      "p95_ratio": 0.24647435733719558,
+      "process_median_envelope_ratio": 0.25360176414985,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/encode",
+      "comparator": "previous",
+      "median_ratio": 1.01589029535865,
+      "p95_ratio": 1.0266390122176492,
+      "process_median_envelope_ratio": 1.0732450237302544,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "tinystories/encode",
+      "comparator": "python",
+      "median_ratio": 0.09097378939226912,
+      "p95_ratio": 0.09232273449791438,
+      "process_median_envelope_ratio": 0.09533604044449523,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode",
+      "comparator": "previous",
+      "median_ratio": 0.9802661621762672,
+      "p95_ratio": 1.0122771119555687,
+      "process_median_envelope_ratio": 1.1260689561558301,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "tinystories/decode",
+      "comparator": "python",
+      "median_ratio": 0.05295878781899384,
+      "p95_ratio": 0.05868158856156821,
+      "process_median_envelope_ratio": 0.058990847283665514,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/decode_skip_special",
+      "comparator": "previous",
+      "median_ratio": 1.0261993990344036,
+      "p95_ratio": 1.0553670186023127,
+      "process_median_envelope_ratio": 1.0746968026460861,
+      "original_point_pass": true,
+      "passed": false
+    },
+    {
+      "cell": "tinystories/decode_skip_special",
+      "comparator": "python",
+      "median_ratio": 0.03020678167330402,
+      "p95_ratio": 0.032529191666670246,
+      "process_median_envelope_ratio": 0.03139506334301539,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.9700556973313251,
+      "p95_ratio": 0.969771982391484,
+      "process_median_envelope_ratio": 0.9867103437183891,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.6505164403030509,
+      "p95_ratio": 0.6229732104081768,
+      "process_median_envelope_ratio": 0.6981237630080596,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9964454019119429,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.37250717269844463,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9996096663344184,
+      "passed": true
+    },
+    {
+      "cell": "codec/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.3609276689988423,
+      "passed": true
+    },
+    {
+      "cell": "bert/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.6550223403854976,
+      "p95_ratio": 0.7178548159274482,
+      "process_median_envelope_ratio": 0.713614622392994,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.3379696465231307,
+      "p95_ratio": 0.3652010359294732,
+      "process_median_envelope_ratio": 0.37755981963916874,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9117545673905549,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.24025797075120356,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.895906918761687,
+      "passed": true
+    },
+    {
+      "cell": "bert/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.19804344830753687,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.5034575125140128,
+      "p95_ratio": 0.4704126603870495,
+      "process_median_envelope_ratio": 0.5592437573753316,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.4114230073274598,
+      "p95_ratio": 0.4021735940588069,
+      "process_median_envelope_ratio": 0.45080661543172845,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.6095430107526881,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.32038149063935006,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.6093413978494624,
+      "passed": true
+    },
+    {
+      "cell": "gpt2/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.3202755210173084,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.5531051309312527,
+      "p95_ratio": 0.5978678920449149,
+      "process_median_envelope_ratio": 0.7218317241094983,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.6252093115050275,
+      "p95_ratio": 0.6764886151939755,
+      "process_median_envelope_ratio": 0.8213533113583741,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.6015141955835962,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.4870000510803494,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.6015141955835962,
+      "passed": true
+    },
+    {
+      "cell": "qwen3/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.4870000510803494,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/checked_load",
+      "comparator": "previous",
+      "median_ratio": 0.9934371268165727,
+      "p95_ratio": 1.0018462799156418,
+      "process_median_envelope_ratio": 1.0429863800561066,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/checked_load",
+      "comparator": "python",
+      "median_ratio": 0.1333721447697085,
+      "p95_ratio": 0.1352443217923489,
+      "process_median_envelope_ratio": 0.13987760852220754,
+      "original_point_pass": true,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmHWM",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9628552971576227,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmHWM",
+      "comparator": "python",
+      "peak_observed_ratio": 0.16518896154272414,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmRSS",
+      "comparator": "previous",
+      "peak_observed_ratio": 0.9628552971576227,
+      "passed": true
+    },
+    {
+      "cell": "tinystories/VmRSS",
+      "comparator": "python",
+      "peak_observed_ratio": 0.16518896154272414,
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Observed per-process median envelope used for three-process cells; control intervals resample whole paired processes.",
+    "Memory uses maximum observed process RSS/HWM, not allocator counters as interchangeable device peaks.",
+    "Lifecycle is separately measured, not an invented disk-cold or steady-state timing."
+  ],
+  "audit_source_sha256": "63133db772b3e908b6b2a208b9198567d498b2a2f19e7d38e83824e4f7d5d572"
+}

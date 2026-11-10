@@ -16,6 +16,10 @@ sha2 = "0.10"
 thiserror = "2"
 tokenizers = { version = "=0.22.2", default-features = false, features = ["onig"] }
 
+# Same pinned SHA-256 algorithm, using runtime-detected Apple Silicon instructions.
+[target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
+sha2 = { version = "0.10", features = ["asm"] }
+
 [dev-dependencies]
 tempfile = "3"
 

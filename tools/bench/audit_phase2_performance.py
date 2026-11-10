@@ -47,6 +47,16 @@ def audit(config):
     require(len({validate(r['phases']) for r in life['runs']})==1,'lifecycle output mismatch')
     inputs[str(life_path)]=hashlib.sha256(life_path.read_bytes()).hexdigest()
     controls={p:control(Path(path),p) for p,path in config.get('controls',{}).items()}
+    for profile,path in config.get('controls',{}).items():
+        directory=Path(path)
+        environment=json.loads((directory/'environment.json').read_bytes())
+        if environment.get('identical_tokenizer_binary_control',False):
+            require(controls[profile]['native_binaries_identical'],'identity control requires identical binaries')
+        for name in ('previous','candidate'):
+            filename=f'tokenizer-{profile}-rust-1.json'
+            a=json.loads((directory/name/filename).read_bytes())
+            b=json.loads((roots[name]/filename).read_bytes())
+            require(a['source_sha256']==b['source_sha256'],'follow-up sources differ from the matrix')
     rows=[]
     def timing(label,new,a,b,follow=None):
         for name,other in [('previous',a),('python',b)]:
@@ -67,7 +77,6 @@ def audit(config):
     groups=[('codec',old['codec']['loads'],new['codec']['loads'])]
     for a,b in zip(old['tokenizers'],new['tokenizers']):
         profile=b['profile'];follow=controls.get(profile)
-        if follow: require(follow['native_binaries_identical'],'identity follow-up cannot substitute changed binaries')
         for i,(x,y) in enumerate(zip(a['measurements'],b['measurements'])):
             timing(f"{profile}/{y['scope']}",y['runtimes']['rust']['timing'],x['runtimes']['rust']['timing'],y['runtimes']['python']['timing'],follow['measurements'][i] if follow else None)
         groups.append((profile,a['loads'],b['loads']))
