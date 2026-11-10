@@ -99,9 +99,13 @@ fn parse_hf(payload: &[u8], profile: &str) -> Result<tokenizers::Tokenizer> {
             serde_json::from_slice::<Typed<tokenizers::models::wordpiece::WordPiece>>(payload)?
                 .into(),
         ),
-        "gpt2" | "qwen3" => {
-            Ok(serde_json::from_slice::<Typed<crate::hf_bpe::CanonicalBpe>>(payload)?.into())
-        }
+        // Pinned base-vocabulary capacities also bound the tuple-merge counts.
+        "gpt2" => Ok(
+            serde_json::from_slice::<Typed<crate::hf_bpe::CanonicalBpe<50257>>>(payload)?.into(),
+        ),
+        "qwen3" => Ok(
+            serde_json::from_slice::<Typed<crate::hf_bpe::CanonicalBpe<151643>>>(payload)?.into(),
+        ),
         _ => Err(invalid("unsupported HF profile")),
     }
 }

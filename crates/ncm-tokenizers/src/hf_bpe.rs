@@ -25,7 +25,7 @@ enum Kind {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Canonical {
+struct Canonical<const CAP: usize> {
     #[serde(rename = "type")]
     _kind: Kind,
     dropout: Option<f32>,
@@ -35,16 +35,67 @@ struct Canonical {
     fuse_unk: Option<bool>,
     byte_fallback: Option<bool>,
     ignore_merges: Option<bool>,
+    #[serde(deserialize_with = "read_vocab::<_, CAP>")]
     vocab: Vocab,
+    #[serde(deserialize_with = "read_merges::<_, CAP>")]
     merges: Vec<(String, String)>,
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct CanonicalBpe(BPE);
+// Capacities come from the authenticated profile, not untrusted size hints.
+fn read_vocab<'de, D: Deserializer<'de>, const CAP: usize>(d: D) -> Result<Vocab, D::Error> {
+    struct Visitor<const CAP: usize>;
+    impl<'de, const CAP: usize> serde::de::Visitor<'de> for Visitor<CAP> {
+        type Value = Vocab;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("bounded canonical vocabulary")
+        }
+        fn visit_map<A: serde::de::MapAccess<'de>>(self, mut map: A) -> Result<Vocab, A::Error> {
+            let mut vocab = Vocab::with_capacity(CAP);
+            while let Some((key, id)) = map.next_entry::<String, u32>()? {
+                vocab.insert(key, id);
+                if vocab.len() > CAP {
+                    return Err(serde::de::Error::custom(
+                        "vocabulary exceeds profile capacity",
+                    ));
+                }
+            }
+            Ok(vocab)
+        }
+    }
+    d.deserialize_map(Visitor::<CAP>)
+}
+fn read_merges<'de, D: Deserializer<'de>, const CAP: usize>(
+    d: D,
+) -> Result<Vec<(String, String)>, D::Error> {
+    struct Visitor<const CAP: usize>;
+    impl<'de, const CAP: usize> serde::de::Visitor<'de> for Visitor<CAP> {
+        type Value = Vec<(String, String)>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("bounded canonical tuple merges")
+        }
+        fn visit_seq<A: serde::de::SeqAccess<'de>>(
+            self,
+            mut seq: A,
+        ) -> Result<Self::Value, A::Error> {
+            let mut merges = Vec::with_capacity(CAP);
+            while let Some(pair) = seq.next_element()? {
+                if merges.len() == CAP {
+                    return Err(serde::de::Error::custom("merges exceed profile capacity"));
+                }
+                merges.push(pair);
+            }
+            Ok(merges)
+        }
+    }
+    d.deserialize_seq(Visitor::<CAP>)
+}
 
-impl<'de> Deserialize<'de> for CanonicalBpe {
+#[derive(Clone, Debug)]
+pub(crate) struct CanonicalBpe<const CAP: usize>(BPE);
+
+impl<'de, const CAP: usize> Deserialize<'de> for CanonicalBpe<CAP> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let c = Canonical::deserialize(deserializer)?;
+        let c = Canonical::<CAP>::deserialize(deserializer)?;
         let mut builder = BPE::builder().vocab_and_merges(c.vocab, c.merges);
         if let Some(v) = c.dropout {
             builder = builder.dropout(v);
@@ -70,17 +121,17 @@ impl<'de> Deserialize<'de> for CanonicalBpe {
         builder.build().map(Self).map_err(serde::de::Error::custom)
     }
 }
-impl Serialize for CanonicalBpe {
+impl<const CAP: usize> Serialize for CanonicalBpe<CAP> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.0.serialize(serializer)
     }
 }
-impl From<CanonicalBpe> for ModelWrapper {
-    fn from(value: CanonicalBpe) -> Self {
+impl<const CAP: usize> From<CanonicalBpe<CAP>> for ModelWrapper {
+    fn from(value: CanonicalBpe<CAP>) -> Self {
         Self::BPE(value.0)
     }
 }
-impl Model for CanonicalBpe {
+impl<const CAP: usize> Model for CanonicalBpe<CAP> {
     type Trainer = <BPE as Model>::Trainer;
     fn tokenize(&self, sequence: &str) -> tokenizers::Result<Vec<Token>> {
         self.0.tokenize(sequence)
@@ -109,6 +160,19 @@ impl Model for CanonicalBpe {
 mod tests {
     use super::*;
     #[test]
+    fn profile_capacities_bound_and_preserve_collections() {
+        let mut d = serde_json::Deserializer::from_str(r#"{"a":0,"b":1}"#);
+        assert_eq!(read_vocab::<_, 2>(&mut d).unwrap().len(), 2);
+        let mut d = serde_json::Deserializer::from_str(r#"{"a":0,"b":1}"#);
+        assert!(read_vocab::<_, 1>(&mut d).is_err());
+        let mut d = serde_json::Deserializer::from_str(r#"[["a","b"],["c","d"]]"#);
+        let pairs = read_merges::<_, 2>(&mut d).unwrap();
+        assert_eq!(pairs.len(), 2);
+        assert_eq!(pairs.capacity(), 2);
+        let mut d = serde_json::Deserializer::from_str(r#"[["a","b"],["c","d"]]"#);
+        assert!(read_merges::<_, 1>(&mut d).is_err());
+    }
+    #[test]
     fn preserves_options_and_rejects_noncanonical_models() {
         let original = BPE::builder()
             .vocab_and_merges(
@@ -127,7 +191,7 @@ mod tests {
             .build()
             .unwrap();
         let json = serde_json::to_value(&original).unwrap();
-        let parsed: CanonicalBpe = serde_json::from_value(json.clone()).unwrap();
+        let parsed: CanonicalBpe<4> = serde_json::from_value(json.clone()).unwrap();
         assert_eq!(serde_json::to_value(parsed).unwrap(), json);
         for (key, value) in [
             ("type", serde_json::json!("WordPiece")),
@@ -137,7 +201,7 @@ mod tests {
         ] {
             let mut bad = json.clone();
             bad[key] = value;
-            assert!(serde_json::from_value::<CanonicalBpe>(bad).is_err());
+            assert!(serde_json::from_value::<CanonicalBpe<4>>(bad).is_err());
         }
     }
 }

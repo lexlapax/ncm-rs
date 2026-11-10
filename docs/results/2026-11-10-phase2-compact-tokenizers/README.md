@@ -77,6 +77,29 @@ same paired-process bootstrap. It does not reuse lifecycle timings as warm loads
 All intermediate failed audits and measurements are archived. No fastest-run
 selection or changed thresholds; fresh processes remain the independent units.
 
+## Profile-capacity follow-up
+
+Candidate `45743d0` passes full Metal checks and real tokenizer goldens. Apple Qwen
+improves further to **65.82 ms / 326,828,032 bytes HWM**, but still exceeds the
+matched Python memory band. This negative diagnostic is retained in
+`raw/compact-qwen.json`; it is not relabeled as an acceptance pass.
+
+The canonical parser now reserves vocabulary and merge containers from the pinned
+profile capacities (GPT-2 50,257; Qwen 151,643), avoiding geometric map/vector
+construction growth. These are authenticated, compile-time allocation bounds, not
+untrusted JSON size hints. Tuple count is bounded by base vocabulary capacity;
+new tests cover exact capacity and rejection above it. Runtime structures and
+model algorithms are unchanged. This follows the compact-ownership work rather
+than introducing an alternate global allocator or allocator-trimming benchmark.
+
+This follow-up returned through Linux first: full CUDA checks, real tokenizer
+goldens/rejections, a fresh full matrix, and fixed 30-triplet BERT/GPT-2/TinyStories
+controls pass **78 comparisons** in `raw/phase2-linux-capacity-tokenizers-acceptance-v2.json`.
+The unchanged-codec nine-triplet load control is reused with exact source binding;
+its data are not claimed as newly collected. Initial uncertain audit is retained.
+The new config is `raw/phase2-linux-capacity-tokenizers-config.json`. Apple must
+still test this latest allocation-bound candidate.
+
 ## Reproduction and next steps
 
 `evidence.json` hashes every raw archive/log/report. Unpack `raw/linux-NAME.tar.gz`

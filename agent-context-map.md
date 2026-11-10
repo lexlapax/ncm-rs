@@ -305,7 +305,14 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   Apple controls explicitly have no affinity claim and require activity telemetry.
   New MLX lifecycle/three-way tools await real Apple execution. Full details and
   all failed/final evidence: `docs/results/2026-11-10-phase2-compact-tokenizers/`.
-- **Next: pull this compact candidate and finish Apple acceptance, not Phase 3.**
+- Compact candidate pushed/pulled as `45743d0`; full Metal checks and real
+  tokenizer goldens pass. Qwen improves to 65.82 ms / 326.83 MB HWM but still
+  exceeds Python's memory band. Retained as failed memory diagnostic. Follow-up
+  reserves canonical BPE vocab/merge containers from pinned profile capacities;
+  tests enforce bounds. Full Linux CUDA checks and fresh matrix + 30-triplet
+  controls again pass all 78 comparisons; unchanged-codec load control is explicitly
+  reused with source binding. Evidence appended to the compact-tokenizers report.
+- **Next: pull this capacity follow-up and finish Apple acceptance, not Phase 3.**
   Validate new structures/memory, trained Metal traces, real tokenizers, repeated
   loads/requests, full three-way performance/memory and separate lifecycle evidence.
   Neither diagnostics nor Linux acceptance close Phase 2; preserve historical worktrees.
