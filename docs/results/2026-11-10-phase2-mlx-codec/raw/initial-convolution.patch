@@ -1,0 +1,25 @@
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -291,22 +291,6 @@
+             }
+             let y = if transposed {
+                 ops::conv_transpose1d(&x.0, &weight.0, stride, padding)?
+-            } else if padding == 0 && length == kernel {
+-                // A full-span convolution is exactly a projection. The native
+-                // convolution's long FP32 reduction exceeded the trained oracle
+-                // budget; use native FP32 matmul, not a precision/oracle change.
+-                let width = input
+-                    .checked_mul(kernel)
+-                    .ok_or("projection width overflow")?;
+-                x.0.transpose_axes(&[0, 2, 1])?
+-                    .reshape(&[batch, width])?
+-                    .matmul(
+-                        weight
+-                            .0
+-                            .reshape(&[output, width])?
+-                            .transpose_axes(&[1, 0])?,
+-                    )?
+-                    .reshape(&[batch, 1, output])?
+             } else {
+                 ops::conv1d(&x.0, &weight.0, stride, padding)?
+             };

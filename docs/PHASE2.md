@@ -1,6 +1,6 @@
 # Phase 2 contract and acceptance tracker
 
-Status: in progress; complete shared codec passes Linux/CUDA trace parity. Neither runtime gate is passed.
+Status: Linux/CUDA gate complete; Apple/MLX parity passes, performance/memory pending.
 Phase 1 evidence remains unchanged; this document declares Phase 2 criteria before
 Rust codec implementation. The confirmed scope includes Sudoku codec execution
 and TinyStories/GPT-2/Qwen/BERT tokenizer asset conversion/parity, not their full
@@ -142,6 +142,8 @@ kernels, compiled mixed-precision policy or generation-cache work in this phase.
   Native codec is slower than eager Torch; measured memory scopes differ. No
   efficiency claim or compiled-Python qualification is implied.
 - [ ] Corresponding Apple/MLX implementation, parity and measurements.
+  [Codec/tokenizer parity passes](results/2026-11-10-phase2-mlx-codec/README.md),
+  including real Metal local checks; measurements remain pending.
 - [ ] Both local checks, reports, context updates and reviewed commit/push closure.
 
 Missing hardware/artifact evidence remains pending. If progress requires changed

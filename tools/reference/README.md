@@ -131,6 +131,15 @@ Build the native `codec_bench` and `asset_bench` examples, then use
 budgets and timing counts before aggregating. See the [Linux gate report](../../docs/results/2026-11-10-phase2-linux/README.md)
 for exact commands, raw trials, telemetry, memory scopes and negative results.
 
+## Phase 2 MLX codec parity
+
+The native `mlx_codec_trace` example uses the same authenticated trained-capture
+harness as CUDA. Copy the pinned CUDA reference (not a newly generated Apple
+oracle), run native capture, then qualify offline with `qualify_codec.py`.
+See the [MLX correctness milestone](../../docs/results/2026-11-10-phase2-mlx-codec/README.md)
+for exact commands, first-index/snapshot checks and the retained initial failure.
+The independent Apple Python timing baseline and measurements remain pending.
+
 ## Apple Silicon / MLX Phase 1
 
 Tested tuple: Rust 1.99.1, mlx-rs Git pin in Cargo.lock (0.34.0), native MLX

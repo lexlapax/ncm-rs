@@ -8,7 +8,8 @@ All 18 operator goldens and 238 checkpoint tensor readbacks pass; scoped Sudoku
 conversion, a checked Rust artifact loader, text tokenizer and reference traces
 exist. The shared FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT text
 tokenizers now pass the [Linux correctness/performance/memory gate](docs/results/2026-11-10-phase2-linux/README.md).
-The codec is slower than eager PyTorch; the MLX codec pass remains pending. Text tokenizer support does not imply full text-model inference.
+The codec is slower than eager PyTorch. [MLX codec/tokenizer parity](docs/results/2026-11-10-phase2-mlx-codec/README.md)
+now passes; Apple performance/memory acceptance remains pending. Text tokenizer support does not imply full text-model inference.
 **No generator or inference CLI yet.** See the
 [Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
 Within each phase, Linux/CUDA is validated

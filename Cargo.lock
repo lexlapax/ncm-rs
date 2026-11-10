@@ -1046,7 +1046,9 @@ name = "ncm-backend-mlx"
 version = "0.1.0"
 dependencies = [
  "mlx-rs",
+ "ncm-core",
  "ncm-io",
+ "ncm-model",
  "safetensors",
  "serde",
  "serde_json",

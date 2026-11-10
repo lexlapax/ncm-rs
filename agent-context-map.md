@@ -8,10 +8,9 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 - **Confirmed goal: complete Phase 2. Linux/CUDA gate is complete**, including
   codec/tokenizer parity and matched three-process performance/memory evidence.
   Native codec is slower than eager Torch; this is not an efficiency claim.
-  Apple/MLX implementation/testing is next; no Phase 2 Apple run has started.
-  **Paused for SSH authentication:** Mac is reachable, but the server-accepted
-  RSA key cannot sign (`agent refused operation`). User must unlock/approve the
-  local SSH agent and confirm `ssh macstudio true`; no remote changes were made.
+  Apple/MLX codec and tokenizer parity now pass; **Apple performance/memory and
+  final publication remain pending**. SSH authentication was restored by the user.
+  The first Phase 2 MLX run was announced after Linux acceptance.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -44,6 +43,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 | Artifact trust/limits | [docs/ARTIFACTS.md](docs/ARTIFACTS.md), [ncm-io](crates/ncm-io/src/lib.rs), [runtime checks](docs/results/2026-11-10-phase2-runtime/README.md) |
 | Architecture / upstream caveats | [architecture](docs/ARCHITECTURE.md), [research](docs/RESEARCH.md) |
 | Checks / reporting / compatibility | [testing](docs/TESTING.md), [reporting](docs/REPORTING.md), [upstream policy](docs/UPSTREAM.md) |
+| MLX codec / current parity evidence | [adapter](crates/ncm-backend-mlx/src/codec.rs), [Apple parity report](docs/results/2026-11-10-phase2-mlx-codec/README.md), [shared trained capture](tests/support/trained_codec.rs) |
 | Phase 2 Linux acceptance / benchmarks | [Linux gate](docs/results/2026-11-10-phase2-linux/README.md), [summary tool](tools/bench/phase2_summary.py), [runner](tools/bench/run_phase2_linux.py) |
 | Historical baselines | [results index](docs/results/README.md), [Apple Phase 1](docs/results/2026-11-10-mlx-phase1/README.md) |
 
@@ -78,6 +78,10 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   `adf439bf5361d8a02955de7aaf651b0c45900945`; native MLX 0.32.2, mlx-c
   `a341b4925024b88b2c593468f16e12f5e17315da`. `.reference/mlx-venv` is offline-only;
   native include/share/lib are copied into `.reference/mlx-native`.
+- Mac candidate testing used a separate worktree `.reference/phase2-mlx-candidate`
+  with the main checkout's native prefix and target cache. Main checkout is updated
+  only by pulling pushed commits. Preserve unrelated work; existing CPU work was
+  left running, builds limited to two jobs. Benchmark acceptance must assess noise.
 - Mac build: `MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"`,
   `RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib"`,
   `RUSTDOCFLAGS="$RUSTFLAGS"`, `CARGO_BUILD_JOBS=8`, then `./tools/check.sh --mlx`.
@@ -143,11 +147,29 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   retain both skip modes and special/non-special throughput; Qwen native loading
   is slightly slower in pooled medians. Original-source vs canonical load formats
   differ. No model/operator/tokenizer math, dependency pin or golden changed.
+- MLX now implements the existing backend contract with opaque immutable arrays
+  and an explicit GPU stream (restores a CPU-scoped caller); no model duplication.
+  All 18 operators, 140 components and complete tiny codec pass; 642 trained traces
+  and all 2,500 decisions pass. Two fresh captures are identical, SHA-256
+  `f20ffe0f36a82c80a81e91a61b61950968821369b6b41d0f13cbf9e732875a0f`.
+  Same two near ties; reconstruction 445/445 versus Python, input recovery 437/445.
+- Initial MLX full-span convolution failed two blank-board projection values despite
+  exact IDs. Retained in the Apple report. Equivalent native FP32 matmul for
+  zero-padding/full-span convolution fixes parity; no precision/oracle/budget change.
+  Worst component still uses 94.28% of budget. Large v1/v2 traces remain ignored
+  under `reports/phase2-codec/` on both machines; Mac also has `mlx-v2-repeat`.
+- The shared trained-capture harness refactor preserves the CUDA trace hash exactly.
+  Mac tokenizer probe passes all four profiles, including rejection cases and a
+  cleared environment without Python. Canonical tokenizer assets are now on Mac.
 - Latest Linux `tools/check.sh --cuda` passes: 30 base Rust tests, real-CUDA codec
   suite, all 18 unchanged operators, fmt/Clippy/docs/syntax. Eleven report-tool tests
   and all 18 offline reference tests pass. Tokenizer probe previously also passed
   with cleared env and no Python on PATH. Logs: `.reference/phase2-linux-check.log`,
   `.reference/phase2-linux-reference-tests.log`; reports retain exact fingerprints.
+  Shared-harness/final Linux checks: `.reference/phase2-mlx-shared-linux.log`,
+  `.reference/phase2-mlx-final-linux.log`; all 18 offline tests also rerun.
+  Mac `tools/check.sh --mlx` passes with four new codec tests; logs copied locally:
+  `.reference/phase2-mlx-v2-check.log`, `.reference/phase2-mlx-v2-components.log`.
 
 ## Provenance and next actions
 
@@ -156,12 +178,10 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   gate `fd1b482` (pushed). Preserve old reports/source hashes;
   do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
   task-quality data or an inference release.
-- Connection recheck: initial SSH command timed out; bounded verbose retry reached
-  the known host and failed accepted-key signing, ending in permission denied.
-  Log `.reference/phase2-mac-connect.log` stays local. No authentication settings
-  or keys changed. This context-only update has no runtime impact; checked diff.
-- **Next: restore authorized SSH, then Apple/MLX gate.** Recheck Mac availability/worktree, announce the first
-  Phase 2 MLX run after safely syncing reviewed pushed code/assets, implement the same
-  shared codec via MLX, and repeat the identical fixtures/tokenizer checks and
-  measurement protocol. Both platform gates plus durable evidence/acceptance
-  publication are required; no Phase 3 work or inference release claims.
+- **Next: Apple measurement gate.** Qualify an adapted same-device Python baseline
+  independently against the unchanged CUDA oracle; implement matched codec and
+  tokenizer load/first/warm/throughput/RSS/native-memory measurements. Investigate
+  historical Apple loader RSS; use three processes/five warmups/thirty trials and
+  assess competing work before acceptance. Current MLX changes are explicitly
+  performance-unqualified. Large licensed oracle/native/tokenizer archives and
+  final acceptance publication remain pending; no Phase 3 or inference release.

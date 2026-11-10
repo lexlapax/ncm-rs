@@ -1,0 +1,13 @@
+    Finished `release` profile [optimized] target(s) in 0.07s
+     Running tests/codec_components.rs (/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/deps/codec_components-bbee9c0c733bc600)
+
+running 4 tests
+test metal_selection_shapes_and_snapshots ... ok
+test metal_full_span_projection ... ok
+test metal_batched_transpose ... ok
+Metal components Summary { tensors: 140, elements: 75348, max_abs: 7.62939453125e-6 }
+Metal complete codec Summary { tensors: 252, elements: 112212, max_abs: 1.52587890625e-5 }
+test metal_codec_components ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+

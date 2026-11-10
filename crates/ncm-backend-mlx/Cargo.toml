@@ -1,6 +1,6 @@
 [package]
 name = "ncm-backend-mlx"
-description = "Candidate MLX operators for NCM on Apple Silicon"
+description = "Native MLX backend for the shared NCM codec on Apple Silicon"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,14 +10,16 @@ publish = false
 
 [features]
 default = []
-mlx = ["dep:mlx-rs", "dep:ncm-io", "dep:safetensors"]
+mlx = ["dep:mlx-rs", "dep:ncm-core", "dep:ncm-io", "dep:safetensors"]
 
 [target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
 mlx-rs = { git = "https://github.com/oxiglade/mlx-rs", rev = "adf439bf5361d8a02955de7aaf651b0c45900945", optional = true, features = ["safetensors"] }
+ncm-core = { path = "../ncm-core", optional = true }
 ncm-io = { path = "../ncm-io", optional = true }
 safetensors = { version = "=0.8.0", optional = true }
 
 [dev-dependencies]
+ncm-model = { path = "../ncm-model" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
@@ -28,6 +30,10 @@ required-features = ["mlx"]
 
 [[example]]
 name = "mlx_load_probe"
+required-features = ["mlx"]
+
+[[example]]
+name = "mlx_codec_trace"
 required-features = ["mlx"]
 
 [lints]

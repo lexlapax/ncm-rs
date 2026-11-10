@@ -15,8 +15,9 @@
 CPU/CUDA and all 642 trained CUDA traces. [Pinned tokenizer assets](2026-11-10-phase2-tokenizers/README.md)
 pass exact Linux parity. The [Linux Phase 2 runtime gate](2026-11-10-phase2-linux/README.md)
 is complete with matched three-process codec/tokenizer latency, throughput and
-memory evidence, including slower native codec execution. Apple codec/tokenizer
-implementation and measurements remain pending.
+memory evidence, including slower native codec execution. [Apple codec/tokenizer
+parity](2026-11-10-phase2-mlx-codec/README.md) now passes, with the initial long-dot
+failure and FP32 projection correction retained. Apple measurements remain pending.
 
 **Phase 1 is complete**; see the [acceptance checklist](../PHASE1.md). Earlier rows
 retain their historical scope. These are capability/baseline checks, **not** NCM

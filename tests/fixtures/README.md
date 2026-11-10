@@ -25,8 +25,9 @@ The reference contains 236 traced tensors and per-position winner margins. It is
 not trained Sudoku weights. See [Phase 2 policy](../../docs/PHASE2.md) and the
 [oracle audit](../../docs/results/2026-11-10-phase2-oracle/README.md). Rust fixture
 execution now passes on CPU/CUDA, including complete free-running and fixed-code
-paths; trained CUDA qualification is reported separately. Phase 2 Apple execution
-remains pending; the Linux platform gate is now complete.
+paths; trained CUDA qualification is reported separately. The same fixtures and
+trained capture now also pass [MLX qualification](../../docs/results/2026-11-10-phase2-mlx-codec/README.md);
+Apple performance/memory acceptance remains pending.
 
 `tokenizers-v1.json` contains the four pinned text-tokenizer profiles: 356 encode
 cases and 2,314 decode comparisons across both special-token modes. It includes
