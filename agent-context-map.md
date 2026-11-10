@@ -11,8 +11,8 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   is 3.40–4.42 GiB versus the adapted Python MLX baseline's 0.287–0.288 GiB.
   Neither platform result is an efficiency, generation or full text-model claim.
   SSH authentication was restored by the user; the first Phase 2 MLX run followed
-  Linux acceptance. Final reviewed commit/push and durable large-archive release
-  publication remain pending.
+  Linux acceptance. Acceptance evidence commit `7a74fb3` is pushed; durable
+  large-archive release publication remains separately pending authorization.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -36,7 +36,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 
 - Independent Python MLX baseline passes all 642 unchanged trained traces and
   2,500 decisions against the CUDA oracle. Three-process codec/tokenizer evidence,
-  raw telemetry and baseline qualification are prepared in
+  raw telemetry and baseline qualification are published in
   `docs/results/2026-11-10-phase2-mlx/`; its fail-closed summary reproduces
   byte-for-byte from committed raw reports.
 - Host-only artifact loads reproduce high native RSS; diagnostics remain at
@@ -196,9 +196,6 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   gate `fd1b482` (pushed). Preserve old reports/source hashes;
   do not relabel historical runs. Benchmark outputs are synthetic fixtures, not
   task-quality data or an inference release.
-- **Next: final Phase 2 publication closure.** Review/stage the Apple report,
-  updated acceptance tracker and result index; ensure the context-map update is
-  staged, then commit/push only within authorization. Publish large licensed
-  oracle/native/tokenizer archives as durable release assets if authorized;
-  absence of that separate archive must remain visible. Do not begin Phase 3 or
-  claim an inference release.
+- **Next: Phase 2 is closed.** Publish large licensed oracle/native/tokenizer
+  archives as durable release assets only if authorized; their absence remains
+  visible. Do not begin Phase 3 or claim an inference release without a new goal.

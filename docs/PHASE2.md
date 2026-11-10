@@ -1,6 +1,6 @@
 # Phase 2 contract and acceptance tracker
 
-Status: Linux/CUDA and Apple/MLX Phase 2 gates complete; final publication review pending.
+Status: complete. Linux/CUDA and Apple/MLX Phase 2 gates are accepted and published.
 Phase 1 evidence remains unchanged; this document declares Phase 2 criteria before
 Rust codec implementation. The confirmed scope includes Sudoku codec execution
 and TinyStories/GPT-2/Qwen/BERT tokenizer asset conversion/parity, not their full
@@ -146,7 +146,9 @@ kernels, compiled mixed-precision policy or generation-cache work in this phase.
   [three-process runtime evidence](results/2026-11-10-phase2-mlx/README.md) pass.
   The adapted Python MLX baseline is independently qualified against the unchanged
   CUDA oracle; native host RSS remains a disclosed negative finding.
-- [ ] Both local checks, reports, context updates and reviewed commit/push closure.
+- [x] Both local checks, reports, context updates and reviewed commit/push closure:
+  acceptance evidence is published in `7a74fb3`. Large licensed trace/tokenizer
+  archives remain separate release assets pending explicit publication authorization.
 
 Missing hardware/artifact evidence remains pending. If progress requires changed
 compatibility requirements, unavailable resources or unsafe conversion, stop and
