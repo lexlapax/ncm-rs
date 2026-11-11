@@ -28,10 +28,18 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   short synthetic observers; no real telemetry window was collected. A red-to-green
   delayed-prefix case now prevents publication after the startup deadline expires.
   Exact logs, prior failures/test-isolation fixes and limitations are linked above.
-  These are prerequisites, not launch readiness: integrated coordinator/manifest,
-  full telemetry content/coverage, runtime-library/provenance and remaining
+  `readonly_trace_coordinator.py` now composes readiness, the fixed sequence and
+  observer lifetime under the independent supervisor in fake-CPU integration tests.
+  Ordinary job failure stops later jobs but preserves sampling; observer failure/
+  exit cancels an in-flight job. Interrupts inside bounded jobs propagate, and the
+  surviving supervisor cleans descendants after coordinator SIGKILL. Eight new
+  tests and default checks pass (**175 reporting tests**); the initial deadline
+  fixture incorrectly expected no job 2 despite short jobs and was corrected to
+  keep job 1 in flight. No real sampling/GPU/model run occurred.
+  This import-only coordinator is not launch readiness: frozen manifest/entry,
+  complete telemetry content/coverage, runtime-library/provenance and remaining
   integration failure tests are pending. Supervisor SIGKILL/host failure cannot
-  guarantee cleanup. Next: finish that integration, review readiness, then request
+  guarantee cleanup. Next: finish those bindings and checks, review readiness, then request
   fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 

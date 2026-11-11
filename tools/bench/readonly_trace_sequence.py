@@ -56,6 +56,16 @@ def validate_jobs(jobs):
     return validated
 
 
+def validate_report_paths(jobs, output_dir):
+    """Check all declared report paths before starting any collection worker."""
+    output_dir = Path(output_dir)
+    for ordinal, job in enumerate(jobs, 1):
+        if 'report_path' in job:
+            expected = output_dir.resolve() / f'{ordinal:02d}-{job["condition"]}.report.json'
+            if Path(job['report_path']) != expected:
+                raise ValueError('report must use its unique sequence-owned path')
+
+
 def run_sequence(jobs, output_dir, *, cancel_check=None):
     """Run the fixed sequence once; any failure stops later jobs without retry.
 
@@ -68,11 +78,7 @@ def run_sequence(jobs, output_dir, *, cancel_check=None):
         raise ValueError('cancel_check must be callable')
     jobs = validate_jobs(jobs)
     output_dir = Path(output_dir)
-    for ordinal, job in enumerate(jobs, 1):
-        if 'report_path' in job:
-            expected = output_dir.resolve() / f'{ordinal:02d}-{job["condition"]}.report.json'
-            if Path(job['report_path']) != expected:
-                raise ValueError('report must use its unique sequence-owned path')
+    validate_report_paths(jobs, output_dir)
     # Parent must exist; do not implicitly create an arbitrary directory tree.
     if shutil.disk_usage(output_dir.parent).free < MIN_FREE_BYTES:
         raise ValueError('at least 12 GiB free required before sequence')

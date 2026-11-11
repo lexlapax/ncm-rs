@@ -113,9 +113,17 @@ startup affinity is {0,2}, then verified {0}; observer/worker placement is CPU0.
 Eight short synthetic-observer tests pass, including an in-flight cancellation
 that prevents jobs 2–12 and a red-to-green delayed-readiness deadline guard; full
 checks pass 167 reporting tests. No real 900-second window or GPU query was run
-by this new worker. Integrated coordinator/manifest, complete telemetry
-content/coverage, runtime libraries/provenance and remaining failure tests are still
-pending. Selection is resolved; tooling
+by this new worker. A subsequent import-only coordinator now waits for bound
+first-sample readiness, runs the fixed sequence, cancels it on observer loss and
+preserves the full sampler lifetime after ordinary benchmark failure. Tests compose
+it with the actual independent subreaper and synthetic CPU observers: coordinator
+SIGTERM/SIGKILL, observer failure/early exit, startup/deadline/output errors,
+missing/malformed metadata and sequence setup failure. Eight tests pass and the
+full check passes 175 reporting tests. The initial deadline test incorrectly assumed
+job 2 could not start despite short jobs; its fixture now keeps job 1 in flight,
+without changing production limits. All failed evidence remains in the protocol.
+Frozen manifest/entry, complete telemetry content/coverage, runtime library/process
+provenance and remaining integration checks are still pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 

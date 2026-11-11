@@ -788,6 +788,72 @@ telemetry coverage/content verification and runtime-library/provenance coverage,
 then readiness review and a fresh quiet window. Linux remains 72/78; no GPU run,
 clock/power change, production modification or Apple work occurred.
 
+## Supervised coordinator composition — synthetic workers only
+
+`tools/bench/readonly_trace_coordinator.py` now composes the existing observer and
+fixed sequence in one dedicated worker. It is import-only: no real collection CLI,
+frozen launch manifest or availability claim is supplied. The final entry must
+run it under the independent subreaper, not as an unsupervised library call.
+
+Before spawning observation it validates all 12 jobs and their sequence-owned
+report paths. An exclusive private directory contains `telemetry/`, `sequence/`,
+`observer-worker.txt` and `collection.json`; the final launcher must bind this nested
+layout and any publication/sibling-file exports explicitly before collection.
+The observer must publish atomic readiness with its actual waitable worker PID,
+CPU0 affinity, expected sampler source/protocol, GPU UUID and explicit local-time
+offset. Recheck exit/cancellation/deadlines after parsing readiness before job 1.
+No readiness inferred from merely creating the directory or starting the process.
+
+The coordinator stays on CPU0; prepared workload commands retain CPU2. It monitors
+the observer while bounded jobs execute, cancelling an in-flight job and stopping
+submissions if observation exits (even exit 0 before the sequence finishes), fails
+or exceeds its lifetime/output allowance. Ordinary job nonzero/timeout/capture
+failures stop later jobs **without truncating the sampler**. A signal caught by a
+bounded job is propagated from its receipt, so SIGTERM does not accidentally turn
+into an ordinary failure followed by an unwanted 900-second wait. Exceptions,
+interruptions and unsafe observer conditions instead enter bounded cleanup.
+
+Startup allowance is 20 seconds including interpreter setup; the observer's own
+15-second first-sample deadline is unchanged. The coordinator has a 950-second
+observation wait allowance including setup headroom, followed by bounded cleanup;
+this does not extend the 600-second sequence, 120-second jobs or 900-second sampling
+protocol. On abort it sends TERM
+only while ownership is held, allows up to six seconds for observer cleanup, then
+performs final group cleanup **before** reaping (two-second reap bound). A surviving
+independent subreaper must clean adopted descendants and mark orphan cases failed.
+Observer text and JSON reads have 1 MiB bounds; text is checked by polling and can
+overshoot, not an enforced filesystem quota. Existing trace streaming caps remain
+unchanged. Trusted directories/no external writers remain required.
+
+Eight `test_readonly_trace_coordinator.py` tests use short synthetic CPU observers,
+not nvidia-smi, CUPTI or model binaries. They cover all 12 jobs, ordinary first-job
+failure with completed observation, observer nonzero/early successful exit, missing
+readiness, mismatched PID/affinity/source/UUID/timezone, expiration during readiness
+validation, output/deadline failure, missing result, sequence setup exception,
+invalid prelaunch jobs/paths, and lost ownership without signalling. Real dedicated
+subreaper tests verify coordinator SIGTERM and SIGKILL cleanup, including observer
+and GPU-surrogate PID disappearance and no remaining adopted children.
+
+The first test run failed because the deadline fixture used fast jobs yet asserted
+that job 2 never launched before the deadline. The fixture now leaves job 1 running
+through that deadline; no production timeout, gate or expected failure semantics
+were relaxed. Both logs are retained. Commands and SHA-256:
+
+| Command / retained local log | Result | SHA-256 |
+| --- | --- | --- |
+| `python -m unittest discover -s tools/bench -p test_readonly_trace_coordinator.py -v` → `reports/phase2-readonly-coordinator-tests-v1.log` | Initial fixture assertion failure | `a9483adee4bdcf73afaa19398fa15b812bbbf3aa13ea9b2a4cc4f643dac38809` |
+| Same command → `reports/phase2-readonly-coordinator-tests-v2.log` | 8 tests pass | `641c990fa3864f5a7c9b1dcf092d65bfc18ed3c2e7c7d6009786d3c660b5ac12` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-coordinator-check-v1.log` | Pass, 175 reporting tests | `bb3df5dd9ada379869325b1b17cddb191e4a795d46e46316474867c8cc92297b` |
+
+Success here means lifecycle composition, not complete telemetry content/coverage,
+output qualification, runtime library/executable provenance or acceptance; those
+flags remain false. Remaining work is the frozen launch manifest/entry, independent
+runtime-process/library/injection bindings, complete telemetry verification and
+remaining integration failure paths. Supervisor SIGKILL/host failure/uninterruptible
+tasks are not guaranteed contained, and fake children do not prove CUDA abort
+behavior. No real telemetry window or GPU query/model benchmark was run. Linux
+remains 72/78. Review readiness before requesting fresh quiet availability.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers, the fixed
