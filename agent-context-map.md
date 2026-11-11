@@ -185,6 +185,16 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   capability/original-state checks, restoration and a new quiet window; not yet
   approved/performed, not proven necessary/sufficient. Read-only finer-grained
   observation is an alternative. No background collection remains running.
+- Offline follow-up proposal (not approved/run):
+  [clock diagnostic v3](docs/results/2026-11-11-phase2-optimization/linux-clock-diagnostic-v3-proposal.md)
+  specifies one 18-process codec-only investigation, optional 1710 MHz request,
+  reset-to-default policy caveat, 600-second cleanup deadline and 900-second CPU
+  capture. Read-only capability query lists 1710 MHz; lock support/permission and
+  restoration are NOT proven. Supervisor implementation/failure-path tests remain
+  required before launch; no executable lock wrapper exists yet. User must confirm
+  default policy, approve the temporary change and provide a new quiet window.
+  Docs-only links/diff checks and 48 reporting tests pass; no runtime/policy change.
+  The completed v2 is not rerun; Linux remains 72/78 and Phase 2 incomplete.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

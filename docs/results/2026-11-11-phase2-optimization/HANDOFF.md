@@ -48,7 +48,11 @@ a plausible discriminating hypothesis, **not approved or performed**. It require
 explicit temporary-policy approval, supported-clock/original-state checks,
 restoration and a new quiet window; alternatively specify finer-grained read-only
 observation. Any new diagnostic/acceptance follow-up needs its own predeclared
-protocol, not another repetition until green.
+protocol, not another repetition until green. The [v3 clock diagnostic proposal](linux-clock-diagnostic-v3-proposal.md)
+now specifies the bounded optional intervention and cleanup requirements. It is
+not approved/run; an executable supervisor and its failure-path tests are still
+missing. Reset-to-default safety requires confirmation of the original default
+policy, not inference from sampled clocks.
 
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.
