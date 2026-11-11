@@ -56,8 +56,20 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   No dependency/pin/production edits. Eight focused tests and default check pass
   (**148 reporting tests**); exact evidence/limitations in the selected protocol.
   Raw Git status captures are private 0700-directory evidence, not for publication.
-  Next: clean worktree recheck after publication, whole-run supervision, runtime
-  library coverage and observer/telemetry integration, then readiness/availability.
+  Actual clean worktree verification passed at `156d976` (accepted `3307dff`),
+  with source/lock and manifest guards; private checkpoint evidence is retained.
+  `supervised_worker.py` now provides a dedicated Linux subreaper supervisor with
+  explicit parent identity, owned-child cancellation/adoption/reaping and bounded
+  cleanup. Eleven fake-CPU tests cover crashes, timeout/interrupt/parent loss,
+  multi-generation session escape, failures and unrelated-child survival. It is
+  not yet composed with the sequence/telemetry coordinator; supervisor SIGKILL,
+  host failure and uninterruptible tasks remain outside guaranteed cleanup.
+  Default checks pass **159 reporting tests**. Initial suite check hit the known
+  inherited-RSS floor in the resource test; both large/small measurements now run
+  in one fresh interpreter, preserving their order, allocation and 32 MiB assertion.
+  Failed/passing logs and scope are in the protocol; no benchmark was retried.
+  Next: integrated supervised sequence/telemetry lifecycle, runtime library and
+  provenance coverage, failure-path tests, then readiness and fresh availability.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

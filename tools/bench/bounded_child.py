@@ -57,7 +57,7 @@ def fingerprint_report(path, limit_bytes):
 
 def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                 output_limit_bytes, sequence_deadline=None, report_path=None,
-                report_limit_bytes=16 * 1024 ** 2):
+                report_limit_bytes=16 * 1024 ** 2, cancel_check=None):
     """Capture one owned session; return a failure receipt rather than retry.
 
     SIGINT/SIGTERM temporarily belong to this main-thread collector and result in
@@ -67,7 +67,11 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     Optional report_path must be an absent absolute argv argument beside capture;
     its post-exit hash is bound into the receipt, not proof of producer/quality.
     Its size limit bounds post-exit reading, NOT the child's live disk writes.
+    cancel_check is an optional trusted, nonblocking supervisor predicate, checked
+    before spawn and while collecting; true means failure and owned-child cleanup.
     """
+    if cancel_check is not None and not callable(cancel_check):
+        raise ValueError('cancel_check must be callable')
     if sys.platform != 'linux' or not hasattr(os, 'WNOWAIT'):
         raise ValueError('Linux waitid(WNOWAIT) is required')
     if threading.current_thread() is not threading.main_thread() or threading.active_count() != 1:
@@ -168,6 +172,8 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                     # Events arriving during Popen still use the cleanup path.
                     if interrupted is not None:
                         issue('interrupted')
+                    elif cancel_check is not None and cancel_check():
+                        issue('external_cancelled')
                     elif time.monotonic() >= deadline:
                         issue(deadline_reason)
                     else:
@@ -179,6 +185,9 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         while not issues:
                             if interrupted is not None:
                                 issue('interrupted')
+                                break
+                            if cancel_check is not None and cancel_check():
+                                issue('external_cancelled')
                                 break
                             if time.monotonic() >= deadline:
                                 issue(deadline_reason)

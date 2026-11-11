@@ -98,9 +98,17 @@ resolutions; lazy-loaded/JIT/driver libraries and live mappings are not covered.
 Actual uncommitted-tooling rejection is retained; recheck clean worktrees after
 publication. Source/lock stays anchored to d44beaa; Cargo manifests use measured
 v2 fa040ed to retain the already-approved codec_memory example declaration.
-Raw Git status evidence is private, not for publication. Whole-run supervision,
-runtime library coverage, telemetry/observer placement and integrated launch
-provenance remain pending. Selection is resolved; tooling
+Raw Git status evidence is private, not for publication. Actual clean-worktree
+verification subsequently passed at 156d976 against accepted 3307dff. A dedicated
+Linux subreaper supervisor now handles worker death/parent loss and adopted
+session-escaping descendants, with eleven fake-CPU tests including failure paths
+and unrelated-child survival. It still needs composition with sequence/telemetry;
+supervisor SIGKILL/host failure are not guaranteed cleanup. Default checks now pass
+159 reporting tests. An initial inherited-RSS resource assertion failure was fixed
+by running its unchanged large-then-small measurements in one fresh interpreter;
+the original threshold and allocation are unchanged, failed log retained. Runtime
+library coverage, telemetry/observer placement, integrated launch provenance and
+supervised-coordinator failure tests remain pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 

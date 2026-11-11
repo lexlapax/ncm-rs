@@ -2,11 +2,12 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from run_process_resources import measure, run
+from run_process_resources import run
 
 
 class ProcessResourcesTests(unittest.TestCase):
@@ -36,10 +37,26 @@ class ProcessResourcesTests(unittest.TestCase):
     def test_child_high_water_not_previous_child_high_water(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            large = measure([sys.executable, "-c", "x=bytearray(64*1024*1024)"], tmp,
-                            root / "large.out", root / "large.err", os.environ.copy())
-            small = measure([sys.executable, "-c", "pass"], tmp,
-                            root / "small.out", root / "small.err", os.environ.copy())
+            # The suite's growing resident heap must not become either child's
+            # inherited pre-exec RSS floor. Keep both measurements in the SAME
+            # fresh launcher, preserving the large-then-small regression contract.
+            code = """
+import json, os, sys
+from pathlib import Path
+from run_process_resources import measure
+root = Path(sys.argv[1])
+large = measure([sys.executable, '-c', 'x=bytearray(64*1024*1024)'], str(root),
+                root / 'large.out', root / 'large.err', os.environ.copy())
+small = measure([sys.executable, '-c', 'pass'], str(root),
+                root / 'small.out', root / 'small.err', os.environ.copy())
+print(json.dumps({'large': large, 'small': small}))
+"""
+            measured = subprocess.run([sys.executable, '-c', code, str(root)],
+                                      cwd=Path(__file__).parent, text=True, capture_output=True,
+                                      env={'PATH': os.defpath, 'PYTHONNOUSERSITE': '1'},
+                                      timeout=30, check=True)
+            values = json.loads(measured.stdout)
+            large, small = values['large'], values['small']
             field = "wait4_peak_rss_bytes_including_pre_exec"
             self.assertGreater(large[field], small[field] + 32 * 1024 * 1024)
 

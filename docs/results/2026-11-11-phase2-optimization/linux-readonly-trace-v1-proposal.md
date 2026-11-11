@@ -648,11 +648,84 @@ Next: clean worktree recheck, whole-run supervision, runtime library coverage an
 observer/telemetry integration, then readiness review and fresh quiet window.
 All 12 proposed read-only benchmark processes remain unrun; Linux stays 72/78.
 
+## Independent worker-supervision prerequisite
+
+Before edits in this checkpoint, the actual clean-worktree guard passed at
+candidate `156d976cd06601dce6cb38807fff6f87481a4999` and accepted `3307dff`.
+Production source/lock and measured-v2 manifest guards passed. Private local
+`reports/phase2-readonly-clean-worktrees-v1/worktrees.json` has SHA-256
+`f673ce95eff41bd906933f1d9157c22b0b75e3093fceca2db3b05b96f04de16b`.
+This is checkpoint evidence, not a substitute for another launch-time recheck.
+Raw Git status captures remain private and unpublished.
+
+`tools/bench/supervised_worker.py` now supervises one trusted worker in a dedicated
+Linux interpreter. It requires the caller-supplied parent PID, one Python/OS
+thread, default SIGCHLD, no pre-existing children and no existing subreaper role.
+A narrow ctypes call to Linux PR_GET/SET_CHILD_SUBREAPER (37/36) changes only this
+supervisor process's child-adoption role; no system service/policy is changed.
+The original role and signal handlers are restored on verified cleanup.
+
+The existing bounded-child primitive gains a trusted nonblocking cancellation
+predicate, checked before spawn and during capture. The supervisor uses it to
+notice parent disappearance or orphan adoption while the worker lives. Worker
+crash/timeout/interrupt/parent loss stops the worker; a surviving supervisor then
+adopts and cleans descendants, including descendants in new sessions and successive
+generations. Each numeric PID is verified waitable before signalling, and reaped
+only afterward; unconfirmed ownership prohibits signalling. Cleanup is bounded to
+two seconds beyond the worker primitive's bounded cleanup/drain. Any orphan,
+missing ownership, incomplete cleanup or role-restoration failure makes the
+supervisor result fail, even if the worker exited zero. Unrelated processes are
+never enumerated or signalled by process name or GPU occupancy.
+
+This is a tested **worker supervisor primitive**, not the integrated collection
+coordinator. It must remain alive independently of the worker. Supervisor SIGKILL,
+host failure and uninterruptible kernel tasks cannot be guaranteed cleaned up;
+failures retain partial evidence and are not successful containment. No real CUDA
+abort/teardown behavior is established by fake CPU children. Worker captures are
+bounded to 1 MiB; the full diagnostic coordinator must still enforce the existing
+600-second sequence and 900-second telemetry protocol, provide its total deadline,
+retain all collection evidence and apply observer placement. No benchmark or
+GPU-setting command is embedded in the supervisor.
+
+Eleven tests exercise success/nonzero exit, worker SIGKILL/normal-exit orphans,
+timeout/interrupt, parent loss after worker readiness, cancellation before spawn,
+multiple generations escaping sessions, orphan adoption while the worker lives,
+setup/capture/cleanup/restoration failure, lost ownership and unrelated-child
+survival. Real supervision runs in dedicated child interpreters; parent-loss tests
+use a separate adopting driver and reap the orphan supervisor too. Successful
+cleanup tests independently check the role reset, absence of children and reaped
+PIDs, not only the returned status flag.
+
+The first full check failed the existing resource-test comparison:
+`76382208 not greater than 76767232`. The larger suite's launcher RSS floor affected
+the test's small child. Its two measurements now run in the **same fresh interpreter**
+instead of the accumulated suite process, still large then small, with the same
+64 MiB allocation, same wait4 field and unchanged 32 MiB assertion. This is test
+isolation, not a resource-tool, acceptance threshold or benchmark change. Failed
+log `reports/phase2-supervised-worker-check-v1.log` is retained, SHA-256
+`e4ea9406a7d31a897dec1d281f8ea7c19496fd252d8a47011fc1f491ca29e4cd`.
+
+Commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_supervised_worker.py -v`:
+  11 pass. Local final focused log `reports/phase2-supervised-worker-tests-v3.log`,
+  SHA-256 `c563d6ed233eef5fdc93cfc956dddc1b8638d10a20b7b4cb54a5770a11640578`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes with **159 reporting tests** after
+  isolation and the OS-thread guard; final log
+  `reports/phase2-supervised-worker-check-v3.log`, SHA-256
+  `153a1633f82621cc2a7019bccdf62258d728dee5cdb6e53bf46e7a62081a39ea`.
+
+Next: compose this supervisor with the fixed sequence and full telemetry lifecycle,
+complete runtime-library/provenance coverage and integrated failure-path tests,
+then readiness review and a fresh quiet window. No new GPU run, setting change,
+acceptance update or Apple work occurred.
+
 ## Launch blockers and outcome rules
 
-This document is **not executable launch readiness**. Offline helpers and a tested
-child primitive are only prerequisites; the fixed collection runner, whole-run
-supervision, integrated launch/report provenance and remaining tests are pending.
+This document is **not executable launch readiness**. Offline helpers, the fixed
+sequence primitive and tested child/worker supervisors are prerequisites; the
+integrated coordinator, full telemetry lifecycle, runtime launch/report provenance
+and remaining integration/failure tests are pending.
 No new capture exists to qualify. The user has chosen the read-only investigation;
 before collection, obtain a fresh quiet 15-minute window after the tested tooling,
 exact frozen manifest and identity checks are ready.
