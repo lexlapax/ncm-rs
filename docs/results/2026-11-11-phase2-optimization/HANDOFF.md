@@ -59,8 +59,8 @@ defines 12 fixed native processes (plain/traced), unchanged frozen executables,
 strict time/output bounds and B1 trial-attribution checks. Offline inspection of
 three historical B4 traces found the expected 36 two-event/query windows. New
 offline boundary/kernel/memory helpers, declared report/trial binder and diagnostic
-output qualifier plus a bounded child primitive have 62 tests, including archived
-fixtures, synthetic layouts and fake CPU commands; default checks pass with 110
+output qualifier plus a bounded child primitive have 64 tests, including archived
+fixtures, synthetic layouts and fake CPU commands; default checks pass with 112
 report tests. Each historical B4 capture maps 972 kernels,
 396 copies and 72 memsets to 36 windows, including RUNTIME host calls; this is
 not current B1 evidence. Bookkeeping/overhead activity remains unattributed.
@@ -70,7 +70,10 @@ prove same-child launch provenance or output quality. The separate output qualif
 reuses the existing full codec validator and frozen v2 Python references, without
 acceptance timings or new oracle runs. It passes archived regression fixtures;
 no new capture exists to qualify. The child primitive enforces time/output limits,
-retains receipts and tests owned-group cleanup before reaping. It is not a full
+retains receipts and tests owned-group cleanup before reaping. A follow-up guard
+rejects cancellation/deadlines observed during setup before attempting a spawn;
+two red-to-green tests cover that gap. Fake child environments are minimal, and
+the original environment-bearing red log is restricted/unpublished. It is not a full
 launcher or containment for collector SIGKILL/escaped descendants. Fixed sequence,
 whole-run supervision and integrated launch/report provenance remain pending;
 user investigation choice and a new quiet window remain launch blockers. Neither

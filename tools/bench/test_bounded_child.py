@@ -12,6 +12,8 @@ from unittest.mock import patch
 
 from bounded_child import run_bounded
 
+CHILD_ENV = {'PATH': os.defpath, 'PYTHONNOUSERSITE': '1'}
+
 
 @unittest.skipUnless(sys.platform == 'linux', 'Linux process ownership contract')
 class BoundedChildTests(unittest.TestCase):
@@ -22,7 +24,7 @@ class BoundedChildTests(unittest.TestCase):
         self.capture, self.receipt = self.root / 'capture', self.root / 'receipt.json'
 
     def run_child(self, code, **changes):
-        kwargs = dict(cwd=self.root, env=dict(os.environ), capture_path=self.capture,
+        kwargs = dict(cwd=self.root, env=dict(CHILD_ENV), capture_path=self.capture,
                       receipt_path=self.receipt, timeout_seconds=3, output_limit_bytes=4096)
         kwargs.update(changes)
         result = run_bounded([sys.executable, '-c', code], **kwargs)
@@ -65,7 +67,7 @@ class BoundedChildTests(unittest.TestCase):
                     'sequence_deadline': time.monotonic() + 0.15}
                 changes.update(capture_path=self.root / which, receipt_path=self.root / (which + '.json'))
                 result = run_bounded([sys.executable, '-c', 'import time; time.sleep(10)'],
-                                     cwd=self.root, env=dict(os.environ), output_limit_bytes=4096,
+                                     cwd=self.root, env=CHILD_ENV, output_limit_bytes=4096,
                                      **({'timeout_seconds': 3} | changes))
                 self.assertEqual(result['status'], 'failed')
                 self.assertIn('child_timeout' if which == 'child' else 'sequence_deadline', result['issues'])
@@ -92,7 +94,7 @@ class BoundedChildTests(unittest.TestCase):
 
     def test_descendant_pipe_holder_stops_and_unrelated_test_child_survives(self):
         other = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'],
-                                 start_new_session=True)
+                                 start_new_session=True, env=CHILD_ENV)
         try:
             result = self.run_child("import subprocess,sys; p=subprocess.Popen([sys.executable,'-c',"
                                     "'import time; time.sleep(10)']); print(p.pid,flush=True)")
@@ -115,7 +117,7 @@ class BoundedChildTests(unittest.TestCase):
             other.wait(timeout=3)
 
     def test_launch_error_and_cleanup_failure_are_retained(self):
-        result = run_bounded(['/nonexistent/ncm-fake-command'], cwd=self.root, env=dict(os.environ),
+        result = run_bounded(['/nonexistent/ncm-fake-command'], cwd=self.root, env=CHILD_ENV,
                              capture_path=self.capture, receipt_path=self.receipt,
                              timeout_seconds=1, output_limit_bytes=10)
         self.assertEqual(result['status'], 'failed')
@@ -222,6 +224,45 @@ class BoundedChildTests(unittest.TestCase):
             launch.assert_not_called()
         self.assertEqual(self.capture.read_text(), 'preserve')
 
+    def test_interrupt_during_setup_prevents_child_creation(self):
+        actual = signal.signal
+        previous = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM)}
+
+        def install_then_interrupt(sig, handler):
+            old = actual(sig, handler)
+            if sig == signal.SIGTERM and getattr(handler, '__name__', None) == 'interrupt':
+                handler(sig, None)
+            return old
+
+        with patch('bounded_child.signal.signal', side_effect=install_then_interrupt), patch(
+                'bounded_child.subprocess.Popen', side_effect=AssertionError('must not spawn')) as launch:
+            result = self.run_child('pass')
+            launch.assert_not_called()
+        self.assertEqual(result['issues'], ['interrupted'])
+        self.assertEqual(result['status'], 'failed')
+        self.assertIsNone(result['pid'])
+        self.assertEqual(result['group_kill'], 'not_attempted')
+        self.assertEqual({s: signal.getsignal(s) for s in previous}, previous)
+
+    def test_deadline_expiring_during_setup_prevents_child_creation(self):
+        actual = Path.open
+        with patch('bounded_child.time.monotonic', return_value=100.) as clock:
+            def delayed_open(path, *args, **kwargs):
+                file = actual(path, *args, **kwargs)
+                mode = args[0] if args else kwargs.get('mode', 'r')
+                if path == self.receipt and mode == 'x':
+                    clock.return_value = 104.  # Setup consumed the three-second allowance.
+                return file
+
+            with patch.object(Path, 'open', autospec=True, side_effect=delayed_open), patch(
+                    'bounded_child.subprocess.Popen', side_effect=AssertionError('must not spawn')) as launch:
+                result = self.run_child('pass')
+                launch.assert_not_called()
+        self.assertEqual(result['issues'], ['child_timeout'])
+        self.assertEqual(result['status'], 'failed')
+        self.assertIsNone(result['pid'])
+        self.assertEqual(result['group_kill'], 'not_attempted')
+
     def test_sigint_and_sigterm_in_isolated_controller(self):
         module_root = str(Path(__file__).resolve().parent)
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -241,13 +282,14 @@ signal.signal(signal.SIGALRM,interrupt_when_ready)
 signal.setitimer(signal.ITIMER_REAL,0.02,0.02)
 try:
     result=run_bounded([sys.executable,'-c',"import time; print('ready',flush=True); time.sleep(2)"],
-        cwd=root,env=dict(os.environ),capture_path=root/'capture',receipt_path=root/'receipt',
+        cwd=root,env={CHILD_ENV!r},capture_path=root/'capture',receipt_path=root/'receipt',
         timeout_seconds=4,output_limit_bytes=4096)
 finally:
     signal.setitimer(signal.ITIMER_REAL,0)
 print(json.dumps(result))
 '''
-            child = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=8)
+            child = subprocess.run([sys.executable, '-c', code], env=CHILD_ENV,
+                                   capture_output=True, text=True, timeout=8)
             with self.subTest(signal=sig):
                 self.assertEqual(child.returncode, 0, child.stderr)
                 result = json.loads(child.stdout)

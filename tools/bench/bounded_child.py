@@ -114,25 +114,33 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                 for sig in (signal.SIGINT, signal.SIGTERM):
                     saved_handlers[sig] = signal.signal(sig, interrupt)
                 try:
-                    child = subprocess.Popen(list(argv), cwd=cwd, env=env, stdin=subprocess.DEVNULL,
-                                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                             start_new_session=True)
-                    os.set_blocking(child.stdout.fileno(), False)
-                    selector.register(child.stdout, selectors.EVENT_READ)
-                    while not issues:
-                        if interrupted is not None:
-                            issue('interrupted')
-                            break
-                        if time.monotonic() >= deadline:
-                            issue(deadline_reason)
-                            break
-                        # Do NOT poll()/wait() here: preserve the leader PID until
-                        # the final group signal, preventing a PID-reuse kill race.
-                        exited = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
-                        if exited is not None:
-                            break
-                        for _key, _mask in selector.select(min(0.05, max(0, deadline - time.monotonic()))):
-                            read_chunk()
+                    # Output/handler setup can consume the remaining allowance or
+                    # observe cancellation. Recheck before attempting any spawn.
+                    # Events arriving during Popen still use the cleanup path.
+                    if interrupted is not None:
+                        issue('interrupted')
+                    elif time.monotonic() >= deadline:
+                        issue(deadline_reason)
+                    else:
+                        child = subprocess.Popen(list(argv), cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+                                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                                 start_new_session=True)
+                        os.set_blocking(child.stdout.fileno(), False)
+                        selector.register(child.stdout, selectors.EVENT_READ)
+                        while not issues:
+                            if interrupted is not None:
+                                issue('interrupted')
+                                break
+                            if time.monotonic() >= deadline:
+                                issue(deadline_reason)
+                                break
+                            # Do NOT poll()/wait() here: preserve the leader PID until
+                            # the final group signal, preventing a PID-reuse kill race.
+                            exited = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                            if exited is not None:
+                                break
+                            for _key, _mask in selector.select(min(0.05, max(0, deadline - time.monotonic()))):
+                                read_chunk()
                 except BaseException as error:
                     issue('capture_error:' + type(error).__name__)
                 finally:

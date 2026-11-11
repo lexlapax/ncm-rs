@@ -228,7 +228,7 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   bind launch prerequisites. Linux remains 72/78; no acceptance or Apple progress.
 - Offline prerequisites under `tools/bench/`: `cupti_trace_boundaries.py`,
   `cupti_kernel_windows.py`, `bind_cupti_trials.py`, `qualify_diagnostic_codec.py`,
-  `bounded_child.py`; 62 tests covering host boundaries, kernel/copy/memset correlation,
+  `bounded_child.py`; 64 tests covering host boundaries, kernel/copy/memset correlation,
   overlap arithmetic, source/hash/PID declarations, ordinal joins and report-output
   qualification through the unchanged codec validator/frozen v2 Python references. Synthetic full-layout coverage
   is not a real current B1 trace. Each old B4 capture maps 972 kernels, 396 copies
@@ -238,11 +238,14 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   actual launch/report provenance, completeness and integrated collection remain
   pending. The bounded child primitive passes fake CPU success/failure/limit/
   interrupt/cleanup tests, keeps the leader waitable until group cleanup, and
-  records failed/unconfirmed outcomes. It is not a full launcher; aggregate quotas,
+  records failed/unconfirmed outcomes. Two red-to-green tests exposed setup-time
+  cancellation/deadline gaps, now checked before attempting a spawn. Fake child
+  environments are minimal; the original environment-bearing failure log is
+  restricted/unpublished. It is not a full launcher; aggregate quotas,
   frozen manifest/order, telemetry/affinity and supervision across collector loss
   remain unresolved. No benchmark or policy change. The output qualifier passes archived regression fixtures,
   not a new capture, oracle run or acceptance attempt. User choice/quiet window still block launch; no new measurements/settings. `CARGO_BUILD_JOBS=4 ./tools/check.sh`
-  passes with 110 reporting tests. Supported memory activities are matched in both
+  passes with 112 reporting tests. Supported memory activities are matched in both
   directions; unknown/ambiguous/cross-window records fail, overlap is not counted
   twice, and equal-timestamp host records sort deterministically. Initial
   boundary-suite check failed inherited-RSS isolation; archive work now runs in

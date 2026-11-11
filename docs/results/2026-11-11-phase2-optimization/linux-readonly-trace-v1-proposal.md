@@ -359,6 +359,36 @@ Final commands actually run:
   Local log `reports/phase2-bounded-child-check-v3.log`, SHA-256
   `39e11960b49c9c26c20c80d0cd8d01fa312487d37f9cc361d8aaa34c23193466`.
 
+## Child prelaunch-boundary audit
+
+Two additional regression tests exposed a setup gap: cancellation observed while
+installing handlers, or a deadline consumed while opening output files, still
+reached `Popen` before the loop checked either condition. The tests mocked `Popen`
+and demonstrated both failures without creating a child. The primitive now
+rechecks observed cancellation and the effective deadline immediately before the
+spawn attempt and retains a failed, no-PID receipt when setup has invalidated it.
+This is not atomic cancellation or a hard-real-time guarantee: events arriving
+during `Popen` still take the existing owned-child cleanup path.
+
+Fake child environments are now minimal (`PATH`, `PYTHONNOUSERSITE`), so failed
+mock assertions do not dump the collector's inherited environment. The original
+local `reports/phase2-bounded-child-prelaunch-red-v1.log` captured inherited metadata and
+is retained with mode 0600, **not for publication**. The minimal-environment
+reproducer is `reports/phase2-bounded-child-prelaunch-red-v2.log`: both tests fail
+before the fix, SHA-256
+`baf2d57e952b5c1e2d2ed7bbd90532017543ec57a652b9d7241ea547c3a33963`.
+
+Final commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_bounded_child.py -v`: 14 pass.
+  Local log `reports/phase2-bounded-child-prelaunch-green-v1.log`, SHA-256
+  `78c9d8d10498f4ffa87497063e5788d1b6f158f542f8067e8aebcb125c045940`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes, including **112 reporting tests**.
+  Local log `reports/phase2-bounded-child-prelaunch-check-v1.log`, SHA-256
+  `0d1253f6e5a31dfffa16744e5ff94e0cd352118e1d9f6d8770a77fddf24fac2c`.
+
+No benchmark, GPU-policy change, acceptance update or Apple work occurred.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers and a tested
