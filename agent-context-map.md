@@ -226,15 +226,18 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   change; parser/runner and required tests are not implemented. Next: user choice,
   implement/test the selected diagnostic, then obtain a fresh quiet window and
   bind launch prerequisites. Linux remains 72/78; no acceptance or Apple progress.
-- Offline prerequisites: `tools/bench/cupti_trace_boundaries.py` and
-  `cupti_kernel_windows.py`, 28 tests covering strict host boundaries and kernel/
-  DRIVER-or-RUNTIME launch correlation, overlap arithmetic, rejection paths and
-  source-assumed synthetic full layouts. All three published B4 captures map 972
-  kernels to 36 windows each; no real current B1 trace is claimed. Non-kernel
-  activity stays explicitly unattributed; copy attribution, report/trial binding,
-  output qualification and capture completeness are not established. Runner/tests
-  and user choice/quiet window still block launch; no new measurements/settings.
-  `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 76 reporting tests. Initial
+- Offline prerequisites under `tools/bench/`: `cupti_trace_boundaries.py`,
+  `cupti_kernel_windows.py`, `bind_cupti_trials.py`, 37 tests covering strict host
+  boundaries, DRIVER/RUNTIME kernel correlation, overlap arithmetic, source/hash/
+  PID declarations and ordinal joins. Synthetic full-layout coverage is not a
+  real current B1 trace. All three old B4 captures map 972 kernels to 36 windows;
+  retained-B4 report first/30-trial timing joins match exactly. Warmup timings
+  were not serialized and stay null. Byte declarations do not prove same-child
+  launch provenance or output quality. Non-kernel activity stays unattributed;
+  copy attribution, actual launch/report provenance, output qualification,
+  completeness and runner/tests remain pending. User choice/quiet window still
+  block launch; no new measurements/settings. `CARGO_BUILD_JOBS=4 ./tools/check.sh`
+  passes with 85 reporting tests. Initial
   boundary-suite check failed inherited-RSS isolation; archive work now runs in
   a child, preserving the existing resource assertion. Kernel prototype initially
   missed RUNTIME launches; retained fixtures exposed both variants, now tested.

@@ -186,11 +186,51 @@ Commands actually run:
   Final local log `reports/phase2-readonly-kernel-preparation-check-v2.log`, SHA-256
   `90cd97d7c26fe07c1cacb44a97f0ff086e19d3bc39c632775d00b5c9fedf9976`.
 
+## Offline declared report/trial binding
+
+`tools/bench/bind_cupti_trials.py` adds an ordinal join, not nearest-duration
+matching. A strict declaration supplies layout, exact trace/report hashes, the
+complete expected report source inventory and the expected trace process ID.
+The helper verifies those declarations, the reviewed benchmark/stage source
+hashes, pinned artifact/workload hashes, runtime/precision/profiling mode, complete
+ordered 12-scope inventory and positive finite first/30-trial timing arrays.
+Unknown source layouts fail explicitly. The current harness source is supported;
+the harness version in the two older B4 captures is not silently accepted.
+
+All 36 block windows remain present. The first-call timings and 30 retained
+wall/event pairs join by source-derived index. **Warmup timings were never
+serialized by the unchanged harness**: their trace windows remain, but the
+joined `recorded_timing` is null, not fabricated or zero. No report is relabeled
+as uninstrumented: the joined result is always diagnostic, even when a full-harness
+native report's own `diagnostic_profiling` field is false under external injection.
+
+A hash declaration is not independent proof that a particular binary produced
+both files. The output explicitly leaves `launch_provenance_verified`,
+`benchmark_outputs_qualified` and `activity_attribution_complete` false. Actual
+same-child launch receipts, executable/source provenance, existing full-output
+qualification and copy attribution remain mandatory. The declaration is an
+integrity contract to be supplied by reviewed evidence, not a trust certificate.
+
+Nine tests cover hash/PID/source/protocol mismatches, scope order/completeness,
+invalid/nonfinite timings, warmup absence, source hashes, exclusive outputs and
+synthetic B1 joins. The hash-verified archived retained-B4 trace/report pair joins
+its first call and every retained timing exactly; archive parsing stays in a child.
+This is historical fixture coverage, not new B1 measurement or parity evidence.
+
+Commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_bind_cupti_trials.py -v`:
+  9 tests pass. Local log `reports/phase2-readonly-binding-tests-v1.log`, SHA-256
+  `f21cee638fa49eb167d97a77f429c69c301268205fea1a4d90fb28ecf7cb57bf`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes, including **85 reporting tests**.
+  Local log `reports/phase2-readonly-binding-check-v1.log`, SHA-256
+  `5c75f548852c238c74e3571c196d939079ce044ff8bc55755678b7775ad89de4`.
+
 ## Launch blockers and outcome rules
 
-This document is **not executable launch readiness**. Boundary and kernel helpers
-are only prerequisites; copy attribution, report qualification/trial binding,
-the collection runner and remaining required tests are pending. Before collection, the user must
+This document is **not executable launch readiness**. Offline helpers are only
+prerequisites; copy attribution, output qualification, actual launch/report
+provenance, the collection runner and remaining tests are pending. Before collection, the user must
 choose the read-only investigation and confirm a fresh quiet 15-minute window;
 the tested tooling, exact frozen manifest and identity checks must also be ready.
 No extra profiling permissions, system installation or CUPTI replacement may be
