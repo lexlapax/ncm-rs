@@ -45,6 +45,39 @@ of a particular tail. No clocks, power settings, services or unrelated processes
 were changed. A quiet/stabilized matched test environment is the next resource
 question, not justification to widen bands or repeatedly sample until passing.
 
+### Offline variability follow-up (no new runs)
+
+Inspection of all thirty native processes per workload narrows the next
+investigation. The following are **ranges of process medians**, in milliseconds;
+none of these rows is excluded from the controlled audit:
+
+| Scope | Accepted Rust range | Candidate range |
+| --- | ---: | ---: |
+| B1 resident block | 0.174899–0.197348 | 0.177123–0.199398 |
+| Codec checked load | 192.917–292.113 | 192.609–244.265 |
+| GPT-2 encode | 0.924877–1.416874 | 0.907539–1.494594 |
+| GPT-2 decode | 0.110606–0.177948 | 0.110813–0.209840 |
+| GPT-2 skip-special decode | 0.121434–0.190956 | 0.120701–0.224646 |
+| Qwen checked load | 63.962–89.838 | 65.799–96.152 |
+
+GPT-2's largest process medians occur in candidate repeat 10 and previous repeat
+11. Their command intervals are 05:47:04–05:47:05 and 05:48:15–05:48:21 UTC on
+2026-11-11. Elevated Qwen loads in both implementations and codec loads in
+candidate repeat 11 / previous repeat 12 occur in the surrounding 05:47–05:49
+UTC interval. There is also a later candidate Qwen-load spike in repeat 23;
+this is not one isolated bad process that can simply be removed.
+
+These observations support investigating time-varying execution conditions,
+not asserting a causal explanation or dismissing a regression. In particular,
+**GPU clock locking is neither established as necessary nor sufficient**: most
+remaining failures are CPU-only tokenizer work or largely host-side checked
+loading. Existing GPU telemetry reports many clock states, but does not identify
+per-scope clocks; the run did not capture CPU scheduling/frequency telemetry.
+A quiet test window with read-only CPU activity/frequency telemetry is a better
+next diagnostic than assuming GPU clocks explain all six failures. Any later
+system clock intervention still requires explicit permission. The 72/78 result,
+all uncertainty bands, all raw samples and the candidate remain unchanged.
+
 ### Explicit reporting-tool extension
 
 Historical `summarize_codec_load_control.summarize(root, device)` behavior remains

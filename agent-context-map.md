@@ -128,8 +128,16 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   and `.reference/phase2-memory-bin`; no historical baseline overwritten.
   Clean staged-checkout reproduction matches both summaries and all three negative
   audits exactly; source/archive hashes, archive scope and local links pass.
-  Next resource question: arrange quiet/stabilized Linux controls; do not change
-  clocks/power/services or stop unrelated work without approval. No Apple run yet.
+  Offline inspection of every affected native process finds GPT-2/Qwen/codec-load
+  slowdowns in both implementations around 05:47–05:49 UTC, plus a later Qwen spike.
+  This is temporal association, not established causality or grounds to exclude
+  samples. GPU locking is not established as necessary/sufficient for CPU-only
+  failures; prioritize a quiet window and read-only CPU scheduling/frequency
+  telemetry. The report records ranges/timestamps; all native ranges/peak-repeat
+  identities are verified against recorded report hashes, and 36 report-tool
+  tests pass. No new runs or policy changes.
+  Do not change clocks/power/services or stop unrelated work without approval.
+  No Apple run yet.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
