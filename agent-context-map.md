@@ -4,6 +4,23 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Latest authorization (supersedes earlier pending-choice entries below):** user
+  approved read-only investigation option 1, followed by clock-controlled option 2
+  only if option 1 provides insufficient data. Neither has run. A fresh quiet
+  15-minute window is still needed after readiness; clock fallback additionally
+  requires confirmed default-policy/no-controller state, permissions and tested
+  restoration. No automatic continuation establishes those facts.
+  `tools/bench/readonly_trace_sequence.py` now enforces the fixed 12-job order,
+  exclusive plan/output, 600-second shared deadline, 120-second children,
+  1 GiB per merged capture/6 GiB aggregate streaming limits and initial 12 GiB
+  free-space plus between-child checks. Nine fake-CPU/mocked tests pass; default
+  `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 121 reporting tests (logs in
+  the [selected read-only protocol](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-proposal.md)).
+  This import-only primitive is not a launch-ready collector or identity proof.
+  Next: whole-run supervision, frozen identity/injection/affinity/telemetry and
+  same-child trace/report integration, then readiness review and fresh availability.
+  Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
+
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
   on 2026-11-11.** The user requested the revised plan be committed/pushed before

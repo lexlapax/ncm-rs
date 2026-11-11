@@ -1,9 +1,10 @@
-# Read-only Linux trace investigation — proposal, NOT RUN
+# Read-only Linux trace investigation — selected, NOT RUN
 
 Alternative to the optional [clock intervention](linux-clock-diagnostic-v3-proposal.md).
 No GPU-clock, power, governor, service, credential or global-tooling changes.
-Preparation does not authorize collection or establish a quiet window. Linux
-remains **72/78**; this is not acceptance and does not unblock Apple.
+The user approved option 1 first, with option 2 as a fallback if its data are
+insufficient. Selection does not establish launch readiness or a quiet window.
+Linux remains **72/78**; this is not acceptance and does not unblock Apple.
 
 ## Question and evidence gap
 
@@ -389,14 +390,46 @@ Final commands actually run:
 
 No benchmark, GPU-policy change, acceptance update or Apple work occurred.
 
+## Fixed sequence and quota prerequisite
+
+`tools/bench/readonly_trace_sequence.py` adds the fixed 12-job order, complete
+structural job validation before output creation, an exclusive output directory
+and pre-sequence plan, 600-second shared deadline, 120-second child limits,
+1 GiB per merged capture and 6 GiB aggregate streaming cap. The per-capture cap
+also applies conservatively to plain controls. At least 12 GiB free is required
+initially; free space is rechecked before each child with the original headroom
+adjusted only for this sequence's recorded capture bytes. External writers can
+still cause a write failure between checks. Any failure stops subsequent jobs;
+no retry, reordered job or replacement process is allowed. Environment values
+are not serialized into the plan. Exceptions retain partial evidence and propagate.
+
+This is an import-only prerequisite, **not a launch-ready collector**. It trusts
+caller-supplied commands and the child primitive's receipts; it does not validate
+executable/injection identity or enforce observer affinity. Telemetry, same-child
+trace/report extraction, frozen identities and whole-run supervision remain
+pending. Collector death and escaped descendants are still outside its containment.
+The sequence's completion means only all child captures completed, never codec
+qualification, provenance, acceptance or complete telemetry.
+
+Nine offline tests cover all 12 fake CPU commands in order, validation of the last
+job before any launch, exclusive paths, free-space preflight/rechecks, reduced
+remaining aggregate allowance/exhaustion, real streaming overflow/nonzero exit,
+setup-expired deadline and partial evidence on interruption. No GPU was used.
+Focused command: `python -m unittest discover -s tools/bench -p test_readonly_trace_sequence.py -v`;
+9 pass, local log `reports/phase2-readonly-sequence-tests-v1.log`, SHA-256
+`3d51794611f573884506d3ca0a66933f60f075ca0c4f97b32dce2cc0d8d5f880`.
+`CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 121 reporting tests; local log
+`reports/phase2-readonly-sequence-check-v1.log`, SHA-256
+`f610318acd2c7afc03c1758ad7d14acab70cb7f1d6a309c5e912d012435c49ff`.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers and a tested
 child primitive are only prerequisites; the fixed collection runner, whole-run
 supervision, integrated launch/report provenance and remaining tests are pending.
-No new capture exists to qualify. Before collection, the user must
-choose the read-only investigation and confirm a fresh quiet 15-minute window;
-the tested tooling, exact frozen manifest and identity checks must also be ready.
+No new capture exists to qualify. The user has chosen the read-only investigation;
+before collection, obtain a fresh quiet 15-minute window after the tested tooling,
+exact frozen manifest and identity checks are ready.
 No extra profiling permissions, system installation or CUPTI replacement may be
 made implicitly. Stop and ask if existing local tracing cannot be used safely.
 
@@ -406,5 +439,8 @@ Instrumentation can perturb allocation and scheduling enough to suppress or crea
 the spread. Three processes per condition cannot guarantee both clusters occur.
 Do not keep sampling until they do, filter a process, transplant results, or infer
 causality from association alone. If inconclusive, report exactly what remains
-unobservable and ask before a different experiment. Every outcome leaves Linux
+unobservable before invoking the conditionally approved clock fallback; its
+policy/controller, supervisor, permission and fresh-window prerequisites still
+apply. Changes beyond the two approved proposals require renewed approval.
+Every outcome leaves Linux
 **72/78** pending a separate full acceptance protocol with unchanged criteria.

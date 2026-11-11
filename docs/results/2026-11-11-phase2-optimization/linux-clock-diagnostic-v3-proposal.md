@@ -1,10 +1,14 @@
-# Linux clock diagnostic v3 — proposal, NOT APPROVED / NOT RUN
+# Linux clock diagnostic v3 — conditional fallback approved, NOT RUN
 
 This is an optional follow-up to [diagnostic v2](linux-diagnostic-v2-results.md),
 not an acceptance attempt. **Linux remains 72/78; Apple remains pending.**
 No clock change, new benchmark, or permission test has been performed for this
-proposal. Automatic continuation is not approval. The earlier “yes. go” authorized
-the completed quiet-window v2 run, not this system-policy intervention.
+proposal. The user subsequently approved read-only option 1 first, and option 2
+only if option 1 provides insufficient data. This is conditional approval of the
+proposed temporary 1710 MHz/default-reset experiment, not permission to skip the
+original-policy, no-controller, supervisor, permission or fresh-window checks.
+Automatic continuation does not establish those prerequisites. The earlier
+“yes. go” applied only to the completed v2 run.
 
 ## Hypothesis and scope
 
@@ -31,9 +35,11 @@ balance positions, not all carryover pairs. No new acceptance threshold is creat
 
 Before preparing an executable launch:
 
-1. Obtain explicit approval to request **1710 MHz graphics clocks on this GPU**
-   and reset graphics clocks to **defaults** afterward. The read-only capability
-   query lists 1710 MHz, but that does not prove lock permission or enforcement.
+1. First complete/analyze read-only option 1 and document why its data are
+   insufficient for the stated question. The user's fallback approval covers
+   requesting **1710 MHz graphics clocks on this GPU** and resetting to
+   **defaults** afterward, subject to all checks below. The read-only capability
+   listing does not prove lock permission or enforcement.
 2. Establish that resetting to defaults is appropriate. `--reset-gpu-clocks` is
    not a general restoration of an unknown custom lock range. Current sampled
    clocks and deprecated application-clock fields do not establish the original

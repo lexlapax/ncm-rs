@@ -38,21 +38,16 @@ No background collection remains running. Do not repeat this diagnostic.
 ## Latest investigation and useful next action
 
 The native timing distributions show both GPU block timing clusters and CPU-only
-slowdown windows. The cause is not established. GPU clock locking was proposed
-but **has not been authorized**, and is not established as necessary/sufficient.
-Do not change clocks, governors, services, power policy or unrelated processes.
-The confirmed quiet window was used for diagnostic v2; sustained SMT-sibling
-contention was not observed, yet B1 block clusters recur. One-second GPU samples
-cannot identify per-block clocks. A separate bounded constant-clock diagnostic is
-a plausible discriminating hypothesis, **not approved or performed**. It requires
-explicit temporary-policy approval, supported-clock/original-state checks,
-restoration and a new quiet window; alternatively specify finer-grained read-only
-observation. Any new diagnostic/acceptance follow-up needs its own predeclared
-protocol, not another repetition until green. The [v3 clock diagnostic proposal](linux-clock-diagnostic-v3-proposal.md)
-now specifies the bounded optional intervention and cleanup requirements. It is
-not approved/run; an executable supervisor and its failure-path tests are still
-missing. Reset-to-default safety requires confirmation of the original default
-policy, not inference from sampled clocks.
+slowdown windows. The cause is not established. The user has now approved
+**read-only option 1 first, with clock-controlled option 2 only if its data are
+insufficient**. Neither has run. Finish/test integrated collection before asking
+for a fresh quiet 15-minute window; the v2 window is spent. One-second GPU samples
+cannot identify per-block clocks, and clock locking is not established as
+necessary/sufficient. The [v3 proposal](linux-clock-diagnostic-v3-proposal.md)
+remains conditional on documented insufficiency of option 1, confirmed default
+policy/no competing controller, supported-clock/permission checks, a tested
+restoration supervisor and a fresh window. Reset-to-default is not restoration
+of an unknown custom policy. No unrelated policy/process changes are authorized.
 
 The alternative [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
 defines 12 fixed native processes (plain/traced), unchanged frozen executables,
@@ -74,10 +69,14 @@ retains receipts and tests owned-group cleanup before reaping. A follow-up guard
 rejects cancellation/deadlines observed during setup before attempting a spawn;
 two red-to-green tests cover that gap. Fake child environments are minimal, and
 the original environment-bearing red log is restricted/unpublished. It is not a full
-launcher or containment for collector SIGKILL/escaped descendants. Fixed sequence,
-whole-run supervision and integrated launch/report provenance remain pending;
-user investigation choice and a new quiet window remain launch blockers. Neither
-proposal is ready to execute. No new measurements or settings changes occurred.
+launcher or containment for collector SIGKILL/escaped descendants. A subsequent
+import-only `readonly_trace_sequence.py` adds fixed order, exclusive plan/output,
+shared deadline, streaming aggregate cap and free-space checks with nine offline
+tests; default checks now pass 121 reporting tests. These primitives do not replace
+whole-run supervision, telemetry/affinity, frozen identities or integrated
+launch/report provenance, which remain pending. Selection is resolved; tooling
+readiness and a fresh quiet window still block launch. Neither proposal is ready
+to execute. No new measurements or settings changes occurred.
 
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.
