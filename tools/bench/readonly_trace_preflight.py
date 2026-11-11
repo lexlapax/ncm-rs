@@ -103,7 +103,8 @@ def isolated_environment(home, inherited):
             'PYTHONNOUSERSITE': '1'}
 
 
-def prepare(root, output_dir, home, *, inherited=None, taskset=Path('/usr/bin/taskset')):
+def prepare(root, output_dir, home, *, inherited=None, taskset=Path('/usr/bin/taskset'),
+            reserved_parent=None):
     """Return jobs and identity evidence without writing outputs or starting children.
 
     Sanitized native environments differ from v2's inherited environment. All
@@ -113,7 +114,14 @@ def prepare(root, output_dir, home, *, inherited=None, taskset=Path('/usr/bin/ta
     base_env = isolated_environment(home, os.environ if inherited is None else inherited)
     root, output_dir = Path(root).resolve(strict=True), Path(output_dir).absolute()
     require(not os.path.lexists(output_dir), 'collection path already exists')
-    require(output_dir.parent.is_dir(), 'collection parent must exist')
+    if reserved_parent is None:
+        require(output_dir.parent.is_dir(), 'collection parent must exist')
+    else:
+        # Coordinator will exclusively create this one future parent. Do not
+        # create/remove a placeholder directory merely to construct job paths.
+        reserved_parent = Path(reserved_parent).absolute()
+        require(output_dir.parent == reserved_parent and not os.path.lexists(reserved_parent)
+                and reserved_parent.parent.is_dir(), 'invalid reserved collection parent')
     validate_observer(2, 0)
     frozen = frozen_inputs()
     worktrees = {'A': root / '.reference/phase2-optimization-baseline', 'C': root}

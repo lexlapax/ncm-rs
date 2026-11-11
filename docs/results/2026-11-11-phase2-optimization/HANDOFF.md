@@ -157,6 +157,18 @@ manifest/entry remain pending. No GPU/model benchmark was run. Selection is reso
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 
+Latest preparation work adds `tools/bench/prepare_readonly_launch.py`: a `python -S`
+metadata-only CLI composing the existing file, environment, loader and worktree
+guards with tool/utility identities, exact GPU PCI/name/UUID, an explicit IANA
+system-timezone symlink, fixed jobs and telemetry commands/limits. It reserves no
+collection directory, starts no collection and always leaves readiness/availability
+false. Eleven offline tests pass; default checks pass **216 reporting tests**.
+Probes in these new tests are mocked; the real preparation CLI has not run. Current
+clean-state/frozen-manifest verification, the launch entry, lifecycle/time/raw-file
+bindings and enforced postflight ordering still need completion. See the selected
+protocol for exact commands/log hashes and preparation limitations. Do not request
+the quiet window until those remaining prerequisites pass review.
+
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.
 CPU **2 and 3 are SMT siblings**. Use observer CPU **0**, not CPU 3, for CPU-2

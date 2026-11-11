@@ -1124,11 +1124,65 @@ Linux remains 72/78; no production, policy, oracle or pin change. Next is the fr
 manifest/entry and lifecycle/time/raw-file cross-bindings, then readiness review
 and fresh availability—not a new benchmark or automatic clock fallback yet.
 
+## Preparation-only manifest CLI
+
+`tools/bench/prepare_readonly_launch.py` composes the existing prerequisites without
+starting collection. Invoke with `python -S`; the CLI accepts project, future
+collection and separate private preparation directories plus a committed candidate
+HEAD and expected full GPU PCI address/name. It must operate on its own checkout.
+There is deliberately **no collection mode**. No actual invocation against the
+current workstation has run yet; the new tests mock all metadata probes.
+
+The manifest binds the twelve prepared jobs/environments, fixed limits, source and
+payload identities, tool inventories, Python/nvidia-smi/Git/taskset identities,
+loader listings, current worktree evidence, one visible matching GPU's UUID and an
+explicit system IANA timezone. Every top-level Python file in `tools/bench` and
+`tools/reference` is included, not a claimed exact import closure. This does not
+freeze global Python stdlib/native-library provenance. The CPU sampler command adds
+`-S` to omit site initialization; no inherited Python path variables are propagated
+to observers. GPU identity lookup is only `--query-gpu=uuid,pci.bus_id,name`; neither
+that lookup nor its future use changes clock/power policy. Historical UUID equality
+is not invented. Copied/non-symlink localtime configurations require separate review,
+not a guessed timezone.
+
+Preparation rechecks prepared sources/payloads, separate declarations, utilities,
+loader/target/library hashes and identities after metadata probes, including library
+and timezone link destinations. Already exceeding the postflight file/byte budget
+fails before the final rehash. These checks occur **before any collection**, not
+between jobs. Newly sampled dynamic libraries remain the separate post-only case.
+Private preparation evidence is retained on failure; the manifest is exclusively
+created only after successful checks and always records `launch_ready=false`,
+`availability_confirmed=false`, `collection_started=false`.
+
+The preflight helper's optional `reserved_parent` permits building job paths beneath
+one absent future coordinator directory without creating/removing placeholders.
+Default behavior is unchanged. Preparation and collection roots must be disjoint,
+fresh and have existing parents; canonicalization rejects `..`/parent-symlink
+aliases that could accidentally create the collection as the preparation output.
+
+Eleven offline tests cover metadata composition/private output, no unexpected child
+launch, reserved-parent behavior, device mismatch/multiple devices, changed source
+or library bytes, changed timezone link, directory aliases, failed Git guards,
+structural tampering and unsupported stronger claims. The CLI help/`-S` requirement
+runs in fresh Python children; no native workload, actual loader/Git/GPU identity
+probe or sampler runs in these tests. Temporary fixed-offset TZif data exercises
+the real standard-library timezone reader. No current worktree or hardware readiness
+is established by these fixtures.
+
+| Command / retained local log | Result | SHA-256 |
+| --- | --- | --- |
+| `python -m unittest discover -s tools/bench -p test_prepare_readonly_launch.py -v` → `reports/phase2-readonly-manifest-tests-v1.log` | Initial 8 pass | `4094c3b896f5ea12d873a872443d4f22cf0e912f502cdd498d7f5cf091507133` |
+| Same command → `reports/phase2-readonly-manifest-tests-v2.log` | Expanded 11 pass | `295fcd8b0db77c98a4ad2b2ee41c81e48f31e9ce438b5f437634adac9882cbcd` |
+| Same command → `reports/phase2-readonly-manifest-tests-v3.log` | Final 11 pass, including false collection-state claim rejection | `295fcd8b0db77c98a4ad2b2ee41c81e48f31e9ce438b5f437634adac9882cbcd` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-manifest-check-v1.log` | 216 reporting tests pass | `5f12bab7680439f7bc905d8cdd34ea86eb17b20787cf0e267fdc761f9305a086` |
+| Same command → `reports/phase2-readonly-manifest-check-v2.log` | Final default check: 216 reporting tests pass | `ba047b01b89291ed2ad688b8e708b7574ddc306a073ead5584ec767fc17e6500` |
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. The coordinator, telemetry
-lifecycle/validator, sampled process observer and postflight verifier are tested
-prerequisites. Frozen launch manifest/entry, postflight call-order enforcement,
+lifecycle/validator, sampled process observer, postflight verifier and preparation
+CLI are tested prerequisites. Actual frozen manifest/current clean-state checks,
+final launch entry, postflight call-order enforcement,
 process/receipt timing, supervisor/collector/telemetry/analyzer cross-bindings,
 mapping-limitation review and remaining integrated failure tests are pending.
 No new capture exists to qualify. The user has chosen the read-only investigation;

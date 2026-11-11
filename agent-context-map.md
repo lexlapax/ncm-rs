@@ -48,8 +48,15 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   It preserves kernel/path device distinctions and never claims immutable mapped
   bytes. Nine tests include actual CPU-child writer/reader compatibility; default
   checks pass **205 reporting tests**. No GPU/model collection or policy change.
-  Frozen manifest/entry, call-order enforcement after full telemetry/supervision,
-  process time bracketing and final collector/analyzer cross-bindings remain pending.
+  `prepare_readonly_launch.py` now composes a preparation-only metadata manifest:
+  jobs, tools/utilities, loader/Git guards, GPU identity, IANA timezone and limits.
+  It requires `python -S`, never creates the collection directory or starts sampling,
+  and explicitly leaves readiness/availability/collection false. Eleven offline tests
+  pass; default checks pass **216 reporting tests**. GPU/loader/Git probes were mocked
+  in these new tests; the real preparation CLI has not run. Source/library rechecks,
+  path-alias rejection and partial private evidence are covered. Actual frozen
+  manifest/current-clean-state verification, final launch entry, postflight call-order
+  enforcement, process time bracketing and collector/analyzer bindings remain pending.
   Supervisor SIGKILL/host failure cannot guarantee cleanup. Next: finish bindings, review readiness, then request
   fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
