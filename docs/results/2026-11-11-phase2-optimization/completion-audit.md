@@ -83,6 +83,15 @@ No acceptance cell closes; Linux remains **72/78**, Apple pending. Verification:
 source inspection, `git diff`, and Python byte/section comparisons; no new hardware
 checks or measurements.
 
+[Offline pool-counter inspection](linux-diagnostic-v2-results.md#offline-pool-counter-and-retained-trace-follow-up)
+verified all twelve archived native reports: B1 reserved current/peak are 64 MiB
+in both implementations; used counters are constant within each runtime across
+both timing clusters. These aggregates do not attribute per-request allocation
+latency. Existing optimization CUPTI captures cover two reconstructions, not v2
+resident-block trials; no retrospective trace attribution or gate closure follows.
+The report includes executable standard-library reproduction with archive/member
+hash checks; it ran successfully without new measurements.
+
 ## Current stop conditions and boundaries
 
 - Unresolved performance uncertainty/regressions are not waived because a scope's

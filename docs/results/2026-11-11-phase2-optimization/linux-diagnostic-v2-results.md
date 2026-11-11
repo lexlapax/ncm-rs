@@ -96,6 +96,71 @@ B1 block. `nvidia-smi` timestamps use local `US/Pacific` (alias
 converts them to UTC and retains the original CSV. No per-request clock or causal
 claim is made.
 
+## Offline pool-counter and retained-trace follow-up
+
+The twelve native v2 reports also retain B1 block pool counters. Direct inspection
+of **all six repetitions per runtime**, not a selected cluster, gives identical
+values within each runtime:
+
+| B1 block scope, bytes | Accepted (each of 6) | Candidate (each of 6) |
+| --- | ---: | ---: |
+| Release threshold | 134,217,728 | 134,217,728 |
+| Reserved current | 67,108,864 | 67,108,864 |
+| Reserved peak | 67,108,864 | 67,108,864 |
+| Used current | 59,677,184 | 59,702,864 |
+| Used peak | 61,591,112 | 61,616,792 |
+
+Thus these aggregate pool counters do not distinguish the fast/slow repetitions.
+The candidate's 25,680-byte used-memory increment is present in both clusters.
+This does **not** rule out allocation latency, address placement, transient
+release/regrowth below the peak, or other driver work. Counters are read after the
+scope; they are not a per-request allocation trace. Global device memory includes
+other users and is not substituted for these process-pool counters.
+
+The [historical B4 investigation](../2026-11-10-phase2-cuda-remediation/README.md#causal-profiles-including-failures)
+found a different pool-retention problem using matched instrumented allocation
+traces. Its explanation cannot be transplanted to these B1 samples. The four
+retained optimization CUPTI captures (preflight, reuse, prepared and geometry)
+identify their workload as checked load plus two B1 reconstructions, not the v2
+resident-block trials. The v2 archive contains no CUPTI trace. Those older captures
+cannot retrospectively separate kernel duration from submission gaps in v2's
+fast/slow processes. A new bounded trace protocol would be required; none was run
+for this follow-up. Linux remains **72/78**.
+
+Reproduce this offline inspection directly from the published archive, without
+extracting it, using only Python's standard library:
+
+```python
+import hashlib
+import json
+from pathlib import Path
+import statistics
+import tarfile
+
+root = Path('docs/results/2026-11-11-phase2-optimization')
+evidence = json.loads((root / 'linux-diagnostic-v2-evidence.json').read_text())
+archive = evidence['archive']
+assert hashlib.sha256(Path(archive['path']).read_bytes()).hexdigest() == archive['sha256']
+expected = {m['path']: m for m in archive['members']}
+keys = ('release_threshold', 'reserved_current', 'reserved_peak', 'used_current', 'used_peak')
+with tarfile.open(archive['path'], 'r:xz') as capture:
+    for runtime in ('previous', 'candidate'):
+        counters = set()
+        for repeat in range(1, 7):
+            name = f'phase2-linux-diagnostic-v2/{runtime}/codec-rust-{repeat}.json'
+            raw = capture.extractfile(name).read()
+            assert len(raw) == expected[name]['bytes']
+            assert hashlib.sha256(raw).hexdigest() == expected[name]['sha256']
+            rows = [r for r in json.loads(raw)['measurements']
+                    if r['batch'] == 1 and r['scope'] == 'resident_decoder_block']
+            assert len(rows) == 1 and len(rows[0]['trials_ms']) == 30
+            row = rows[0]
+            values = tuple(row['pool_bytes'][k] for k in keys)
+            counters.add(values)
+            print(runtime, repeat, statistics.median(row['trials_ms']), values)
+        assert len(counters) == 1
+```
+
 ## Disposition and next decision
 
 The predeclared outcome is **unresolved recurrence**. Isolating observers and

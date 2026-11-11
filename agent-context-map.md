@@ -204,8 +204,18 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   inspection and byte/section comparisons; docs diff/link checks and all 48
   reporting tests pass. No new benchmark, hardware test, policy change or waiver.
   Next read-only protocol must discriminate kernel duration from submission gaps
-  and label instrumentation
-  overhead; investigation choice/new quiet window remain pending. Linux 72/78.
+  and label instrumentation overhead; investigation choice/new quiet window remain
+  pending. Linux 72/78.
+- [Offline v2 pool/trace inspection](docs/results/2026-11-11-phase2-optimization/linux-diagnostic-v2-results.md#offline-pool-counter-and-retained-trace-follow-up)
+  checks all twelve archived native reports: B1 pool counters are constant within
+  each runtime across fast/slow repetitions (64 MiB reserved, 128 MiB threshold).
+  This does not exclude allocation latency or identify a cause. Older CUPTI
+  captures are reconstruction/B4 scopes, not v2 B1 trial traces; no retrospective
+  attribution. Published standard-library reproduction verifies archive/member
+  hashes and all rows; ran successfully. Docs diff/new-link checks pass. No new
+  measurements, settings changes or acceptance waiver; Linux remains 72/78.
+  Next: predeclare a bounded trace investigation if the read-only path is chosen;
+  actual execution still needs a fresh quiet window.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
