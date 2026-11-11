@@ -80,6 +80,28 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   report tests remain 29; 17 tokenizer unit tests and 2 allocation-example tests
   pass. Next: prepared state/loading-copy investigations, matched uncertainty
   controls and full Linux gate before Mac availability recheck and MLX work.
+- Prepared-state checkpoint (still provisional):
+  [report](docs/results/2026-11-11-phase2-prepared-state/README.md) preserves two
+  incremental matrices versus `bcf2be4`, not substitutes for final accepted-Rust
+  comparisons. Shared positions/codebook norms and CUDA bounded geometry pass
+  fresh 642-trace/2,500-decision qualification; final `tools/check.sh --cuda`
+  passes. Three cache unit tests and a dedicated real-CUDA owner/drop/isolation
+  test pass; live used-pool memory stabilizes and returns to baseline. Cache is
+  backend-owned, clones start empty, logical bounds 64 entries/1 MiB. Profile
+  kernels 918 -> 892, then geometry removes 70 H2D copies/24,912 bytes. Latest
+  B1 block median ratio **1.1106 versus bcf2be4** remains unresolved; no final
+  keep/acceptance claim. Both matrices/profiles/failed attempts are archived;
+  clean-source summary/profile reproduction and hashes verified. Earlier 74/78
+  audit remains historical, not a gate for this newer candidate. Raw-upload PoC
+  tests pass; 58 tensors read back exactly, isolated medians 13.512509/7.379914 ms
+  decoded/raw. **Public WeightBackend little-endian byte-upload method needs user
+  approval; production loading remains unchanged.** No RSS/full-load claim.
+  Next: API decision, hot-name/trace attribution, final resource/lifecycle evidence,
+  controlled timing investigation and full Linux gate before Apple. No new Apple
+  work, Phase 3 or completion claim. Snapshot binaries at
+  `.reference/phase2-geometry-snapshot-bin`; original intermediate positions/norms
+  executable hashes are recorded but those binaries are not retained. Preserve
+  `.reference/phase2-low-risk-baseline{,-bin}` and all older baselines.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

@@ -1,5 +1,5 @@
 //! Shared, request-local FP32 codec execution. No generator or sampling loop.
-use crate::{Codec, NoTrace, TraceSink, codebook_distances};
+use crate::{Codec, NoTrace, TraceSink};
 use ncm_core::{CodecBackend, Result};
 
 pub struct Encoded<B: CodecBackend> {
@@ -43,11 +43,11 @@ impl<B: CodecBackend> Codec<B> {
         let (length, width) = (config.context_length, config.embed_dim);
         let ids = b.upload_indices(tokens, &[batch, length])?;
         trace.indices("encode.encoder.input", &ids)?;
-        let positions: Vec<u32> = (0..length as u32).collect();
-        let positions = b.upload_indices(&positions, &[length])?;
+        // Validated inputs always span the full positional table. Gathering
+        // 0..length only copies the same immutable rows and uploads redundant IDs.
         let encoder = b.add(
             &b.embedding(self.weight("encoder.wte.weight")?, &ids)?,
-            &b.embedding(self.weight("encoder.wpe.weight")?, &positions)?,
+            self.weight("encoder.wpe.weight")?,
         )?;
         trace.tensor("encode.encoder.output", &encoder)?;
         let mut residual = b.group_norm(&encoder, config.pre_quant_groupnorm, 1e-5)?;
@@ -71,7 +71,7 @@ impl<B: CodecBackend> Codec<B> {
             };
             trace.tensor(&format!("{name}.quant_input"), &down)?;
             let book = self.weight(&format!("vq.embeddings.{level}.weight"))?;
-            let distances = codebook_distances(b, &down, book)?;
+            let distances = self.level_distances(&down, book, level)?;
             trace.tensor(&format!("{name}.distances"), &distances)?;
             let ids =
                 b.reshape_indices(&b.select_last(&distances, false)?, &[batch, level_length])?;

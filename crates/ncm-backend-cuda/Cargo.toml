@@ -56,6 +56,10 @@ name = "resample_poc"
 required-features = ["cpu"]
 
 [[example]]
+name = "weight_upload_poc"
+required-features = ["cpu"]
+
+[[example]]
 name = "codec_lifecycle"
 required-features = ["cuda"]
 

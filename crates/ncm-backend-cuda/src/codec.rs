@@ -293,10 +293,10 @@ impl CodecBackend for CandleBackend {
         })
     }
     fn area1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
-        op!(self, [x], { crate::resample::area1d(x, length) })
+        op!(self, [x], { self.resample(x, length, true) })
     }
     fn linear1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
-        op!(self, [x], { crate::resample::linear1d(x, length) })
+        op!(self, [x], { self.resample(x, length, false) })
     }
     fn evaluate(&self, xs: &[Tensor]) -> Result<()> {
         op!(self, [], {

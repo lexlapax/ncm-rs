@@ -7,7 +7,9 @@
     {
       "id": "prepared-state",
       "hypothesis": "Avoid repeated positional gathers, codebook norms, resampling metadata and hot-path name construction with bounded model-owned state.",
-      "status": "pending independent experiments",
+      "status": "provisional Linux positions/norms/geometry experiments; performance acceptance and hot-name/trace attribution pending",
+      "evidence": "docs/results/2026-11-11-phase2-prepared-state/README.md",
+      "finding": "Positions/norms reduce two-request profile kernels 918 to 892. Bounded geometry additionally removes 70 H2D copies/24912 bytes; native owner-drop/isolation/stability test passes. Both trained qualifications pass. Combined fresh B1 block median ratio 1.1106 versus bcf2be4 is unresolved, not accepted or waived.",
       "constraints": "Keep preflight before upload, model/device isolation, drop behavior and FP32 operation ordering; do not drop the row-constant distance term."
     },
     {
@@ -50,7 +52,9 @@
     },
     {
       "id": "checked-raw-upload",
-      "status": "pending copy/CPU attribution and isolated PoC",
+      "status": "isolated PoC complete; public WeightBackend byte-upload API awaits user approval; production loader unchanged",
+      "evidence": "docs/results/2026-11-11-phase2-prepared-state/README.md",
+      "finding": "Three CUDA processes, 5 warmups/30 trials: 58 tensors/59586048 bytes read back exactly. Upload-only pooled median decoded Vec 13.512509 ms versus raw 7.379914 ms. Two CPU example tests cover guarded shapes, overflow, alignment and ownership. No full-load or RSS benefit established.",
       "constraints": "Preserve authentication and full preflight before device allocation, alignment/endian correctness and ownership. No selective-loader trust change."
     },
     {

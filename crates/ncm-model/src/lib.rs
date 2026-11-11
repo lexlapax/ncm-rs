@@ -9,13 +9,16 @@ use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;
 use safetensors::{Dtype, SafeTensors};
 use serde::{Deserialize, de::IgnoredAny};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::OnceLock};
 
-/// Immutable parameters plus backend. Inference state belongs to each request.
+/// Immutable parameters plus backend and lazily prepared parameter-only norms.
+/// Activations and inference state belong to each request.
 pub struct Codec<B: WeightBackend> {
     pub(crate) backend: B,
     pub(crate) config: CodecConfig,
     pub(crate) weights: BTreeMap<String, B::Tensor>,
+    // Model-owned, bounded by validated levels; never shared across models/devices.
+    pub(crate) codebook_norms: Vec<OnceLock<B::Tensor>>,
 }
 impl<B: WeightBackend> Codec<B> {
     /// Integrity checks belong to Artifact; this adds codec semantic checks, not
@@ -80,10 +83,14 @@ impl<B: WeightBackend> Codec<B> {
                 .collect();
             weights.insert(name, backend.upload_f32(&values, &shape)?);
         }
+        let codebook_norms = (0..config.levels().len())
+            .map(|_| OnceLock::new())
+            .collect();
         Ok(Self {
             backend,
             config,
             weights,
+            codebook_norms,
         })
     }
     pub fn config(&self) -> &CodecConfig {

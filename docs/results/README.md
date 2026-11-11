@@ -20,8 +20,11 @@ now publishes refreshed Linux measurements, fresh baseline parity, CPU/CUDA/life
 diagnostics and five unresolved uncertainty cells (73/78 diagnostic audit).
 [Lower-risk Linux candidates](2026-11-11-phase2-low-risk/README.md) now show modest
 tokenizer allocation reductions and faster reconstruction with unchanged parity;
-their 74/78 diagnostic audit retains four uncertainty cells. No final new Linux
-or Apple gate is accepted. Phase 3 is unstarted and blocked
+their 74/78 diagnostic audit retains four uncertainty cells.
+[Prepared state and isolated raw upload](2026-11-11-phase2-prepared-state/README.md)
+add Linux correctness/cache-drop evidence and lower measured work counts, but
+retain an unresolved B1 block timing regression; the public upload API awaits
+review and production loading is unchanged. No final new Linux or Apple gate is accepted. Phase 3 is unstarted and blocked
 on the expanded gate. Historical results below remain valid:
 [earlier dual-platform acceptance](2026-11-10-phase2-acceptance/README.md), the
 [extension contract](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).

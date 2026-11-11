@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "status": "provisional Linux experiments; no final acceptance",
+  "parent": "bcf2be4",
+  "source_sha256": {
+    "crates/ncm-backend-cuda/Cargo.toml": "534ed4f83beb5577079c8854624f380a0ca1ac0ab56aa2404d041e821272851f",
+    "crates/ncm-backend-cuda/src/codec.rs": "7b93fa37325412ee10e07616cd859c8926819e7c863dc2566b92792092b4ca65",
+    "crates/ncm-backend-cuda/src/resample.rs": "c29773b534ed82f4a9a90192f7316508f71d1290fbd3be41ab706bf20a1acf72",
+    "crates/ncm-backend-cuda/src/runtime.rs": "06efa2b00915b1d11b6da04a17dd3fea123ff869b9c537fad37f325eb7cd5cef",
+    "crates/ncm-model/src/blocks.rs": "6d8a068abe194e94dff16f7790d1251d4cff1f56d5e59573413de2c70cd5fd2c",
+    "crates/ncm-model/src/codec.rs": "c6d53906a5cd8387f2ac29ea9b052dc5b148f92ba2aaa9ca9ff2ce6d8d707604",
+    "crates/ncm-model/src/lib.rs": "52883516a0d5ef792fd8b118d0c7135396c205e80f7e06be5e3cb35d8d199510",
+    "crates/ncm-backend-cuda/examples/weight_upload_poc.rs": "feb903b5a445dbada77cd6d314feeb68fc76c7644852c817b0b46d9d8c8d1825",
+    "crates/ncm-backend-cuda/tests/prepared_geometry.rs": "8bf426fb1b8e3ad84fffb020d65926f1e2d2c395cffc06e5ed6f441400e899c2"
+  },
+  "archive_sha256": {
+    "raw/experiments-v1.tar.gz": "2b4a60b8d6e2b6b6e2ff6b8b8198579d1389fbe3b0e12bc6cfd7444d00acd758"
+  },
+  "stages": {
+    "prepared": {
+      "started_utc": "2026-11-11T05:04:26.336516+00:00",
+      "binary_sha256": {
+        "previous": {
+          "codec_bench": "2bee7be5d80a2f4f81a161b5e8814b68855a4f65f7d4fc79d16e755b7e612a1a",
+          "asset_bench": "f948699038c5b8b80879428b4ba15011d746b2ba49e5d56faea7161378b519f5"
+        },
+        "candidate": {
+          "codec_bench": "651d73d027070dbfb99f37188cb0b7215d982fb91d5094160e83352c628299c5",
+          "asset_bench": "f948699038c5b8b80879428b4ba15011d746b2ba49e5d56faea7161378b519f5"
+        }
+      },
+      "matrix": "reports/phase2-optimization-prepared-threeway-v1",
+      "source_binding_verified": true
+    },
+    "geometry": {
+      "started_utc": "2026-11-11T05:26:12.114446+00:00",
+      "binary_sha256": {
+        "previous": {
+          "codec_bench": "2bee7be5d80a2f4f81a161b5e8814b68855a4f65f7d4fc79d16e755b7e612a1a",
+          "asset_bench": "f948699038c5b8b80879428b4ba15011d746b2ba49e5d56faea7161378b519f5"
+        },
+        "candidate": {
+          "codec_bench": "034b609cb16af0a8d7c95eb11ffb056e49d0f0cdb2e98d775e716673adbe41ac",
+          "asset_bench": "f948699038c5b8b80879428b4ba15011d746b2ba49e5d56faea7161378b519f5"
+        }
+      },
+      "matrix": "reports/phase2-optimization-geometry-threeway-v1",
+      "source_binding_verified": true
+    }
+  },
+  "snapshot_executable_sha256": {
+    "codec_bench": "034b609cb16af0a8d7c95eb11ffb056e49d0f0cdb2e98d775e716673adbe41ac",
+    "codec_lifecycle": "2915ddfdd9048644683fefa0ea1bed8c3b057e084d7bd1bdae4e1d2ac53b2739",
+    "codec_profile": "c47c33f38aed81db64514f6d62720f610f12eaad282099d97b4e9541fa271598",
+    "codec_trace": "ec76dd56d4627ba960089b4111a4f91469ffe44d732cf2e197ed74afbdf11860"
+  },
+  "limitations": [
+    "Both stage matrices compare to bcf2be4, not final acceptance baseline 3307dff.",
+    "No paired positions/norms-only versus geometry matrix; do not attribute cross-matrix timing deltas to geometry.",
+    "Original positions/norms-only executable hashes are recorded in the matrix; those executables are no longer retained.",
+    "No public raw-upload API or production loader change; user review pending.",
+    "No new Apple validation or final resource/lifecycle/performance acceptance."
+  ],
+  "upload_poc": {
+    "decoded_vec_upload_ms": 13.512509,
+    "native_raw_upload_ms": 7.379914
+  }
+}

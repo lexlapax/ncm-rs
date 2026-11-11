@@ -6,6 +6,10 @@ This checkpoint freezes and refreshes the Linux baseline before production edits
 No new optimization is implemented here; no new Apple run has started. The earlier
 accepted implementation remains unchanged. Phase 3 remains out of scope.
 
+Subsequent provisional work is reported separately: [lower-risk candidates](../2026-11-11-phase2-low-risk/README.md)
+and [prepared state/raw-upload PoC](../2026-11-11-phase2-prepared-state/README.md).
+Their open performance gates and API review do not amend this frozen baseline.
+
 ## Baseline identity and locked gates
 
 - Plan: `013f745`; clean baseline worktree: `3307dff`; production behavior: `083c1e5`.

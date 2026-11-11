@@ -1,6 +1,7 @@
 //! Shared codec components; device adapters contain no level or block semantics.
 use crate::Codec;
 use ncm_core::{CodecBackend, Error, Result};
+use std::sync::OnceLock;
 
 /// Optional observations have immutable value semantics. Observers must not alter
 /// tensors; cloning retains independent snapshots even on lazy native backends.
@@ -24,12 +25,49 @@ pub fn codebook_distances<B: CodecBackend>(
     x: &B::Tensor,
     book: &B::Tensor,
 ) -> Result<B::Tensor> {
+    distances_with_norm(b, x, book, || squared_book_norm(b, book))
+}
+fn squared_book_norm<B: CodecBackend>(b: &B, book: &B::Tensor) -> Result<B::Tensor> {
+    b.permute(&b.sum_last(&b.square(book)?)?, &[1, 0])
+}
+fn distances_with_norm<B: CodecBackend>(
+    b: &B,
+    x: &B::Tensor,
+    book: &B::Tensor,
+    norm: impl FnOnce() -> Result<B::Tensor>,
+) -> Result<B::Tensor> {
+    // Preserve xx + ee - 2*dot ordering, including the row-constant xx term.
     let xx = b.sum_last(&b.square(x)?)?;
-    let ee = b.permute(&b.sum_last(&b.square(book)?)?, &[1, 0])?;
+    let ee = norm()?;
     b.sub(&b.add(&xx, &ee)?, &b.scale(&b.project(x, book)?, 2.0)?)
+}
+fn cached<T>(cell: &OnceLock<T>, make: impl FnOnce() -> Result<T>) -> Result<&T> {
+    if let Some(value) = cell.get() {
+        return Ok(value);
+    }
+    // Errors are not cached. Simultaneous first calls may compute a duplicate;
+    // set publishes one immutable value and drops the unused temporary safely.
+    let _ = cell.set(make()?);
+    Ok(cell
+        .get()
+        .expect("successful immutable cache initialization"))
 }
 
 impl<B: CodecBackend> Codec<B> {
+    pub(crate) fn level_distances(
+        &self,
+        x: &B::Tensor,
+        book: &B::Tensor,
+        level: usize,
+    ) -> Result<B::Tensor> {
+        let cell = self
+            .codebook_norms
+            .get(level)
+            .ok_or_else(|| Error::Input("invalid codebook level".into()))?;
+        distances_with_norm(&self.backend, x, book, || {
+            Ok(cached(cell, || squared_book_norm(&self.backend, book))?.clone())
+        })
+    }
     pub(crate) fn check_latent(&self, x: &B::Tensor, length: usize) -> Result<Vec<usize>> {
         let shape = self.backend.shape(x);
         if shape.len() != 3
@@ -200,5 +238,60 @@ impl<B: CodecBackend> Codec<B> {
             .layer_norm(x, self.weight(&format!("{name}.weight"))?, bias, 1e-6)?;
         trace.tensor(&format!("{name}.output"), &y)?;
         Ok(y)
+    }
+}
+
+#[cfg(test)]
+mod prepared_tests {
+    use super::*;
+    use std::{cell::Cell, rc::Rc};
+
+    #[test]
+    fn failed_preparation_is_retryable_and_success_is_reused() {
+        let cell = OnceLock::<u32>::new();
+        let calls = Cell::new(0);
+        assert!(
+            cached(&cell, || {
+                calls.set(calls.get() + 1);
+                Err(Error::Backend("preparation failure".into()))
+            })
+            .is_err()
+        );
+        assert!(cell.get().is_none());
+        assert_eq!(
+            *cached(&cell, || {
+                calls.set(calls.get() + 1);
+                Ok(7)
+            })
+            .unwrap(),
+            7
+        );
+        assert_eq!(*cached(&cell, || panic!("must not recompute")).unwrap(), 7);
+        assert_eq!(calls.get(), 2);
+    }
+
+    #[test]
+    fn separate_owners_do_not_share_values_or_extend_lifetimes() {
+        // Also demonstrate that non-Send/non-Sync backend values are supported.
+        let first = OnceLock::new();
+        let second = OnceLock::new();
+        let weak = Rc::downgrade(cached(&first, || Ok(Rc::new(7))).unwrap());
+        assert_eq!(**cached(&second, || Ok(Rc::new(13))).unwrap(), 13);
+        drop(first);
+        assert!(weak.upgrade().is_none());
+        assert_eq!(**second.get().unwrap(), 13);
+    }
+
+    #[test]
+    fn concurrent_first_calls_publish_one_immutable_value() {
+        let cell = OnceLock::new();
+        std::thread::scope(|scope| {
+            for _ in 0..4 {
+                scope.spawn(|| {
+                    assert_eq!(cached(&cell, || Ok(vec![1, 2, 3])).unwrap(), &[1, 2, 3]);
+                });
+            }
+        });
+        assert_eq!(cell.get().unwrap(), &[1, 2, 3]);
     }
 }
