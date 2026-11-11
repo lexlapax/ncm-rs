@@ -195,6 +195,17 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   default policy, approve the temporary change and provide a new quiet window.
   Docs-only links/diff checks and 48 reporting tests pass; no runtime/policy change.
   The completed v2 is not rerun; Linux remains 72/78 and Phase 2 incomplete.
+- Offline resident-block source inspection at `41ab9e5` is recorded in the
+  [completion audit](docs/results/2026-11-11-phase2-optimization/completion-audit.md#offline-resident-block-timing-inspection).
+  Benchmark source/CUDA ops and inspected block/evaluate sections match accepted
+  `3307dff`. The block synchronizes before end-event enqueue: event spans include
+  submission/idle gaps, not just kernel duration. Matching wall/event clusters
+  therefore do not establish a device-clock cause. Verified with direct source
+  inspection and byte/section comparisons; docs diff/link checks and all 48
+  reporting tests pass. No new benchmark, hardware test, policy change or waiver.
+  Next read-only protocol must discriminate kernel duration from submission gaps
+  and label instrumentation
+  overhead; investigation choice/new quiet window remain pending. Linux 72/78.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

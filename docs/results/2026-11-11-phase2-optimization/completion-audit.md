@@ -46,6 +46,43 @@ Contract: [approved five-step plan](../../PHASE2-OPTIMIZATION-REVIEW.md),
 | Contracts: pins, schemas, goldens, FP32 tolerances, first-index ties, complete authenticated preflight, Python-free production, retained output semantics | Current checkpoints preserve these; raw-upload remains an isolated example | Final diff/source/test audit; document reporting-tool extensions without changing model/artifact/workload schemas |
 | Publication and closure | Plan/baseline/lower-risk/prepared-state checkpoints pushed; context map updated in every commit | Final evidence index, ledger, both acceptance reports, synchronized plan/tracker/context; inspect actual artifacts before marking goal complete |
 
+## Offline resident-block timing inspection
+
+Inspected source at `41ab9e5` against accepted `3307dff`, without running a
+benchmark or changing policy. `git diff 3307dff --
+crates/ncm-backend-cuda/examples/codec_bench.rs` is empty. Direct byte comparisons
+also establish that CUDA `ops.rs` is unchanged, the `decoder_block` /
+`decoder_block_traced` section of model `blocks.rs` is unchanged, and the CUDA
+`evaluate` implementation is unchanged. This does **not** establish identical
+compiled code, process state, allocation placement or runtime performance.
+
+Timing boundaries in `codec_bench.rs::timed` and `call` explain an important
+interpretation limit:
+
+- A device synchronization precedes the start event. The wall clock starts after
+  that event is recorded.
+- The resident block executes and calls `evaluate`, which checks the output and
+  synchronizes the device, **before** the end event is enqueued. Wall timing then
+  includes end-event recording and synchronization.
+- Consequently, the CUDA-event span is not a sum of kernel execution durations.
+  It can include GPU idle intervals during host submission or between the inner
+  synchronization and end-event enqueue. Matching wall/event clusters alone do
+  not separate host overhead from device execution time or establish a clock cause.
+- Output destruction and the ID-hash check occur outside the timed closure; the
+  returned tensor remains alive through end synchronization. The block receives
+  a retained latent prepared before the scope loop, follows reconstruction, and
+  uses one separately recorded first call plus five warmups and thirty retained
+  trials. No change to these boundaries or scope order is proposed here.
+
+This narrows the next read-only investigation's question: attribute the spread to
+kernel durations versus submission/idle gaps with per-operation trace evidence,
+while reporting instrumentation overhead and retaining the uninstrumented controls.
+It is not yet an executable protocol or authorization for a new run. Existing
+one-second telemetry and event spans cannot supply that attribution retrospectively.
+No acceptance cell closes; Linux remains **72/78**, Apple pending. Verification:
+source inspection, `git diff`, and Python byte/section comparisons; no new hardware
+checks or measurements.
+
 ## Current stop conditions and boundaries
 
 - Unresolved performance uncertainty/regressions are not waived because a scope's
