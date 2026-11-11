@@ -64,6 +64,10 @@ name = "codec_lifecycle"
 required-features = ["cuda"]
 
 [[example]]
+name = "codec_memory"
+required-features = ["cuda"]
+
+[[example]]
 name = "codec_profile"
 required-features = ["cuda"]
 

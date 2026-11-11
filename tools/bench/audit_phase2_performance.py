@@ -30,6 +30,22 @@ def bind_control_sources(directory, roots, profile):
         require(a['source_sha256']==b['source_sha256'],'follow-up sources differ from the matrix')
 
 
+def bind_control_environment(directory, matrix, profile, device):
+    """Bind native executables and pinned Python environment, in addition to sources."""
+    follow=json.loads((directory/'environment.json').read_bytes())
+    binary=('codec_bench' if device=='cuda' else 'mlx_codec_bench') if profile=='codec' else 'asset_bench'
+    for name in ('previous','candidate'):
+        expected=matrix['binary_sha256'][name][binary]
+        require(isinstance(expected,str) and len(expected)==64 and all(c in '0123456789abcdef' for c in expected), 'invalid matrix executable hash')
+        require(follow['binary_sha256'][name][binary]==expected, 'follow-up executable differs from matrix')
+    venv=('venv' if device=='cuda' else 'mlx-venv') if profile=='codec' else 'tokenizers-venv'
+    require(matrix[venv] and follow[venv]==matrix[venv], 'follow-up Python environment differs from matrix')
+    require(follow['harness_sha256']==matrix['harness_sha256'], 'follow-up runner differs from matrix')
+    require(follow['cpu_affinity']==matrix['cpu_affinity'], 'follow-up affinity differs from matrix')
+    if device=='metal':
+        require(matrix['native_libraries_sha256'] and follow['native_libraries_sha256']==matrix['native_libraries_sha256'], 'follow-up MLX libraries differ from matrix')
+
+
 def audit(config):
     device=config['device'];require(device in ('cuda','metal'),'unsupported device')
     roots={name:Path(config[name]) for name in ('previous','candidate')}
@@ -59,7 +75,16 @@ def audit(config):
     load_controls=config.get('load_controls',[])
     require(set(load_controls)<=set(config.get('controls',{})), 'load control missing reports')
     from summarize_codec_load_control import summarize as codec_load_control
-    controls={p:(codec_load_control(Path(path),device) if p=='codec' else control(Path(path),p,include_load=p in load_controls))
+    execution_controls=config.get('codec_execution_controls',False)
+    require(isinstance(execution_controls,bool), 'codec execution control must be explicit boolean')
+    require(not execution_controls or ('codec' in config.get('controls',{}) and 'control_matrix_environment' in config), 'codec execution controls need reports and matrix environment binding')
+    matrix_environment=None
+    if 'control_matrix_environment' in config:
+        path=Path(config['control_matrix_environment'])
+        require(all(path.resolve()==(root.parent/'environment.json').resolve() for root in roots.values()), 'environment is not the selected matrix environment')
+        matrix_environment=json.loads(path.read_bytes())
+        inputs[str(path)]=hashlib.sha256(path.read_bytes()).hexdigest()
+    controls={p:(codec_load_control(Path(path),device,include_execution=execution_controls) if p=='codec' else control(Path(path),p,include_load=p in load_controls))
               for p,path in config.get('controls',{}).items()}
     for profile,path in config.get('controls',{}).items():
         directory=Path(path)
@@ -67,6 +92,9 @@ def audit(config):
         if environment.get('identical_tokenizer_binary_control',False):
             require(controls[profile]['native_binaries_identical'],'identity control requires identical binaries')
         bind_control_sources(directory,roots,profile)
+        if matrix_environment is not None:
+            bind_control_environment(directory,matrix_environment,profile,device)
+            inputs[str(directory/'environment.json')]=hashlib.sha256((directory/'environment.json').read_bytes()).hexdigest()
     rows=[]
     def timing(label,new,a,b,follow=None):
         for name,other in [('previous',a),('python',b)]:
@@ -82,8 +110,10 @@ def audit(config):
             else: row['passed']=row['original_point_pass'] and row['process_median_envelope_ratio']<=1.05
             rows.append(row)
     old=data['previous'];new=data['candidate']
+    codec_follow={(r['batch'],r['scope']):r for r in controls['codec']['measurements'] if 'batch' in r} if execution_controls else {}
     for a,b in zip(old['codec']['measurements'],new['codec']['measurements']):
-        timing(f"codec/{b['batch']}/{b['scope']}",b['runtimes']['rust']['wall'],a['runtimes']['rust']['wall'],b['runtimes']['python']['wall'])
+        follow=codec_follow[(b['batch'],b['scope'])] if execution_controls else None
+        timing(f"codec/{b['batch']}/{b['scope']}",b['runtimes']['rust']['wall'],a['runtimes']['rust']['wall'],b['runtimes']['python']['wall'],follow)
     groups=[('codec',old['codec']['loads'],new['codec']['loads'])]
     for a,b in zip(old['tokenizers'],new['tokenizers']):
         profile=b['profile'];follow=controls.get(profile)

@@ -102,6 +102,34 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   `.reference/phase2-geometry-snapshot-bin`; original intermediate positions/norms
   executable hashes are recorded but those binaries are not retained. Preserve
   `.reference/phase2-low-risk-baseline{,-bin}` and all older baselines.
+- Linux controlled follow-up remains **incomplete, 72/78**:
+  [report](docs/results/2026-11-11-phase2-linux-controls/README.md),
+  [working completion audit](docs/results/2026-11-11-phase2-optimization/completion-audit.md).
+  Fresh full matrix is 74/78; predeclared 30-process controls for codec/BERT/GPT-2/
+  Qwen retain all 360 processes. Six native-comparator cells remain open (B1 block
+  median uncertainty; three GPT-2 execution p95 cells; codec/Qwen load p95).
+  No noise waiver; all Python/matrix-memory cells pass, not an overall pass.
+  Audit adds explicit full-codec control opt-in and binary/Python environment
+  binding without changing limits; 36 report tests pass. Fresh CUDA checks,
+  642 traces/2,500 decisions, tokenizer probes, nine-process lifecycle and
+  45-process CPU/resource output validation pass. Six whole-model probes verify
+  60 drops to zero live pool usage, 25,680-byte stable prepared state, and net
+  retained-output savings ~1.07/2.16/4.35 MB B1/B2/B4 (not a host-RSS gain).
+  Three unchanged-binary GDB captures establish 168 direct model format calls /
+  7,992 requested bytes per reconstruction; trace/typed-name plumbing deferred.
+  CUDA kernel/layout/graph/table/ownership decisions and tokenizer deferrals are
+  recorded in the ledger; MLX-specific work and final dual-platform gates remain.
+  A shared-target diagnostic baseline build caused stale release artifact reuse;
+  a cache test failed and binary hashes identified old accepted binaries. Local
+  CUDA/model release outputs were cleaned/rebuilt; fresh checks pass and frozen
+  candidate hashes match again. Earlier measurements predate this incident and
+  are binary-bound. **Use isolated targets for future cross-worktree builds.**
+  Preserve `.reference/phase2-memory-baseline` (diagnostic example added locally)
+  and `.reference/phase2-memory-bin`; no historical baseline overwritten.
+  Clean staged-checkout reproduction matches both summaries and all three negative
+  audits exactly; source/archive hashes, archive scope and local links pass.
+  Next resource question: arrange quiet/stabilized Linux controls; do not change
+  clocks/power/services or stop unrelated work without approval. No Apple run yet.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "Linux incomplete; 72/78 controlled audit",
+  "production_candidate": "d44beaa82bbf026b353cb44461da44d25efbfb87",
+  "accepted_baseline": "3307dff82a08f7251b64de0866a01d131528b74f",
+  "source_sha256": {
+    "tools/bench/audit_phase2_performance.py": "fe3569fc43c185502c3a7837f37e7ac1526a392acad5def9fcf452ad43af702d",
+    "tools/bench/summarize_codec_load_control.py": "c99907e6cc1dcb00dc1cd0922bda1e118f1933776bab242407206f19b45ee670",
+    "tools/bench/test_phase2_acceptance.py": "d81dac8ae6aa22c12f411b220c2b9ef76ed985b3c079172bf39b6d9d0904a2e4",
+    "tools/bench/gdb_codec_metadata.py": "d9ac7011c71c71e3f52bf6a6b3f4694965d243c3e9d369c1d6403c3da09e653d",
+    "tools/bench/test_gdb_codec_metadata.py": "e264650e0bf6b78be1cc2ce5338a92a62501d39aaf48a19b0a88885d287a7bce",
+    "crates/ncm-backend-cuda/examples/codec_memory.rs": "6f4a6b4edc14ce3f0f4ad849b939565853633f1adb8bfebe105826fb9c29b901",
+    "crates/ncm-backend-cuda/Cargo.toml": "0a7c8403ea39af3a165e601341ce40e0ad2754038b8dc34a459209136a31de7f"
+  },
+  "files_sha256": {
+    "raw/linux-controls-v1.tar.xz": "618e1237c18ce57d8144d9622d3a44fe3b16a106592715566116761d9513ef31",
+    "summary.json": "c89b6f14b91c4d5770203b6208e51cc723815d94535a783a17510175799ec0be"
+  },
+  "benchmark_binary_sha256": {
+    "previous": {
+      "codec_bench": "26437962fc06d0f43280e2b2b5608cacfa6d5931ab14f1f9d89c4a4f6cfc35a9",
+      "asset_bench": "88328327be30890ab43423928e4482f06e6d754052e7ba4a43cc49154a1772fc"
+    },
+    "candidate": {
+      "codec_bench": "034b609cb16af0a8d7c95eb11ffb056e49d0f0cdb2e98d775e716673adbe41ac",
+      "asset_bench": "f948699038c5b8b80879428b4ba15011d746b2ba49e5d56faea7161378b519f5"
+    }
+  },
+  "memory_probe_binary_sha256": {
+    "previous": "f0777dfb36346d1bc4caa18a982ec8da5250be6c8aaa0c1f0e42fe3149e0dcf1",
+    "candidate": "47544f38221cc38b1f63bd32552cc9001df666f50aef1063c9e3386497e3ae62"
+  },
+  "control_plan_sha256": "5367d393485203a92b11c91d0f05bf1f13b2d92ba6e1063a90eebcd6ceaeb614",
+  "limitations": [
+    "All raw favorable and negative results retained; no gate waiver.",
+    "Diagnostic memory probe retains native index tensors; absolute counters are not acceptance scope.",
+    "GDB instrumentation is allocation-entry attribution, not wall-time evidence.",
+    "Shared-target stale-build incident occurred after timing/resource collection; candidate restored by clean package rebuild and exact binary hashes.",
+    "Public raw-upload API remains unchanged/unapproved; no Apple run."
+  ]
+}

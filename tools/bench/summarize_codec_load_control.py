@@ -1,4 +1,8 @@
-"""Whole-process uncertainty for checked loads from full codec benchmark reports."""
+"""Whole-process codec uncertainty; execution scopes are an explicit opt-in.
+
+Historical callers retain checked-load-only output. Execution controls validate
+all full reports and resample the same independent process units, not trials.
+"""
 import hashlib
 import json
 from pathlib import Path
@@ -8,7 +12,7 @@ from phase2_summary import codec, require, stats
 from summarize_tokenizer_control import interval
 
 
-def summarize(root, device):
+def summarize(root, device, include_execution=False):
     root=Path(root);environment=json.loads((root/'environment.json').read_bytes())
     count=environment['repeats']
     require(count>=3 and count%3==0 and 'codec' in environment['workloads'], 'incomplete codec control')
@@ -35,11 +39,23 @@ def summarize(root, device):
     for name in ('previous','candidate'):
         for start in range(0,count,3):
             codec(root,device,runs={'rust':runs[name][start:start+3], 'python':runs['python'][start:start+3]})
-    trials={name:[r['load_trials_ms'] for r in group] for name,group in runs.items()}
-    summaries={name:stats([v for r in group for v in r]) | {'process_medians_ms':[statistics.median(r) for r in group]} for name,group in trials.items()}
-    comparisons={name:{'median_ratio':summaries['candidate']['median_ms']/summaries[name]['median_ms'],
-                       'p95_ratio':summaries['candidate']['p95_ms']/summaries[name]['p95_ms'],
-                       'paired_process_percentile_95_interval':interval(trials['candidate'],trials[name],random.Random(20261110))} for name in ('previous','python')}
+    def summarize_trials(trials):
+        summaries={name:stats([v for r in group for v in r]) | {'process_medians_ms':[statistics.median(r) for r in group]} for name,group in trials.items()}
+        comparisons={name:{'median_ratio':summaries['candidate']['median_ms']/summaries[name]['median_ms'],
+                           'p95_ratio':summaries['candidate']['p95_ms']/summaries[name]['p95_ms'],
+                           'paired_process_percentile_95_interval':interval(trials['candidate'],trials[name],random.Random(20261110))} for name in ('previous','python')}
+        return {'timings':summaries,'candidate_over':comparisons}
+    measurements=[]
+    if include_execution:
+        from phase2_summary import SCOPES
+        for batch in (1,2,4):
+            for scope in SCOPES:
+                trials={name:[next(row['trials_ms'] for row in r['measurements']
+                                  if (row['batch'],row['scope'])==(batch,scope)) for r in group]
+                        for name,group in runs.items()}
+                measurements.append({'batch':batch,'scope':scope,**summarize_trials(trials)})
+    measurements.append({'scope':'checked_load',**summarize_trials({name:[r['load_trials_ms'] for r in group] for name,group in runs.items()})})
     return {'schema_version':1,'processes_per_runtime':count,'cpu_affinity':environment['cpu_affinity'],
-            'scope':'Full codec reports; only checked-load uncertainty is adjudicated here.',
-            'report_sha256':hashes,'measurements':[{'scope':'checked_load','timings':summaries,'candidate_over':comparisons}]}
+            'scope':('Full codec reports; execution and checked-load uncertainty; all declared processes retained.' if include_execution
+                     else 'Full codec reports; only checked-load uncertainty is adjudicated here.'),
+            'report_sha256':hashes,'measurements':measurements}

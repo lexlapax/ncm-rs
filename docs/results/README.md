@@ -24,7 +24,11 @@ their 74/78 diagnostic audit retains four uncertainty cells.
 [Prepared state and isolated raw upload](2026-11-11-phase2-prepared-state/README.md)
 add Linux correctness/cache-drop evidence and lower measured work counts, but
 retain an unresolved B1 block timing regression; the public upload API awaits
-review and production loading is unchanged. No final new Linux or Apple gate is accepted. Phase 3 is unstarted and blocked
+review and production loading is unchanged.
+[Fixed Linux controls and resources](2026-11-11-phase2-linux-controls/README.md)
+retain all 360 control processes and six open comparisons (72/78); whole-model
+drop/isolation and native retained-output savings are verified. No final new Linux
+or Apple gate is accepted. Phase 3 is unstarted and blocked
 on the expanded gate. Historical results below remain valid:
 [earlier dual-platform acceptance](2026-11-10-phase2-acceptance/README.md), the
 [extension contract](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).

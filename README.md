@@ -8,7 +8,9 @@ The earlier Linux/CUDA and Apple Silicon/MLX remediation is accepted; the
 [new plan](docs/PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
 now requires further experiments and both runtime gates before Phase 2 closes again.
 [Lower-risk Linux candidates](docs/results/2026-11-11-phase2-low-risk/README.md) are
-under evaluation; both final runtime gates remain pending. Phase 3 is unstarted.
+under evaluation. [Fixed Linux controls](docs/results/2026-11-11-phase2-linux-controls/README.md)
+retain six open comparisons (72/78); both final runtime gates remain pending.
+Phase 3 is unstarted.
 The shared FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT tokenizers pass
 [final correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):
 642 trained traces / 2,500 decisions and 78 performance/memory comparisons on each

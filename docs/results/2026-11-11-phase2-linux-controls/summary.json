@@ -1,0 +1,174 @@
+{
+  "status": "Linux incomplete; controlled audit 72/78",
+  "resource_output_checks_passed": true,
+  "whole_process_cpu_ms": {
+    "codec": {
+      "previous": [
+        9414.775,
+        9261.035,
+        9504.729000000001
+      ],
+      "candidate": [
+        9561.589,
+        9476.988,
+        9250.044
+      ],
+      "python": [
+        15919.65,
+        18236.659,
+        14812.526
+      ]
+    },
+    "bert": {
+      "previous": [
+        281.561,
+        419.869,
+        267.446
+      ],
+      "candidate": [
+        282.54999999999995,
+        421.381,
+        267.873
+      ],
+      "python": [
+        1588.2069999999999,
+        2346.922,
+        1490.318
+      ]
+    },
+    "gpt2": {
+      "previous": [
+        900.3309999999999,
+        1319.618,
+        838.5279999999999
+      ],
+      "candidate": [
+        911.9639999999999,
+        1321.62,
+        834.789
+      ],
+      "python": [
+        3886.1050000000005,
+        4200.58,
+        2876.104
+      ]
+    },
+    "qwen3": {
+      "previous": [
+        4575.699,
+        4550.972999999999,
+        3160.308
+      ],
+      "candidate": [
+        4607.506,
+        4441.535,
+        3218.0249999999996
+      ],
+      "python": [
+        10184.559,
+        9949.394,
+        7629.146000000001
+      ]
+    },
+    "tinystories": {
+      "previous": [
+        215.427,
+        214.361,
+        144.70599999999996
+      ],
+      "candidate": [
+        212.08499999999998,
+        212.829,
+        143.067
+      ],
+      "python": [
+        3187.153,
+        3184.728,
+        1799.333
+      ]
+    }
+  },
+  "model_memory": {
+    "previous": {
+      "loaded_used_bytes": [
+        59586048
+      ],
+      "prepared_used_bytes": [
+        59586048
+      ],
+      "retained_outputs_used_bytes": {
+        "1": [
+          61779228
+        ],
+        "2": [
+          63972408
+        ],
+        "4": [
+          68358768
+        ]
+      },
+      "after_drop_used_bytes": [
+        0
+      ],
+      "max_observed_after_drop_host_hwm_bytes": 772853760
+    },
+    "candidate": {
+      "loaded_used_bytes": [
+        59586048
+      ],
+      "prepared_used_bytes": [
+        59611728
+      ],
+      "retained_outputs_used_bytes": {
+        "1": [
+          60711276
+        ],
+        "2": [
+          61810824
+        ],
+        "4": [
+          64009920
+        ]
+      },
+      "after_drop_used_bytes": [
+        0
+      ],
+      "max_observed_after_drop_host_hwm_bytes": 772829184
+    }
+  },
+  "metadata": {
+    "totals_per_two_reconstructions": {
+      "calls": 336,
+      "allocations": 336,
+      "reallocations": 236,
+      "requested_bytes": 15984
+    },
+    "scope_invocations_in_order": {
+      "encode": [
+        {
+          "allocations": 31116,
+          "reallocations": 3231,
+          "requested_bytes": 213458604
+        },
+        {
+          "allocations": 7555,
+          "reallocations": 729,
+          "requested_bytes": 1487853
+        }
+      ],
+      "block": [
+        {
+          "allocations": 563,
+          "reallocations": 56,
+          "requested_bytes": 304656
+        },
+        {
+          "allocations": 475,
+          "reallocations": 56,
+          "requested_bytes": 91502
+        }
+      ]
+    },
+    "processes": 3
+  }
+}

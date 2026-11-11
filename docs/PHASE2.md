@@ -197,11 +197,15 @@ freezes accepted binaries/bands, refreshes measurements and passes fresh baselin
 correctness. Its diagnostic audit is 73/78 with five uncertainty cells. Subsequent
 [lower-risk Linux experiments](results/2026-11-11-phase2-low-risk/README.md) add
 allocation attribution, ID-only encoding, in-place byte-BPE merges and shared
-reconstruction reuse with fresh correctness checks. Their current matrix is
-74/78 with four uncertainty cells; prepared-state/loading investigations, final
-controls and platform gates remain pending.
+reconstruction reuse with fresh correctness checks; that historical matrix is
+74/78. [Prepared state](results/2026-11-11-phase2-prepared-state/README.md) and
+[fixed Linux controls/resources](results/2026-11-11-phase2-linux-controls/README.md)
+now add verified model lifetimes and memory savings, but the controlled audit
+remains **72/78**. Both final platform gates remain pending. The
+[working completion audit](results/2026-11-11-phase2-optimization/completion-audit.md)
+tracks actual evidence and missing requirements.
 
-- [ ] Step 1: freeze `3307dff` / production `083c1e5` as current Rust; refresh matched
+- [x] Step 1: freeze `3307dff` / production `083c1e5` as current Rust; refresh matched
   current-Rust/Python baseline reports, verify identities/scopes and lock bands.
 - [ ] Step 2: independently test lower-risk prepared-state, reconstruction-reuse,
   tokenizer and MLX-resampling candidates; record checks/results/disposition for

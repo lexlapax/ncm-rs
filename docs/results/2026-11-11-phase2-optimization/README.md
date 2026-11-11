@@ -8,7 +8,9 @@ accepted implementation remains unchanged. Phase 3 remains out of scope.
 
 Subsequent provisional work is reported separately: [lower-risk candidates](../2026-11-11-phase2-low-risk/README.md)
 and [prepared state/raw-upload PoC](../2026-11-11-phase2-prepared-state/README.md).
-Their open performance gates and API review do not amend this frozen baseline.
+[Fixed Linux controls/resources](../2026-11-11-phase2-linux-controls/README.md)
+now retain six open comparisons (72/78). These open gates and optional API review
+do not amend this frozen baseline. See the [working completion audit](completion-audit.md).
 
 ## Baseline identity and locked gates
 

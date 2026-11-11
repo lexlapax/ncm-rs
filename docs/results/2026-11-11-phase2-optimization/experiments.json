@@ -7,7 +7,9 @@
     {
       "id": "prepared-state",
       "hypothesis": "Avoid repeated positional gathers, codebook norms, resampling metadata and hot-path name construction with bounded model-owned state.",
-      "status": "provisional Linux positions/norms/geometry experiments; performance acceptance and hot-name/trace attribution pending",
+      "status": "Linux correctness and full-model lifetime verified; final performance/Apple pending; further hot-name/trace plumbing deferred",
+      "followup_evidence": "docs/results/2026-11-11-phase2-linux-controls/README.md",
+      "followup_finding": "Three native processes each verify ten complete model drops and 144 requests, stable prepared state of 25680 bytes and zero live pool usage after drop. Three GDB captures show 168 direct model formatter calls/7992 requested allocator bytes per reconstruction; no isolated latency gain for replacing them is established. Controlled Linux audit remains 72/78.",
       "evidence": "docs/results/2026-11-11-phase2-prepared-state/README.md",
       "finding": "Positions/norms reduce two-request profile kernels 918 to 892. Bounded geometry additionally removes 70 H2D copies/24912 bytes; native owner-drop/isolation/stability test passes. Both trained qualifications pass. Combined fresh B1 block median ratio 1.1106 versus bcf2be4 is unresolved, not accepted or waived.",
       "constraints": "Keep preflight before upload, model/device isolation, drop behavior and FP32 operation ordering; do not drop the row-constant distance term."
@@ -41,12 +43,14 @@
     },
     {
       "id": "tiny-compact-lookup-or-heap",
-      "status": "conditional; disposition pending remaining-hotspot and long-input evidence",
+      "status": "defer heap/compact lookup in this bounded iteration; no long-input or unseen-workload speedup claim",
+      "finding": "The retained low-risk compaction reduces 259 allocation requests per trial, but matched warm encode 0.236233 to 0.235164 ms shows no material latency gain. Static CSR byte estimates are not a measured speed/memory result. Additional heap/rank/overlap complexity and persistent lookup storage are not justified by the measured warm workload; future long/unseen claims require separate differential evidence.",
       "constraints": "Preserve all-occurrence/rank/overlap semantics and bounded memory; dense pair table rejected in research."
     },
     {
       "id": "bert-decoder-cleanup",
-      "status": "conditional; no decoder replacement authorized implicitly",
+      "status": "defer custom decoder/dependency adaptation; retain the pinned per-token semantics",
+      "decision": "Allocation work is real, but no compatible replacement or isolated wall-time benefit has been demonstrated. Reproducing eleven ordered per-token cleanup passes adds a maintenance/semantic surface; do not silently vendor, change the pin, or substitute whole-string cleanup.",
       "finding": "Current BERT decode uses 19876 Rust allocations per 89-string trial; native WordPiece per-token cleanup remains a plausible contributor. Outer wrapper cleanup is disabled in qualified profiles.",
       "constraints": "Preserve per-token cleanup order; any dependency/vendor or contract change requires review."
     },
@@ -59,7 +63,9 @@
     },
     {
       "id": "cuda-layout-selection-resampling",
-      "status": "conditional; re-profile after shared lower-risk experiments",
+      "status": "re-profiled; defer custom kernels, alternative convolution and persistent duplicate layouts this iteration",
+      "evidence": "docs/results/2026-11-11-phase2-linux-controls/README.md",
+      "finding": "Unchanged candidate profile: 892 kernels, including 94 ucopy, 86 indexed gathers and 26 im2col. Residual selection/layout work exists, but there is no per-weight copy attribution, qualified replacement or measured break-even to justify new persistent layouts/kernel dependencies under unchanged FP32/tie rules.",
       "constraints": "Tie order and FP32 resampling budgets unchanged; permanent layout copies need measured memory/startup justification."
     },
     {
@@ -69,12 +75,16 @@
     },
     {
       "id": "cuda-graph-replay",
-      "status": "conditional; not started",
+      "status": "no-go for this bounded iteration; not implemented",
+      "evidence": "docs/results/2026-11-11-phase2-linux-controls/README.md",
+      "finding": "Profile still has 1536 allocation and 1536 free API calls including loading. Stable captured-buffer ownership, retained-output isolation and graph threading need separate design; no capture break-even or memory benefit is established.",
       "constraints": "Only after stable allocation/layout plans; no unsafe Send/Sync or overwriting retained outputs; quantify capture break-even and memory."
     },
     {
       "id": "level-zero-lookup-and-new-loader-ownership",
-      "status": "deferred pending explicit profile-backed go/no-go review",
+      "status": "no-go for level-zero tables and new generic artifact ownership in this iteration",
+      "evidence": "docs/results/2026-11-11-phase2-linux-controls/README.md",
+      "finding": "Two level-zero tables add 2916352 logical bytes versus measured prepared state 25680 bytes, without a demonstrated startup/request break-even after reuse. New artifact ownership changes trust/lifetime behavior and is not authorized by the isolated upload PoC.",
       "constraints": "Precomputed tables add persistent memory/setup cost; new ownership/trust APIs cannot silently alter existing artifact behavior."
     }
   ]
