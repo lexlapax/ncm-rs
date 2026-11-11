@@ -5,6 +5,13 @@ Work stopped at the user's request after committing/pushing the current checkpoi
 `agent-context-map.md`, `git status`, then the [working completion audit](completion-audit.md).
 No background benchmark or telemetry collection remains running.
 
+Continuation has resumed **offline diagnostic preparation only**. The
+[fixed diagnostic v2 protocol](linux-diagnostic-protocol-v2.md) is ready for
+preflight after quiet-window confirmation; it has not run. The comparison runner
+now offers SMT-aware observer placement, tested with tiny Linux children. Default
+local checks pass (48 reporting tests). Production and the 72/78 gate are unchanged;
+the historical checkpoint details below remain evidence, not fresh measurements.
+
 ## Retained state
 
 - Approved five-step plan: `docs/PHASE2-OPTIMIZATION-REVIEW.md`; earlier planning

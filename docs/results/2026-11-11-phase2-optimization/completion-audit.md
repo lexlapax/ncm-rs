@@ -8,7 +8,10 @@ costs throughout; disposition conditional opportunities and publish a verified
 final candidate. Phase 3, generator/CLI work and a licensed inference release are
 outside this objective. An uncertain or missing gate is not achieved.
 
-Work is stopped for handoff at the user's request; see [continuation notes](HANDOFF.md).
+The requested handoff is preserved in [continuation notes](HANDOFF.md). Offline
+preparation has resumed with a [fixed diagnostic protocol](linux-diagnostic-protocol-v2.md)
+and tested observer placement; no new benchmark has run. Quiet-window confirmation
+is still pending, and neither tooling tests nor this protocol closes any runtime gate.
 The resource-only CPU observer placement was corrected in a fixed 45-job refresh,
 with complete read-only telemetry and qualified outputs. No acceptance failure was
 waived: Linux remains 72/78 and Apple work remains pending.

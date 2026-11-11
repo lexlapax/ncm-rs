@@ -151,6 +151,21 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   72/78; MLX remains blocked. No background collection is left running. `.pi/`
   remains intentionally untracked. Next: quiet/read-only-instrumented Linux
   investigation, then remaining completion-audit requirements; do not mark complete.
+- Continuation: offline diagnostic preparation resumed after the handoff; no new
+  acceptance, resource, GPU or Apple measurements. Rechecked HEAD/origin at
+  `c4bcb69`, only `.pi/` untracked before edits; all 64 directly bound inputs in
+  the retained final Linux audit match their hashes, still **72/78**.
+  [Fixed diagnostic v2 protocol](docs/results/2026-11-11-phase2-optimization/linux-diagnostic-protocol-v2.md)
+  proposes one 54-process run with read-only telemetry, **not yet run** and not an
+  acceptance replacement. Quiet-window confirmation remains pending. Runner adds
+  opt-in `--observer-cpu`: reject workload SMT siblings, pin launcher/GPU observers,
+  retain explicit workload CPU, restore launcher affinity. Prior unpinned observers
+  are a possible confound, not an established cause. Six tests include real Linux
+  child inheritance/override; all **48 report tests** and default
+  `CARGO_BUILD_JOBS=4 ./tools/check.sh` pass. Exact local log/hash in the protocol.
+  No production/API/pin/tolerance changes. Next: confirm quiet window, bind/check
+  all preflight identities, execute the fixed diagnostic once, then decide a
+  defensible next intervention; Linux gate still blocks MLX and completion.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
