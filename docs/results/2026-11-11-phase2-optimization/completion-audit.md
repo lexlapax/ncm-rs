@@ -9,9 +9,10 @@ final candidate. Phase 3, generator/CLI work and a licensed inference release ar
 outside this objective. An uncertain or missing gate is not achieved.
 
 The requested handoff is preserved in [continuation notes](HANDOFF.md). Offline
-preparation has resumed with a [fixed diagnostic protocol](linux-diagnostic-protocol-v2.md)
-and tested observer placement; no new benchmark has run. Quiet-window confirmation
-is still pending, and neither tooling tests nor this protocol closes any runtime gate.
+preparation led to one [completed fixed diagnostic](linux-diagnostic-v2-results.md)
+after explicit quiet-window confirmation: 54 qualified processes, all identities
+and 901-sample coverage verified. B1 block bimodality persists; outcome is unresolved
+recurrence, not a replacement acceptance gate. No runtime gate is closed by it.
 The resource-only CPU observer placement was corrected in a fixed 45-job refresh,
 with complete read-only telemetry and qualified outputs. No acceptance failure was
 waived: Linux remains 72/78 and Apple work remains pending.
@@ -30,7 +31,7 @@ Contract: [approved five-step plan](../../PHASE2-OPTIMIZATION-REVIEW.md),
 | Step 2: checked loading copies/raw upload | Prepared-state report: 58 tensors / 59,586,048 bytes, bit-exact native readback, three processes, 5 warmups/30 trials; guarded alignment/ownership/overflow tests | Public API change has not been approved and is not implemented. Final disposition must not imply full-load/RSS gains from upload-only timing |
 | Step 2: vectorized MLX resampling | Qualified coordinate/reduction constraints documented in review | Not started; Linux gate first; real Metal PoC, expanded numerical cases, memory/startup tradeoff and disposition required |
 | Step 3: Linux correctness, `tools/check.sh --cuda`, fresh 642 trained traces / 2,500 decisions, tokenizer probes | [Controls checkpoint](../2026-11-11-phase2-linux-controls/README.md): clean rebuilt checks, fresh capture/qualification and cleared-environment probes pass; frozen benchmark hashes restored/verified after documented stale-build incident | Recheck if candidate changes; correctness alone does not close performance |
-| Step 3: Linux performance versus accepted Rust AND Python | [Controls checkpoint](../2026-11-11-phase2-linux-controls/README.md): all 360 predeclared processes complete; fresh matrix 74/78, controlled audit **72/78**, all failures retained | Six comparisons still fail; need a defensible quiet/stabilized follow-up, never selective exclusion or widened bands |
+| Step 3: Linux performance versus accepted Rust AND Python | [Controls checkpoint](../2026-11-11-phase2-linux-controls/README.md): all 360 predeclared processes complete; fresh matrix 74/78, controlled audit **72/78**, all failures retained | Six acceptance comparisons remain open. Completed v2 diagnostic retains B1 block clusters despite quiet/isolated observation; five other failures did not recur, not a waiver. Need a separate discriminating intervention/protocol, never selective exclusion or widened bands |
 | Step 3: Apple availability/state, reviewed pushed commits, Linux-first ordering | No new Apple run; historical baseline/worktrees preserved | Recheck competing work/access, announce first run only after Linux gate, pull reviewed commits, preserve old baselines |
 | Step 3: Apple `tools/check.sh --mlx`, fresh trained qualification and cleared-environment tokenizer probes | Earlier acceptance is historical only | New final-candidate evidence required; shared fixes return through Linux first |
 | Step 3: Apple 78-cell matrix against accepted Rust and qualified Python MLX | Not collected for this extension | Complete strict acceptance, retaining negative runs and controls |

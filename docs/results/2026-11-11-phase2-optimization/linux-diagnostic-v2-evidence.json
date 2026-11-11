@@ -1,0 +1,588 @@
+{
+  "schema_version": 1,
+  "status": "diagnostic complete; unresolved recurrence; acceptance unchanged 72/78",
+  "measured_commit": "fa040ed34a44a577bc4e6e297c944393cdf6cfda",
+  "production_candidate": "d44beaa82bbf026b353cb44461da44d25efbfb87",
+  "archive": {
+    "path": "docs/results/2026-11-11-phase2-optimization/raw/linux-diagnostic-v2.tar.xz",
+    "bytes": 591440,
+    "sha256": "feb5ec2138e070811614af86f05777d0e0c09616ca2134e1730a2533e95a368c",
+    "members": [
+      {
+        "path": "phase2-linux-diagnostic-v2-analysis-check.log",
+        "bytes": 107,
+        "sha256": "f0a7d40ac7dd8d466e7ad897755439a0221b87ee6f721ed7e014c8803fd440d2"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-analyze.py",
+        "bytes": 11376,
+        "sha256": "f8be971d2543d35be68c46c0fa78ad238440c61598d68375ddbb60a1e5037089"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-comparison.log",
+        "bytes": 2016,
+        "sha256": "b296563e8b18d815c62305328fc2bb7b5d6589961d8fe1446bff4e921906a9d0"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-cpu.jsonl",
+        "bytes": 5236698,
+        "sha256": "397f9aa3fdc1f6ca86f1d7f3e72d8e27241f8a79f9c5e1ca124851f237516c47"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-launch-result.json",
+        "bytes": 114,
+        "sha256": "1e8b387b25c09231e799185b1659d31d4bb86e7d9160f74c8cb03f52d85abbf9"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-launch.log",
+        "bytes": 156,
+        "sha256": "d197ec82e335d217a8cdee9fd41103defde235ffec8b7caeea74ce9990a1b300"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-launch.py",
+        "bytes": 6981,
+        "sha256": "b010bb8ade5a645c31ff6b922de2c71763c20fd70a666448585ce2de68fee601"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-payload-preflight.json",
+        "bytes": 6644,
+        "sha256": "28902ca75deb023342703f56feb7425589d5c52d08cdac868e496b07c007354e"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-prelaunch.json",
+        "bytes": 14190,
+        "sha256": "7f7bf028c8b26b54bf75a1f38396f2d0c6878d4ecfecfb710c1a7c030514a863"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-protocol-prelaunch.md",
+        "bytes": 7536,
+        "sha256": "26c574f623cd9856b320ff750ca7f8c442e2c9e23f67f4d7b3cc9ba40f8fb81c"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-publication-check.log",
+        "bytes": 14457,
+        "sha256": "36b7b1e9f49fcd7d6e5bc25926a0e1565f0aea2780027be6531f8da193d0b7ee"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-report-tests.log",
+        "bytes": 6596,
+        "sha256": "0bbb72f73e881f3d827631439f8d4bd45e356bcb21095b255886dda253531f27"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-sampler.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2-static-preflight.json",
+        "bytes": 1571,
+        "sha256": "0a3342ffad56c20a8e66bc604347d1a9de9c994bf8e32c0b8bc6067547c3926e"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/analysis.json",
+        "bytes": 1073152,
+        "sha256": "51c2b2e0ac57a30d764e4a533d14e59896332693b74d0221c3992f5e59767293"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-python-1.json",
+        "bytes": 501266,
+        "sha256": "f10566b49c6dd6f04f30110aa7ca116392e63c8e7c928b6a4e9e652deb00a89c"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-python-2.json",
+        "bytes": 501209,
+        "sha256": "d8e8fcea210fb7985bbeef330a68ca5bbf5e3682b8a7dc96f1769d9ca393d13a"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-python-3.json",
+        "bytes": 501222,
+        "sha256": "5e355cebb503a3d61cba1964a5f39f30d84c6c2c59f553cf0907e226df4119f7"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-python-4.json",
+        "bytes": 501209,
+        "sha256": "290677db7f0147b90759ab681381bcf901903c0b9917d42862b64056650a9339"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-python-5.json",
+        "bytes": 501275,
+        "sha256": "5082e23d3868df1001297e0e6826fed1a6d203082002c6884e73a06cc516dc93"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-python-6.json",
+        "bytes": 501224,
+        "sha256": "18dcc2a8259a6c9a4407d5e48bca73e6776006d64f4d14cd0e1577c5a7f4f1f9"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-rust-1.json",
+        "bytes": 498416,
+        "sha256": "6018f387cb6d6c8fb0d33be15e8a44a387a6fea7d4f752d8e6c4b2c8b52bbe00"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-rust-2.json",
+        "bytes": 498449,
+        "sha256": "b02164dba21dde16d17d8d001e04fb02581029bc4dbe7399fa025cb57ead5e6d"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-rust-3.json",
+        "bytes": 498727,
+        "sha256": "3377700a1ca2851d8ee82d1dfcccd8cad3d5c39695dac9cce8c174e3191f3f98"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-rust-4.json",
+        "bytes": 498322,
+        "sha256": "6db060231a79ae1286a42cedbbe1fc82fb7052aaf2f84c5bb18c020d7a4fcd71"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-rust-5.json",
+        "bytes": 498375,
+        "sha256": "fb2665f5e77d09efb3b2447bb2cfa5d9c172e77915d681b2d7663091f271d30b"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/codec-rust-6.json",
+        "bytes": 498616,
+        "sha256": "a96e5dc418b1f403e77f0b48da540f35bd58fbf9d01dff3b555437d381257674"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-python-1.json",
+        "bytes": 5675,
+        "sha256": "a0b4e4fe665039ae3004303bd1a71d72c09e85e48f6096789567d62df43e8caf"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-python-2.json",
+        "bytes": 5676,
+        "sha256": "6ba516febf0e1beb8353737aa631effea89c8d351380ee7b4cfaac0fe8e8bb31"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-python-3.json",
+        "bytes": 5675,
+        "sha256": "2a61aa217d660877b8e29c7f1f574afd9c626438068603c7e899454d2ad65e48"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-python-4.json",
+        "bytes": 5687,
+        "sha256": "21696070b9fd735098a0552db257ec72c56e8abcec6f97f653c9c576801a0568"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-python-5.json",
+        "bytes": 5683,
+        "sha256": "6062ec5026b63b65276e894580a46b39c4442b79e22f3400f5cd615fb9fddb07"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-python-6.json",
+        "bytes": 5685,
+        "sha256": "db2cb77be5fa8ef5e64455cc4458f2c9b92630395ae131aeda75076523b2c043"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-rust-1.json",
+        "bytes": 4756,
+        "sha256": "509b0f72d61803c4e2294a6318d74939f29e96fd624b0589aa95bd5e13095487"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-rust-2.json",
+        "bytes": 4764,
+        "sha256": "27f22b4416b92f99437b8432483b0e05078d9e12ba14b813d6038692f261f984"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-rust-3.json",
+        "bytes": 4785,
+        "sha256": "e80d36e0786f22b96a1d3007a097a2b18296d36dba6083f17a7c1a555740780e"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-rust-4.json",
+        "bytes": 4811,
+        "sha256": "cf56ee4ad420726c8db25e1abc6547f86a315f0f957d298a505a3b58b2db7d5b"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-rust-5.json",
+        "bytes": 4644,
+        "sha256": "9f13e7b32c9233f2d3c7d759735834312762c9282656477bda9003ea5c3b9109"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-gpt2-rust-6.json",
+        "bytes": 4831,
+        "sha256": "023ebe0631db708a2c38d53b5e84aa6031eb1260f6f286fafe8564956312f449"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-python-1.json",
+        "bytes": 5702,
+        "sha256": "4579abe591cd5e6a5acacb32cfbb8d20971e60fb1a3a12fc41bd9c8e31a32849"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-python-2.json",
+        "bytes": 5680,
+        "sha256": "70b524aa873111369d0cae519ad28efd28cb2bfbf5c322c9e4ee170e58fc12f1"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-python-3.json",
+        "bytes": 5701,
+        "sha256": "fbb7ab43f35458b129d4a79600657a8ff5edf3315b18024bcae7218e00b2e8b3"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-python-4.json",
+        "bytes": 5709,
+        "sha256": "d70d921e4fb6c2a5acd6bdbb399abd8bccea944743db2bee5c491d8644c64cc2"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-python-5.json",
+        "bytes": 5700,
+        "sha256": "14154a0e2e8cfe70548fb79f66684d632c3692deed0ade7201d39e7e571a272f"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-python-6.json",
+        "bytes": 5695,
+        "sha256": "d901577ba853dd4756e969688bd49c6f6b629af34d0d2824dc1a02a80c2b3ca7"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-rust-1.json",
+        "bytes": 4872,
+        "sha256": "afed3ee1cc763b01b915bcfe803d0cdc5863aa9279933a8286d8ddf6accb163f"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-rust-2.json",
+        "bytes": 4823,
+        "sha256": "b8e0902e14ef8cee615de7e04ec942891cefc30cd59581f253eef18f243117e9"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-rust-3.json",
+        "bytes": 4833,
+        "sha256": "92f2158bda260e135b22d5a6686120ed755973909a4acc88c0d200e4660ba230"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-rust-4.json",
+        "bytes": 4775,
+        "sha256": "6900ab0843aacc430f1043833c8b7313da96b71d01d83f1c79572f0e76295fc0"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-rust-5.json",
+        "bytes": 4771,
+        "sha256": "f2a984b3575023096ff2939dea72519c5f5b53c077acdf09c1179d5292dba167"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/candidate/tokenizer-qwen3-rust-6.json",
+        "bytes": 4787,
+        "sha256": "4404a231b28d18bad85c3ee25b3f0babb0d5395d4bc3be6f46be441a53802220"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/commands.tsv",
+        "bytes": 13182,
+        "sha256": "acf0d5d6fbe5faa29759a9eb331d3f29d99cc7092a5cdc1bd89d37cbffd9510a"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/environment.json",
+        "bytes": 49554,
+        "sha256": "d0aefb8fd5342e28bb27d22e8f40f28b8f8b11015473ea4436b1dcfab5ab2450"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/gpu-process-utilization.txt",
+        "bytes": 165341,
+        "sha256": "0667c13623a677b2ce989ef81e3b1086fcc009f6c1956c2a63b7ebc6c7af1691"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/gpu-telemetry.csv",
+        "bytes": 21002,
+        "sha256": "20c226a0d455d56ff4c4cd52a38c445ce7ada22bcae963d0468bfafc22317f81"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-python-1.json",
+        "bytes": 501266,
+        "sha256": "f10566b49c6dd6f04f30110aa7ca116392e63c8e7c928b6a4e9e652deb00a89c"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-python-2.json",
+        "bytes": 501209,
+        "sha256": "d8e8fcea210fb7985bbeef330a68ca5bbf5e3682b8a7dc96f1769d9ca393d13a"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-python-3.json",
+        "bytes": 501222,
+        "sha256": "5e355cebb503a3d61cba1964a5f39f30d84c6c2c59f553cf0907e226df4119f7"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-python-4.json",
+        "bytes": 501209,
+        "sha256": "290677db7f0147b90759ab681381bcf901903c0b9917d42862b64056650a9339"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-python-5.json",
+        "bytes": 501275,
+        "sha256": "5082e23d3868df1001297e0e6826fed1a6d203082002c6884e73a06cc516dc93"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-python-6.json",
+        "bytes": 501224,
+        "sha256": "18dcc2a8259a6c9a4407d5e48bca73e6776006d64f4d14cd0e1577c5a7f4f1f9"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-rust-1.json",
+        "bytes": 498335,
+        "sha256": "b861f112c15cdfb4b03e94c515fe82a98eec47dbbe3fa20dd40b8d543e08d3e9"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-rust-2.json",
+        "bytes": 498416,
+        "sha256": "1337f61f889b537641bc30bec0753cc3e18d0a03fb80572a77ee32cbf9cfa017"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-rust-3.json",
+        "bytes": 498421,
+        "sha256": "41257e526dbf78135b07ab7869c77efc6446934054e0f170029c117deda131bd"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-rust-4.json",
+        "bytes": 498441,
+        "sha256": "b2563b259915f5f2359bfb898eea4955adedeeb0a28cda6ddca622a568653454"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-rust-5.json",
+        "bytes": 498301,
+        "sha256": "f1c25a7b30adaf01b1d32664d22ad9c1b039ca7df3f6946b7df80ab7b90d8826"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/codec-rust-6.json",
+        "bytes": 498615,
+        "sha256": "c0415fd0fe140bc2f020d54c1c58bce1e960aca193645e81c46ef2ce42caab0f"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-python-1.json",
+        "bytes": 5675,
+        "sha256": "a0b4e4fe665039ae3004303bd1a71d72c09e85e48f6096789567d62df43e8caf"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-python-2.json",
+        "bytes": 5676,
+        "sha256": "6ba516febf0e1beb8353737aa631effea89c8d351380ee7b4cfaac0fe8e8bb31"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-python-3.json",
+        "bytes": 5675,
+        "sha256": "2a61aa217d660877b8e29c7f1f574afd9c626438068603c7e899454d2ad65e48"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-python-4.json",
+        "bytes": 5687,
+        "sha256": "21696070b9fd735098a0552db257ec72c56e8abcec6f97f653c9c576801a0568"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-python-5.json",
+        "bytes": 5683,
+        "sha256": "6062ec5026b63b65276e894580a46b39c4442b79e22f3400f5cd615fb9fddb07"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-python-6.json",
+        "bytes": 5685,
+        "sha256": "db2cb77be5fa8ef5e64455cc4458f2c9b92630395ae131aeda75076523b2c043"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-rust-1.json",
+        "bytes": 4709,
+        "sha256": "a2ff2cf9aa31fcc3d021e07799fb15ae94e4dcf8e41afbfeb9a56940b0f5e982"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-rust-2.json",
+        "bytes": 4849,
+        "sha256": "4aa58a55320a824b17c1714f5773df6aa265a43d44437d86e19df0506044e3d7"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-rust-3.json",
+        "bytes": 4828,
+        "sha256": "e88aecc4ccc252fc9e510cd6b4475dafea280e600a00eb59ba5581eede98c326"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-rust-4.json",
+        "bytes": 4708,
+        "sha256": "086769120cb3a849a14dabcceef97219dae8ece5bd7ce08397d07d8014e8cf66"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-rust-5.json",
+        "bytes": 4746,
+        "sha256": "b9691ac6f10cd1cc364fbccf6bf97e5201710da8f4ca5b223ed8e732b502eeb2"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-gpt2-rust-6.json",
+        "bytes": 4820,
+        "sha256": "db7bbca602ebbb23cc8320546855f15b073885a8f59c911773b4da3d5b7864ea"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-python-1.json",
+        "bytes": 5702,
+        "sha256": "4579abe591cd5e6a5acacb32cfbb8d20971e60fb1a3a12fc41bd9c8e31a32849"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-python-2.json",
+        "bytes": 5680,
+        "sha256": "70b524aa873111369d0cae519ad28efd28cb2bfbf5c322c9e4ee170e58fc12f1"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-python-3.json",
+        "bytes": 5701,
+        "sha256": "fbb7ab43f35458b129d4a79600657a8ff5edf3315b18024bcae7218e00b2e8b3"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-python-4.json",
+        "bytes": 5709,
+        "sha256": "d70d921e4fb6c2a5acd6bdbb399abd8bccea944743db2bee5c491d8644c64cc2"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-python-5.json",
+        "bytes": 5700,
+        "sha256": "14154a0e2e8cfe70548fb79f66684d632c3692deed0ade7201d39e7e571a272f"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-python-6.json",
+        "bytes": 5695,
+        "sha256": "d901577ba853dd4756e969688bd49c6f6b629af34d0d2824dc1a02a80c2b3ca7"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-rust-1.json",
+        "bytes": 4837,
+        "sha256": "7b1104380aff641ea5cf3375fa1cc817806a0da8ad37561cfafd0e6e30ed8f76"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-rust-2.json",
+        "bytes": 4836,
+        "sha256": "4ef1f845658bdda64ecb9d9545ac728d718929a726416caae4655f43b0daec29"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-rust-3.json",
+        "bytes": 4850,
+        "sha256": "0d21251926ebf57ec9679a08daeda7d38fb24ddf3e0575c5790d59042191095d"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-rust-4.json",
+        "bytes": 4858,
+        "sha256": "5c5b8cce4daa38833574ecce043dbd2295f85ff078649cd2ebdd8c8ef0b411a0"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-rust-5.json",
+        "bytes": 4818,
+        "sha256": "345e20e2a1800c9f2aebdbeed0f68da0797a2cddde48f8dfa955fa7e2e19d958"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/previous/tokenizer-qwen3-rust-6.json",
+        "bytes": 4806,
+        "sha256": "5f61c2d2f26db7acc27c43e8b2e19f82c13674f60faa6e6c1f4e6c947ef95683"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/codec-python-1.json",
+        "bytes": 501266,
+        "sha256": "f10566b49c6dd6f04f30110aa7ca116392e63c8e7c928b6a4e9e652deb00a89c"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/codec-python-2.json",
+        "bytes": 501209,
+        "sha256": "d8e8fcea210fb7985bbeef330a68ca5bbf5e3682b8a7dc96f1769d9ca393d13a"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/codec-python-3.json",
+        "bytes": 501222,
+        "sha256": "5e355cebb503a3d61cba1964a5f39f30d84c6c2c59f553cf0907e226df4119f7"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/codec-python-4.json",
+        "bytes": 501209,
+        "sha256": "290677db7f0147b90759ab681381bcf901903c0b9917d42862b64056650a9339"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/codec-python-5.json",
+        "bytes": 501275,
+        "sha256": "5082e23d3868df1001297e0e6826fed1a6d203082002c6884e73a06cc516dc93"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/codec-python-6.json",
+        "bytes": 501224,
+        "sha256": "18dcc2a8259a6c9a4407d5e48bca73e6776006d64f4d14cd0e1577c5a7f4f1f9"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-gpt2-python-1.json",
+        "bytes": 5675,
+        "sha256": "a0b4e4fe665039ae3004303bd1a71d72c09e85e48f6096789567d62df43e8caf"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-gpt2-python-2.json",
+        "bytes": 5676,
+        "sha256": "6ba516febf0e1beb8353737aa631effea89c8d351380ee7b4cfaac0fe8e8bb31"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-gpt2-python-3.json",
+        "bytes": 5675,
+        "sha256": "2a61aa217d660877b8e29c7f1f574afd9c626438068603c7e899454d2ad65e48"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-gpt2-python-4.json",
+        "bytes": 5687,
+        "sha256": "21696070b9fd735098a0552db257ec72c56e8abcec6f97f653c9c576801a0568"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-gpt2-python-5.json",
+        "bytes": 5683,
+        "sha256": "6062ec5026b63b65276e894580a46b39c4442b79e22f3400f5cd615fb9fddb07"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-gpt2-python-6.json",
+        "bytes": 5685,
+        "sha256": "db2cb77be5fa8ef5e64455cc4458f2c9b92630395ae131aeda75076523b2c043"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-qwen3-python-1.json",
+        "bytes": 5702,
+        "sha256": "4579abe591cd5e6a5acacb32cfbb8d20971e60fb1a3a12fc41bd9c8e31a32849"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-qwen3-python-2.json",
+        "bytes": 5680,
+        "sha256": "70b524aa873111369d0cae519ad28efd28cb2bfbf5c322c9e4ee170e58fc12f1"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-qwen3-python-3.json",
+        "bytes": 5701,
+        "sha256": "fbb7ab43f35458b129d4a79600657a8ff5edf3315b18024bcae7218e00b2e8b3"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-qwen3-python-4.json",
+        "bytes": 5709,
+        "sha256": "d70d921e4fb6c2a5acd6bdbb399abd8bccea944743db2bee5c491d8644c64cc2"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-qwen3-python-5.json",
+        "bytes": 5700,
+        "sha256": "14154a0e2e8cfe70548fb79f66684d632c3692deed0ade7201d39e7e571a272f"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/python/tokenizer-qwen3-python-6.json",
+        "bytes": 5695,
+        "sha256": "d901577ba853dd4756e969688bd49c6f6b629af34d0d2824dc1a02a80c2b3ca7"
+      },
+      {
+        "path": "phase2-linux-diagnostic-v2/summaries.json",
+        "bytes": 59570,
+        "sha256": "57dd6f80bfe7c9810d533801e1d26061c7b0b84869e0e22197c397368ea4611e"
+      }
+    ]
+  },
+  "analysis_source_sha256": {
+    "tools/bench/summarize_codec_load_control.py": "c99907e6cc1dcb00dc1cd0922bda1e118f1933776bab242407206f19b45ee670",
+    "tools/bench/summarize_tokenizer_control.py": "9b8a5149f68d5e7a80276405da2b159d07657fa5e5ee1db935369449c9aa8eaf",
+    "tools/bench/phase2_summary.py": "3f72dd17e3f40e42d147f6c68eb99dfc2f94f28c3cb663035ea293339b406b59",
+    "tools/bench/run_phase2_linux_comparison.py": "1d53a932a0953100e182d16c6d366bdd153f0e6048e81b90d6042346b0661be1",
+    "tools/bench/sample_linux_cpu.py": "5cddef515c31008328c4a3315910b5d3da9a70f80568a9bc65f695d9d1b41569",
+    "tests/fixtures/codec-bench-v1.json": "74a1097e5cb5daa8db10c5a785c7fc2f9220a88dddda2b3669ee8a81b3ac8eea",
+    "tests/fixtures/tokenizers-v1.json": "5c937a5e5aef961d9361b7f5788929681b24e55c223886d11b5928169db23256",
+    "docs/results/2026-11-10-sudoku-artifacts/raw/artifact-manifest.json": "ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d9832"
+  },
+  "verification": {
+    "fresh_processes": 54,
+    "cpu_samples": 901,
+    "full_output_qualification": true,
+    "every_command_covered": true,
+    "report_tests_passed": 48,
+    "clean_checkout_reproduction": "All 110 archive members and source hashes verified; analysis.json, summaries.json and commands.tsv regenerated byte-exactly; 48 reporting tests passed without ignored inputs.",
+    "default_check": "CARGO_BUILD_JOBS=4 ./tools/check.sh: passed",
+    "not_a_new_cuda_or_mlx_runtime_check": true
+  },
+  "boundaries": [
+    "No acceptance controls replaced or discarded.",
+    "No clocks/power/services/production changes.",
+    "No new Apple run; Phase 2 incomplete."
+  ]
+}

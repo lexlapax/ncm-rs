@@ -5,12 +5,14 @@ Work stopped at the user's request after committing/pushing the current checkpoi
 `agent-context-map.md`, `git status`, then the [working completion audit](completion-audit.md).
 No background benchmark or telemetry collection remains running.
 
-Continuation has resumed **offline diagnostic preparation only**. The
-[fixed diagnostic v2 protocol](linux-diagnostic-protocol-v2.md) is ready for
-preflight after quiet-window confirmation; it has not run. The comparison runner
-now offers SMT-aware observer placement, tested with tiny Linux children. Default
-local checks pass (48 reporting tests). Production and the 72/78 gate are unchanged;
-the historical checkpoint details below remain evidence, not fresh measurements.
+Continuation completed the single [fixed diagnostic v2](linux-diagnostic-v2-results.md)
+after the user confirmed the quiet window. All 54 processes, output qualification,
+identities and coverage by 901 samples/900 seconds verify. Five CPU/load-tail
+failures did not recur, but B1 block bimodality persists in both native runtimes;
+its median ratio is 1.10076 (interval upper 1.12231). Outcome: **unresolved
+recurrence**, not acceptance. All 48 reporting tests and clean-checkout analysis
+reproduction pass. No production or system-policy change; Linux remains 72/78.
+No background collection remains running. Do not repeat this diagnostic.
 
 ## Retained state
 
@@ -39,8 +41,14 @@ The native timing distributions show both GPU block timing clusters and CPU-only
 slowdown windows. The cause is not established. GPU clock locking was proposed
 but **has not been authorized**, and is not established as necessary/sufficient.
 Do not change clocks, governors, services, power policy or unrelated processes.
-A quiet Linux test window is still unconfirmed. Further observation can be
-read-only; any new acceptance follow-up needs a defensible predeclared protocol.
+The confirmed quiet window was used for diagnostic v2; sustained SMT-sibling
+contention was not observed, yet B1 block clusters recur. One-second GPU samples
+cannot identify per-block clocks. A separate bounded constant-clock diagnostic is
+a plausible discriminating hypothesis, **not approved or performed**. It requires
+explicit temporary-policy approval, supported-clock/original-state checks,
+restoration and a new quiet window; alternatively specify finer-grained read-only
+observation. Any new diagnostic/acceptance follow-up needs its own predeclared
+protocol, not another repetition until green.
 
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.

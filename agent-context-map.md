@@ -166,6 +166,25 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   No production/API/pin/tolerance changes. Next: confirm quiet window, bind/check
   all preflight identities, execute the fixed diagnostic once, then decide a
   defensible next intervention; Linux gate still blocks MLX and completion.
+- **Diagnostic v2 completed once after explicit quiet-window confirmation**:
+  [results](docs/results/2026-11-11-phase2-optimization/linux-diagnostic-v2-results.md).
+  Launch HEAD/origin `fa040ed`; exact binary/source/Python/payload identities rechecked
+  and manifest saved before launch. All 54 processes qualify; 901 samples/900 seconds
+  bracket every command (17:01:56–17:06:47 UTC on 2026-11-11). All scopes/processes,
+  telemetry and frozen pre-run protocol retained. Five CPU/load-tail issues did not
+  recur, but native B1 block clusters persist: median ratio 1.10076, interval upper
+  1.12231. CPU3 median/max activity 0/0.9901%; one-second GPU clocks cannot identify
+  block clocks or establish cause. Outcome **unresolved recurrence**; Linux remains
+  **72/78**, no control transplant, repeat, policy/production change or Apple work.
+  Analysis/identities/coverage and clean-checkout summary reproduction verified;
+  all 48 reporting tests and `CARGO_BUILD_JOBS=4 ./tools/check.sh` pass.
+  No new full CUDA/Metal check is claimed. Evidence
+  archive excludes binaries/weights/large traces; `.pi/` remains untouched.
+  Next: separately predeclare a discriminating investigation. A bounded fixed-GPU-
+  clock experiment is a hypothesis requiring explicit temporary-policy approval,
+  capability/original-state checks, restoration and a new quiet window; not yet
+  approved/performed, not proven necessary/sufficient. Read-only finer-grained
+  observation is an alternative. No background collection remains running.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

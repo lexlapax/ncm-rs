@@ -10,7 +10,9 @@ Subsequent provisional work is reported separately: [lower-risk candidates](../2
 and [prepared state/raw-upload PoC](../2026-11-11-phase2-prepared-state/README.md).
 [Fixed Linux controls/resources](../2026-11-11-phase2-linux-controls/README.md)
 now retain six open comparisons (72/78). These open gates and optional API review
-do not amend this frozen baseline. See the [working completion audit](completion-audit.md).
+do not amend this frozen baseline. The subsequent [single quiet-window diagnostic](linux-diagnostic-v2-results.md)
+completed with all outputs/telemetry verified but unresolved B1 block recurrence;
+it does not replace acceptance. See the [working completion audit](completion-audit.md).
 
 ## Baseline identity and locked gates
 

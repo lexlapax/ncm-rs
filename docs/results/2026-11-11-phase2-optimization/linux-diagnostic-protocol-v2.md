@@ -1,10 +1,17 @@
-# Fixed Linux scheduling diagnostic v2 — NOT RUN
+# Fixed Linux scheduling diagnostic v2 — completed, unresolved recurrence
+
+Executed once on 2026-11-11 after explicit user quiet-window confirmation.
+[Results and evidence](linux-diagnostic-v2-results.md): all 54 processes and 901
+telemetry samples verified; B1 block bimodality persists. Linux remains 72/78.
+The exact prelaunch version of this protocol is preserved in the results archive
+and bound by the prelaunch manifest. The protocol below is historical, not an
+instruction to rerun it.
 
 This is a bounded investigation of the six failures in the retained **72/78**
 Linux audit, not another acceptance attempt. It cannot replace that audit, close
-Linux, or authorize Apple work. Execution awaits confirmation of a quiet Linux
-window. No clock/governor/power/service changes or interruption of unrelated work
-are authorized. The public loading API and production candidate remain unchanged.
+Linux, or authorize Apple work. Execution required confirmation of a quiet Linux
+window, which the user provided before this collection. No clock/governor/power/
+service changes or interruption of unrelated work are authorized. The public loading API and production candidate remain unchanged.
 
 ## Question and limits
 
@@ -74,7 +81,7 @@ These checks validate tooling only; no new performance or device-quality claim.
   including ambient intervals; wait for its completion. There is no early stop
   based on favorable timing, nor an extension based on an unfavorable result.
 
-Commands (not yet executed; CPU sampler runs concurrently with comparison):
+Commands (executed once; CPU sampler ran concurrently with comparison):
 
 ```sh
 python tools/bench/sample_linux_cpu.py \
