@@ -10,66 +10,29 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   15-minute window is still needed after readiness; clock fallback additionally
   requires confirmed default-policy/no-controller state, permissions and tested
   restoration. No automatic continuation establishes those facts.
-  `tools/bench/readonly_trace_sequence.py` now enforces the fixed 12-job order,
-  exclusive plan/output, 600-second shared deadline, 120-second children,
-  1 GiB per merged capture/6 GiB aggregate streaming limits and initial 12 GiB
-  free-space plus between-child checks. Nine fake-CPU/mocked tests pass; default
-  `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 121 reporting tests (logs in
-  the [selected read-only protocol](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-proposal.md)).
-  This import-only primitive is not a launch-ready collector or identity proof.
-  Collector-side report receipts now bind an optional fresh report's post-exit
-  path/device/inode/size/hash alongside the PID/argv/capture hash, reject missing,
-  empty/oversized/nonregular/symlink/visibly replaced reports, and use unique
-  sequence-owned report names. Ten new offline tests pass; latest default check
-  passes **131 reporting tests**. The 16 MiB report cap bounds post-exit reads,
-  not live disk writes. Freshness/hash checks are not independent producer proof;
-  frozen executable provenance and codec qualification remain separate.
-  `analyze_readonly_trace.py` now checks the complete fixed 12-job evidence set,
-  receipt/capture/report consistency, six receipt-PID B1 trace joins and all four
-  three-report groups through unchanged output qualification. It retains first/
-  warmup/trial windows and descriptive instrumentation comparisons for every
-  execution/load scope. Supplied receipt consistency is not independent provenance;
-  launch/telemetry/acceptance flags remain false. Three offline tests (large
-  fixtures subprocess-isolated) cover 13 negative bindings and real archived v2
-  reports with synthetic traces, including corrupt logits with valid hashes.
-  Latest `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes **134 reporting tests**;
-  exact commands/log hashes are in the selected read-only protocol.
-  `readonly_trace_preflight.py` now checks frozen v2 binaries/source inventories/
-  fixtures/manifest/payloads and retained CUPTI identities, validates CPU2/CPU0,
-  and constructs the fixed commands with explicit non-inherited environments.
-  Only traced children get injection; native runtime-control contamination fails.
-  Sanitized PATH/HOME/C-locale/PYTHONNOUSERSITE environments are a documented
-  difference from v2, not identical timing conditions. Six offline tests pass;
-  final default check passes **140 reporting tests**. The first focused test had
-  a fixture filename/directory collision, fixed and retained in the protocol log.
-  Actual file-only preparation matches 40 pinned file entries plus one observed
-  taskset identity; 12 commands constructed, none executed. Launch-ready remains
-  false. No tensor/compilation/loaded-library proof is inferred from byte hashes.
-  `readonly_trace_runtime.py` adds bounded loader `--list`/Git metadata probes.
-  Actual DT_NEEDED inspection of both codecs, CUPTI and taskset succeeds under the
-  prepared environment: 14 canonical libraries; native codec resolutions match.
-  This does not cover lazy dlopen/JIT/driver libraries or live process mappings.
-  Git guards reject dirty/unexpected heads (only untracked candidate `.pi/` allowed);
-  actual dirty-tooling rejection and temporary-repository success paths are tested.
-  Production source/lock anchor stays `d44beaa`; manifests use measured v2 `fa040ed`
-  because `211b51d` already added the reviewed codec_memory example declaration.
-  No dependency/pin/production edits. Eight focused tests and default check pass
-  (**148 reporting tests**); exact evidence/limitations in the selected protocol.
-  Raw Git status captures are private 0700-directory evidence, not for publication.
-  Actual clean worktree verification passed at `156d976` (accepted `3307dff`),
-  with source/lock and manifest guards; private checkpoint evidence is retained.
-  `supervised_worker.py` now provides a dedicated Linux subreaper supervisor with
-  explicit parent identity, owned-child cancellation/adoption/reaping and bounded
-  cleanup. Eleven fake-CPU tests cover crashes, timeout/interrupt/parent loss,
-  multi-generation session escape, failures and unrelated-child survival. It is
-  not yet composed with the sequence/telemetry coordinator; supervisor SIGKILL,
-  host failure and uninterruptible tasks remain outside guaranteed cleanup.
-  Default checks pass **159 reporting tests**. Initial suite check hit the known
-  inherited-RSS floor in the resource test; both large/small measurements now run
-  in one fresh interpreter, preserving their order, allocation and 32 MiB assertion.
-  Failed/passing logs and scope are in the protocol; no benchmark was retried.
-  Next: integrated supervised sequence/telemetry lifecycle, runtime library and
-  provenance coverage, failure-path tests, then readiness and fresh availability.
+  [Selected protocol and durable preparation evidence](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-proposal.md)
+  cover fixed sequence/quotas, report receipts, trace joins/output qualification,
+  frozen file/environment preflight, loader/Git guards and the worker supervisor.
+  Prior metadata checks match 40 pinned files and 14 canonical libraries; clean
+  worktrees verified at `156d976`/`3307dff`. Byte/receipt consistency is not live
+  provenance; DT_NEEDED listings do not cover lazy driver/JIT libraries. Source/
+  lock remain anchored to `d44beaa`, manifests to measured v2 `fa040ed` (retaining
+  the approved codec_memory example). Raw Git status logs remain private.
+  Latest: `readonly_trace_telemetry.py` provides atomic first-sample readiness,
+  CPU full-duration/completion structure checks and owned GPU-observer shutdown.
+  The unchanged CPU sampler starts with affinity {0,2}, then confirms {0}; the
+  GPU observer/worker stay on CPU0. Explicit environments differ from inherited v2.
+  Sequence cancellation now propagates observer failure into the in-flight child;
+  fake integration verifies no later job/replacement launches. Eight new tests and
+  `CARGO_BUILD_JOBS=4 ./tools/check.sh` pass (**167 reporting tests**). Tests use
+  short synthetic observers; no real telemetry window was collected. A red-to-green
+  delayed-prefix case now prevents publication after the startup deadline expires.
+  Exact logs, prior failures/test-isolation fixes and limitations are linked above.
+  These are prerequisites, not launch readiness: integrated coordinator/manifest,
+  full telemetry content/coverage, runtime-library/provenance and remaining
+  integration failure tests are pending. Supervisor SIGKILL/host failure cannot
+  guarantee cleanup. Next: finish that integration, review readiness, then request
+  fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

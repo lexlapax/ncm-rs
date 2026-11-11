@@ -56,7 +56,7 @@ def validate_jobs(jobs):
     return validated
 
 
-def run_sequence(jobs, output_dir):
+def run_sequence(jobs, output_dir, *, cancel_check=None):
     """Run the fixed sequence once; any failure stops later jobs without retry.
 
     Each merged stdout/stderr capture (plain too) is capped at 1 GiB; the total
@@ -64,6 +64,8 @@ def run_sequence(jobs, output_dir):
     Failures outside the owned-child primitive leave partial evidence and propagate.
     Collector death/escaped descendants require separate supervision before use.
     """
+    if cancel_check is not None and not callable(cancel_check):
+        raise ValueError('cancel_check must be callable')
     jobs = validate_jobs(jobs)
     output_dir = Path(output_dir)
     for ordinal, job in enumerate(jobs, 1):
@@ -94,6 +96,9 @@ def run_sequence(jobs, output_dir):
     receipts = []
     stop_reason = None
     for ordinal, job in enumerate(jobs, 1):
+        if cancel_check is not None and cancel_check():
+            stop_reason = 'external_cancelled'
+            break
         if time.monotonic() >= deadline:
             stop_reason = 'sequence_deadline'
             break
@@ -112,7 +117,8 @@ def run_sequence(jobs, output_dir):
             capture_path=output_dir / (prefix + '.capture'),
             receipt_path=output_dir / (prefix + '.receipt.json'),
             timeout_seconds=CHILD_SECONDS, sequence_deadline=deadline,
-            output_limit_bytes=min(CAPTURE_BYTES, remaining), report_path=job.get('report_path'))
+            output_limit_bytes=min(CAPTURE_BYTES, remaining), report_path=job.get('report_path'),
+            cancel_check=cancel_check)
         used += receipt['captured_bytes']
         receipts.append(dict(ordinal=ordinal, condition=job['condition'], receipt=receipt))
         if receipt['status'] != 'complete':

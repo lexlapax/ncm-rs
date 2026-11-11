@@ -720,6 +720,74 @@ complete runtime-library/provenance coverage and integrated failure-path tests,
 then readiness review and a fresh quiet window. No new GPU run, setting change,
 acceptance update or Apple work occurred.
 
+## Telemetry worker and sequence cancellation
+
+`tools/bench/readonly_trace_telemetry.py` constructs read-only commands for the
+existing CPU sampler (900 seconds, interval 1) and a UUID-selected nvidia-smi CSV
+loop (existing clock/utilization/memory/temperature/power columns plus UUID).
+It launches **no codec benchmark**. A dedicated worker pins itself/GPU observer
+to CPU0. The CPU sampler receives startup affinity `{0,2}` because its existing
+preflight checks target CPU2 eligibility before pinning itself to CPU0; its first
+metadata must confirm final affinity `{0}`. The sampler source and its validation
+are unchanged. No workload may begin until both observers' first records pass.
+
+Readiness requires the expected CPU source hash, target/observer CPUs, duration,
+interval and first sample index; the GPU CSV header, timestamp syntax and UUID
+must match. A completed marker is published with an exclusive atomic hard link,
+not exposed as partially written JSON. Startup has a 15-second bound. GPU exit,
+invalid first records or observer output size/type violations cancel CPU capture.
+Observers have 16 MiB polling/post-read bounds (not hard live file-size quotas),
+and CPU command stdout/stderr has a streaming 1 MiB cap. CPU completion requires
+all 901 sample indices plus metadata/completion records and the full duration;
+missing completion is not success. GPU shutdown is intentional SIGTERM before
+reaping, with bounded SIGKILL escalation; lost ownership never permits signalling.
+Escalation/unexpected exit is retained as failed telemetry, not silently promoted.
+The worker must itself run beneath the independent supervisor for orphan cleanup.
+
+The fixed sequence now accepts the same trusted nonblocking cancellation hook,
+checked before each job and inside the bounded child. A real fake-observer test
+waits for atomic readiness, starts job 1, then causes observation failure; the
+in-flight child is stopped/reaped and jobs 2–12 are not launched or replaced.
+The final coordinator must still compose this path with the supervisor and wait
+for the full sampler after successful/ordinary failed sequence work, unless
+interrupted or unsafe. No real CPU/GPU sampling window was started here.
+
+Eight tests use **short synthetic CPU/GPU producers**, never nvidia-smi or model
+execution. They cover fixed command/affinity construction, prefix identity and
+protocol failures, complete/incomplete capture, GPU failure, startup/output limits,
+interrupt cleanup, owned-PID escalation/loss and in-flight sequence cancellation.
+Dedicated test workers independently verify restored affinity and no unreaped
+children. Short test durations/records are fixtures, not 900-second evidence.
+`telemetry_contents_qualified`, `sequence_coverage_verified` and
+`launch_provenance_verified` remain false: full CSV/counter/timestamp recomputation,
+sequence coverage and runtime provenance are still mandatory downstream checks.
+No per-request clock inference or performance acceptance is provided.
+
+Staged-code review added a delayed-prefix regression: validation that consumed the
+startup allowance could still publish readiness afterward. Before the fix the
+synthetic case returned `complete` instead of `failed`; retained red log
+`reports/phase2-readonly-telemetry-tests-v3-red.log`, SHA-256
+`29f3f8b314101619ae2d029b0583466bb61cb2922ecbad9b355f4edce75eab8b`.
+Readiness now checks the deadline before validation and again before atomic
+publication. A late pending marker is retained but never linked as ready. This is
+an observed-deadline guard, not a hard-real-time or atomic cancellation guarantee.
+No measurement was repeated for this fake-process regression.
+
+Commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_readonly_trace_telemetry.py -v`:
+  8 pass including the delayed-prefix case. Final focused log
+  `reports/phase2-readonly-telemetry-tests-v4-green.log`, SHA-256
+  `ccad4cdf6d832a847766f16b46690e63cb809943b1fd0a4fae05976adf08a3a7`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes with **167 reporting tests**;
+  final local log `reports/phase2-readonly-telemetry-check-v2.log`, SHA-256
+  `f31ce844e6a1ef71506e8e2b8ed15fd46096ab6cad062021fb64343855d2ee5a`.
+
+Next: integrated coordinator/supervisor entry and frozen launch manifest, complete
+telemetry coverage/content verification and runtime-library/provenance coverage,
+then readiness review and a fresh quiet window. Linux remains 72/78; no GPU run,
+clock/power change, production modification or Apple work occurred.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers, the fixed

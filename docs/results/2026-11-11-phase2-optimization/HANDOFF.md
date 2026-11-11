@@ -106,9 +106,16 @@ and unrelated-child survival. It still needs composition with sequence/telemetry
 supervisor SIGKILL/host failure are not guaranteed cleanup. Default checks now pass
 159 reporting tests. An initial inherited-RSS resource assertion failure was fixed
 by running its unchanged large-then-small measurements in one fresh interpreter;
-the original threshold and allocation are unchanged, failed log retained. Runtime
-library coverage, telemetry/observer placement, integrated launch provenance and
-supervised-coordinator failure tests remain pending. Selection is resolved; tooling
+the original threshold and allocation are unchanged, failed log retained. The new
+telemetry worker adds atomic first-sample readiness, full CPU completion structure,
+owned GPU shutdown and sequence cancellation on observer failure. CPU sampler
+startup affinity is {0,2}, then verified {0}; observer/worker placement is CPU0.
+Eight short synthetic-observer tests pass, including an in-flight cancellation
+that prevents jobs 2–12 and a red-to-green delayed-readiness deadline guard; full
+checks pass 167 reporting tests. No real 900-second window or GPU query was run
+by this new worker. Integrated coordinator/manifest, complete telemetry
+content/coverage, runtime libraries/provenance and remaining failure tests are still
+pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 
