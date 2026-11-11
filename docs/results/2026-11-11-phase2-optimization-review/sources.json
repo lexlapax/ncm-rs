@@ -1,0 +1,97 @@
+{
+  "retrieved_utc": "2026-11-11T03:22:47.938610+00:00",
+  "sources": [
+    {
+      "name": "mlx-compile",
+      "url": "https://ml-explore.github.io/mlx/build/html/usage/compile.html",
+      "resolved": "https://ml-explore.github.io/mlx/build/html/usage/compile.html",
+      "bytes": 160045,
+      "sha256": "48a81b940bb205a7049fc2c23d7369efd804d9c95892aade1db476743beaa543"
+    },
+    {
+      "name": "mlx-lazy",
+      "url": "https://ml-explore.github.io/mlx/build/html/usage/lazy_evaluation.html",
+      "resolved": "https://ml-explore.github.io/mlx/build/html/usage/lazy_evaluation.html",
+      "bytes": 117094,
+      "sha256": "b50374dfea60a60f73c008ea1606d1ec7b969ff460066b070306fac593933229"
+    },
+    {
+      "name": "mlx-fast-attention",
+      "url": "https://ml-explore.github.io/mlx/build/html/python/_autosummary/mlx.core.fast.scaled_dot_product_attention.html",
+      "resolved": "https://ml-explore.github.io/mlx/build/html/python/_autosummary/mlx.core.fast.scaled_dot_product_attention.html",
+      "bytes": 108004,
+      "sha256": "20a41be1fddd6ba646a9eb2210a7ab7a1938882714a68383cd89552e8af7d04f"
+    },
+    {
+      "name": "cuda-graphs",
+      "url": "https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/cuda-graphs.html",
+      "resolved": "https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/cuda-graphs.html",
+      "bytes": 324672,
+      "sha256": "2860eec1e7dcf3acac0f9a125355f137cf14b1e0004d5b2b76ebd225565f1f8d"
+    },
+    {
+      "name": "cuda-best-practices",
+      "url": "https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html",
+      "resolved": "https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html",
+      "bytes": 433269,
+      "sha256": "fcacb0b62ce545e154a6b7dc49778ec663162d7dfb469f85d74b0551e0341f68"
+    },
+    {
+      "name": "cuda-pool",
+      "url": "https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY__POOLS.html",
+      "resolved": "https://docs.nvidia.com/cuda/cuda-runtime-api/cuda_runtime_api/group__CUDART__MEMORY__POOLS.html",
+      "bytes": 128052,
+      "sha256": "5892b7402ebd1edf31e14c3d6e767e32b3e1a89ed63e9717f36f5a8d30499b04"
+    },
+    {
+      "name": "rust-vec",
+      "url": "https://doc.rust-lang.org/std/vec/struct.Vec.html",
+      "resolved": "https://doc.rust-lang.org/std/vec/struct.Vec.html",
+      "bytes": 955558,
+      "sha256": "3043fc4fa845810446c3c98c4009a890169a8d1f32d35cff23e602a40eb24cbe"
+    },
+    {
+      "name": "safetensors",
+      "url": "https://huggingface.co/docs/safetensors/index",
+      "resolved": "https://huggingface.co/docs/safetensors/index",
+      "bytes": 103574,
+      "sha256": "ebd490cbe296fb41658e0e247626445c7c6ebaee83f7e264d34fcf5170432156"
+    },
+    {
+      "name": "mlx-metal-debug",
+      "url": "https://ml-explore.github.io/mlx/build/html/dev/metal_debugger.html",
+      "resolved": "https://ml-explore.github.io/mlx/build/html/dev/metal_debugger.html",
+      "bytes": 109193,
+      "sha256": "0a232a66831c08f20aa0c6d3189d28d9acdf65aca7b6a31cb19e0733bd21b04f"
+    },
+    {
+      "name": "mlx-0322-fast.cpp",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/v0.32.2/mlx/fast.cpp",
+      "bytes": 34597,
+      "sha256": "29b31f96bdb02afdadbde3f2bcf42cf458fc69385a908bbde9fc3a14d23de077"
+    },
+    {
+      "name": "mlx-0322-attention.cpp",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/v0.32.2/mlx/backend/metal/fast.cpp",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "name": "mlx-0322-normalization.cpp",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/v0.32.2/mlx/backend/metal/normalization.cpp",
+      "bytes": 14883,
+      "sha256": "01bc537389638efe43a9bedeeb2008484864772022ac56e106a3f9911bcaa1aa"
+    },
+    {
+      "name": "mlx-0322-compile.cpp",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/v0.32.2/mlx/compile.cpp",
+      "bytes": 40427,
+      "sha256": "b95efbcaa0a0173d6d2184f43e49b75af43c376ab2eb970012ef344d694358f7"
+    },
+    {
+      "name": "mlx-0322-scaled_dot_product_attention.cpp",
+      "url": "https://raw.githubusercontent.com/ml-explore/mlx/v0.32.2/mlx/backend/metal/scaled_dot_product_attention.cpp",
+      "bytes": 28696,
+      "sha256": "215ebac6495706cf01a2635c4dcec29802e130165ed8704f212d789679d2e673"
+    }
+  ]
+}

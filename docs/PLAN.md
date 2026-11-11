@@ -1,10 +1,13 @@
 # Phased port and validation plan
 
-The user approved implementation on 2026-11-09. **Phases 0, 1 and 2 are complete**,
-including the user-requested Phase 2 performance-remediation extension. Both
-platforms pass unchanged correctness and all 78 performance/memory comparisons;
-see [final acceptance](results/2026-11-10-phase2-acceptance/README.md). Phase 3 is
-not started and was outside this task. **Within
+The user approved implementation on 2026-11-09. **Phases 0 and 1 are complete;
+Phase 2 is reopened for the additional five-step optimization plan approved on
+2026-11-11.** The earlier codec/tokenizer remediation passes unchanged correctness
+and all 78 performance/memory comparisons on both platforms; its
+[acceptance](results/2026-11-10-phase2-acceptance/README.md) remains valid historical
+evidence, not acceptance of the new work. The user requested this revised plan
+be committed/pushed before implementation. Phase 3 is not started and remains
+blocked on the expanded Phase 2 gate and separate authorization. **Within
 every phase, implement and validate Linux/CUDA first, then macOS/MLX.** Complete
 both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
@@ -56,7 +59,7 @@ match; tiny operator fixtures execute on CPU, CUDA and MLX. Publish capability a
 baseline report, including unsupported operations. MLX needs Apple hardware access;
 a Linux-only result does not pass this gate. No broad framework written in advance.
 
-## Phase 2 — shared primitives, codec and performance remediation (complete)
+## Phase 2 — shared primitives, codec and further optimization (reopened)
 
 The [Phase 2 contract](PHASE2.md) fixes the initial model scope, tensor inventory,
 new numerical budgets and fixture semantics. Tiny CPU and trained CUDA reference
@@ -90,7 +93,7 @@ loading and compact tokenizer structures were revalidated Linux-first. The
 [final dual-platform gate](results/2026-11-10-phase2-acceptance/README.md) now passes,
 including Apple memory/loading remediation, trained traces and controlled timing.
 
-### Required extension, in order
+### First performance-remediation extension (completed)
 
 1. Audit benchmark fairness, synchronization, retained outputs, startup/load/drop
    scope and clean-checkout reproducibility. Refresh old Rust and Python baselines,
@@ -119,10 +122,44 @@ all extended performance/memory criteria in [PHASE2-PERFORMANCE.md](PHASE2-PERFO
 must pass on both platforms. Explanations without fixes do not suffice; remaining
 material deficits block closure unless the user explicitly accepts an exception.
 
+### Additional approved optimization plan (required before Phase 3)
+
+The user approved these five steps on 2026-11-11. The
+[source-cited review and detailed execution contract](PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
+contains candidate mechanisms, numerical/ownership risks, the pending evidence
+checklist and stop conditions. Commit/push the plan first; implementation follows.
+
+1. **Freeze the accepted implementation as the new baseline.** Use `3307dff`
+   (production behavior `083c1e5`) as current Rust plus unchanged qualified Python;
+   refresh controlled comparisons and lock hashes, scopes and acceptance bands.
+2. **Prototype lower-risk changes independently.** Test prepared immutable state,
+   reconstruction reuse, ID-only HF encoding, TinyStories buffer reuse and, after
+   Linux acceptance, vectorized MLX resampling. Keep snapshots, exact IDs and FP32
+   tolerances. Account for loading-copy and other reviewed opportunities in an
+   experiment ledger, including evidence-backed rejection/deferral decisions.
+3. **Complete Linux/CUDA validation first, then Apple/MLX.** Require full real-device
+   checks, trained qualifications, tokenizer probes and both 78-cell audits.
+   Recheck Mac availability/state before testing; shared fixes return via Linux.
+4. **Measure latency, CPU work, live/peak memory, startup and teardown.** Apply
+   these requirements throughout the experiments, not only at the end. Publish
+   raw results, uncertainty, repeated load/drop behavior and reproducible reports.
+5. **Consider compilation, custom kernels or CUDA graphs only for remaining
+   measured bottlenecks.** Record explicit go/no-go decisions and setup/memory
+   tradeoffs. Repeat Linux-first validation for any escalation and audit every
+   requirement against final-candidate evidence before closing Phase 2.
+
+**Additional gate:** compare against current accepted Rust **and** qualified
+Python with unchanged median ≤1.05, p95 ≤1.10 and comparable host peak/live memory
+≤1.05 bands. Preserve all correctness, loading/authentication and output contracts.
+Keep only reproducibly useful changes; if no candidate qualifies, publish complete
+negative/no-go evidence and verify the retained candidate rather than claiming a
+speedup. Missing evidence or consequential uncertainty blocks closure and must be
+brought to the user. The broader full-model optimization/release remains Phase 5.
+
 ## Phase 3 — end-to-end Sudoku vertical slice
 
-**Not started. Phase 2 prerequisites pass; implementation is outside the completed
-Phase 2 task and requires the next work authorization.**
+**Not started. Blocked on the additional Phase 2 five-step plan and both runtime
+gates; generator/CLI implementation still requires separate authorization.**
 
 Implement shared generator, raw prefix path, learned level-zero queries, level
 embeddings/RoPE, untied heads, eager level loop, greedy selection and final codec

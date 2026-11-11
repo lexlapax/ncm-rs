@@ -1,12 +1,14 @@
 # Agent context map
 
-Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
+Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
-- **Phase 2 is complete, including user-requested performance remediation.**
-  Final production candidate `083c1e5`; final evidence/acceptance:
+- **Phase 2 is reopened for the additional five-step optimization plan approved
+  on 2026-11-11.** The user requested the revised plan be committed/pushed before
+  implementation. Phase 3 remains unstarted and blocked on this additional work.
+  The earlier remediation is complete: production candidate `083c1e5`, evidence:
   `docs/results/2026-11-10-phase2-acceptance/README.md`. Both platforms pass all
   78 comparisons against previous Rust and qualified Python under unchanged
   limits. Final fresh CUDA, then Metal captures pass 642 traces/2,500 decisions
@@ -15,9 +17,28 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
   Original/intermediate failures remain historical evidence, not overwritten.
   User authorized implementation, research and commit/push for this extension.
   Phase 3 is not started and needs the next work authorization; no generator/CLI
-  work was done. No persistent goal was created or old goal metadata rewritten.
+  work was done. The active thread objective now includes completing the expanded
+  Phase 2; planning publication alone does not complete it.
   Large licensed release archives remain separately pending authorization; this
   is a scoped codec/tokenizer result, not full-model inference or a release.
+- [Approved optimization plan/research](docs/PHASE2-OPTIMIZATION-REVIEW.md):
+  (1) freeze/refresh accepted baseline, (2) independent lower-risk experiments,
+  (3) Linux gate then Apple gate, (4) latency/CPU/memory/startup/teardown evidence,
+  (5) conditional profile-backed escalation and final completion audit. Step 4
+  applies throughout. Source hashes/static estimates are under
+  `docs/results/2026-11-11-phase2-optimization-review/`; new runtime evidence is
+  pending. Baseline is `3307dff` (production `083c1e5`) plus qualified Python;
+  unchanged 1.05 median/memory and 1.10 p95 limits apply against both comparators.
+  Candidate ledger must cover prepared state, reconstruction reuse, MLX resampling,
+  tokenizer APIs/structures, loading copies and conditional higher-cost ideas.
+  Preserve historical acceptance/negative evidence and all existing contracts.
+  Revised `docs/PLAN.md`, `docs/PHASE2.md`, review and status pages distinguish
+  accepted earlier work from pending new gates. No production edits or new GPU
+  runs in this planning revision. Default `CARGO_BUILD_JOBS=4 ./tools/check.sh`
+  passes (24 report-tool tests); research JSON/hashes/arithmetic and local links
+  checked. Next after plan publication: freeze baseline identities, audit/refresh
+  Linux measurements, then test lower-risk candidates. Ask on consequential
+  ambiguity/blockers; do not mark the active objective complete. Preserve `.pi/`.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
@@ -62,6 +83,7 @@ Last updated: 2026-11-10 UTC. Read first; load linked context lazily.
 | Need | Load |
 | --- | --- |
 | Phase 2 contract / acceptance / remediation | [final dual-platform acceptance](docs/results/2026-11-10-phase2-acceptance/README.md), [docs/PHASE2.md](docs/PHASE2.md), [plan](docs/PLAN.md), [research and performance extension](docs/PHASE2-PERFORMANCE.md), [initial research/PoC](docs/results/2026-11-10-phase2-performance-research/README.md) |
+| Approved additional Phase 2 optimization | [five-step plan, research and pending evidence checklist](docs/PHASE2-OPTIMIZATION-REVIEW.md) (implementation authorized; no new speedup result) |
 | Shared runtime and model | [core](crates/ncm-core/src/lib.rs), [config](crates/ncm-core/src/config.rs), [model](crates/ncm-model/src/lib.rs), [blocks](crates/ncm-model/src/blocks.rs), [codec](crates/ncm-model/src/codec.rs) |
 | CUDA adapter / known native fixes | [adapter](crates/ncm-backend-cuda/src/codec.rs), [vectorized resampling](crates/ncm-backend-cuda/src/resample.rs), [pool policy](crates/ncm-backend-cuda/src/runtime.rs), [operators](crates/ncm-backend-cuda/src/ops.rs), [remediation](docs/results/2026-11-10-phase2-cuda-remediation/README.md) |
 | Phase 2 oracle and complete CUDA results | [oracle audit](docs/results/2026-11-10-phase2-oracle/README.md), [codec report](docs/results/2026-11-10-phase2-codec/README.md) |

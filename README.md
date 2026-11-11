@@ -3,7 +3,11 @@
 A Rust port in progress of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
-**Status: Phase 2 complete on Linux/CUDA and Apple Silicon/MLX, including performance remediation.**
+**Status: Phase 2 reopened for the approved additional five-step optimization plan.**
+The earlier Linux/CUDA and Apple Silicon/MLX remediation is accepted; the
+[new plan](docs/PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
+now requires further experiments and both runtime gates before Phase 2 closes again.
+Implementation of this addition is pending; Phase 3 remains unstarted.
 The shared FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT tokenizers pass
 [final correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):
 642 trained traces / 2,500 decisions and 78 performance/memory comparisons on each

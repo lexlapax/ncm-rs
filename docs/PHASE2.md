@@ -1,11 +1,14 @@
 # Phase 2 contract and acceptance tracker
 
-Status: **complete, including the user-requested performance-remediation extension**.
-[Final acceptance](results/2026-11-10-phase2-acceptance/README.md) records 78 passing
-performance/memory comparisons on each platform, unchanged trained parity, final
-checks and reproducible evidence. Linux/CUDA preceded Apple/MLX. Phase 3 remains
-unstarted and outside this task. See [the extension contract](PHASE2-PERFORMANCE.md)
-for the ordered work and unchanged gates; original negative baselines are retained.
+Status: **reopened for the additional five-step optimization plan approved on
+2026-11-11; implementation and new dual-platform acceptance are pending**.
+The earlier [acceptance](results/2026-11-10-phase2-acceptance/README.md) records 78
+passing comparisons on each platform, unchanged trained parity and reproducible
+evidence. Linux/CUDA preceded Apple/MLX; that result remains valid for its candidate.
+The [new approved plan](PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
+is now required before Phase 2 closes again. Phase 3 remains unstarted/out of scope.
+See [the first extension contract](PHASE2-PERFORMANCE.md) for completed remediation;
+original negative baselines and acceptance evidence are retained.
 Phase 1 evidence remains unchanged; this document declares Phase 2 criteria before
 Rust codec implementation. The confirmed scope includes Sudoku codec execution
 and TinyStories/GPT-2/Qwen/BERT tokenizer asset conversion/parity, not their full
@@ -158,7 +161,7 @@ of the newly requested performance-remediation gate.
   acceptance evidence is published in `7a74fb3`. Large licensed trace/tokenizer
   archives remain separate release assets pending explicit publication authorization.
 
-## Extended acceptance (required before Phase 3)
+## First extended acceptance (completed; historical)
 
 - [x] Audit fair scopes, synchronization and clean-checkout report reproduction;
   refresh paired baselines and declare noise-aware thresholds before optimization.
@@ -175,13 +178,45 @@ qualifies vectorized/fused/view/pool changes and publishes three-way measurement
 passed before Apple remediation; every subsequent shared loading/tokenizer change
 returned through Linux validation. [Final dual-platform acceptance](results/2026-11-10-phase2-acceptance/README.md)
 now passes, including fixed process-level uncertainty controls, lifecycle evidence,
-all trained traces and whole-matrix audits. Phase 2 is accepted within its stated scope.
+all trained traces and whole-matrix audits. This accepts the earlier remediation
+candidate, not the newly approved optimization work below.
 
 The [extension plan](PHASE2-PERFORMANCE.md) defines predeclared non-inferiority bands,
 source-cited research deliverables and blocking/exception rules. Historical
 slowness/high RSS is no longer accepted solely because it was disclosed. Narrow,
 profile-justified FP32 backend kernels may be investigated; speculative kernels,
 precision changes, weaker validation and generator caching remain out of scope.
+
+## Additional five-step acceptance (required before Phase 3)
+
+The user approved the [five-step plan](PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
+and requested commit/push of the revised plan before implementation. Planning
+publication alone does not pass any runtime item below.
+
+- [ ] Step 1: freeze `3307dff` / production `083c1e5` as current Rust; refresh matched
+  current-Rust/Python baseline reports, verify identities/scopes and lock bands.
+- [ ] Step 2: independently test lower-risk prepared-state, reconstruction-reuse,
+  tokenizer and MLX-resampling candidates; record checks/results/disposition for
+  every reviewed opportunity, including loading-copy investigations and deferrals.
+- [ ] Step 3: complete Linux/CUDA checks, qualifications and all 78 acceptance
+  comparisons before Apple implementation/testing; then complete the Apple gate.
+  Any shared follow-up returns through Linux validation first.
+- [ ] Step 4: publish latency/throughput, CPU work/allocation diagnostics, live/peak
+  memory, startup/first-call/load/drop/teardown and long-lived state evidence;
+  reproduce summaries/audits from committed inputs in a clean checkout.
+- [ ] Step 5: decide on remaining measured bottlenecks before compilation/custom
+  kernels/graph replay; qualify any escalation in the same platform order and
+  publish an explicit requirement-to-evidence completion audit.
+- [ ] Publish final candidate identity, both gates, favorable/negative evidence,
+  limitations and synchronized plan/context/results status before Phase 2 closure.
+
+Use the same median ≤1.05, p95 ≤1.10 and comparable host peak/live memory ≤1.05
+limits against **current accepted Rust as well as qualified Python**. Preserve
+unchanged numerical budgets, exact IDs/ties, snapshots, artifacts/pins, schemas,
+goldens and authentication/preflight/path checks. Only retain changes with useful
+measured benefits; a verified no-improvement outcome is valid, not an invented
+speedup. Reject failed candidates and verify the retained final implementation on
+both platforms. The detailed plan names the evidence ledger and required checks.
 
 Missing hardware/artifact evidence remains pending. If progress requires changed
 compatibility requirements, unavailable resources or unsafe conversion, stop and

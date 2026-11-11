@@ -9,7 +9,13 @@ passes 642 trained traces / 2,500 exact decisions per GPU, with two near ties
 disclosed; pinned tokenizer goldens/rejections and all 78 performance/memory
 comparisons per platform also pass. There is no official generation/task-quality
 result. The [oracle audit](results/2026-11-10-phase2-oracle/README.md) retains its
-separate original-Python CPU/CUDA diagnostic failure. The remaining model gates below are still planned.
+separate original-Python CPU/CUDA diagnostic failure. Those results qualify the
+earlier accepted candidate. Phase 2 is reopened for the
+[additional five-step plan](PHASE2-OPTIMIZATION-REVIEW.md); it requires fresh
+Linux-first/Apple-second gates against current accepted Rust and qualified Python,
+plus CPU/allocation and lifecycle evidence. New runtime checks remain pending;
+a default documentation check does not satisfy them. The remaining model gates
+below are still planned.
 
 ## Layers of evidence
 

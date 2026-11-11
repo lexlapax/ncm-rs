@@ -9,8 +9,14 @@
 | [2026-11-10: Phase 2 codec oracle](2026-11-10-phase2-oracle/README.md) | 236 tiny / 642 trained codec traces; declared budgets | CUDA reference captured; Rust pending; CPU/CUDA diagnostic failure retained | Phase 2 not started | Reference only |
 | [2026-11-10: Phase 2 Apple runtime gate](2026-11-10-phase2-mlx/README.md) | 642-trace qualified adapted baseline; 30 matched fresh-process codec/tokenizer reports | Linux gate already passed | Measured; parity/output checks pass, high native host RSS retained | Not measured |
 
-**Phase 2 is complete, including performance remediation**; see
-[final dual-platform acceptance](2026-11-10-phase2-acceptance/README.md), the
+**The earlier Phase 2 remediation is accepted; Phase 2 is now reopened for the
+additional five-step optimization plan approved on 2026-11-11.** See the
+[research and approved plan](../PHASE2-OPTIMIZATION-REVIEW.md), with
+[source retrieval metadata](2026-11-11-phase2-optimization-review/sources.json) and
+[static estimates](2026-11-11-phase2-optimization-review/derived.json). These are
+research/planning artifacts, not new GPU measurements or acceptance. Phase 3 is
+unstarted and blocked on the expanded gate. Historical results below remain valid:
+[earlier dual-platform acceptance](2026-11-10-phase2-acceptance/README.md), the
 [extension contract](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).
 [Production CUDA remediation](2026-11-10-phase2-cuda-remediation/README.md) now
 passes unchanged correctness and removes the codec latency deficit in three-way
@@ -29,7 +35,8 @@ CPU/CUDA and all 642 trained CUDA traces. [Pinned tokenizer assets](2026-11-10-p
 pass exact Linux parity. The [Linux Phase 2 runtime gate](2026-11-10-phase2-linux/README.md)
 and [Apple Phase 2 runtime gate](2026-11-10-phase2-mlx/README.md) established the
 original matched three-process codec/tokenizer latency, throughput and memory
-baseline. Their deficits were remediated before closing Phase 2; Phase 3 is not started.
+baseline. Their deficits were remediated before the earlier Phase 2 closure;
+the additional approved optimization now requires a separate closure.
 The Apple codec/tokenizer [parity report](2026-11-10-phase2-mlx-codec/README.md)
 retains the initial long-dot failure and FP32 projection correction; the final
 Apple report retains high native host RSS and the adapted-baseline limitation.

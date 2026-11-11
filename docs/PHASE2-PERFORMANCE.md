@@ -1,10 +1,15 @@
 # Phase 2 extension — performance research and remediation
 
-Status: **complete on Linux/CUDA and Apple/MLX**, in the required order.
+Status: **this first remediation extension is complete on Linux/CUDA and
+Apple/MLX**, in the required order. Phase 2 has since been reopened for the
+[additional five-step optimization plan](PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
+approved on 2026-11-11; its implementation and both new gates are pending.
+The completed contract and results below are historical and remain unchanged.
 [Final acceptance](results/2026-11-10-phase2-acceptance/README.md) publishes 78 passing
 comparisons per platform, unchanged trained parity, controlled uncertainty,
 startup/teardown and reproducible raw evidence. The user-requested reopened
-extension is closed; Phase 3 remains unstarted and outside this task.
+first remediation extension is closed; the additional optimization work is now
+required before Phase 2 closes again. Phase 3 remains unstarted/out of scope.
 The [initial research](results/2026-11-10-phase2-performance-research/README.md) and
 [predeclared thresholds](results/2026-11-10-phase2-performance-research/acceptance-v1.json)
 remain immutable. Historical negative/intermediate reports are preserved, not
