@@ -65,8 +65,17 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   fixture was corrected without changing production limits. A deterministic
   clock-recording/deadline regression also failed before moving that stamp ahead
   of the final startup guard; the red/green logs are retained. New fields do not
-  retrofit historical receipts or prove live provenance. Final raw-file/analyzer
-  composition and enforced postflight-after-supervision ordering remain pending.
+  retrofit historical receipts or prove live provenance.
+  `finalize_readonly_trace.py` now composes telemetry, lifecycle, process, trace/output
+  and frozen-file validators after a single trusted runner returns. It binds 64 raw
+  evidence files and five derived reports, preserves failed attempts and refuses
+  reruns. Ten fresh-interpreter tests use real validators over archived outputs and
+  synthetic telemetry/maps/traces; full checks pass **232 reporting tests**. Updated
+  hashes do not hide bad logits; incomplete/mismatched evidence blocks frozen rehash.
+  This is import-only orchestration, not independent live-reaping proof: the final
+  entry must still supply reviewed commands and an actual exclusive-reaper runner.
+  Current frozen preparation, launch entry/readiness and fresh availability remain
+  pending. No selected diagnostic, GPU/model run or policy change occurred.
   Supervisor SIGKILL/host failure cannot guarantee cleanup. Next: finish bindings, review readiness, then request
   fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.

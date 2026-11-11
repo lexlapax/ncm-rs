@@ -1244,14 +1244,81 @@ now verifies that no sequence directory is created. No deadline was extended.
 | Same focused command → `reports/phase2-readonly-lifecycle-clock-deadline-green-v1.log` | All eight subcases pass after fix | `397e5820eb335313b88c647c3c684bc268bd615beac3193a5a28a69c8926f0be` |
 | `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-lifecycle-binding-check-v4.log` | Final default check: 222 reporting tests pass | `0fc43171670c3ad09a93dff774ef9ffe754f6d3d442ebcd2a060db8c6a2ddf9a` |
 
+## Mandatory post-collection validator composition
+
+`tools/bench/finalize_readonly_trace.py` adds import-only
+`run_then_finalize(contract_raw, expected_sha256, launch_dir, run_supervisor)`.
+It checks the preparation digest/structure and separate fresh collection/private
+0700 launch directories, exclusively saves `launch_dir/preparation.json`, then
+invokes the trusted runner **once**. That marker prevents retrying the same launch
+directory even if the runner raises before creating collection files. There is no
+CLI, alternative qualifier, optional validation bypass or automatic repetition.
+
+The runner must return its real owned-supervisor receipt after exclusive reaping
+and retain an identical `launch_dir/supervisor.receipt.json`. The helper checks the
+collector PID, receipt status and all on-disk copies. **The callback is trusted code,
+not a security boundary or independent live-child authentication.** The final entry
+still must construct the reviewed supervisor/worker commands and perform actual
+ownership-preserving waiting. This helper alone is not executable launch readiness
+or authority to collect; its tests deliberately use synthetic runners.
+
+Post-return composition uses only fixed evidence paths:
+
+- `launch_dir/supervision/{supervisor.json,worker.receipt.json,worker.txt}`;
+- the coordinator's `collection.json`, `observer-worker.txt`, `sequence/` and
+  `telemetry/` trees;
+- the twelve individual receipt/process files, full CPU/GPU telemetry, CPU-command
+  receipt/capture and atomic readiness record.
+
+The plan must match all prepared commands/cwds/report paths and require process
+observation. CPU command/source, GPU UUID, IANA timezone, first readiness rows and
+raw hashes are cross-bound before full telemetry qualification. Lifecycle and
+process-map validation follow. The existing analyzer then performs full reported
+codec qualification and six B1 trace joins against the separately frozen A/C source
+inventories. Its consumed plan/result/receipt hashes must agree with earlier reads;
+reports/captures retain analyzer-verified digests without rereading large traces.
+Collector captures are also checked against their receipts.
+
+**Frozen-file rehashing is last**, after the runner returns and every preceding
+validator succeeds. Missing/incomplete telemetry, bad clocks/maps, mismatched
+receipts/readiness, numerical corruption and changed metadata stop before that
+rehash. Changed frozen source/payload/library bytes fail the actual postflight.
+Validation failures leave `completion/` absent; existing raw/partial evidence remains.
+After successful validation five derived reports and `completion.json` are exclusively created there,
+binding the preparation digest and **64 consumed raw files**. A serialization/disk
+failure can leave partial derived files but cannot be silently retried. The result
+claims ordered validation/rehash composition, not independent production, immutable
+mapped bytes, new 642-trace parity or performance acceptance.
+
+Ten tests run in fresh interpreters, protecting the inherited-HWM resource test.
+They use all real validation implementations, archived v2 native reports, synthetic
+CUPTI records, temporary ELF-magic/map declarations and the real CPU serializer over
+virtual clocks/fake procfs. Worktree/loader metadata is synthetic, not actual current
+preparation. No native benchmark, GPU command or real telemetry collection runs.
+Negative cases assert the specific rejecting check: incomplete telemetry, readiness,
+receipt/process/lifecycle mismatches, changed collector captures, metadata changed
+between readers, corrupted logits with updated hashes and same-size source-byte
+changes. Verification spies require runner completion before frozen rehash; all
+pre-postflight failures leave its call count zero. Completed/failed attempts cannot
+invoke the runner twice. These tests compose correctness tooling; they do not close
+any Phase 2 runtime gate.
+
+| Command / retained local log | Result | SHA-256 |
+| --- | --- | --- |
+| `python -m unittest discover -s tools/bench -p test_finalize_readonly_trace.py -v` → `reports/phase2-readonly-finalizer-tests-v1.log` | Initial 7 pass | `a05e71d8458f405b205564b8b02e41d9ccb33ad7739ca3c84607d5a670432b45` |
+| Same command → `reports/phase2-readonly-finalizer-tests-v2.log` | 7 pass, specific failure checks/private preparation copy | `c04956fd1412fbb861409b1da4bb6e504d20ef338d52fbd4b53fe17bb50186a1` |
+| Same command → `reports/phase2-readonly-finalizer-tests-v3.log` | Final 10 pass | `705f33727cccd837883b13256c108b286f20c90cf4f36148f13fbf0ab55231e3` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-finalizer-check-v1.log` | 229 reporting tests pass | `ec35507866ffa5418c68c16f382b1b797c14b4492fa84b4eba5d5217ce98caf9` |
+| Same command → `reports/phase2-readonly-finalizer-check-v2.log` | Final default check: 232 reporting tests pass | `31254bfe0582ddf5f99b40604b92cae3e558b322905ecb9e9626fb45b4895b52` |
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. The coordinator, telemetry
 lifecycle/validator, sampled process observer, postflight verifier and preparation
 CLI are tested prerequisites. Actual frozen manifest/current clean-state checks,
-final launch entry, postflight call-order enforcement,
-composition of the lifecycle/time validator with raw-file/telemetry/analyzer bindings,
-mapping-limitation review and remaining integrated failure tests are pending.
+final launch entry with its reviewed commands and actual exclusive-reaper runner,
+application of the composed validators after that runner, mapping-limitation review
+and remaining launch-level failure tests are pending.
 No new capture exists to qualify. The user has chosen the read-only investigation;
 before collection, obtain a fresh quiet 15-minute window after the tested tooling,
 exact frozen manifest and identity checks are ready.

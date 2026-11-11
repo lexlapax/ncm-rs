@@ -185,6 +185,19 @@ late clock read from permitting job submission. Actual frozen preparation, final
 entry, raw-file/analyzer composition and enforced postflight ordering remain pending.
 No selected diagnostic or GPU/model/policy action ran.
 
+Latest integration adds `finalize_readonly_trace.run_then_finalize`: freeze a private
+preparation copy, invoke one trusted runner, then require full telemetry, lifecycle,
+process-map, trace/output and frozen-file verification in that order. It cross-binds
+64 consumed raw files and five derived reports; failures leave partial evidence,
+not a completion record or a retry. Ten fresh-interpreter tests exercise the real
+validators on archived native reports plus synthetic traces, maps and serialized
+telemetry; default checks pass **232 reporting tests**. Numerical corruption with
+updated hashes still fails. Source changes fail actual postflight hashing. This is
+not a live launcher: callback ownership/exclusive reaping and reviewed worker argv
+must still come from the final entry. Do not mistake callback return/receipt flags
+for independently proved live completion. Actual frozen preparation, final entry,
+readiness review and a fresh quiet window remain pending; no real collection ran.
+
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.
 CPU **2 and 3 are SMT siblings**. Use observer CPU **0**, not CPU 3, for CPU-2
