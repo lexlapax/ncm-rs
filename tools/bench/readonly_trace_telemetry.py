@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 
+import diagnostic_clock
 from bounded_child import run_bounded
 from readonly_trace_preflight import require
 from run_phase2_linux_comparison import observer_affinity
@@ -126,12 +127,14 @@ def collect(cpu_argv, gpu_argv, *, cwd, env, output_dir, expected_cpu_source, gp
     directory = Path(output_dir).absolute()
     cpu_path, gpu_path = directory / 'cpu.jsonl', directory / 'gpu.csv'
     require(str(cpu_path) in cpu_argv, 'CPU sampler output must be sequence-owned')
+    lifetime = diagnostic_clock.begin()
     directory.mkdir(mode=0o700)
     gpu = None
     ready = False
     errors = []
     cpu_receipt = None
     gpu_cleanup = None
+    gpu_start_clock = gpu_stop_clock = None
     interrupted = None
     saved = {}
     start = time.monotonic()
@@ -166,7 +169,8 @@ def collect(cpu_argv, gpu_argv, *, cwd, env, output_dir, expected_cpu_source, gp
                     record = {'schema_version': 1, 'kind': 'telemetry_ready', 'worker_pid': os.getpid(),
                               'gpu_pid': gpu.pid, 'cpu_metadata': metadata, 'first_gpu_row': first_gpu,
                               'observer_affinity': sorted(os.sched_getaffinity(0)),
-                              'local_time_with_offset': datetime.now().astimezone().isoformat()}
+                              'local_time_with_offset': datetime.now().astimezone().isoformat(),
+                              'record_clock': diagnostic_clock.stamp()}
                     pending = directory / 'ready.pending.json'
                     with pending.open('x') as file:
                         json.dump(record, file, indent=2)
@@ -191,6 +195,7 @@ def collect(cpu_argv, gpu_argv, *, cwd, env, output_dir, expected_cpu_source, gp
             if interrupted is not None:
                 errors.append('interrupted_before_observer_spawn')
             else:
+                gpu_start_clock = diagnostic_clock.stamp()
                 gpu = subprocess.Popen(gpu_argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
                                        stdout=gpu_output, stderr=subprocess.STDOUT, start_new_session=True)
                 cpu_receipt = run_bounded(cpu_argv, cwd=cwd, env=env,
@@ -208,6 +213,7 @@ def collect(cpu_argv, gpu_argv, *, cwd, env, output_dir, expected_cpu_source, gp
             if gpu is not None:
                 try:
                     gpu_cleanup = stop_owned_gpu(gpu)
+                    gpu_stop_clock = diagnostic_clock.stamp()
                 except BaseException as error:
                     errors.append('GPU_cleanup_error:' + type(error).__name__)
             for sig, handler in saved.items():
@@ -234,6 +240,8 @@ def collect(cpu_argv, gpu_argv, *, cwd, env, output_dir, expected_cpu_source, gp
                 and gpu_cleanup is not None and gpu_cleanup['verified'] and not errors and interrupted is None)
     result = {'schema_version': 1, 'status': 'complete' if complete else 'failed', 'ready': ready,
               'cpu_receipt': cpu_receipt, 'gpu_shutdown': gpu_cleanup, 'errors': errors,
+              'gpu_pid': gpu.pid if gpu is not None else None,
+              'gpu_start_clock': gpu_start_clock, 'gpu_stop_clock': gpu_stop_clock,
               'interrupt_signal': interrupted, 'telemetry_contents_qualified': False,
               'sequence_coverage_verified': False, 'launch_provenance_verified': False,
               'scope': 'Observer lifecycle and first-sample/CPU completion structure only. No '
@@ -247,6 +255,7 @@ def collect(cpu_argv, gpu_argv, *, cwd, env, output_dir, expected_cpu_source, gp
         else:
             result['status'] = 'failed'
             result['errors'].append('final_GPU_output_limit')
+    result['lifetime'] = diagnostic_clock.finish(lifetime)
     with (directory / 'telemetry.json').open('x') as file:
         json.dump(result, file, indent=2)
         file.write('\n')

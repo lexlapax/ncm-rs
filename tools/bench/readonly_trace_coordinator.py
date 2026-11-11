@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 
+import diagnostic_clock
 from bounded_child import fingerprint_report, utc_now
 from readonly_trace_preflight import require
 from readonly_trace_sequence import run_sequence, validate_jobs, validate_report_paths
@@ -114,6 +115,7 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
                         for k, v in env.items()), 'explicit observer environment without runtime controls required')
     cwd = Path(cwd).resolve(strict=True)
     require(cwd.is_dir(), 'coordinator cwd must be a directory')
+    lifetime = diagnostic_clock.begin()
     directory.mkdir(mode=0o700)
     started, started_utc = time.monotonic(), utc_now()
     interrupted = None
@@ -122,6 +124,7 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
     observer = None
     shutdown = None
     ready = None
+    ready_observed_clock = None
     sequence = None
     telemetry = None
     finished = False
@@ -165,7 +168,8 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
                     if os.path.lexists(path):
                         ready = read_record(path)
                         validate_ready(ready, observer.pid, expected_cpu_source, gpu_uuid)
-                        # Validation must not bypass a deadline, cancellation or worker exit.
+                        ready_observed_clock = diagnostic_clock.stamp()
+                        # Validation/clock recording must not bypass a deadline, cancellation or worker exit.
                         if monitor() or time.monotonic() - started >= STARTUP_SECONDS:
                             issue('observer_not_ready_at_launch')
                             break
@@ -216,6 +220,10 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
               'scope': 'Lifecycle composition only; caller must independently supervise this worker. '
                        'Polling output limits can overshoot; these are not filesystem quotas. '
                        'Not full telemetry verification, frozen launch provenance or acceptance.'}
+    result['lifetime'] = diagnostic_clock.finish(lifetime)
+    result['ready_observed_clock'] = ready_observed_clock
+    result['ready_canonical_sha256'] = (hashlib.sha256(json.dumps(ready, sort_keys=True).encode()).hexdigest()
+                                        if ready_observed_clock is not None else None)
     with (directory / 'collection.json').open('x') as file:
         json.dump(result, file, indent=2)
         file.write('\n')

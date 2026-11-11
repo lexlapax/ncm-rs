@@ -169,6 +169,22 @@ bindings and enforced postflight ordering still need completion. See the selecte
 protocol for exact commands/log hashes and preparation limitations. Do not request
 the quiet window until those remaining prerequisites pass review.
 
+Subsequent clock/lifecycle binding adds explicit collector PID/parent and bracketed
+UTC/monotonic stamps to bounded-child, supervisor, coordinator, sequence and
+telemetry records. `validate_readonly_lifecycle.py` checks nesting, readiness,
+ordered receipts, all process-sample brackets, shared clock consistency and clean
+owned-observer/supervisor completion. It cannot authorize postflight by itself:
+full telemetry, process-map, source/command/raw-file and output qualification remain
+separate, and the final entry must actually reap the supervisor before rehashing
+frozen files. Six tests include a real twelve-child observation/reader integration
+with five-second synthetic observers; default checks pass **222 reporting tests**.
+The initial fixture's generated `seconds` NameError is retained and corrected; no
+production deadline/tolerance changed. A separate red/green regression places
+readiness clock recording before the final startup deadline guard, preventing a
+late clock read from permitting job submission. Actual frozen preparation, final launch
+entry, raw-file/analyzer composition and enforced postflight ordering remain pending.
+No selected diagnostic or GPU/model/policy action ran.
+
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.
 CPU **2 and 3 are SMT siblings**. Use observer CPU **0**, not CPU 3, for CPU-2

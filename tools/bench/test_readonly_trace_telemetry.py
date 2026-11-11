@@ -20,21 +20,28 @@ SOURCE = 'a' * 64
 HERE = Path(__file__).parent
 
 
-def fixture_commands(directory, mode, observer):
+def fixture_commands(directory, mode, observer, seconds=1):
     metadata = dict(kind='metadata', schema_version=1, source_sha256=SOURCE, target_cpu=2,
-                    observer_affinity=[observer], seconds=1, interval_seconds=1)
+                    observer_affinity=[observer], seconds=seconds, interval_seconds=1)
     if mode == 'bad_source':
         metadata['source_sha256'] = 'b' * 64
     cpu_code = f'''
 import json,sys,time
+from datetime import datetime,timezone
 with open(sys.argv[1],'x') as f:
     def emit(row): f.write(json.dumps(row)+'\\n'); f.flush()
+    def sample(index):
+        before=time.monotonic_ns()
+        utc=datetime.now(timezone.utc).isoformat()
+        after=time.monotonic_ns()
+        emit(dict(kind='sample',index=index,monotonic_start_ns=before,monotonic_end_ns=after,utc=utc))
     emit({metadata!r})
-    emit({{'kind':'sample','index':0}})
-    time.sleep({10 if mode in ('gpu_late_failure', 'interrupt') else 1.05})
-    emit({{'kind':'sample','index':1}})
+    sample(0)
+    for index in range(1,{seconds + 1}):
+        time.sleep({10 if mode in ('gpu_late_failure', 'interrupt') else 1.05})
+        sample(index)
     if {mode!r}!='incomplete':
-        emit({{'kind':'completion','status':'complete','samples':2,'actual_elapsed_seconds':1.05}})
+        emit({dict(kind='completion', status='complete', samples=seconds + 1, actual_elapsed_seconds=seconds * 1.05)!r})
 '''
     row = ['2026/11/11 12:00:00.000', UUID, '0 %', '1 MiB', '40', '20 W', '200 MHz', '400 MHz']
     gpu_code = ('import sys,time; '

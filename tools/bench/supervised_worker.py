@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 
+import diagnostic_clock
 from bounded_child import run_bounded
 
 
@@ -93,6 +94,7 @@ def supervise(argv, *, cwd, env, output_dir, timeout_seconds, parent_pid):
         raise ValueError('dedicated single-threaded Linux supervisor required')
     if signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL or direct_children() or subreaper() != 0:
         raise ValueError('fresh supervisor with no children/default SIGCHLD required')
+    lifetime = diagnostic_clock.begin()
     directory = Path(output_dir)
     directory.mkdir(mode=0o700)
     parent = parent_pid
@@ -153,6 +155,7 @@ def supervise(argv, *, cwd, env, output_dir, timeout_seconds, parent_pid):
               'scope': 'One worker and owned/adopted children while this independent supervisor lives. '
                        'No unrelated processes signalled. Supervisor SIGKILL, host failure, uninterruptible '
                        'kernel tasks and exclusive-reaper violations are not successful containment.'}
+    result['lifetime'] = diagnostic_clock.finish(lifetime)
     with (directory / 'supervisor.json').open('x') as output:
         json.dump(result, output, indent=2)
         output.write('\n')

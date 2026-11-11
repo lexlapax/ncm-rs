@@ -55,8 +55,18 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   pass; default checks pass **216 reporting tests**. GPU/loader/Git probes were mocked
   in these new tests; the real preparation CLI has not run. Source/library rechecks,
   path-alias rejection and partial private evidence are covered. Actual frozen
-  manifest/current-clean-state verification, final launch entry, postflight call-order
-  enforcement, process time bracketing and collector/analyzer bindings remain pending.
+  manifest/current-clean-state verification and final launch entry remain pending.
+  `diagnostic_clock.py` now records explicit UTC/monotonic lifetime envelopes;
+  `validate_readonly_lifecycle.py` binds all child/process samples, readiness,
+  parent/PID chains and CPU/GPU observer cleanup to supervisor receipts. Six tests
+  include twelve actual CPU-only process observations under the independent
+  supervisor with five-second synthetic observers; default checks pass **222 tests**.
+  An initial generated-fixture NameError and its debug evidence are retained; the
+  fixture was corrected without changing production limits. A deterministic
+  clock-recording/deadline regression also failed before moving that stamp ahead
+  of the final startup guard; the red/green logs are retained. New fields do not
+  retrofit historical receipts or prove live provenance. Final raw-file/analyzer
+  composition and enforced postflight-after-supervision ordering remain pending.
   Supervisor SIGKILL/host failure cannot guarantee cleanup. Next: finish bindings, review readiness, then request
   fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.

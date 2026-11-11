@@ -6,6 +6,7 @@ failure and descendants that escape the created session are not contained here.
 """
 import datetime
 import hashlib
+import diagnostic_clock
 import json
 import math
 import os
@@ -122,6 +123,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     child_reaped = False
     group_kill = 'not_attempted'
     returncode = None
+    lifetime = diagnostic_clock.begin()
     started = time.monotonic()
     child_deadline = started + timeout_seconds
     deadline = min(child_deadline, sequence_deadline) if sequence_deadline is not None else child_deadline
@@ -287,6 +289,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         'scope': 'Direct-child exit and bounded merged stdout/stderr only; not workload '
                                  'qualification, launch identity proof, or escaped-descendant containment.',
                     }
+                    result['lifetime'] = diagnostic_clock.finish(lifetime)
                     json.dump(result, receipt, indent=2)
                     receipt.write('\n')
                     receipt.flush()

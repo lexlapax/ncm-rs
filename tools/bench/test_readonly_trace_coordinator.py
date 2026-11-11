@@ -23,7 +23,7 @@ HERE = Path(__file__).resolve().parent
 def observer_driver(directory, mode):
     directory = Path(directory)
     telemetry.OBSERVER_CPU = min(os.sched_getaffinity(0))
-    telemetry.SECONDS = 1
+    telemetry.SECONDS = 5 if mode == 'lifecycle' else 1
     telemetry.STARTUP_SECONDS = 2
     telemetry.CPU_TIMEOUT_SECONDS = 15
     if mode == 'overflow':
@@ -39,7 +39,7 @@ def observer_driver(directory, mode):
         time.sleep(30)
         return
     cpu, gpu = fixture_commands(directory, 'gpu_late_failure' if mode == 'observer_failure' else 'complete',
-                                telemetry.OBSERVER_CPU)
+                                telemetry.OBSERVER_CPU, seconds=telemetry.SECONDS)
     result = telemetry.collect(cpu, gpu, cwd=directory.parent, env=ENV, output_dir=directory,
                                expected_cpu_source=SOURCE, gpu_uuid=UUID)
     if mode == 'missing_result':
@@ -51,14 +51,22 @@ def collection_driver(root, mode):
     root = Path(root)
     affinity = os.sched_getaffinity(0)
     coordinator.OBSERVER_CPU = telemetry.OBSERVER_CPU = min(affinity)
-    telemetry.SECONDS = 1
+    telemetry.SECONDS = 5 if mode == 'lifecycle' else 1
     coordinator.STARTUP_SECONDS = .25 if mode == 'no_ready' else 3
     coordinator.OBSERVER_SECONDS = .35 if mode == 'deadline' else 10
-    if mode == 'validation_expired':
+    if mode in ('validation_expired', 'clock_expired'):
         actual = coordinator.validate_ready
         def expired(*args):
             actual(*args)
-            coordinator.STARTUP_SECONDS = 0
+            if mode == 'clock_expired':
+                original_stamp = coordinator.diagnostic_clock.stamp
+                def expire_clock():
+                    value = original_stamp()
+                    coordinator.STARTUP_SECONDS = 0
+                    return value
+                coordinator.diagnostic_clock.stamp = expire_clock
+            else:
+                coordinator.STARTUP_SECONDS = 0
         coordinator.validate_ready = expired
     directory = root / 'collection'
     telemetry_dir = directory / 'telemetry'
@@ -66,9 +74,22 @@ def collection_driver(root, mode):
             f'observer_driver({str(telemetry_dir)!r},{mode!r})', str(telemetry_dir)]
     code = ('from pathlib import Path; import time; '
             f'Path({str(directory / "sequence_started")!r}).write_text("started"); '
-            f'time.sleep({10 if mode in ("observer_failure", "early_observer", "interrupt", "crash", "deadline") else 0}); '
+            f'time.sleep({10 if mode in ("observer_failure", "early_observer", "interrupt", "crash", "deadline") else .12 if mode == "lifecycle" else 0}); '
             f'raise SystemExit({2 if mode == "job_failure" else 0})')
     jobs = [dict(condition=c, argv=[sys.executable, '-c', code], cwd=str(root), env=dict(ENV)) for c in ORDER]
+    factory = None
+    if mode == 'lifecycle':
+        from observe_readonly_process import ProcessObservation
+        from readonly_trace_preflight import file_identity
+        image = file_identity(Path(sys.executable).resolve())
+        injection = file_identity(Path('/usr/bin/true').resolve())
+        for job in jobs:
+            job['env'].update(LANG='C', LC_ALL='C')
+        # All fake children are plain Python, including T-labelled slots. This
+        # tests clocks, not injection conditions, CPU2 placement or codec output.
+        def factory(_ordinal, job):
+            return ProcessObservation(workload=image, workload_argv=job['argv'], expected_env=job['env'],
+                                      cpu=coordinator.OBSERVER_CPU, injection=injection, traced=False)
     if mode == 'sequence_exception':
         # Setup failure after ready must clean observers, not leave them running.
         sequence_patch = patch.object(coordinator, 'run_sequence', side_effect=OSError('fake disk failure'))
@@ -77,7 +98,8 @@ def collection_driver(root, mode):
                                return_value=SimpleNamespace(free=100 * 1024 ** 3))
     with sequence_patch:
         result = coordinator.coordinate(jobs, argv, cwd=HERE, env=ENV, output_dir=directory,
-                                        expected_cpu_source=SOURCE, gpu_uuid=UUID)
+                                        expected_cpu_source=SOURCE, gpu_uuid=UUID,
+                                        process_observer_factory=factory)
     assert os.sched_getaffinity(0) == affinity
     assert not Path(f'/proc/self/task/{os.getpid()}/children').read_text().strip(), 'unreaped coordinator child'
     raise SystemExit(0 if result['status'] == 'complete' else 1)
@@ -159,7 +181,7 @@ class CoordinatorTests(unittest.TestCase):
 
     def test_startup_bad_readiness_deadline_and_sequence_setup_failure(self):
         for mode in ('no_ready', 'bad_ready', 'deadline', 'sequence_exception', 'overflow',
-                     'missing_result', 'validation_expired'):
+                     'missing_result', 'validation_expired', 'clock_expired'):
             with self.subTest(mode=mode):
                 root, supervisor, collection = self.run_fixture(mode)
                 self.assertEqual(collection['status'], 'failed')
@@ -167,7 +189,7 @@ class CoordinatorTests(unittest.TestCase):
                 self.assertTrue(supervisor['cleanup']['complete'])
                 if mode != 'missing_result':
                     self.assertFalse((root / 'collection/sequence/02-CP.capture').exists())
-                if mode in ('no_ready', 'bad_ready', 'validation_expired'):
+                if mode in ('no_ready', 'bad_ready', 'validation_expired', 'clock_expired'):
                     self.assertFalse((root / 'collection/sequence').exists())
 
     def test_interrupt_and_coordinator_sigkill_cleanup_under_surviving_supervisor(self):

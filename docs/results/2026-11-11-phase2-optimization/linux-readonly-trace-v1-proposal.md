@@ -1177,13 +1177,80 @@ is established by these fixtures.
 | `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-manifest-check-v1.log` | 216 reporting tests pass | `5f12bab7680439f7bc905d8cdd34ea86eb17b20787cf0e267fdc761f9305a086` |
 | Same command → `reports/phase2-readonly-manifest-check-v2.log` | Final default check: 216 reporting tests pass | `ba047b01b89291ed2ad688b8e708b7574ddc306a073ead5584ec767fc17e6500` |
 
+## Explicit lifetime and process-sample clock binding
+
+`tools/bench/diagnostic_clock.py` records UTC between two monotonic-nanosecond reads,
+plus collector PID/parent identity. Bounded-child receipts, supervisor, coordinator,
+sequence and telemetry results now include start/end lifetime envelopes. Readiness
+records include their creation clock; the coordinator retains its observed-readiness
+clock and canonical content digest. Telemetry records bind the GPU-child PID to
+launch/cleanup clocks. These are additive **diagnostic evidence fields**, not model,
+artifact, workload or acceptance schema changes. Archived records are not rewritten;
+the new reader rejects missing clocks rather than inferring them from elapsed time.
+
+`validate_readonly_lifecycle.validate(...)` checks the supplied outer supervisor
+receipt, supervisor/worker results, collection, sequence, telemetry, readiness,
+process observations and parsed CPU sample rows. It verifies explicit nesting,
+parent/PID relationships, distinct children, clean reaping/shutdown, no orphan or
+restoration failures, readiness preceding sequence start, ordered twelve-job
+receipts and every process sample inside its corresponding receipt. CPU samples
+must lie inside the sampler receipt and bracket all jobs; GPU launch/cleanup clocks
+must enclose CPU capture. All UTC/monotonic read intervals must admit one common
+offset using the existing 1,000 ns datetime-quantization allowance. No clock steps
+are hidden, gaps interpolated or new model tolerance introduced. Lifetime envelopes
+include setup/cleanup/result construction; they are **not exact exec/exit times**.
+
+This import-only reader performs no file IO or execution. It returns canonical
+record digests and `lifecycle_consistency_verified`, not independent producer or
+mapped-byte proof. Full 901-sample CPU arithmetic/duration, GPU contents/timezone,
+source/command/raw-file identity, map/injection checks and codec qualification still
+require their separate validators. In particular `postflight_call_order_enforced`
+remains false: the final launcher must actually wait/reap the independent supervisor,
+verify complete full telemetry, and only then rehash frozen inputs/libraries/tools.
+Serialized success flags alone are not live permission to perform that rehash.
+
+Six tests cover schema/clock/PID/order/readiness/cleanup tampering, absent clocks,
+UTC steps, process samples outside receipts and incomplete CPU endpoint coverage.
+A Linux integration uses the actual bounded-child, supervisor, coordinator,
+telemetry and process-observation writers: twelve fresh plain Python children and
+five-second synthetic observers. T-labelled fake slots have no injection and use
+the available observer CPU, not a claimed CUDA/CPU2 qualification. The synthetic
+CPU rows record actual clocks but no real CPU activity; fake GPU rows are printed
+by Python, never nvidia-smi. This is writer/reader compatibility, not a 900-second
+hardware collection or acceptance evidence.
+
+The initial integration failed because its generated completion expression used
+an undefined `seconds` variable. A retained private fake-child reproduction at
+`reports/phase2-readonly-lifecycle-fake-debug-v1/` showed the CPU worker's NameError;
+the twelve process observations themselves completed. Fixing the fixture's literal
+interpolation resolved it without weakening production checks or extending limits.
+Staged review also found the new observed-readiness clock read after the coordinator's
+last startup guard. A deterministic fixture expires the allowance inside that read:
+it initially produced `complete` instead of `failed`. Recording the clock before
+the final deadline/cancellation/worker-exit guard fixes the regression; the same test
+now verifies that no sequence directory is created. No deadline was extended.
+
+| Command / retained local log | Result | SHA-256 |
+| --- | --- | --- |
+| `python -m unittest discover -s tools/bench -p test_validate_readonly_lifecycle.py -v` → `reports/phase2-readonly-lifecycle-binding-tests-v1.log` | 5 pass, generated-fixture failure | `ce1fc643b3380259174d8301c6bf496824f8519edf574e2d8b023ab3f207d40f` |
+| CPU-only debug summary → `reports/phase2-readonly-lifecycle-binding-debug-v1.log` | Retained NameError reproduction | `bdfbd1e53d15dab4b202385b2ca04a667bf0647992770d67cc553631eb71daec` |
+| Same test command → `reports/phase2-readonly-lifecycle-binding-tests-v2.log` | 6 pass | `2555d7a9d30078719aadf837639f99593492eba5653a1e4e2a6b8b16422db0d1` |
+| Same test command → `reports/phase2-readonly-lifecycle-binding-tests-v3.log` | 6 pass, including GPU child clock binding | `d9be66ac023a2d0cebea41afe9acf62b7e82196786526d47432e491f73b11ec6` |
+| Same test command → `reports/phase2-readonly-lifecycle-binding-tests-v4.log` | Final 6 pass, including schema rejection | `950b6796da5be9da5aca8e83be1b0676478d5071734b8f3e071b42168d7ed529` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-lifecycle-binding-check-v1.log` | 222 reporting tests pass | `7367454b6615f9279bc49c60a37614e0fa0f07d8a3f9213d729a2178e95f7db0` |
+| Same command → `reports/phase2-readonly-lifecycle-binding-check-v2.log` | 222 reporting tests pass | `6b820fedaec6fca3d5bbf8ba2a420f8a72dcd4b80cbcd145ef831187ab84e384` |
+| Same command → `reports/phase2-readonly-lifecycle-binding-check-v3.log` | 222 reporting tests pass | `0c69f7b6050e46192e51acd1c61b1c7f6b96732e36b4490892d76920b45fa417` |
+| `PYTHONPATH=tools/bench python -m unittest test_readonly_trace_coordinator.CoordinatorTests.test_startup_bad_readiness_deadline_and_sequence_setup_failure -v` → `reports/phase2-readonly-lifecycle-clock-deadline-red-v1.log` | New `clock_expired` subcase fails before fix | `b0d52faf8dfe47ab408835e727d0402fc9724a3b49db39ca76e62f2d8a1dd741` |
+| Same focused command → `reports/phase2-readonly-lifecycle-clock-deadline-green-v1.log` | All eight subcases pass after fix | `397e5820eb335313b88c647c3c684bc268bd615beac3193a5a28a69c8926f0be` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-lifecycle-binding-check-v4.log` | Final default check: 222 reporting tests pass | `0fc43171670c3ad09a93dff774ef9ffe754f6d3d442ebcd2a060db8c6a2ddf9a` |
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. The coordinator, telemetry
 lifecycle/validator, sampled process observer, postflight verifier and preparation
 CLI are tested prerequisites. Actual frozen manifest/current clean-state checks,
 final launch entry, postflight call-order enforcement,
-process/receipt timing, supervisor/collector/telemetry/analyzer cross-bindings,
+composition of the lifecycle/time validator with raw-file/telemetry/analyzer bindings,
 mapping-limitation review and remaining integrated failure tests are pending.
 No new capture exists to qualify. The user has chosen the read-only investigation;
 before collection, obtain a fresh quiet 15-minute window after the tested tooling,

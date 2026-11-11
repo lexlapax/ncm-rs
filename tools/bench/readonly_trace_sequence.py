@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 import time
 
+import diagnostic_clock
 from bounded_child import run_bounded
 
 ORDER = ('AP', 'CP', 'AT', 'CT', 'CP', 'AT', 'CT', 'AP', 'AT', 'CT', 'AP', 'CP')
@@ -84,6 +85,7 @@ def run_sequence(jobs, output_dir, *, cancel_check=None, process_observer_factor
     # Parent must exist; do not implicitly create an arbitrary directory tree.
     if shutil.disk_usage(output_dir.parent).free < MIN_FREE_BYTES:
         raise ValueError('at least 12 GiB free required before sequence')
+    lifetime = diagnostic_clock.begin()
     started = time.monotonic()
     deadline = started + SEQUENCE_SECONDS
     output_dir.mkdir()  # exclusive: never reuse a partial or completed sequence
@@ -150,6 +152,7 @@ def run_sequence(jobs, output_dir, *, cancel_check=None, process_observer_factor
         'launch_provenance_verified': False, 'benchmark_outputs_qualified': False,
         'whole_run_supervision_provided': False,
     }
+    result['lifetime'] = diagnostic_clock.finish(lifetime)
     with (output_dir / 'sequence-result.json').open('x') as file:
         json.dump(result, file, indent=2)
         file.write('\n')
