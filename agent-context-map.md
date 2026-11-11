@@ -216,6 +216,16 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   measurements, settings changes or acceptance waiver; Linux remains 72/78.
   Next: predeclare a bounded trace investigation if the read-only path is chosen;
   actual execution still needs a fresh quiet window.
+- [Read-only trace proposal](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-proposal.md)
+  now specifies 12 fixed native plain/traced processes, frozen v2 binaries,
+  time/output caps and strict B1 window attribution. Source-derived queries
+  110–145 cover B1 block first/warm/retained calls before stage profiling; no
+  full-harness trace confirms that mapping yet. Offline checks on three old B4
+  captures verify 36 two-event/query windows each, not current B1 causality.
+  Docs links/diff and schedule arithmetic/source checks pass. No new run/policy
+  change; parser/runner and required tests are not implemented. Next: user choice,
+  implement/test the selected diagnostic, then obtain a fresh quiet window and
+  bind launch prerequisites. Linux remains 72/78; no acceptance or Apple progress.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

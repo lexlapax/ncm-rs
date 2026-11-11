@@ -54,6 +54,14 @@ not approved/run; an executable supervisor and its failure-path tests are still
 missing. Reset-to-default safety requires confirmation of the original default
 policy, not inference from sampled clocks.
 
+The alternative [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
+defines 12 fixed native processes (plain/traced), unchanged frozen executables,
+strict time/output bounds and B1 trial-attribution checks. Offline inspection of
+three historical B4 traces found the expected 36 two-event/query windows, not a
+new B1 capture or validated analyzer. Required parser/runner tests are absent;
+user investigation choice and a new quiet window remain launch blockers. Neither
+proposal is ready to execute. No new measurements or settings changes occurred.
+
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.
 CPU **2 and 3 are SMT siblings**. Use observer CPU **0**, not CPU 3, for CPU-2

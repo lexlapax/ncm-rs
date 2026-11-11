@@ -1,0 +1,130 @@
+# Read-only Linux trace investigation — proposal, NOT RUN
+
+Alternative to the optional [clock intervention](linux-clock-diagnostic-v3-proposal.md).
+No GPU-clock, power, governor, service, credential or global-tooling changes.
+Preparation does not authorize collection or establish a quiet window. Linux
+remains **72/78**; this is not acceptance and does not unblock Apple.
+
+## Question and evidence gap
+
+Can an instrumented B1 resident-block timing difference be localized to kernel
+execution versus allocation/launch/synchronization intervals? The
+[source inspection](completion-audit.md#offline-resident-block-timing-inspection)
+and [pool inspection](linux-diagnostic-v2-results.md#offline-pool-counter-and-retained-trace-follow-up)
+do not answer this. Event spans include host-submission gaps; aggregate pool
+counters do not measure allocation latency. One-second GPU telemetry cannot
+identify per-block clocks. No result here would establish an exclusive clock or
+CPU cause, or resolve the tokenizer/load acceptance cells.
+
+The existing CUPTI text includes host API intervals/correlation IDs and kernel
+intervals/device/context/stream IDs. Offline inspection of the three retained
+historical `codec-diagnostic-block4{,-b,-retained}-cupti.txt` captures found exactly
+36 elapsed-time query windows each, with two ordered `cuEventRecord` calls before
+each query. DRIVER interval durations match end minus start, and no dropped-record
+message occurs. This only supports feasibility of boundary recognition on those
+old B4 captures. It does not validate a parser, prove current B1 attribution, or
+permit transferring their allocation diagnosis to v2.
+
+## Fixed proposed collection
+
+Use the unchanged frozen v2 accepted/candidate **codec_bench** executables, their
+matching worktrees, pinned artifact and `codec-bench-v1.json`. Run the complete
+harness without `--profile-block4`; no recompile or workload changes. Trace via the
+existing local CUPTI injection library only in the instrumented child's environment.
+No inherited injection in controls, launcher or observers. No Python benchmark is
+needed for this native-path diagnostic; both comparators remain mandatory for a
+later, separate acceptance attempt.
+
+Exactly **12 fresh processes**: three per implementation per condition. Let AP/CP
+mean accepted/candidate plain, and AT/CT mean accepted/candidate traced. Fixed order:
+
+1. AP, CP, AT, CT
+2. CP, AT, CT, AP
+3. AT, CT, AP, CP
+
+This is a bounded three-repeat cyclic design, not complete position/carryover
+balance. Do not adapt order or process count to observed timings. Retain every
+scope, first call, five warmups and thirty trials provided by the existing harness.
+All full report outputs must qualify using the existing validators and pinned
+qualified reference outputs. Instrumented results are diagnostic only, even if
+faster. Plain controls estimate instrumentation effects for this collection; do
+not replace the retained acceptance controls or v2 processes with them.
+
+Workloads CPU2, launcher/observers CPU0; recheck CPU2/3 SMT topology and permissions.
+Use the existing read-only GPU telemetry and a full 900-second CPU capture. No
+concurrent builds, analysis or debuggers. Bound the entire workload sequence to
+600 seconds, each child to 120 seconds, each raw trace to 1 GiB and total raw
+capture to 6 GiB; require at least 12 GiB free before launch. These are abort
+limits, not promised workload sizes or timings. A runner must enforce them while
+streaming, stop/reap only owned children, preserve partial files and never retry a
+measurement. The sampler still completes 900 seconds unless interrupted or unsafe.
+A timeout/size limit is an incomplete investigation, not grounds to raise limits
+and rerun within this protocol.
+
+Fresh paths: `reports/phase2-linux-readonly-trace-v1/`, sibling
+`phase2-linux-readonly-trace-v1-prelaunch.json` and
+`phase2-linux-readonly-trace-v1-cpu.jsonl`. Bind exact commands/order, executable,
+source, artifact/payload/workload, Python-validator, CUPTI library/source/native
+library, telemetry-tool identities and user availability confirmation before launch.
+Record process status, stderr, environment differences, disk limits and failures.
+Preserve v2 and every existing baseline. Large raw traces remain local until scope,
+compression, provenance and publication size have been reviewed.
+
+## Trial attribution contract — must be implemented and tested first
+
+The pinned harness performs one cold timed call, then B1 encode/decode/reconstruct/
+block, each with one first call plus 35 loop calls. Therefore the first **145**
+elapsed-time queries precede B1 stage profiling. Queries **110–145**, one-based,
+are the B1 block: 110 first call, 111–115 warmups, 116–145 retained trials. The
+full harness has 2,008 queries: `1 + 3 * (4 * 36 + 35 * 15)`. The 15 stage queries
+per reconstruction are not ordinary timed-call windows and must not be silently
+assigned as such. These counts come from source, not a verified full CUPTI capture.
+Recheck both bound source versions; any changed ordering or extra query is a blocker.
+
+Before interpreting a new capture, the analyzer must:
+
+- Verify complete reports, all expected query counts, no dropped records, valid
+  monotonic intervals/durations and no duplicate ambiguous correlation IDs.
+- Sort host records by timestamp, not printed interleaving. Require exactly two
+  ordered event-record calls between successive queries in the first 145 windows.
+  Validate single host-thread attribution; do not guess when multiple threads or
+  extra records make pairing ambiguous. Preserve the first call/warmups too.
+- Correlate every selected kernel to its host launch and device/context/stream.
+  Reject ambiguous, missing or cross-window matches. Check completed kernel
+  intervals against the surrounding synchronized window. Do not infer stream
+  identity from a kernel name or ignore copies/other activity in a window.
+- Report per-trial kernel names/counts, duration sum, interval union and hull;
+  report launch, allocation and synchronization API intervals separately. Sums
+  can overlap. Hull minus union means time not covered by the selected kernels,
+  **not proven device idleness or CPU overhead**. Keep copies and unclassified
+  activity explicit. Event-record host intervals are not GPU event timestamps.
+- Join the 30 retained block windows to report trials by the validated sequence,
+  not by nearest duration. Publish all windows/processes and instrumentation
+  overhead relative to the paired plain condition. Keep diagnostic wall/event
+  spans distinct from kernel-duration sums and acceptance latency.
+
+Required offline tests: shuffled/interleaved print order; overlapping kernels;
+multiple streams/threads; duplicate/missing correlations; missing/extra boundaries;
+invalid durations; dropped records; truncated captures; incorrect scope/query
+counts; empty windows and copies. Verify the mapping against the retained B4
+captures as a separately labeled historical fixture, not evidence of B1 behavior.
+A runner additionally needs fake-child success/failure/timeout/size-limit/interrupt
+and owned-child cleanup tests. No real benchmark is a substitute for these tests.
+
+## Launch blockers and outcome rules
+
+This document is **not executable launch readiness**. No full-harness B1 trace
+parser/runner or its required tests exist yet. Before collection, the user must
+choose the read-only investigation and confirm a fresh quiet 15-minute window;
+the tested tooling, exact frozen manifest and identity checks must also be ready.
+No extra profiling permissions, system installation or CUPTI replacement may be
+made implicitly. Stop and ask if existing local tracing cannot be used safely.
+
+Possible outcomes: incomplete/unattributable capture; spread not reproduced under
+instrumentation; or spread associated with specific measured kernel/API intervals.
+Instrumentation can perturb allocation and scheduling enough to suppress or create
+the spread. Three processes per condition cannot guarantee both clusters occur.
+Do not keep sampling until they do, filter a process, transplant results, or infer
+causality from association alone. If inconclusive, report exactly what remains
+unobservable and ask before a different experiment. Every outcome leaves Linux
+**72/78** pending a separate full acceptance protocol with unchanged criteria.
