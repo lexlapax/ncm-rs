@@ -226,16 +226,19 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   change; parser/runner and required tests are not implemented. Next: user choice,
   implement/test the selected diagnostic, then obtain a fresh quiet window and
   bind launch prerequisites. Linux remains 72/78; no acceptance or Apple progress.
-- Offline boundary prerequisite implemented in `tools/bench/cupti_trace_boundaries.py`
-  with 14 tests: strict DRIVER syntax/counts/order/identity, source-assumed layout,
-  exclusive outputs, synthetic full schedule and all three published B4 captures.
-  This validates host boundaries only, NOT kernel/copy records, launch correlation,
-  output qualification or capture completeness. Remaining analyzer/runner/tests
+- Offline prerequisites: `tools/bench/cupti_trace_boundaries.py` and
+  `cupti_kernel_windows.py`, 28 tests covering strict host boundaries and kernel/
+  DRIVER-or-RUNTIME launch correlation, overlap arithmetic, rejection paths and
+  source-assumed synthetic full layouts. All three published B4 captures map 972
+  kernels to 36 windows each; no real current B1 trace is claimed. Non-kernel
+  activity stays explicitly unattributed; copy attribution, report/trial binding,
+  output qualification and capture completeness are not established. Runner/tests
   and user choice/quiet window still block launch; no new measurements/settings.
-  `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 62 reporting tests. Initial full
-  check failed inherited-RSS isolation after large fixtures increased parent RSS;
-  moved archive parsing to a child, preserved the existing resource assertion.
-  Failed/passing logs and hashes are in the read-only proposal. Docs diff/link
+  `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 76 reporting tests. Initial
+  boundary-suite check failed inherited-RSS isolation; archive work now runs in
+  a child, preserving the existing resource assertion. Kernel prototype initially
+  missed RUNTIME launches; retained fixtures exposed both variants, now tested.
+  Checks/log hashes and limitations are in the read-only proposal; docs diff/link
   checks pass. Linux remains 72/78; Apple and completion remain pending.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.

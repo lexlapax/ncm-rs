@@ -126,8 +126,9 @@ Fourteen tests in `tools/bench/test_cupti_trace_boundaries.py` cover the synthet
 full schedule and malformed/missing/duplicate/overlapping boundaries, wrong layouts,
 multiple processes/threads, dropped-record messages, shuffled print order and CLI
 output guards. All three published historical B4 trace hashes and 36-window layouts
-verify; each is rejected as a full B1-layout capture. Kernel overlap/stream/copy
-attribution tests and the bounded collection runner remain unimplemented.
+verify; each is rejected as a full B1-layout capture. This boundary-only checkpoint
+did not implement kernel attribution or a bounded collection runner; see below
+for subsequent offline kernel-helper progress.
 
 Validation: `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes, including **62 reporting
 tests**. The first full check failed an existing child-RSS test: parsing large
@@ -146,11 +147,50 @@ Reproduce the focused offline checks with
 `python -m unittest discover -s tools/bench -p test_cupti_trace_boundaries.py -v`.
 No GPUs, model weights, ignored traces or Python model packages are required.
 
+## Offline kernel/launch helper — still not a complete analyzer
+
+`tools/bench/cupti_kernel_windows.py` correlates kernels with supported DRIVER **or
+RUNTIME** launches and preserves every source-assumed block window (first/warmup/
+retained). It rejects missing/duplicate correlations, graph kernels, ambiguous
+multiple device/context/stream identities, invalid intervals and cross-window work.
+Output contains per-kernel and per-host-API intervals, kernel sum/union/hull and
+uncovered hull time. Uncovered time is not proven GPU idle time or CPU overhead.
+Copy, memory, overhead and other timestamped activity headers remain explicitly
+**unattributed**, not silently subtracted or explained. Copy metadata/correlation,
+report output qualification and semantic trial/report binding remain pending;
+`activity_attribution_complete` is always false.
+
+The initial DRIVER-only implementation rejected valid historical fixtures. Direct
+inspection found each capture's 972 kernels correlate to 720 `cuLaunchKernel`,
+216 `cudaLaunchKernel_v7000` and 36 `cudaLaunchKernelExC_v11060` calls. The latter
+two are RUNTIME records, not missing launches. Both recorded variants are now
+handled and covered by regression tests; unknown/ambiguous launches still fail.
+No capture was filtered or repeated. This is an offline parser correction, not
+an explanation for the current B1 timing clusters.
+
+Fourteen additional tests cover overlap/union arithmetic, shuffled activity blocks,
+missing/duplicate/runtime correlations, metadata/graph rejection, stream/boundary
+ambiguity, empty windows, copy/unknown-activity preservation, dropped/truncated
+captures, source bindings and exclusive output. Synthetic full-layout coverage
+selects all 36 B1 block windows; this is not a real full-harness B1 trace. All
+three hash-verified historical B4 captures map all **972 kernels to 36 windows**
+each. Large fixture work stays in child processes to avoid the earlier suite-RSS
+interaction. No kernel timing or gap aggregate here is a new performance result.
+
+Commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_cupti_kernel_windows.py -v`:
+  14 tests pass. Local log `reports/phase2-readonly-kernel-preparation-tests-v1.log`,
+  SHA-256 `8a5f6c66a32bd5f9b762f9dd72ce7bfe73e2b410dcbc1a5b507a0526ed247afe`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes, including **76 reporting tests**.
+  Final local log `reports/phase2-readonly-kernel-preparation-check-v2.log`, SHA-256
+  `90cd97d7c26fe07c1cacb44a97f0ff086e19d3bc39c632775d00b5c9fedf9976`.
+
 ## Launch blockers and outcome rules
 
-This document is **not executable launch readiness**. The host-boundary helper
-is only one prerequisite; the full kernel/copy attribution analyzer, collection
-runner and remaining required tests do not exist yet. Before collection, the user must
+This document is **not executable launch readiness**. Boundary and kernel helpers
+are only prerequisites; copy attribution, report qualification/trial binding,
+the collection runner and remaining required tests are pending. Before collection, the user must
 choose the read-only investigation and confirm a fresh quiet 15-minute window;
 the tested tooling, exact frozen manifest and identity checks must also be ready.
 No extra profiling permissions, system installation or CUPTI replacement may be
