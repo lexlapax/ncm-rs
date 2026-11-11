@@ -307,11 +307,64 @@ Commands actually run:
   Local log `reports/phase2-readonly-qualification-check-v1.log`, SHA-256
   `01076309cbbddf0ef4f54a92998cef3f6ed0855c98698c11b5c5fa4780502b29`.
 
+## Bounded child-process primitive — fake CPU commands only
+
+`tools/bench/bounded_child.py` now supplies a Linux-only, single-threaded collector
+primitive, **not an executable diagnostic launcher**. It creates a new owned
+session, streams merged stdout/stderr to an exclusive file, enforces a byte cap
+and child/remaining-sequence deadlines, and writes an exclusive JSON receipt with
+exit/cleanup state and captured-byte hash. SIGINT/SIGTERM ownership is temporary
+and restored before receipt serialization, so a late interrupt is not absorbed
+after status computation. Errors, interrupts, overflow and unconfirmed cleanup fail;
+there is no automatic retry. Environment contents are not copied into receipts.
+
+The direct child's PID remains waitable with `waitid(WNOWAIT)` until the final
+owned-group signal. The collector never signals that numeric group after reaping,
+and refuses to signal if child ownership becomes unconfirmed. Default SIGCHLD
+and exclusive child-reaping ownership are prerequisites. Only the direct child is
+waited/reaped; a descendant remaining in its group is stopped, not falsely claimed
+as directly reaped. Cleanup/drain waits are separately bounded and included in
+receipt elapsed time; this is not a hard-real-time or host-failure guarantee.
+
+A successful receipt establishes only bounded capture and direct-child exit,
+**not workload/output qualification or executable identity**. Aggregate trace
+quota/free-space checks, the fixed 12-job manifest/order, observer affinity,
+telemetry, frozen binary/payload checks and integrated provenance verification are
+still absent. Abrupt collector SIGKILL/host failure and descendants escaping its
+session are not contained by this primitive. Whole-collection supervision and
+those boundaries must be resolved before launch; this is not a substitute for the
+clock proposal's separately required restoration supervisor.
+
+Twelve tests run only fake Python CPU commands. They cover success/exact output
+limit, nonzero exit, overflow including buffered output after leader exit, child/
+sequence deadlines, SIGINT/SIGTERM, direct reaping, group signaling before reaping,
+a descendant holding the pipe, survival of a separate test-owned child, launch/
+write/cleanup failures, lost reaping ownership, late receipt interruption and
+prelaunch rejection/overwrite guards. They do not establish GPU behavior or actual diagnostic readiness.
+
+Retained intermediate checks: `reports/phase2-bounded-child-tests-v1.log` passed
+with a ResourceWarning in the simulated lost-ownership case; bookkeeping now
+settles without signaling or interpreting unknown status as verified. The added
+write-error fixture initially failed because its mock did not handle keyword
+`mode`; `reports/phase2-bounded-child-tests-v3.log` retains that failure. The mock
+was corrected; the collector's child had already been stopped/reaped. No benchmark
+was run or repeated for either tooling correction.
+
+Final commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_bounded_child.py -v`: 12 pass.
+  Local log `reports/phase2-bounded-child-tests-v5.log`, SHA-256
+  `255cf77cb02cd24f470dfc1062e4a6c9ab366473b3109032e2d2bad92f4cd76e`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes, including **110 reporting tests**.
+  Local log `reports/phase2-bounded-child-check-v3.log`, SHA-256
+  `39e11960b49c9c26c20c80d0cd8d01fa312487d37f9cc361d8aaa34c23193466`.
+
 ## Launch blockers and outcome rules
 
-This document is **not executable launch readiness**. Offline helpers are only
-prerequisites; actual launch/report provenance, the bounded collection runner and
-its failure-path tests are pending. No new capture exists to qualify. Before collection, the user must
+This document is **not executable launch readiness**. Offline helpers and a tested
+child primitive are only prerequisites; the fixed collection runner, whole-run
+supervision, integrated launch/report provenance and remaining tests are pending.
+No new capture exists to qualify. Before collection, the user must
 choose the read-only investigation and confirm a fresh quiet 15-minute window;
 the tested tooling, exact frozen manifest and identity checks must also be ready.
 No extra profiling permissions, system installation or CUPTI replacement may be
