@@ -191,7 +191,11 @@ precision changes, weaker validation and generator caching remain out of scope.
 
 The user approved the [five-step plan](PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
 and requested commit/push of the revised plan before implementation. Planning
-publication alone does not pass any runtime item below.
+publication alone does not pass any runtime item below. The
+[initial Linux baseline checkpoint](results/2026-11-11-phase2-optimization/README.md)
+freezes accepted binaries/bands, refreshes measurements and passes fresh baseline
+correctness. Its diagnostic audit is 73/78 with five uncertainty cells; focused
+allocation attribution and candidate/platform gates remain pending.
 
 - [ ] Step 1: freeze `3307dff` / production `083c1e5` as current Rust; refresh matched
   current-Rust/Python baseline reports, verify identities/scopes and lock bands.

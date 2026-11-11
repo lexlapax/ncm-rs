@@ -2,7 +2,7 @@
 
 Phase 1 is complete: 18 fixed operator cases pass CPU/CUDA/MLX, all 238 checkpoint
 tensors round-trip/read back exactly, and the tokenizer, artifact and real-Metal
-tests exist. There are 24 report-tool tests. Phase 2's unchanged
+tests exist. There are 29 report-tool tests. Phase 2's unchanged
 [codec reference contract](PHASE2.md), tiny synthetic fixture and trained CUDA
 oracle now qualify both GPU adapters. [Final dual-platform acceptance](results/2026-11-10-phase2-acceptance/README.md)
 passes 642 trained traces / 2,500 exact decisions per GPU, with two near ties

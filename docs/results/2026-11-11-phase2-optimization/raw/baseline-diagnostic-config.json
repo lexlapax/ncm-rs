@@ -1,0 +1,9 @@
+{
+  "device": "cuda",
+  "previous": "reports/phase2-optimization-linux-baseline-v1/previous",
+  "candidate": "reports/phase2-optimization-linux-baseline-v1/candidate",
+  "qualification": "reports/phase2-optimization-preflight/qualification.json",
+  "lifecycle": "reports/phase2-optimization-preflight/lifecycle.json",
+  "controls": {},
+  "load_controls": []
+}

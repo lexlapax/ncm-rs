@@ -36,9 +36,28 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   accepted earlier work from pending new gates. No production edits or new GPU
   runs in this planning revision. Default `CARGO_BUILD_JOBS=4 ./tools/check.sh`
   passes (24 report-tool tests); research JSON/hashes/arithmetic and local links
-  checked. Next after plan publication: freeze baseline identities, audit/refresh
-  Linux measurements, then test lower-risk candidates. Ask on consequential
-  ambiguity/blockers; do not mark the active objective complete. Preserve `.pi/`.
+  checked. Plan published as `013f745`. Ask on consequential ambiguity/blockers;
+  do not mark the active objective complete. Preserve `.pi/`.
+- Additional optimization baseline checkpoint:
+  [report](docs/results/2026-11-11-phase2-optimization/README.md), locked
+  `acceptance-v1.json` and `baseline.json` pin current accepted Rust/Python before
+  production edits. New clean worktree `.reference/phase2-optimization-baseline`
+  at `3307dff`; saved binaries in adjacent `-bin` exactly match accepted benchmark
+  hashes. Three-process rotating Linux matrix collected, CPU 2, with telemetry;
+  all output/point/memory checks pass but diagnostic audit is **73/78**, not an
+  acceptance pass (five GPT-2/Qwen process envelopes). Identical binaries show
+  ~9% B1 reconstruction placement/process difference; no speedup is claimed.
+  Fresh `tools/check.sh --cuda` passes (29 report-tool tests), trained capture
+  passes 642 traces/2,500 decisions and cleared-environment tokenizer probes pass.
+  Nine-process lifecycle and fresh CUPTI (1,312 kernels) retained. New tested
+  `tools/bench/run_process_resources.py` records whole-child CPU diagnostics,
+  not request CPU/allocation counts; v1/v2 preserve the inherited pre-exec RSS
+  counter finding and explicit v2 labeling/streamed launcher hashing. No global
+  settings or unrelated processes changed. No production edits or Apple run yet.
+  Clean-checkout baseline summary/audit reproduction and archive/hash checks pass.
+  Next: focused allocation attribution, independent low-risk candidates and
+  matched controls; close Linux gate before rechecking/starting Apple work.
+  Five baseline uncertainty cells and all new optimization gates remain pending.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

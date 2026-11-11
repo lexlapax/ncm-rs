@@ -1,0 +1,394 @@
+{
+  "schema_version": 1,
+  "scope": "Run trusted local lifecycle commands in fresh, counterbalanced processes.\n\nParent wall includes process creation/import/linker/context startup and process exit.\nChild load/execute/drop intervals are separate; this is NOT the steady-state matrix.\n",
+  "started_utc": "2026-11-11T04:14:41.545324+00:00",
+  "host": "Linux-7.2.14-arch1-1-x86_64-with-glibc2.44",
+  "commands": [
+    {
+      "name": "previous",
+      "argv": [
+        "/home/lexlapax/projects/lexlapax/ncm-rs/.reference/phase2-optimization-baseline-bin/codec_lifecycle",
+        "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified"
+      ],
+      "cwd": "/home/lexlapax/projects/lexlapax/ncm-rs"
+    },
+    {
+      "name": "candidate",
+      "argv": [
+        "/home/lexlapax/projects/lexlapax/ncm-rs/target/release/examples/codec_lifecycle",
+        "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified"
+      ],
+      "cwd": "/home/lexlapax/projects/lexlapax/ncm-rs"
+    },
+    {
+      "name": "python",
+      "argv": [
+        "/home/lexlapax/projects/lexlapax/ncm-rs/.reference/venv/bin/python",
+        "/home/lexlapax/projects/lexlapax/ncm-rs/tools/reference/codec_lifecycle.py",
+        "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/sudoku-easy-qualified",
+        "/home/lexlapax/projects/lexlapax/ncm-rs/.reference/upstream-ncm"
+      ],
+      "cwd": "/home/lexlapax/projects/lexlapax/ncm-rs"
+    }
+  ],
+  "source_sha256": "77aa8a0c66af4709edab33295a185f27562c4c96a1eafc5ed503469960c18d81",
+  "binary_sha256": {
+    "previous": "0231a8cd5c5f24a1228aad42e082d69a639e1e26f2f3df580e6f2c4a55868e17",
+    "candidate": "0231a8cd5c5f24a1228aad42e082d69a639e1e26f2f3df580e6f2c4a55868e17",
+    "python": "122ce07db306cd111fd10e27125460362610452983a64903c470afd66b6403bd"
+  },
+  "runs": [
+    {
+      "runtime": "previous",
+      "repeat": 1,
+      "phases": [
+        {
+          "internal_ms": 267.68904399999997,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 296.8178459996125
+        },
+        {
+          "internal_ms": 205.44280600000002,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 502.1094449912198
+        },
+        {
+          "internal_ms": 54.250659,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 556.3090099894907
+        },
+        {
+          "internal_ms": 0.073531,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 556.3441989943385
+        }
+      ],
+      "startup_wall_ms": 296.8178459996125,
+      "post_drop_exit_ms": 96.5008140046848,
+      "total_process_ms": 652.8450129990233,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "repeat": 1,
+      "phases": [
+        {
+          "internal_ms": 115.39511800000001,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 147.66014899942093
+        },
+        {
+          "internal_ms": 204.90309100000002,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 352.61470900150016
+        },
+        {
+          "internal_ms": 55.880231,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 408.50117699301336
+        },
+        {
+          "internal_ms": 0.07566,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 408.5193819919368
+        }
+      ],
+      "startup_wall_ms": 147.66014899942093,
+      "post_drop_exit_ms": 84.93002501199953,
+      "total_process_ms": 493.44940700393636,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "python",
+      "repeat": 1,
+      "phases": [
+        {
+          "schema_version": 1,
+          "phase": "context",
+          "internal_ms": 119.89728300250135,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 913.2256829907419
+        },
+        {
+          "schema_version": 1,
+          "phase": "load",
+          "internal_ms": 305.63363900000695,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 1219.2391099961242
+        },
+        {
+          "schema_version": 1,
+          "phase": "execute",
+          "internal_ms": 238.74490900197998,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "parent_elapsed_ms": 1458.0993779964047
+        },
+        {
+          "schema_version": 1,
+          "phase": "drop",
+          "internal_ms": 0.03701800596900284,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 1458.1042689969763
+        }
+      ],
+      "startup_wall_ms": 913.2256829907419,
+      "post_drop_exit_ms": 334.79486699798144,
+      "total_process_ms": 1792.8991359949578,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "repeat": 2,
+      "phases": [
+        {
+          "internal_ms": 120.95664000000001,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 150.8746610052185
+        },
+        {
+          "internal_ms": 205.339418,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 356.28812400682364
+        },
+        {
+          "internal_ms": 56.246009,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 412.44798799743876
+        },
+        {
+          "internal_ms": 0.073726,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 412.46580399456434
+        }
+      ],
+      "startup_wall_ms": 150.8746610052185,
+      "post_drop_exit_ms": 88.44004401180428,
+      "total_process_ms": 500.9058480063686,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "python",
+      "repeat": 2,
+      "phases": [
+        {
+          "schema_version": 1,
+          "phase": "context",
+          "internal_ms": 126.5481310110772,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 935.8272649988066
+        },
+        {
+          "schema_version": 1,
+          "phase": "load",
+          "internal_ms": 307.56381900573615,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 1243.8121019949904
+        },
+        {
+          "schema_version": 1,
+          "phase": "execute",
+          "internal_ms": 246.53854699863587,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "parent_elapsed_ms": 1490.3880049969302
+        },
+        {
+          "schema_version": 1,
+          "phase": "drop",
+          "internal_ms": 0.03644100797828287,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 1490.3963029937586
+        }
+      ],
+      "startup_wall_ms": 935.8272649988066,
+      "post_drop_exit_ms": 367.0821270061424,
+      "total_process_ms": 1857.478429999901,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "previous",
+      "repeat": 2,
+      "phases": [
+        {
+          "internal_ms": 117.116787,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 146.21777899446897
+        },
+        {
+          "internal_ms": 203.812284,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 349.9836580012925
+        },
+        {
+          "internal_ms": 55.495870000000004,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 405.4847319930559
+        },
+        {
+          "internal_ms": 0.073101,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 405.4974449973088
+        }
+      ],
+      "startup_wall_ms": 146.21777899446897,
+      "post_drop_exit_ms": 86.93719300208613,
+      "total_process_ms": 492.4346379993949,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "python",
+      "repeat": 3,
+      "phases": [
+        {
+          "schema_version": 1,
+          "phase": "context",
+          "internal_ms": 118.87269100407138,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 903.5878090071492
+        },
+        {
+          "schema_version": 1,
+          "phase": "load",
+          "internal_ms": 306.945178002934,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 1210.916777010425
+        },
+        {
+          "schema_version": 1,
+          "phase": "execute",
+          "internal_ms": 243.23726700094994,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "parent_elapsed_ms": 1454.230079005356
+        },
+        {
+          "schema_version": 1,
+          "phase": "drop",
+          "internal_ms": 0.06727399886585772,
+          "output_ids_sha256": null,
+          "parent_elapsed_ms": 1454.2398750054417
+        }
+      ],
+      "startup_wall_ms": 903.5878090071492,
+      "post_drop_exit_ms": 350.1248039974598,
+      "total_process_ms": 1804.3646790029015,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "previous",
+      "repeat": 3,
+      "phases": [
+        {
+          "internal_ms": 119.08930299999999,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 153.48248300142586
+        },
+        {
+          "internal_ms": 205.805141,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 359.2910510051297
+        },
+        {
+          "internal_ms": 54.748419999999996,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 414.0604240092216
+        },
+        {
+          "internal_ms": 0.067736,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 414.06598800676875
+        }
+      ],
+      "startup_wall_ms": 153.48248300142586,
+      "post_drop_exit_ms": 97.82083099707961,
+      "total_process_ms": 511.88681900384836,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "repeat": 3,
+      "phases": [
+        {
+          "internal_ms": 120.650013,
+          "output_ids_sha256": null,
+          "phase": "context",
+          "schema_version": 1,
+          "parent_elapsed_ms": 150.2031340060057
+        },
+        {
+          "internal_ms": 209.74093,
+          "output_ids_sha256": null,
+          "phase": "load",
+          "schema_version": 1,
+          "parent_elapsed_ms": 359.90811200463213
+        },
+        {
+          "internal_ms": 55.915297,
+          "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+          "phase": "execute",
+          "schema_version": 1,
+          "parent_elapsed_ms": 415.8778660057578
+        },
+        {
+          "internal_ms": 0.093473,
+          "output_ids_sha256": null,
+          "phase": "drop",
+          "schema_version": 1,
+          "parent_elapsed_ms": 415.8942149952054
+        }
+      ],
+      "startup_wall_ms": 150.2031340060057,
+      "post_drop_exit_ms": 124.02955700235907,
+      "total_process_ms": 539.9237719975645,
+      "output_ids_sha256": "2574896a2c3b9642ec49fc00b6a6825bdeea1a670adfd75b99d96b3b2ceedc0c",
+      "stderr": ""
+    }
+  ],
+  "finished_utc": "2026-11-11T04:14:50.213138+00:00"
+}

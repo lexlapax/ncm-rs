@@ -14,8 +14,12 @@ additional five-step optimization plan approved on 2026-11-11.** See the
 [research and approved plan](../PHASE2-OPTIMIZATION-REVIEW.md), with
 [source retrieval metadata](2026-11-11-phase2-optimization-review/sources.json) and
 [static estimates](2026-11-11-phase2-optimization-review/derived.json). These are
-research/planning artifacts, not new GPU measurements or acceptance. Phase 3 is
-unstarted and blocked on the expanded gate. Historical results below remain valid:
+research/planning artifacts, not new GPU measurements or acceptance. The
+[additional optimization baseline checkpoint](2026-11-11-phase2-optimization/README.md)
+now publishes refreshed Linux measurements, fresh baseline parity, CPU/CUDA/lifecycle
+diagnostics and five unresolved uncertainty cells (73/78 diagnostic audit). No new
+production optimization or Apple gate is accepted. Phase 3 is unstarted and blocked
+on the expanded gate. Historical results below remain valid:
 [earlier dual-platform acceptance](2026-11-10-phase2-acceptance/README.md), the
 [extension contract](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).
 [Production CUDA remediation](2026-11-10-phase2-cuda-remediation/README.md) now

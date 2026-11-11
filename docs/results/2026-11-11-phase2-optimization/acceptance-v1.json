@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "predeclared before additional production optimization; not an acceptance result",
+  "baseline_commit": "3307dff",
+  "baseline_production_commit": "083c1e5",
+  "plan_commit": "013f745",
+  "comparison": "same-device candidate versus refreshed accepted Rust and unchanged qualified Python; no cross-device ratios",
+  "maximum_candidate_over_comparator_ratio": {
+    "median_latency": 1.05,
+    "p95_latency": 1.10,
+    "comparable_process_peak_host_memory": 1.05,
+    "comparable_steady_state_live_memory": 1.05
+  },
+  "matrix": {
+    "codec_batches": [1, 2, 4],
+    "codec_scopes": ["encode", "decode", "reconstruct", "resident_decoder_block"],
+    "tokenizer_profiles": ["bert", "gpt2", "qwen3", "tinystories"],
+    "tokenizer_scopes": ["encode", "decode", "decode_skip_special"],
+    "codec_and_tokenizer_checked_load": true,
+    "acceptance_comparisons_per_platform": 78
+  },
+  "sampling": {
+    "minimum_processes_per_runtime": 3,
+    "warmups": 5,
+    "trials_per_process": 30,
+    "independent_unit": "fresh process, not individual trial",
+    "uncertainty": "Use existing process-level envelopes and predeclared paired-process controls where needed; retain all runs and do not widen thresholds. Shared Python reports are not independent duplicates."
+  },
+  "quality": "Unchanged Phase 1/2 tolerances, artifact and oracle pins, all traces, exact IDs/ties, snapshots, tokenizer goldens and rejection tests. Additional regression cases supplement existing qualification.",
+  "resources": "Record CPU/allocation diagnostics and lifecycle separately from acceptance wall timing. CUDA pool/Torch allocator counters and MLX active/cache versus RSS have different coverage. No hidden output, validation, precision or memory tradeoff.",
+  "promotion": "Passing non-inferiority alone is insufficient: retain only reproducibly useful changes with acceptable complexity. Record experiment and escalation dispositions, including negative/no-go results.",
+  "order": "Complete Linux/CUDA implementation and validation before Apple/MLX; shared follow-ups return through Linux. Both gates are required before closure.",
+  "stop_rule": "Missing evidence, unresolved uncertainty, unavailable resources or required contract changes keep Phase 2 open. Ask the user with evidence and alternatives; Phase 3 requires separate authorization."
+}

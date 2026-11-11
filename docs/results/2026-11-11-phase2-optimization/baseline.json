@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "status": "baseline frozen and refreshed; not candidate acceptance; five diagnostic uncertainty failures retained",
+  "plan_commit": "013f745a66bb3bb4ced0a8ab1479b32b9a45411f",
+  "baseline_commit": "3307dff82a08f7251b64de0866a01d131528b74f",
+  "production_commit": "083c1e5c4cafc5c25829bffa775b35d51095ecfa",
+  "acceptance_manifest_sha256": "8d130f74a4dca3085d4bed71586591473bb215e9aa533c8d654ea725738d6aaa",
+  "baseline_worktree": ".reference/phase2-optimization-baseline",
+  "baseline_binaries": ".reference/phase2-optimization-baseline-bin",
+  "binary_sha256": {
+    "asset_bench": "88328327be30890ab43423928e4482f06e6d754052e7ba4a43cc49154a1772fc",
+    "asset_probe": "74f672f2c85574ca63b6f60bb2fb89679656b4cb54cce0cd67e7f293c01f0b20",
+    "codec_bench": "26437962fc06d0f43280e2b2b5608cacfa6d5931ab14f1f9d89c4a4f6cfc35a9",
+    "codec_lifecycle": "0231a8cd5c5f24a1228aad42e082d69a639e1e26f2f3df580e6f2c4a55868e17",
+    "codec_profile": "423a5bb18490a0f52f1935c290afda1777b1971deb917f86736058c99c688bf5",
+    "codec_trace": "aeb03a0baa957807812ded866747e0db5f20dc7d84d954b46b1d722f366fb82c"
+  },
+  "benchmark_binaries_match_accepted_matrix": true,
+  "accepted_matrix_binary_identity_source": {
+    "archive": "docs/results/2026-11-10-phase2-compact-tokenizers/raw/linux-capacity-tokenizers-v1.tar.gz",
+    "member": "./environment.json",
+    "sha256": "c1b1a06efb6010e2d29343c1693d8432552ab3faadff051fcc5de11709212c11",
+    "candidate_binary_sha256": {
+      "codec_bench": "26437962fc06d0f43280e2b2b5608cacfa6d5931ab14f1f9d89c4a4f6cfc35a9",
+      "asset_bench": "88328327be30890ab43423928e4482f06e6d754052e7ba4a43cc49154a1772fc"
+    }
+  },
+  "source_sha256": {
+    "codec": {
+      "Cargo.lock": "650e2d1802a4b36b0e57f77e5dbb7054f22a8dd5a7a0ebd6284469f1d6f64016",
+      "crates/ncm-backend-cuda/examples/codec_bench.rs": "2648faa43e439efd82a0a318962dec6171d1a808e1fc4398f0496775f0b6e11a",
+      "crates/ncm-backend-cuda/examples/support/stages.rs": "d716c58d5a9432615821a7a87509aee4210e2785d767a1be8c25eaec511339b5",
+      "crates/ncm-backend-cuda/src/codec.rs": "15e0e17523d080869da5dd88d9c32622abb3a724cbd034d3944cdd205c94d7ab",
+      "crates/ncm-backend-cuda/src/ops.rs": "caa0915004fcffbceb04506181668c0a516653fc321b29090eda83dc60df7be7",
+      "crates/ncm-backend-cuda/src/resample.rs": "afdd9121c6fd0bc09b47eae4cb5869e862953c1f1bb6bcb08b0517a6bd5f5626",
+      "crates/ncm-backend-cuda/src/runtime.rs": "bd4d31b3f9f5be2627577fa643314f3ac1b5530dbf5e565e71ce98c001bc191b",
+      "crates/ncm-core/src/config.rs": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "crates/ncm-io/src/lib.rs": "e141d1caa65dfa87eaba55959f43af79b098916b5ac8d20815f794f864fa0d77",
+      "crates/ncm-model/src/blocks.rs": "1e342a3c6d2d567d1dc7db59b95a51b08672b5389e4a105a07ee92c0657b31e6",
+      "crates/ncm-model/src/codec.rs": "84457b2fedef896ae3c286114b3e926bcfb6a4de4de37e828f04fd0f82537807",
+      "crates/ncm-model/src/lib.rs": "cc6f6f8fbbd85c4b87bee391a3918af0bcf97fbd048303972f80fa9b932e97c1"
+    },
+    "tokenizer-bert": {
+      "Cargo.lock": "650e2d1802a4b36b0e57f77e5dbb7054f22a8dd5a7a0ebd6284469f1d6f64016",
+      "crates/ncm-tokenizers/examples/asset_bench.rs": "573c159fffbe9b51faa1290bc3b21a868429eef95a3ec1990fc72f3d9c7dd73e",
+      "crates/ncm-tokenizers/src/assets.rs": "9a6d823dc91a7dae4d438180b704e41f4867b70a8f1a4261c6353b4820d71f1d",
+      "crates/ncm-tokenizers/src/bpe.rs": "44bea0e6993f1cf690ea113898042bc07156ae38fdcb70aca9484bc97a7d5785",
+      "crates/ncm-tokenizers/src/hf_bpe.rs": "303cf9eb9a9f0541dd5c89af91c6fbbad9b775ed54ddf0e47f1172a0a4a7fd94",
+      "tests/support/host_memory.rs": "f0b1184b6d2b45610a5a6eec6d917a867829f7e75dc1eae365e0a87ccc54cdd6"
+    },
+    "tokenizer-gpt2": {
+      "Cargo.lock": "650e2d1802a4b36b0e57f77e5dbb7054f22a8dd5a7a0ebd6284469f1d6f64016",
+      "crates/ncm-tokenizers/examples/asset_bench.rs": "573c159fffbe9b51faa1290bc3b21a868429eef95a3ec1990fc72f3d9c7dd73e",
+      "crates/ncm-tokenizers/src/assets.rs": "9a6d823dc91a7dae4d438180b704e41f4867b70a8f1a4261c6353b4820d71f1d",
+      "crates/ncm-tokenizers/src/bpe.rs": "44bea0e6993f1cf690ea113898042bc07156ae38fdcb70aca9484bc97a7d5785",
+      "crates/ncm-tokenizers/src/hf_bpe.rs": "303cf9eb9a9f0541dd5c89af91c6fbbad9b775ed54ddf0e47f1172a0a4a7fd94",
+      "tests/support/host_memory.rs": "f0b1184b6d2b45610a5a6eec6d917a867829f7e75dc1eae365e0a87ccc54cdd6"
+    },
+    "tokenizer-qwen3": {
+      "Cargo.lock": "650e2d1802a4b36b0e57f77e5dbb7054f22a8dd5a7a0ebd6284469f1d6f64016",
+      "crates/ncm-tokenizers/examples/asset_bench.rs": "573c159fffbe9b51faa1290bc3b21a868429eef95a3ec1990fc72f3d9c7dd73e",
+      "crates/ncm-tokenizers/src/assets.rs": "9a6d823dc91a7dae4d438180b704e41f4867b70a8f1a4261c6353b4820d71f1d",
+      "crates/ncm-tokenizers/src/bpe.rs": "44bea0e6993f1cf690ea113898042bc07156ae38fdcb70aca9484bc97a7d5785",
+      "crates/ncm-tokenizers/src/hf_bpe.rs": "303cf9eb9a9f0541dd5c89af91c6fbbad9b775ed54ddf0e47f1172a0a4a7fd94",
+      "tests/support/host_memory.rs": "f0b1184b6d2b45610a5a6eec6d917a867829f7e75dc1eae365e0a87ccc54cdd6"
+    },
+    "tokenizer-tinystories": {
+      "Cargo.lock": "650e2d1802a4b36b0e57f77e5dbb7054f22a8dd5a7a0ebd6284469f1d6f64016",
+      "crates/ncm-tokenizers/examples/asset_bench.rs": "573c159fffbe9b51faa1290bc3b21a868429eef95a3ec1990fc72f3d9c7dd73e",
+      "crates/ncm-tokenizers/src/assets.rs": "9a6d823dc91a7dae4d438180b704e41f4867b70a8f1a4261c6353b4820d71f1d",
+      "crates/ncm-tokenizers/src/bpe.rs": "44bea0e6993f1cf690ea113898042bc07156ae38fdcb70aca9484bc97a7d5785",
+      "crates/ncm-tokenizers/src/hf_bpe.rs": "303cf9eb9a9f0541dd5c89af91c6fbbad9b775ed54ddf0e47f1172a0a4a7fd94",
+      "tests/support/host_memory.rs": "f0b1184b6d2b45610a5a6eec6d917a867829f7e75dc1eae365e0a87ccc54cdd6"
+    }
+  },
+  "sampling": {
+    "processes_per_runtime": 3,
+    "warmups": 5,
+    "trials": 30,
+    "cpu_affinity": 2,
+    "identical_native_executables": true
+  },
+  "baseline_diagnostic_audit": {
+    "passing_cells": 73,
+    "total_cells": 78,
+    "all_point_estimates_and_host_memory_pass": true,
+    "uncertain_cells": [
+      "gpt2/decode",
+      "gpt2/decode_skip_special",
+      "qwen3/decode",
+      "qwen3/decode_skip_special",
+      "qwen3/checked_load"
+    ]
+  },
+  "limitations": [
+    "Live desktop retained; no unrelated process, clock or power policy changed. GPU/process telemetry is in the baseline archive.",
+    "Native binaries are identical: the 9% B1 reconstruction placement/process difference is noise, not an optimization. Causes are not established.",
+    "Resource v1 wait4 RSS included inherited pre-exec high-water state. v2 streams fingerprint reads and explicitly labels this scope; neither is an acceptance memory measurement.",
+    "CPU values are whole-process totals, not per-request CPU or host allocation counts. Focused allocation diagnostics remain pending.",
+    "Historical controls are not transplanted into the new matrix. No new Apple evidence yet."
+  ],
+  "whole_process_cpu_medians_ms": {
+    "rust-codec": 8839.082,
+    "python-codec": 14098.418,
+    "rust-bert": 255.72199999999998,
+    "python-bert": 1405.658,
+    "rust-gpt2": 779.8179999999999,
+    "python-gpt2": 2722.494,
+    "rust-qwen3": 2869.937,
+    "python-qwen3": 7024.976,
+    "rust-tinystories": 141.303,
+    "python-tinystories": 1729.1499999999999
+  },
+  "verification": {
+    "cuda_checks": "raw/check-cuda.log",
+    "trained_qualification": "raw/qualification.json",
+    "tokenizers": "raw/tokenizers.json",
+    "lifecycle": "raw/lifecycle.json",
+    "cupti": "raw/cupti.json",
+    "default_python_attempt": "System python3 qualification failed because Torch was absent; rerun succeeded with pinned .reference/venv/bin/python."
+  },
+  "evidence_sha256": {
+    "raw/baseline-cupti.txt.gz": "4bc5d0083aabcc0e0abbbd082a735fa2a432fb5d37126da1949e859af67c941b",
+    "raw/baseline-diagnostic-audit.json": "4a45428f44e1941c592096458e8906ddbec76c3019512adba1d6ed8a1124623c",
+    "raw/baseline-diagnostic-config.json": "9ba1a6014c1ac1415f5454763b3e1edf3a8d1342fe8da9dc03e5b7ea1f47654a",
+    "raw/candidate-summary.json": "f440759a5f52d030e39d1cf6e15242c47e62969918b7c2609a747f54eb8025a8",
+    "raw/check-cuda.log": "a4db9196a60ddd7dfdd503886dc04cdb60de1b1cfaf590fc33a44396f3ae151a",
+    "raw/cupti.json": "b0903045cb2e1d6ddd19884a7883fede8affffad1c5b952c53d01da2f84e0b26",
+    "raw/lifecycle.json": "cf5236665d92fc32b41d634e87c96a1aa803ad5d650a899b1b77ce391b0c9071",
+    "raw/linux-baseline-v1.tar.gz": "12e7b721918c6e8c166c50a78d19e6134458bb6103f10ee1e371b798f367c824",
+    "raw/linux-resources-v1-v2.tar.gz": "811c3427e6dce54df9e541577db96df6d4ac6df29d79eeac80cf69263de9e100",
+    "raw/previous-summary.json": "c06e90cd025d70d9b7b84bee500e0d16890fa64ead2b00610be4131f7fd9b5f2",
+    "raw/qualification.json": "2a028eb5dc0569e37307dde815a333fc36c7e267adf13604779a69c94198c04a",
+    "raw/tokenizers.json": "aed674b45a318448f54c69427df3efd1c79106c78a0c44504fae061b417ef012"
+  }
+}
