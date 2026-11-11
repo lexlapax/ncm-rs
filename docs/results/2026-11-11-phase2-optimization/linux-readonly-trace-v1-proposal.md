@@ -266,11 +266,52 @@ Commands actually run:
   Final local log `reports/phase2-readonly-memory-check-v2.log`, SHA-256
   `652ee458d11a9bc9c74ac537d7e4e7b70b996b74f6d10da4bdfa4ae474bb9b00`.
 
+## Diagnostic report-output qualification
+
+`tools/bench/qualify_diagnostic_codec.py` now wraps the existing
+`phase2_summary.codec` validation without changing that implementation, its FP32
+budgets, goldens or acceptance reader. It accepts exactly three supplied native
+reports with consistent declared source/protocol/profiling metadata. Duplicate
+reports are rejected even when their JSON formatting differs. Distinct report
+bytes still do not prove fresh independent processes or executable provenance.
+
+The Python reference inputs are fixed to v2 repetitions 1–3 from one archived
+copy set, verified against the published archive and member hashes. The helper
+does not run Python inference, count the duplicate copied reports as extra
+observations, regenerate an oracle, or use archived timings for acceptance.
+Native harness layout/source declarations are checked separately; actual launch
+provenance remains unverified. All validation is offline and standard-library only.
+
+The reused validator checks all twelve codec scopes, input/code/output identity
+and retained-element counts, first decode/reconstruct logits under unchanged
+FP32 tolerances, and stage/load report structure. It does not establish new
+operator/642-trace parity, individual unreported block/snapshot values, all-trial
+floating outputs, or current hardware performance. The output retains only
+quality/identity evidence, explicitly sets `diagnostic_only` and leaves
+`performance_acceptance_evaluated` and `launch_provenance_verified` false.
+
+Four new tests include a child-isolated archived three-report qualification, nine
+invalid-report cases (source/protocol/scope/output/logit/timing/stage/load mutations
+and duplicated data), frozen archive/member corruption, source-layout guards and
+CLI overwrite protection. Profile-marked reports can undergo output qualification
+but remain rejected by the unchanged acceptance file reader. No native report or
+historical acceptance control was edited or replaced. These are tool regression
+fixtures, not a repeated v2 collection or new diagnostic outcome.
+
+Commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_qualify_diagnostic_codec.py -v`:
+  4 tests pass. Local log `reports/phase2-readonly-qualification-tests-v1.log`, SHA-256
+  `d417b8b82db3e1693871dcee109e475fdeae5ae6e3e7d6e41519f3dcb27f8ed4`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes, including **98 reporting tests**.
+  Local log `reports/phase2-readonly-qualification-check-v1.log`, SHA-256
+  `01076309cbbddf0ef4f54a92998cef3f6ed0855c98698c11b5c5fa4780502b29`.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers are only
-prerequisites; output qualification, actual launch/report provenance, the collection
-runner and remaining tests are pending. Before collection, the user must
+prerequisites; actual launch/report provenance, the bounded collection runner and
+its failure-path tests are pending. No new capture exists to qualify. Before collection, the user must
 choose the read-only investigation and confirm a fresh quiet 15-minute window;
 the tested tooling, exact frozen manifest and identity checks must also be ready.
 No extra profiling permissions, system installation or CUPTI replacement may be

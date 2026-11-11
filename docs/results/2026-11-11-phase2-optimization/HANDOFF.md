@@ -58,15 +58,18 @@ The alternative [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
 defines 12 fixed native processes (plain/traced), unchanged frozen executables,
 strict time/output bounds and B1 trial-attribution checks. Offline inspection of
 three historical B4 traces found the expected 36 two-event/query windows. New
-offline boundary/kernel/memory helpers and declared report/trial binder have 46
-tests, including archived B4 fixtures and a synthetic full schedule; default
-checks pass with 94 report tests. Each historical B4 capture maps 972 kernels,
+offline boundary/kernel/memory helpers, declared report/trial binder and diagnostic
+output qualifier have 50 tests, including archived fixtures and a synthetic full
+schedule; default checks pass with 98 report tests. Each historical B4 capture maps 972 kernels,
 396 copies and 72 memsets to 36 windows, including RUNTIME host calls; this is
 not current B1 evidence. Bookkeeping/overhead activity remains unattributed.
 Large fixture parsing is child-isolated after an inherited-RSS test failure; logs are retained. The ordinal binder verifies declared
 hashes/source layout and retains unavailable warmup timings as null; it does not
-prove same-child launch provenance or output quality. Actual launch/report
-provenance, output qualification and collection runner/tests remain pending;
+prove same-child launch provenance or output quality. The separate output qualifier
+reuses the existing full codec validator and frozen v2 Python references, without
+acceptance timings or new oracle runs. It passes archived regression fixtures;
+no new capture exists to qualify. Actual launch/report provenance and bounded
+collection runner/failure-path tests remain pending;
 user investigation choice and a new quiet window remain launch blockers. Neither
 proposal is ready to execute. No new measurements or settings changes occurred.
 
