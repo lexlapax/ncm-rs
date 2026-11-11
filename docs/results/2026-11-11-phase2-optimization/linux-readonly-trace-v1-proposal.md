@@ -854,6 +854,73 @@ tasks are not guaranteed contained, and fake children do not prove CUDA abort
 behavior. No real telemetry window or GPU query/model benchmark was run. Linux
 remains 72/78. Review readiness before requesting fresh quiet availability.
 
+## Offline telemetry contents and receipt-window bracketing
+
+`tools/bench/validate_readonly_telemetry.py` adds an offline validator and exclusive-
+output CLI; it never launches observers or benchmarks. `validate(cpu_raw, gpu_raw,
+jobs, expected_cpu_source=..., gpu_uuid=..., timezone_name=...)` requires the expected
+CPU source, GPU UUID and IANA timezone from independently reviewed launch evidence,
+not values inferred from the supplied samples. The final manifest must still bind
+these declarations and inputs to the actual collection.
+
+CPU checks cover metadata, all 901 ordered samples, the unchanged 900-second/one-
+second schedule, complete duration/count, stable CPU inventory including 0/2/3,
+first-eight tick fields, recomputed activity, context-switch counters, frequency/
+load/pressure syntax and explicit unavailable labels. Decreased tick counters and
+zero tick deltas retain the sampler's unavailable status; they are not silently
+excluded or turned into CPU work. Snapshot read intervals must be ordered. The
+UTC-to-monotonic offset must fit all read intervals; an unrecorded scheduling
+origin must also fit lateness and completion bounds. The timestamp checks allow
+one microsecond for serialized datetime quantization/clock conversion, **not a
+model numerical tolerance, sampling-gap allowance or new acceptance threshold**.
+
+GPU CSV checks require the complete header, UUID on every row, supported units/
+numeric ranges or explicit N/A labels, increasing timestamps and a caller-declared
+IANA timezone. Ambiguous/nonexistent DST times fail rather than guessing a fold.
+Every complete declared receipt window must be ordered, use its unique PID and be
+bracketed by both CPU and GPU samples. Output retains every GPU sample, overlapping
+interval indices, CPU lateness/read durations, all intersample gaps, optional-data
+absence and GPU-vs-CPU endpoint offsets. An interval spanning missing GPU samples
+is still only a **coarse bracket**, never continuous observation or per-trial clock
+attribution. No gap is filled or excluded; no new maximum-gap acceptance rule is
+invented. Gap/absence sufficiency must be dispositioned in the investigation.
+
+The CLI takes positional `cpu`, `gpu`, `sequence_result`, `output` paths and required
+`--cpu-source-sha256`, `--gpu-uuid`, `--timezone` declarations. It uses bounded,
+no-follow reads and exclusive output, records raw/sequence/canonical-job/tool hashes
+and leaves live provenance, continuous GPU observation and acceptance flags false.
+It does not replace the existing codec/trace analyzer or prove supervisor/worker
+completion, collector hashes, same-child production, timezone provenance or fresh
+independent processes. These cross-bindings remain launch/audit prerequisites.
+
+Ten tests exercise the actual CPU serializer over a virtual clock/fake procfs (no
+real 900-second wait), correct counters/windows, late samples, unavailable deltas,
+truncation/duplicate JSON keys, bad source/topology/affinity, malformed optional
+fields, nonfinite/negative values, schedule/time inconsistencies, GPU UUID/units/
+DST errors, retained GPU gaps, receipt failures/overlaps/out-of-coverage, and CLI
+hashes/overwrite rejection. A separate fresh-interpreter regression validates all
+901 retained v2 CPU samples from the SHA-bound archive: original raw CPU digest
+`397f9aa3fdc1f6ca86f1d7f3e72d8e27241f8a79f9c5e1ca124851f237516c47`, duration
+900.0006672290037 seconds, no optional-data gaps/unavailable activity. This is
+serializer compatibility, **not a v2 rerun, new GPU capture or new 12-job evidence**.
+
+| Command / retained local log | Result | SHA-256 |
+| --- | --- | --- |
+| `python -m unittest discover -s tools/bench -p test_validate_readonly_telemetry.py -v` → `reports/phase2-readonly-telemetry-validation-tests-v1.log` | Initial 7 tests pass | `142c031d1569f909ddd4d1e9765f38db4a6c8d3faddc9d53aeed660eac4ca164` |
+| Same command → `reports/phase2-readonly-telemetry-validation-tests-v2.log` | 10 tests pass, including archive-only compatibility and CLI | `93c66ad524f5ce2759cdeebf5f8d5af11022ce27238ebb7bc7fb5cad6c4aba8c` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-telemetry-validation-check-v1.log` | Pass, 185 reporting tests | `6d9aca66c03eda283e9934b23fdd988dfa94bdc533f839cbdbe65c9259420fbd` |
+| Focused command above → `reports/phase2-readonly-telemetry-validation-tests-v3.log` | Final 10 tests pass; reject nonfinite JSON constants even in metadata | `30d0ad9d7d4fbc128111b2d82529435ee1df1e7e8bb192ee23bf7336fb96d28e` |
+| Default check above → `reports/phase2-readonly-telemetry-validation-check-v2.log` | Final pass, 185 reporting tests | `6f71cae10865454574de270f30e5e47c13cd2985b83d01b215db70f9322881ee` |
+
+The separate retained CPU-only inspection result is
+`reports/phase2-readonly-telemetry-validation-archived-cpu-v1.log`, SHA-256
+`402936e6a184aeeaf81f9df5ae77792c10ee4ac79556595f96e0dc27a92b631c`;
+its archive extraction/digest/check logic is now in
+`test_archived_v2_cpu_in_fresh_interpreter`. No production, GPU policy, oracle,
+artifact/workload schema, pin or numerical-tolerance change occurred. Linux remains 72/78. Next: frozen
+manifest/entry, runtime library/injection/process evidence and cross-bind the
+collector/supervisor/telemetry/analyzer results before readiness review.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers, the fixed

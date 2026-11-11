@@ -36,10 +36,16 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   tests and default checks pass (**175 reporting tests**); the initial deadline
   fixture incorrectly expected no job 2 despite short jobs and was corrected to
   keep job 1 in flight. No real sampling/GPU/model run occurred.
-  This import-only coordinator is not launch readiness: frozen manifest/entry,
-  complete telemetry content/coverage, runtime-library/provenance and remaining
-  integration failure tests are pending. Supervisor SIGKILL/host failure cannot
-  guarantee cleanup. Next: finish those bindings and checks, review readiness, then request
+  `validate_readonly_telemetry.py` now checks all 901 CPU samples, counter arithmetic,
+  schedule/UTC-monotonic consistency, optional-data labels, GPU UUID/units/timezone
+  and bracketing of all 12 receipt windows. Gaps/unavailable values remain explicit;
+  bracketing is not continuous observation or per-call clock attribution. Ten new
+  tests (virtual-clock serializer, negative cases, archived v2 CPU compatibility and
+  exclusive offline CLI) pass; default checks pass **185 reporting tests**. No real
+  collection or GPU query occurred. Source/UUID/timezone still need launch binding.
+  Frozen manifest/entry, runtime-library/provenance, supervisor/collector/telemetry
+  cross-bindings and remaining integration tests are pending. Supervisor SIGKILL/host
+  failure cannot guarantee cleanup. Next: finish those bindings, review readiness, then request
   fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 

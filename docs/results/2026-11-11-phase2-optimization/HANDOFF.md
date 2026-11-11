@@ -122,8 +122,16 @@ missing/malformed metadata and sequence setup failure. Eight tests pass and the
 full check passes 175 reporting tests. The initial deadline test incorrectly assumed
 job 2 could not start despite short jobs; its fixture now keeps job 1 in flight,
 without changing production limits. All failed evidence remains in the protocol.
-Frozen manifest/entry, complete telemetry content/coverage, runtime library/process
-provenance and remaining integration checks are still pending. Selection is resolved; tooling
+An offline telemetry validator now checks all CPU samples/counter arithmetic and
+schedule/UTC-monotonic consistency, parses GPU units/UUID/local timezone, retains
+optional-data gaps and brackets all 12 declared receipt windows. Its exclusive CLI
+binds raw inputs by digest; ten tests include the real CPU serializer under a virtual
+clock and the retained v2 CPU archive in a fresh interpreter. Default checks pass
+185 reporting tests. GPU gaps and unavailable values remain explicit; coarse
+bracketing is not continuous sampling or per-call clock attribution. No new real
+collection ran. Frozen manifest/entry, launch-bound source/UUID/timezone, runtime
+library/process provenance, supervisor/collector/telemetry cross-bindings and
+remaining integration checks are still pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 
