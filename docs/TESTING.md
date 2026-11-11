@@ -13,8 +13,10 @@ separate original-Python CPU/CUDA diagnostic failure. Those results qualify the
 earlier accepted candidate. Phase 2 is reopened for the
 [additional five-step plan](PHASE2-OPTIMIZATION-REVIEW.md); it requires fresh
 Linux-first/Apple-second gates against current accepted Rust and qualified Python,
-plus CPU/allocation and lifecycle evidence. New runtime checks remain pending;
-a default documentation check does not satisfy them. The remaining model gates
+plus CPU/allocation and lifecycle evidence. Provisional Linux candidates now pass
+fresh CUDA checks and trained untraced snapshot/logit/ID equivalence; their
+[74/78 diagnostic audit](results/2026-11-11-phase2-low-risk/README.md) is not final
+acceptance. Remaining runtime gates are pending; default checks cannot satisfy them. The remaining model gates
 below are still planned.
 
 ## Layers of evidence

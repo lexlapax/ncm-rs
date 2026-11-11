@@ -154,10 +154,19 @@ impl<B: CodecBackend> Codec<B> {
             cumulative = Some(sum);
         }
         let latent = cumulative.expect("validated nonempty levels");
-        trace.tensor("decoder.input", &latent)?;
-        let hidden = self.decoder_block_traced(&latent, &mut trace)?;
-        let hidden = self.norm("decoder.ln_f", &hidden, false, &mut trace)?;
-        let logits = self.linear("decoder.output_layer", &hidden, false, &mut trace)?;
+        self.decode_latent(&latent, snapshots, &mut trace)
+    }
+    fn decode_latent(
+        &self,
+        latent: &B::Tensor,
+        snapshots: Vec<B::Tensor>,
+        trace: &mut impl TraceSink<B>,
+    ) -> Result<Decoded<B>> {
+        let b = &self.backend;
+        trace.tensor("decoder.input", latent)?;
+        let hidden = self.decoder_block_traced(latent, trace)?;
+        let hidden = self.norm("decoder.ln_f", &hidden, false, trace)?;
+        let logits = self.linear("decoder.output_layer", &hidden, false, trace)?;
         trace.tensor("decoder.output", &logits)?;
         trace.tensor("logits", &logits)?;
         let ids = b.select_last(&logits, true)?;
@@ -169,10 +178,18 @@ impl<B: CodecBackend> Codec<B> {
         })
     }
     /// Encode and decode without a host roundtrip of the intermediate codes.
+    /// Reuse the quantized latent already accumulated by encode. Both returned
+    /// snapshot sets have immutable value semantics; Clone may share storage.
     /// Decoding remains lossy; this API does not promise recovery of input tokens.
     pub fn reconstruct(&self, tokens: &[u32], batch: usize) -> Result<(Encoded<B>, Decoded<B>)> {
-        self.reconstruct_traced(tokens, batch, &mut NoTrace)
+        let encoded = self.encode(tokens, batch)?;
+        let latent = encoded.snapshots.last().expect("validated nonempty levels");
+        let decoded = self.decode_latent(latent, encoded.snapshots.clone(), &mut NoTrace)?;
+        Ok((encoded, decoded))
     }
+    /// Retain the independent decode construction for every named observation.
+    /// Regression captures compare this route with latent-reusing reconstruction;
+    /// traced/profiled timing is not the optimized public API's wall time.
     pub fn reconstruct_traced(
         &self,
         tokens: &[u32],

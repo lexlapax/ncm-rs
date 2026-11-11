@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "provisional Linux candidates; four current matrix uncertainty cells and all Apple gates pending",
+  "source_sha256": {
+    "crates/ncm-tokenizers/src/assets.rs": "d014aadcd6ddf3e8d11da3c6f66f1c4ba07aff489cb2606b9416fd143396f9f9",
+    "crates/ncm-tokenizers/src/bpe.rs": "e6e8728a1c1dc4061e61ddafdc67756a248473dd40ffd8f4bdce5ea291a28ee1",
+    "crates/ncm-model/src/codec.rs": "f54d079ae87b127821296f698cea12b501cabc95dbe31148415afea0c0e71cf5",
+    "tests/support/codec.rs": "f8ff1eda80d1163b86b9d397b078430f70f0385f1ce2c52fefcf144ba5814ed3",
+    "tests/support/trained_codec.rs": "d8cfe7f6ac9ea5ba20f03e3c69ca29534ed5ad48369c5d1688ec4d7545eb6315",
+    "tests/support/allocation_counts.rs": "b9be2643667bfa6cd7ab44e7ed7b243f94b6c7164692c64e3eefdde2a67e785d",
+    "crates/ncm-tokenizers/examples/asset_allocations.rs": "4609902ac2cf7922f87baabbbc9db61e382c64a2c32d631e304fb216c3df568a"
+  },
+  "files_sha256": {
+    "raw/candidate-summary.json": "7038067fe2470a176d16f5b2651deff6dac3d7c53c8b739a272ddc98bf29e2e8",
+    "raw/check-cuda.log": "edb50dc462d8eb352195fbef7df4a7e5b903397f12ae927dd03a74d1849617ea",
+    "raw/cupti.json": "4ceb2f8cf21401b6f1e317c47f04138418bd4206091790b21fa3dbcdb80209ba",
+    "raw/diagnostic-audit.json": "ac018f3575ff5b94f6e9b10d9c5bbd33f2336127490a20a4733e0c9d96c1708c",
+    "raw/diagnostic-config.json": "c8ab739ee5fbfbd2c99fddcda6a14785cd0ebf5651fdb819dc5d9bf821bc33a6",
+    "raw/hf-fast.patch": "84245934b3231597e1713220f2581999fefaf80330e74b1edccba1ff64f74ccb",
+    "raw/lifecycle.json": "9451c349e672e44401bbe901e22421a00d3f47a128dd68f2c57a7599c7ad3611",
+    "raw/previous-summary.json": "2390f217c6a0b644b369dbfad2c387d35f4afb855d8919a01b71ccc462211de8",
+    "raw/qualification.json": "c2ff0a4e2c7aa51faba4b68fd9fbc6e11502bd0619b132f94705f196a0461d40",
+    "raw/reconstruction-reuse.patch": "85ed82895a1f7e9bbb420a9bd96f4f8befec67dc49a76f8c6dea1239ca811e25",
+    "raw/reconstruction-threeway-v1.tar.gz": "2bb2f55af36b36715c447ed0f9e5cc8e21bdcf1eb8995e4edb5936a5cad8c606",
+    "raw/reuse-cupti.txt.gz": "88e42701c4f34dcd66a0dcb8677968a60ae17a22444374e0f130016823620f70",
+    "raw/tiny-compaction.patch": "3bc8183bab43ed6529b106ad33c584d72060edf209c99da4cc41fb1c6a0b8cf0",
+    "raw/tokenizer-experiments-v1.tar.gz": "3f1a3cccf69f8345167638a0f2b3ee3861bfe1c295804163c5f9a624d880a79a",
+    "raw/tokenizers.json": "261237d9053884ba021bdeb28f7d3b543a13bf735d2aa45b5651bd488c79e6c2"
+  },
+  "experiments_summary_sha256": "9e6c5155772990c14b30d84dbc9bca061df1dbe80ca174f34bf2a34e018abd89"
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "in progress; provisional Linux results do not close Phase 2",
+  "baseline": "3307dff (production behavior 083c1e5)",
+  "evidence": "docs/results/2026-11-11-phase2-low-risk/README.md",
+  "experiments": [
+    {
+      "id": "prepared-state",
+      "hypothesis": "Avoid repeated positional gathers, codebook norms, resampling metadata and hot-path name construction with bounded model-owned state.",
+      "status": "pending independent experiments",
+      "constraints": "Keep preflight before upload, model/device isolation, drop behavior and FP32 operation ordering; do not drop the row-constant distance term."
+    },
+    {
+      "id": "hf-id-only",
+      "hypothesis": "Use pinned encode_fast because the public wrapper returns IDs only.",
+      "status": "provisional Linux candidate; final controls and Apple pending",
+      "finding": "BERT encode removes 1344 Rust allocation requests per 89-string trial (21333 to 19989). GPT-2/Qwen allocation counts unchanged. Timing differences are small; no established speedup claim.",
+      "verification": "New normalization/special/padding/truncation test; real tokenizer goldens/rejections; three-process isolated comparison and allocation captures."
+    },
+    {
+      "id": "tiny-in-place-merges",
+      "hypothesis": "Stable in-place compaction removes the new Vec per merge round without changing ranked all-occurrence merging.",
+      "status": "provisional Linux candidate; final controls and Apple pending",
+      "finding": "TinyStories encode allocations fall 6861 to 6602 and requested allocated bytes 353564 to 349368 per 89-string trial. No material latency gain established.",
+      "verification": "2047 exhaustive binary strings and three long overlapping cases versus rebuilding reference; pinned Unicode/special/output/rejection cases; separate before/after allocation and timing evidence."
+    },
+    {
+      "id": "reconstruction-latent-reuse",
+      "hypothesis": "Untraced reconstruction can reuse encode's quantized latent and immutable cumulative snapshots instead of rebuilding them from codes.",
+      "status": "provisional Linux candidate; final uncertainty controls and Apple pending",
+      "finding": "Matched B1/B2/B4 median ms 3.0003/4.0104/5.1257 to 2.2853/2.6712/3.3667; whole-profile kernels 1312 to 918. Arbitrary-code decode and all trace observations remain intact.",
+      "verification": "Full CUDA checks; 642 trained traces/2500 decisions; bit-exact untraced logits/IDs and all snapshots versus traced route after subsequent decode; full three-way matrix, fresh lifecycle and CUPTI."
+    },
+    {
+      "id": "mlx-vectorized-resampling",
+      "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
+      "status": "pending Linux gate before Apple implementation/testing",
+      "constraints": "Independently qualify current MLX coordinate arithmetic; temporary padding, lazy evaluation and memory ownership require real Metal evidence."
+    },
+    {
+      "id": "tiny-compact-lookup-or-heap",
+      "status": "conditional; disposition pending remaining-hotspot and long-input evidence",
+      "constraints": "Preserve all-occurrence/rank/overlap semantics and bounded memory; dense pair table rejected in research."
+    },
+    {
+      "id": "bert-decoder-cleanup",
+      "status": "conditional; no decoder replacement authorized implicitly",
+      "finding": "Current BERT decode uses 19876 Rust allocations per 89-string trial; native WordPiece per-token cleanup remains a plausible contributor. Outer wrapper cleanup is disabled in qualified profiles.",
+      "constraints": "Preserve per-token cleanup order; any dependency/vendor or contract change requires review."
+    },
+    {
+      "id": "checked-raw-upload",
+      "status": "pending copy/CPU attribution and isolated PoC",
+      "constraints": "Preserve authentication and full preflight before device allocation, alignment/endian correctness and ownership. No selective-loader trust change."
+    },
+    {
+      "id": "cuda-layout-selection-resampling",
+      "status": "conditional; re-profile after shared lower-risk experiments",
+      "constraints": "Tie order and FP32 resampling budgets unchanged; permanent layout copies need measured memory/startup justification."
+    },
+    {
+      "id": "mlx-fast-norm-compile-attention",
+      "status": "conditional after Linux gate and Apple vectorization",
+      "constraints": "Explicit array inputs for compilation; bounded shapes; first-call cost and numerical parity required."
+    },
+    {
+      "id": "cuda-graph-replay",
+      "status": "conditional; not started",
+      "constraints": "Only after stable allocation/layout plans; no unsafe Send/Sync or overwriting retained outputs; quantify capture break-even and memory."
+    },
+    {
+      "id": "level-zero-lookup-and-new-loader-ownership",
+      "status": "deferred pending explicit profile-backed go/no-go review",
+      "constraints": "Precomputed tables add persistent memory/setup cost; new ownership/trust APIs cannot silently alter existing artifact behavior."
+    }
+  ]
+}

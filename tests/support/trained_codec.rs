@@ -134,6 +134,23 @@ pub fn run<B: CodecBackend>(
         {
             return Err("uninstrumented code IDs differ".into());
         }
+        // Optimized reconstruction reuses immutable encode storage. Check every
+        // returned snapshot after another decode, not only final logits/IDs.
+        for (prefix, snapshots) in [
+            ("encode", &plain_codes.snapshots),
+            ("decode", &plain_decode.snapshots),
+            ("forced", &plain_forced.snapshots),
+        ] {
+            if snapshots.len() != codec.config().levels().len() {
+                return Err("uninstrumented snapshot count differs".into());
+            }
+            for (level, snapshot) in snapshots.iter().enumerate() {
+                let name = format!("{prefix}.level_{level:02}.cumulative");
+                if b.read_f32(snapshot)? != b.read_f32(&captured.tensors[&name])? {
+                    return Err("uninstrumented snapshot differs after subsequent decode".into());
+                }
+            }
+        }
         for (label, plain) in [("decode", plain_decode), ("forced", plain_forced)] {
             if b.read_f32(&plain.logits)?
                 != b.read_f32(&captured.tensors[&format!("{label}.logits")])?

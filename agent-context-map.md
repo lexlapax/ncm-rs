@@ -55,9 +55,31 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   counter finding and explicit v2 labeling/streamed launcher hashing. No global
   settings or unrelated processes changed. No production edits or Apple run yet.
   Clean-checkout baseline summary/audit reproduction and archive/hash checks pass.
-  Next: focused allocation attribution, independent low-risk candidates and
-  matched controls; close Linux gate before rechecking/starting Apple work.
-  Five baseline uncertainty cells and all new optimization gates remain pending.
+  Published baseline checkpoint: `cc965d8`. Its five uncertainty cells remain
+  historical evidence, not erased by subsequent runs.
+- Provisional lower-risk Linux candidates:
+  [report](docs/results/2026-11-11-phase2-low-risk/README.md), source/archives in
+  `evidence.json`; complete opportunity ledger at
+  `docs/results/2026-11-11-phase2-optimization/experiments.json`.
+  Diagnostic-only System wrapper/example counts Rust allocation requests (not
+  native allocations or RSS); two explicit example tests pass. HF `encode_fast`
+  removes 1,344 BERT allocation requests/89 strings, no GPT-2/Qwen reduction.
+  TinyStories in-place all-occurrence merge compaction removes 259 requests/trial;
+  exhaustive overlap/rank regression covers 2,047 binary strings plus long cases.
+  Neither tokenizer change has an established material latency gain yet.
+  Untraced reconstruction reuses encode's latent/immutable snapshot storage via a
+  shared decoder tail; traced reconstruction retains independent decode and all
+  observations. Extended tiny/trained tests verify untraced snapshots after another
+  decode; trained logits/IDs/snapshots match traced values exactly. Fresh CUDA
+  checks and 642 traces/2,500 decisions pass; tokenizer goldens/rejections pass.
+  Matched B1/B2/B4 medians 3.0003/4.0104/5.1257 -> 2.2853/2.6712/3.3667 ms;
+  diagnostic kernels 1,312 -> 918. Fresh lifecycle retained. Matrix is **74/78**:
+  unresolved process envelopes at B1 resident block, Qwen decode, BERT/GPT-2 load;
+  all pooled points/memory pass. No waiver or final Linux gate; no Apple run yet.
+  Clean-checkout summaries/negative audit and evidence hashes verified. Default
+  report tests remain 29; 17 tokenizer unit tests and 2 allocation-example tests
+  pass. Next: prepared state/loading-copy investigations, matched uncertainty
+  controls and full Linux gate before Mac availability recheck and MLX work.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

@@ -175,8 +175,10 @@ impl TextTokenizer {
         }
         match &self.implementation {
             Implementation::ByteBpe(bpe) => bpe.encode(text),
+            // This API returns IDs only. Keep the complete tokenizer pipeline
+            // and special tokens, but do not compute offsets that are discarded.
             Implementation::HuggingFace(tokenizer) => Ok(tokenizer
-                .encode(text, true)
+                .encode_fast(text, true)
                 .map_err(|e| invalid(&e.to_string()))?
                 .get_ids()
                 .to_vec()),
@@ -290,6 +292,69 @@ mod tests {
             }
             assert!(parse_hf(&bytes, "unknown").is_err());
         }
+    }
+    #[test]
+    fn id_only_encoding_preserves_normalization_specials_padding_and_truncation() {
+        use tokenizers::{AddedToken, PaddingParams, PaddingStrategy, TruncationParams};
+        let words = [
+            "[UNK]", "a", "b", "[PAD]", "[CLS]", "[SEP]", "[MASK]", "中", "##b", "c",
+        ];
+        let vocab: [(String, u32); 10] = std::array::from_fn(|i| (words[i].to_string(), i as u32));
+        let model = tokenizers::models::wordpiece::WordPiece::builder()
+            .vocab(vocab)
+            .build()
+            .unwrap();
+        let mut reference = tokenizers::Tokenizer::new(model);
+        reference.with_normalizer(Some(
+            tokenizers::normalizers::bert::BertNormalizer::default(),
+        ));
+        reference.with_pre_tokenizer(Some(tokenizers::pre_tokenizers::bert::BertPreTokenizer));
+        reference.add_special_tokens(&[AddedToken::from("[MASK]", true).lstrip(true).rstrip(true)]);
+        reference.with_post_processor(Some(
+            tokenizers::processors::template::TemplateProcessing::builder()
+                .try_single("[CLS] $A [SEP]")
+                .unwrap()
+                .special_tokens(vec![("[CLS]", 4), ("[SEP]", 5)])
+                .build()
+                .unwrap(),
+        ));
+        reference
+            .with_truncation(Some(TruncationParams {
+                max_length: 6,
+                ..Default::default()
+            }))
+            .unwrap();
+        reference.with_padding(Some(PaddingParams {
+            strategy: PaddingStrategy::Fixed(8),
+            pad_id: 3,
+            ..Default::default()
+        }));
+        // Private synthetic construction exercises wrapper behavior, not asset trust.
+        let tokenizer = TextTokenizer {
+            metadata: serde_json::from_value(serde_json::json!({
+                "schema_version":1,"profile":"bert","kind":"huggingface","upstream_commit":"synthetic",
+                "source":{},"reference_versions":{},"vocab_size":10,"total_vocab_size":10,
+                "eos_token_id":5,"pad_token_id":3,"cleanup":false,"payload_bytes":0,
+                "payload_sha256":"","license_sha256":""
+            })).unwrap(),
+            implementation: Implementation::HuggingFace(Box::new(reference.clone())),
+        };
+        for text in [
+            "",
+            "A B",
+            "Á a\u{301}",
+            "\t中 [MASK] AB\n",
+            "a b c a b c a b c",
+            "é💡",
+        ] {
+            let expected = reference.encode(text, true).unwrap();
+            let actual = tokenizer.encode(text).unwrap();
+            assert_eq!(actual, expected.get_ids());
+            assert_eq!(actual.len(), 8);
+            assert_eq!(actual[0], 4);
+            assert_eq!(actual[7], 3);
+        }
+        assert!(tokenizer.encode(&"a".repeat(1024 * 1024 + 1)).is_err());
     }
     #[test]
     fn cleanup_matches_transformers_order() {

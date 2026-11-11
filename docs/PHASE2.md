@@ -194,8 +194,12 @@ and requested commit/push of the revised plan before implementation. Planning
 publication alone does not pass any runtime item below. The
 [initial Linux baseline checkpoint](results/2026-11-11-phase2-optimization/README.md)
 freezes accepted binaries/bands, refreshes measurements and passes fresh baseline
-correctness. Its diagnostic audit is 73/78 with five uncertainty cells; focused
-allocation attribution and candidate/platform gates remain pending.
+correctness. Its diagnostic audit is 73/78 with five uncertainty cells. Subsequent
+[lower-risk Linux experiments](results/2026-11-11-phase2-low-risk/README.md) add
+allocation attribution, ID-only encoding, in-place byte-BPE merges and shared
+reconstruction reuse with fresh correctness checks. Their current matrix is
+74/78 with four uncertainty cells; prepared-state/loading investigations, final
+controls and platform gates remain pending.
 
 - [ ] Step 1: freeze `3307dff` / production `083c1e5` as current Rust; refresh matched
   current-Rust/Python baseline reports, verify identities/scopes and lock bands.

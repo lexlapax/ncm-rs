@@ -159,18 +159,22 @@ impl ByteBpe {
                     let Some((id, a, b)) = earliest else {
                         break;
                     };
-                    let mut merged = Vec::with_capacity(word.len());
-                    let mut i = 0;
-                    while i < word.len() {
-                        if i + 1 < word.len() && word[i] == a && word[i + 1] == b {
-                            merged.push(id);
-                            i += 2;
+                    // Stable left-to-right compaction preserves all-occurrence
+                    // merging. The write cursor never overtakes unread symbols,
+                    // so the same allocation can serve every merge round.
+                    let mut read = 0;
+                    let mut write = 0;
+                    while read < word.len() {
+                        if read + 1 < word.len() && word[read] == a && word[read + 1] == b {
+                            word[write] = id;
+                            read += 2;
                         } else {
-                            merged.push(word[i]);
-                            i += 1;
+                            word[write] = word[read];
+                            read += 1;
                         }
+                        write += 1;
                     }
-                    word = merged;
+                    word.truncate(write);
                 }
                 output.extend(word);
             }
@@ -265,6 +269,66 @@ mod tests {
             "�(�("
         );
         assert!(tokenizer.decode(&[u32::MAX], true).is_err());
+    }
+    #[test]
+    fn in_place_merge_matches_rebuilding_for_overlaps_and_rank_order() {
+        // Include self-overlap and competing pairs, with each output composed
+        // only from earlier entries, as required by the canonical byte BPE.
+        let mut raw = fixture();
+        raw["vocab_hex"].as_array_mut().unwrap().extend([
+            serde_json::json!("6161"),
+            serde_json::json!("6261"),
+            serde_json::json!("616162"),
+            serde_json::json!("616261"),
+        ]);
+        raw["merges_hex"].as_array_mut().unwrap().extend([
+            serde_json::json!(["61", "61"]),
+            serde_json::json!(["62", "61"]),
+            serde_json::json!(["6161", "62"]),
+            serde_json::json!(["6162", "61"]),
+        ]);
+        let tokenizer = ByteBpe::from_json(&serde_json::to_vec(&raw).unwrap()).unwrap();
+        let rebuild = |text: &str| {
+            let mut word: Vec<u32> = text.bytes().map(|b| u32::from(b) + 2).collect();
+            loop {
+                let chosen = word
+                    .windows(2)
+                    .filter_map(|p| {
+                        tokenizer
+                            .merges
+                            .get(&(p[0], p[1]))
+                            .map(|&rank| (rank, p[0], p[1]))
+                    })
+                    .min_by_key(|v| v.0);
+                let Some((id, a, b)) = chosen else {
+                    return word;
+                };
+                let mut next = Vec::new();
+                let mut i = 0;
+                while i < word.len() {
+                    if i + 1 < word.len() && word[i] == a && word[i + 1] == b {
+                        next.push(id);
+                        i += 2;
+                    } else {
+                        next.push(word[i]);
+                        i += 1;
+                    }
+                }
+                word = next;
+            }
+        };
+        // Exhaust all binary words through length ten, plus long overlapping runs.
+        for length in 0..=10 {
+            for bits in 0..(1usize << length) {
+                let text: String = (0..length)
+                    .map(|i| if bits & (1 << i) == 0 { 'a' } else { 'b' })
+                    .collect();
+                assert_eq!(tokenizer.encode(&text).unwrap(), rebuild(&text), "{text:?}");
+            }
+        }
+        for text in ["a".repeat(4097), "ab".repeat(2049), "baab".repeat(1024)] {
+            assert_eq!(tokenizer.encode(&text).unwrap(), rebuild(&text));
+        }
     }
     #[test]
     fn unicode_bytes_whitespace_and_no_implicit_normalization() {

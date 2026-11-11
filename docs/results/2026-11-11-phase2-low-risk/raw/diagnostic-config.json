@@ -1,0 +1,9 @@
+{
+  "device": "cuda",
+  "previous": "reports/phase2-optimization-reuse-threeway-v1/previous",
+  "candidate": "reports/phase2-optimization-reuse-threeway-v1/candidate",
+  "qualification": "reports/phase2-optimization-reuse-v1/qualification.json",
+  "lifecycle": "reports/phase2-optimization-reuse-v1/lifecycle.json",
+  "controls": {},
+  "load_controls": []
+}

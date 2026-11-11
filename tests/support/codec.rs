@@ -355,6 +355,21 @@ pub fn full_codec<B: CodecBackend>(backend: B) -> Summary {
             b.read_indices(&plain_codes.codes).unwrap(),
             f.array(case, "encode.codes").indices()
         );
+        for (prefix, snapshots) in [
+            ("encode", &plain_codes.snapshots),
+            ("decode", &plain_decode.snapshots),
+            ("forced", &plain_forced.snapshots),
+        ] {
+            assert_eq!(snapshots.len(), codec.config().levels().len());
+            for (level, snapshot) in snapshots.iter().enumerate() {
+                let name = format!("{prefix}.level_{level:02}.cumulative");
+                summary.check(b, snapshot, f.array(case, &name), &name, 5e-4, 2e-4);
+                assert_eq!(
+                    b.read_f32(snapshot).unwrap(),
+                    b.read_f32(&capture.tensors[&name]).unwrap()
+                );
+            }
+        }
         for (label, plain) in [("decode", plain_decode), ("forced", plain_forced)] {
             summary.check(
                 b,

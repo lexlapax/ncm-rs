@@ -5,7 +5,9 @@ on Linux/CUDA then macOS/MLX. The shared codec/backend contract is implemented a
 validated for that scope; generator, sampling and inference-CLI architecture below
 remains planned. Crate boundaries do not imply full-model APIs or frozen abstractions.
 Phase 2 is reopened for the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md);
-its proposed state/layout/algorithm changes are not implemented by this planning update.
+[lower-risk Linux experiments](results/2026-11-11-phase2-low-risk/README.md) now
+include reconstruction latent reuse. These are provisional candidates, not final
+dual-platform acceptance or implementation of every proposed optimization.
 
 ## Decision: one model, two runtime adapters
 
