@@ -84,8 +84,16 @@ comparisons. Three new tests (large fixtures subprocess-isolated) include 13 neg
 bindings and real archived v2 outputs with synthetic traces; updated-hash corrupted logits fail
 the actual numerical validator. Latest default checks pass 134 reporting tests.
 This is consistency/qualification tooling, not independent process provenance or
-new GPU evidence. Whole-run supervision, telemetry/affinity, frozen identities and
-integrated launch/report provenance remain pending. Selection is resolved; tooling
+new GPU evidence. Frozen-file preflight now matches v2 binary/source/fixture/
+manifest/payload identities and retained CUPTI library/sources, validates CPU2/CPU0
+and constructs the fixed argv plus isolated environments. Forty pinned entries
+match locally, plus one observed taskset identity; no command was executed. The
+explicit PATH/HOME/C-locale/PYTHONNOUSERSITE environment differs from v2's inherited
+environment and requires native-library resolution review. Six offline tests and
+the final default check pass (140 reporting tests); a test fixture filename
+collision was fixed with the failed log retained. Whole-run supervision,
+native-library resolution/worktree state, telemetry/observer placement and integrated
+launch provenance remain pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 

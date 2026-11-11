@@ -34,8 +34,19 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   reports with synthetic traces, including corrupt logits with valid hashes.
   Latest `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes **134 reporting tests**;
   exact commands/log hashes are in the selected read-only protocol.
-  Next: whole-run supervision, frozen identity/injection/affinity/telemetry
-  integration, then readiness review and fresh availability.
+  `readonly_trace_preflight.py` now checks frozen v2 binaries/source inventories/
+  fixtures/manifest/payloads and retained CUPTI identities, validates CPU2/CPU0,
+  and constructs the fixed commands with explicit non-inherited environments.
+  Only traced children get injection; native runtime-control contamination fails.
+  Sanitized PATH/HOME/C-locale/PYTHONNOUSERSITE environments are a documented
+  difference from v2, not identical timing conditions. Six offline tests pass;
+  final default check passes **140 reporting tests**. The first focused test had
+  a fixture filename/directory collision, fixed and retained in the protocol log.
+  Actual file-only preparation matches 40 pinned file entries plus one observed
+  taskset identity; 12 commands constructed, none executed. Launch-ready remains
+  false. No tensor/compilation/loaded-library proof is inferred from byte hashes.
+  Next: native-library resolution and worktree-state checks, whole-run supervision,
+  observer/telemetry integration, then readiness review and fresh availability.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

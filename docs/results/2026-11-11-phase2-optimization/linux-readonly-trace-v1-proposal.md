@@ -32,7 +32,13 @@ Use the unchanged frozen v2 accepted/candidate **codec_bench** executables, thei
 matching worktrees, pinned artifact and `codec-bench-v1.json`. Run the complete
 harness without `--profile-block4`; no recompile or workload changes. Trace via the
 existing local CUPTI injection library only in the instrumented child's environment.
-No inherited injection in controls, launcher or observers. No Python benchmark is
+No inherited injection in controls, launcher or observers. Planned child/observer
+environments are constructed explicitly: system default PATH, current HOME,
+LANG=C, LC_ALL=C, PYTHONNOUSERSITE=1; traced children alone add
+CUDA_INJECTION64_PATH. Build hints CUDA_PATH/COMPUTE_CAP and unrelated inherited
+variables are not propagated. This is an explicit environment difference from v2,
+not evidence that its timing conditions are identical. Native-library resolution
+under this environment must be checked before launch. No Python benchmark is
 needed for this native-path diagnostic; both comparators remain mandatory for a
 later, separate acceptance attempt.
 
@@ -518,6 +524,67 @@ Next: frozen executable/input/library identity and injection-isolation preflight
 whole-run supervision, observer affinity/telemetry integration and readiness review,
 then a fresh quiet window. No GPU measurement, clock setting, production change,
 acceptance update or Apple run occurred.
+
+## Frozen identities and environment construction
+
+`tools/bench/readonly_trace_preflight.py` extracts the accepted/candidate codec
+binary, source, fixture, manifest and complete six-file codec payload identities
+from hash-bound published v2 archive members. It does not choose expected hashes
+from current files. Both 12-file source inventories, both fixtures, both frozen
+executables, shared manifest/payloads, and the retained original CUPTI library and
+four sample/source files must match. Regular-file streaming hashes reject leaf
+symlinks, FIFOs, size/digest mismatch and visible read-time mutations. Parent
+directories remain trusted. This is byte identity, not renewed tensor preflight,
+finite/layout validation or independent source-to-binary compilation proof. The
+original CUPTI compile invocation was not retained; its earlier provenance limits
+are unchanged. The installed taskset utility is observed/hashed, not compared to
+an older frozen pin.
+
+The helper validates CPU2/CPU0 eligibility/SMT placement, then constructs exactly
+the fixed 12 commands with absolute executable/input/report paths and CPU2 taskset.
+All jobs and observers receive independent copies of the explicit environment
+above; only traced children receive CUPTI injection. Nonempty inherited LD_*,
+CUPTI_*, NVTX_*, NCM_*, CUBLAS_* and runtime CUDA_* controls fail preparation rather
+than being silently honored; CUDA_PATH/COMPUTE_CAP are permitted build hints but
+omitted from child environments. No inherited secrets are serialized. This is
+planned environment isolation, not verification of a live process's mappings.
+
+Six offline tests cover real published archive pins, fixed argv/order, independent
+environments, inherited control rejection, changed binary/source/fixture/payload/
+CUPTI inputs, output/executable/topology guards and file-type/read-time mutation
+checks. A Popen trap verifies job preparation does not execute even fake binaries.
+The first focused test run failed because its temporary test filename `target`
+collided with the fixture's build directory; renamed only that test file. Retained
+failed log `reports/phase2-readonly-preflight-tests-v1.log`, SHA-256
+`c516d9ae517e1f1183b0ee9f6edca227ec81c06ab7ad4d300d8228714302573b`.
+The corrected focused command
+`python -m unittest discover -s tools/bench -p test_readonly_trace_preflight.py -v`
+passes six tests; log `reports/phase2-readonly-preflight-tests-v2.log`, SHA-256
+`a2b01587cb51fccf7a0c8ec0d21504509ee4afb41690abf7609258a362eb01f0`.
+Final `CARGO_BUILD_JOBS=4 ./tools/check.sh` (including the explicit user-site disable)
+passes **140 reporting tests**; log `reports/phase2-readonly-preflight-check-v2.log`,
+SHA-256 `1a27720fef6cf436d775c039a3962511f150e210e525d618c81989ef17d54cdc`.
+
+An actual **file-only preparation** also succeeded locally: 40 pinned file entries
+match, plus one observed taskset identity, and all 12 commands were constructed but
+**not executed**. The temporary checks wrote neither a collection directory nor
+its launch manifest. Local preparation snapshot
+`reports/phase2-readonly-preflight-local-v2.json` has SHA-256
+`d24297f3970461cc2c4de3fcbccc3a976cb4057c7ea095a303c585ec11e5bcbc`;
+prior preparation v1 remains retained. Reproduce the preparation call (no launch):
+
+```python
+from pathlib import Path
+from readonly_trace_preflight import prepare  # tools/bench on sys.path
+root = Path.cwd()
+prepared = prepare(root, root / 'reports/phase2-linux-readonly-trace-v1', Path.home())
+assert prepared['launch_ready'] is False
+```
+
+This is not a reusable launch certificate: recheck identities at actual launch.
+Native-library resolution, worktree state, observer placement/telemetry, whole-run
+supervision and fresh availability remain explicitly unverified. No benchmark,
+GPU policy mutation or Apple work occurred; Linux acceptance remains 72/78.
 
 ## Launch blockers and outcome rules
 
