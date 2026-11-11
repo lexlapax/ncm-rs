@@ -18,31 +18,14 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   provenance; DT_NEEDED listings do not cover lazy driver/JIT libraries. Source/
   lock remain anchored to `d44beaa`, manifests to measured v2 `fa040ed` (retaining
   the approved codec_memory example). Raw Git status logs remain private.
-  Latest: `readonly_trace_telemetry.py` provides atomic first-sample readiness,
-  CPU full-duration/completion structure checks and owned GPU-observer shutdown.
-  The unchanged CPU sampler starts with affinity {0,2}, then confirms {0}; the
-  GPU observer/worker stay on CPU0. Explicit environments differ from inherited v2.
-  Sequence cancellation now propagates observer failure into the in-flight child;
-  fake integration verifies no later job/replacement launches. Eight new tests and
-  `CARGO_BUILD_JOBS=4 ./tools/check.sh` pass (**167 reporting tests**). Tests use
-  short synthetic observers; no real telemetry window was collected. A red-to-green
-  delayed-prefix case now prevents publication after the startup deadline expires.
-  Exact logs, prior failures/test-isolation fixes and limitations are linked above.
-  `readonly_trace_coordinator.py` now composes readiness, the fixed sequence and
-  observer lifetime under the independent supervisor in fake-CPU integration tests.
-  Ordinary job failure stops later jobs but preserves sampling; observer failure/
-  exit cancels an in-flight job. Interrupts inside bounded jobs propagate, and the
-  surviving supervisor cleans descendants after coordinator SIGKILL. Eight new
-  tests and default checks pass (**175 reporting tests**); the initial deadline
-  fixture incorrectly expected no job 2 despite short jobs and was corrected to
-  keep job 1 in flight. No real sampling/GPU/model run occurred.
-  `validate_readonly_telemetry.py` now checks all 901 CPU samples, counter arithmetic,
-  schedule/UTC-monotonic consistency, optional-data labels, GPU UUID/units/timezone
-  and bracketing of all 12 receipt windows. Gaps/unavailable values remain explicit;
-  bracketing is not continuous observation or per-call clock attribution. Ten new
-  tests (virtual-clock serializer, negative cases, archived v2 CPU compatibility and
-  exclusive offline CLI) pass; default checks pass **185 reporting tests**. No real
-  collection or GPU query occurred. Source/UUID/timezone still need launch binding.
+  Telemetry/coordinator/validator prerequisites are implemented and tested with
+  synthetic observers and archived v2 CPU compatibility. Ordinary sequence failure
+  preserves the full sampler lifetime; observer failure cancels in-flight work.
+  The sampler starts with affinity {0,2}, then confirms {0}; other observers use
+  CPU0. Explicit environments differ from inherited v2. All 901 CPU samples,
+  counter/schedule arithmetic, GPU units/UUID/timezone and 12 receipt brackets are
+  checked offline. Gaps remain explicit, not per-call clocks or continuous coverage.
+  Exact earlier tests, failures and limitations are in the selected protocol.
   `observe_readonly_process.py` now samples only owned waitable children: executable
   inode, expected command/environment equality, affinity and executable mappings.
   Optional hooks connect bounded capture, sequence and coordinator; observation
@@ -58,9 +41,16 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   cannot be erased by a later child exit. Fixed five-case fake-child batches retain
   all four earlier race failures and final five passes. Logs and
   mapping limitations are in the selected protocol.
-  Frozen manifest/entry, post-collection file checks, process/receipt/library and
-  supervisor/collector/telemetry cross-bindings remain pending. Supervisor SIGKILL/
-  host failure cannot guarantee cleanup. Next: finish bindings, review readiness, then request
+  Latest: `verify_readonly_processes.py` cross-checks all 12 process records against
+  receipts, declared commands/environments, image/injection identities and native
+  libraries. Its postflight function rechecks all prepared/declaration/loader/library
+  files and current mapped paths, keeping additional libraries explicitly post-only.
+  It preserves kernel/path device distinctions and never claims immutable mapped
+  bytes. Nine tests include actual CPU-child writer/reader compatibility; default
+  checks pass **205 reporting tests**. No GPU/model collection or policy change.
+  Frozen manifest/entry, call-order enforcement after full telemetry/supervision,
+  process time bracketing and final collector/analyzer cross-bindings remain pending.
+  Supervisor SIGKILL/host failure cannot guarantee cleanup. Next: finish bindings, review readiness, then request
   fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 

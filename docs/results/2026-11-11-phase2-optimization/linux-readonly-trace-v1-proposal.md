@@ -1057,13 +1057,80 @@ and `-mapfiles-v1.log` (`0aca0a2cbfbc0950f009831fa20bcb28d388cdf7f1245366e4281b2
 all under `reports/`. Only fake child/self-process metadata was inspected. Linux
 remains 72/78; no real GPU/model collection or production/policy change occurred.
 
+## Post-collection process and file binding
+
+`tools/bench/verify_readonly_processes.py` adds two import-only stages. It does not
+launch programs or infer collection readiness:
+
+- `validate_processes(jobs, observations, prepared, libraries)` checks all twelve
+  ordered records/PIDs, successful observed receipts, declared CPU2/taskset commands
+  and isolated environments, loader/prepared target agreement, complete process
+  status, sample ordering/rate/inventory, recomputed mapping digests and consistent
+  file identities across processes. Every workload must map its declared image and
+  required native libraries. Traced records must observe the declared injection
+  image; plain records must not. Boolean flags alone cannot substitute for mapping
+  contents. Unused maps, stronger unsupported proof claims, changed identities,
+  incomplete counters, missing observations and incompatible metadata fail.
+- `verify_files(binding, prepared, libraries, library_roots=...)` rechecks all
+  prepared input/source identities, separate declaration identities, loader/native
+  library identities and observed executable paths. Known paths must retain their
+  prelaunch inode, size and SHA-256. Additional observed libraries must be canonical
+  `.so` paths under explicitly reviewed library roots (defaults `/usr/lib` and
+  `/opt/cuda/targets/x86_64-linux/lib`), regular files with ELF magic and the observed
+  pathname inode/device. They remain **post-only**; no historical/prelaunch pin is
+  invented. File magic is not full ELF validation or executable qualification.
+
+Postflight has a 256-file/8 GiB aggregate hash-read budget. The whole path/type/
+identity/size inventory is checked before hashing any file; mapped-file ELF magic
+is checked before each file's hash. Symlinks, replaced files, unreviewed extra paths,
+invalid pins and budget violations fail. These are new **post-collection read
+bounds**, not changes to capture quotas, the 600-second workload deadline, model
+numerical tolerances or acceptance limits. No library bytes are copied into output.
+Kernel map devices remain separate from pathname devices. Current file hashes do
+not establish immutable mapped bytes, unsampled load/unload behavior or historical
+library parity; `mapped_file_bytes_verified` and `launch_provenance_verified` stay
+false. Process/receipt consistency does not independently authenticate the producer.
+
+**Call-order enforcement is still pending in the frozen launch entry:** invoke file
+hashing only after the independent supervisor and full telemetry have completed,
+never between jobs or during the remaining sampler window. This helper deliberately
+has no collection CLI or automatic invocation. Receipt/observation clock bracketing,
+supervisor/collector/telemetry raw-hash bindings and final analyzer composition also
+remain separate mandatory checks. Expected preflight declarations must come from
+the reviewed launch path, not from the supplied observation files.
+
+Nine tests use synthetic twelve-job records and temporary ELF-magic fixtures. They
+cover explicit post-only classification, all predeclared source/declaration files,
+changed same-inode/same-size bytes, replaced files/symlinks, forbidden extra paths,
+read budgets, invalid pins/non-ELF data, PID/order/receipt/environment disagreements,
+map hash/inode/cross-process changes, missing native libraries, timing/affinity/
+counter errors and injection flags that disagree with maps. A Linux-only fresh-
+interpreter test also collects **12 actual CPU-only child observations** and passes
+them through the reader and postflight hashes. Its loader declaration is synthetic;
+Python children and read/execute-mapped `/usr/bin/true` copies are not native codec,
+CUPTI, loader-probe or tensor qualification. No model/GPU benchmark was run.
+
+| Command / retained local log | Result | SHA-256 |
+| --- | --- | --- |
+| `python -m unittest discover -s tools/bench -p test_verify_readonly_processes.py -v` → `reports/phase2-readonly-postflight-tests-v1.log` | Initial 8 tests pass | `3dea4494e65d0e8287a2de967797e0265d88eb7404814e4525e062d8b6bbcb82` |
+| Same command → `reports/phase2-readonly-postflight-tests-v2.log` | 9 pass, including real writer/reader compatibility | `9bd2f2fb33f3113e24b34f7031b6da464cc312e16177da44af4434497eee2aae` |
+| Same command → `reports/phase2-readonly-postflight-tests-v3.log` | 9 pass, including typed observer CPU guard | `3e610e9508536fc5653a26f2eefc9582448913102c977d0fa423b4fef9a83532` |
+| Same command → `reports/phase2-readonly-postflight-tests-v4.log` | Final 9 pass, including separate declaration rechecks | `ac91404b07533dc5b355e81a273f0e305d28206e3c127770a2f84337be45eef7` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-postflight-check-v1.log` | 205 reporting tests pass | `f7df8bb9fb8ba596de22707474b6343dce49934443c1f3f7eccb833d3c7df4b9` |
+| Same command → `reports/phase2-readonly-postflight-check-v2.log` | 205 reporting tests pass | `5c56f9f6ccac948f4361e7865acff95a82b007f211f77dd312e39a8c3b4d2817` |
+| Same command → `reports/phase2-readonly-postflight-check-v3.log` | Final default check: 205 reporting tests pass | `782f85e4edd94b5e4649d58a3c84206377c358ff1f079903aeae2b139538e635` |
+
+Linux remains 72/78; no production, policy, oracle or pin change. Next is the frozen
+manifest/entry and lifecycle/time/raw-file cross-bindings, then readiness review
+and fresh availability—not a new benchmark or automatic clock fallback yet.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. The coordinator, telemetry
-lifecycle/validator and sampled process observer are tested prerequisites. Frozen
-launch manifest/entry, post-collection file verification, process/report/library
-and supervisor/collector/telemetry cross-bindings, mapping-limitation review and
-remaining integrated failure tests are pending.
+lifecycle/validator, sampled process observer and postflight verifier are tested
+prerequisites. Frozen launch manifest/entry, postflight call-order enforcement,
+process/receipt timing, supervisor/collector/telemetry/analyzer cross-bindings,
+mapping-limitation review and remaining integrated failure tests are pending.
 No new capture exists to qualify. The user has chosen the read-only investigation;
 before collection, obtain a fresh quiet 15-minute window after the tested tooling,
 exact frozen manifest and identity checks are ready.

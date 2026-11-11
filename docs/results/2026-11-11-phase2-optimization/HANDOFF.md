@@ -145,8 +145,15 @@ pathname/executable stat reports 29. Both identities are retained separately wit
 kernel map-link/path-inode checks, not treated as identical mapped-byte proof.
 Direct map_files stat returned PermissionError; no permission/global-tooling changes were
 made. Samples cannot prove whole-lifetime absence or immutable mapped bytes. Frozen
-launch entry, post-collection library hashes and final cross-bindings/readiness
-review remain pending; no GPU/model benchmark was run. Selection is resolved; tooling
+launch entry and final cross-bindings/readiness review remain pending. A new
+postflight helper now validates all 12 process/receipt/declared-image/library sets
+and rechecks prepared inputs, declaration files, loader/native libraries and mapped
+paths after collection. Additional libraries are explicitly post-only, not invented
+prelaunch pins or immutable mapped-byte proof. Nine tests include a real CPU-child
+writer/reader compatibility test with synthetic loader declarations; default checks
+pass 205 reporting tests. Caller-side enforcement of full telemetry/supervisor
+completion before hashing, receipt/observation time binding and the final frozen
+manifest/entry remain pending. No GPU/model benchmark was run. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 
