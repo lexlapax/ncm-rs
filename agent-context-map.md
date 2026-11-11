@@ -24,9 +24,18 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   passes **131 reporting tests**. The 16 MiB report cap bounds post-exit reads,
   not live disk writes. Freshness/hash checks are not independent producer proof;
   frozen executable provenance and codec qualification remain separate.
-  Next: connect receipt hashes/trace PID to the binder/qualifier, whole-run
-  supervision, frozen identity/injection/affinity/telemetry integration, then
-  readiness review and fresh availability.
+  `analyze_readonly_trace.py` now checks the complete fixed 12-job evidence set,
+  receipt/capture/report consistency, six receipt-PID B1 trace joins and all four
+  three-report groups through unchanged output qualification. It retains first/
+  warmup/trial windows and descriptive instrumentation comparisons for every
+  execution/load scope. Supplied receipt consistency is not independent provenance;
+  launch/telemetry/acceptance flags remain false. Three offline tests (large
+  fixtures subprocess-isolated) cover 13 negative bindings and real archived v2
+  reports with synthetic traces, including corrupt logits with valid hashes.
+  Latest `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes **134 reporting tests**;
+  exact commands/log hashes are in the selected read-only protocol.
+  Next: whole-run supervision, frozen identity/injection/affinity/telemetry
+  integration, then readiness review and fresh availability.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

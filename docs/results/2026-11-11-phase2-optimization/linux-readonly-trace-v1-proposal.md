@@ -465,6 +465,60 @@ whole-run supervision and telemetry/affinity integration. These receipts alone d
 not resolve those launch blockers or authorize treating diagnostic timings as
 acceptance evidence.
 
+## Integrated offline sequence analysis
+
+`tools/bench/analyze_readonly_trace.py` now connects the sequence plan/result and
+individual child receipts to the existing ordinal binder and codec qualifier.
+It requires all 12 jobs in the fixed order, unchanged limits, successful reaped
+child receipts, matching commands/report destinations, distinct receipt PIDs,
+exact capture/report hashes and byte totals, and distinct canonical reports.
+Files are read only from fixed local names; original absolute paths are metadata,
+so a reviewed collection can be relocated without following paths into unrelated
+directories. Symlink/FIFO/oversized inputs fail. Expected accepted/candidate source
+inventories are supplied separately, not inferred from reports being checked.
+
+All four three-report groups (AP/CP/AT/CT) pass through the unchanged output
+qualifier and pinned archived Python references. All six traced captures pass
+through the full B1-layout binder with the **receipt PID** and receipt hashes.
+Every first/warmup/trial window is retained; unavailable warmup timings remain
+null. Plain captures containing supported trace record markers are rejected;
+absence of those markers does not establish injection isolation. Descriptive
+instrumentation comparisons retain all three occurrence pairs per implementation,
+all 12 execution scopes, load trials and first-load/first-execution/scope timings.
+There are 78 descriptive pair/scope entries, **not 78 acceptance comparisons**.
+No pair is selected by nearest duration or discarded for its instrumentation cost.
+
+The analyzer verifies consistency of supplied evidence, not its independent
+provenance: `launch_provenance_verified`, `performance_acceptance_evaluated` and
+`telemetry_coverage_verified` remain false. Neither distinct hashes/PIDs nor these
+joins establish freshness, actual binary/injection identity, same-child production
+of a file, or supervised collection. Per-process pairs are occurrence-order pairs,
+not simultaneous controls or complete carryover balance. Qualification remains
+limited to the existing reported-output surface, not all-trial/642-trace parity.
+No new collection exists to analyze.
+
+Three offline tests exercise the full synthetic 12-job collection, 13 negative
+binding/sequence cases, bounded input handling, all four groups of real archived
+v2 native reports through the actual qualifier, a numerically corrupted report
+with updated valid hashes (rejected), and exclusive CLI output. Archived reports
+are paired with **synthetic traces/receipts** solely for integration testing, never
+represented as measured B1 evidence. Large parsing runs in subprocesses to preserve
+the existing inherited-RSS test boundary.
+
+Checks actually run:
+
+- `python -m unittest discover -s tools/bench -p test_analyze_readonly_trace.py -v`:
+  3 pass. Local final log `reports/phase2-readonly-analysis-tests-v2.log`, SHA-256
+  `4790e62f5edded7082d65a13f342fc6ea33d9a360885becb9055045f084d83ee`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes, including **134 reporting tests**.
+  Local log `reports/phase2-readonly-analysis-check-v1.log`, SHA-256
+  `8abf971a2e5444a35748da62f29c05760879b245d81d6e61a69a330b12d01965`.
+
+Next: frozen executable/input/library identity and injection-isolation preflight,
+whole-run supervision, observer affinity/telemetry integration and readiness review,
+then a fresh quiet window. No GPU measurement, clock setting, production change,
+acceptance update or Apple run occurred.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers and a tested

@@ -77,9 +77,15 @@ PID/argv/capture hashes; missing/nonregular/oversized/visibly changing reports f
 Sequence report paths are unique and prevalidated. Ten new offline tests cover
 this integration; latest default checks pass 131 reporting tests. The report read
 cap is not a live disk quota. No independent producer identity or output quality
-is established by these receipts. Connect them to the binder/qualifier next;
-whole-run supervision, telemetry/affinity, frozen identities and integrated
-launch/report provenance also remain pending. Selection is resolved; tooling
+is established by these receipts. The integrated offline analyzer now connects
+all 12 receipt/report/capture sets to four output-qualification groups and six
+receipt-PID B1 trace joins, preserving all windows and per-condition instrumentation
+comparisons. Three new tests (large fixtures subprocess-isolated) include 13 negative
+bindings and real archived v2 outputs with synthetic traces; updated-hash corrupted logits fail
+the actual numerical validator. Latest default checks pass 134 reporting tests.
+This is consistency/qualification tooling, not independent process provenance or
+new GPU evidence. Whole-run supervision, telemetry/affinity, frozen identities and
+integrated launch/report provenance remain pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 
