@@ -91,9 +91,16 @@ match locally, plus one observed taskset identity; no command was executed. The
 explicit PATH/HOME/C-locale/PYTHONNOUSERSITE environment differs from v2's inherited
 environment and requires native-library resolution review. Six offline tests and
 the final default check pass (140 reporting tests); a test fixture filename
-collision was fixed with the failed log retained. Whole-run supervision,
-native-library resolution/worktree state, telemetry/observer placement and integrated
-launch provenance remain pending. Selection is resolved; tooling
+collision was fixed with the failed log retained. Bounded glibc loader --list and
+Git metadata guards now pass eight tests (148 reporting tests in the full check).
+Actual loader inspection finds 14 canonical libraries, with matching native codec
+resolutions; lazy-loaded/JIT/driver libraries and live mappings are not covered.
+Actual uncommitted-tooling rejection is retained; recheck clean worktrees after
+publication. Source/lock stays anchored to d44beaa; Cargo manifests use measured
+v2 fa040ed to retain the already-approved codec_memory example declaration.
+Raw Git status evidence is private, not for publication. Whole-run supervision,
+runtime library coverage, telemetry/observer placement and integrated launch
+provenance remain pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 

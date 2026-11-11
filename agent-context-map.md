@@ -45,8 +45,19 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   Actual file-only preparation matches 40 pinned file entries plus one observed
   taskset identity; 12 commands constructed, none executed. Launch-ready remains
   false. No tensor/compilation/loaded-library proof is inferred from byte hashes.
-  Next: native-library resolution and worktree-state checks, whole-run supervision,
-  observer/telemetry integration, then readiness review and fresh availability.
+  `readonly_trace_runtime.py` adds bounded loader `--list`/Git metadata probes.
+  Actual DT_NEEDED inspection of both codecs, CUPTI and taskset succeeds under the
+  prepared environment: 14 canonical libraries; native codec resolutions match.
+  This does not cover lazy dlopen/JIT/driver libraries or live process mappings.
+  Git guards reject dirty/unexpected heads (only untracked candidate `.pi/` allowed);
+  actual dirty-tooling rejection and temporary-repository success paths are tested.
+  Production source/lock anchor stays `d44beaa`; manifests use measured v2 `fa040ed`
+  because `211b51d` already added the reviewed codec_memory example declaration.
+  No dependency/pin/production edits. Eight focused tests and default check pass
+  (**148 reporting tests**); exact evidence/limitations in the selected protocol.
+  Raw Git status captures are private 0700-directory evidence, not for publication.
+  Next: clean worktree recheck after publication, whole-run supervision, runtime
+  library coverage and observer/telemetry integration, then readiness/availability.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

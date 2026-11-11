@@ -586,6 +586,68 @@ Native-library resolution, worktree state, observer placement/telemetry, whole-r
 supervision and fresh availability remain explicitly unverified. No benchmark,
 GPU policy mutation or Apple work occurred; Linux acceptance remains 72/78.
 
+## Loader metadata and worktree-state guards
+
+`tools/bench/readonly_trace_runtime.py` adds bounded metadata probes (10 seconds,
+1 MiB merged output each), retained command/exit receipts and exclusive private
+0700 evidence directories. The installed glibc loader's **`--list`** mode lists
+DT_NEEDED dependencies without running benchmark main or requesting CUDA
+initialization. Each prepared target is rehashed against its recorded identity
+before any probe, then again after listing. The accepted/candidate codec, original
+injection library and taskset are listed under the prepared clean environment. Unsupported/unresolved/duplicate
+listing records, missing required dependencies and differing accepted/candidate
+resolutions fail. Canonical library files are hashed, symlink destinations checked,
+and utility/target/library identities rechecked after listing.
+
+An actual local metadata collection succeeded for all four targets, identifying
+**14 canonical libraries**. Accepted/candidate dependency resolutions match.
+`static_loader_resolution_verified=True` is limited to these loader listings;
+`runtime_loaded_libraries_verified=False` and `launch_ready=False` remain explicit.
+This does not cover lazy dlopen, driver/JIT dependencies, actual benchmark process
+mappings or equivalence to libraries loaded during historical measurements. Current
+library identities are observed, not invented historical pins; freeze/recheck them
+at collection. No benchmark main or GPU initialization was requested.
+
+The Git guard requires the accepted `3307dff` checkout and a caller-declared current
+candidate HEAD, both tracked-clean; only candidate untracked `.pi/` files are
+permitted. It disables optional locks/fsmonitor/global configuration and does not
+fetch, checkout, reset or invoke credentials. Raw status captures may name private
+session files: they remain in a private local directory and **must not be published**.
+Summaries contain only their count. A real invocation correctly rejected this
+session's uncommitted tooling; clean current-checkout verification is still required
+after publication and again before launch. Temporary real Git repositories also
+exercise the successful path in tests without changing global configuration.
+
+Production source and Cargo.lock must match `d44beaa`. Initially comparing all
+Cargo manifests to that commit also exposed the already-approved `codec_memory`
+example declaration added at `211b51d`. Direct diff inspection confirms that sole
+four-line example addition. Manifest guards therefore compare to the **already
+measured v2 tree `fa040ed`**, while source/Cargo.lock remain anchored to `d44beaa`;
+all reviewed diffs under those respective anchors are empty. No dependency pin or
+production change was made. The inspection is retained at
+`reports/phase2-readonly-runtime-manifest-review-v1.log`, SHA-256
+`14bfd8cf68c13941a8f2a79071f185143d2c88078ca315d3e4b8dba08f89a6c0`.
+
+Eight tests cover parser variants/rejections, all target/library bindings,
+identity/environment failures before probes, missing/different dependencies,
+real tiny CPU metadata children, private summary handling, real temporary Git
+repositories and seven negative worktree/head/source/manifest cases. Commands:
+
+- `python -m unittest discover -s tools/bench -p test_readonly_trace_runtime.py -v`:
+  8 pass. Local final log `reports/phase2-readonly-runtime-tests-v3.log`, SHA-256
+  `45482127e9cbf34828f653b74ee95d2afa9a06649dd67007bc28c186486d87f1`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes with **148 reporting tests**;
+  `reports/phase2-readonly-runtime-check-v2.log`, SHA-256
+  `2e222efce2bb3bc05f342c10848d22deb42fd2fc7b251bb49c210ebbd24052df`.
+- Actual metadata result `reports/phase2-readonly-runtime-libraries-v1/libraries.json`,
+  SHA-256 `4f03368072888c3948aa40f0481c54a422ea5e93f42e45e651883bc740cb5dc4`;
+  run log `reports/phase2-readonly-runtime-local-v1.log`, SHA-256
+  `fb6872f59c9c8627ca1c3c4e6eee085b5f6e91c01188413f38799fbeefe2e79e`.
+
+Next: clean worktree recheck, whole-run supervision, runtime library coverage and
+observer/telemetry integration, then readiness review and fresh quiet window.
+All 12 proposed read-only benchmark processes remain unrun; Linux stays 72/78.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers and a tested
