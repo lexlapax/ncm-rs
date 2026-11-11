@@ -57,7 +57,7 @@ def fingerprint_report(path, limit_bytes):
 
 def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                 output_limit_bytes, sequence_deadline=None, report_path=None,
-                report_limit_bytes=16 * 1024 ** 2, cancel_check=None):
+                report_limit_bytes=16 * 1024 ** 2, cancel_check=None, observe_child=None):
     """Capture one owned session; return a failure receipt rather than retry.
 
     SIGINT/SIGTERM temporarily belong to this main-thread collector and result in
@@ -69,7 +69,11 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     Its size limit bounds post-exit reading, NOT the child's live disk writes.
     cancel_check is an optional trusted, nonblocking supervisor predicate, checked
     before spawn and while collecting; true means failure and owned-child cleanup.
+    observe_child is an optional trusted bounded callback receiving the owned,
+    unreaped live PID during capture; exceptions fail capture and clean the child.
     """
+    if observe_child is not None and not callable(observe_child):
+        raise ValueError('observe_child must be callable')
     if cancel_check is not None and not callable(cancel_check):
         raise ValueError('cancel_check must be callable')
     if sys.platform != 'linux' or not hasattr(os, 'WNOWAIT'):
@@ -197,6 +201,8 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                             exited = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
                             if exited is not None:
                                 break
+                            if observe_child is not None:
+                                observe_child(child.pid)
                             for _key, _mask in selector.select(min(0.05, max(0, deadline - time.monotonic()))):
                                 read_chunk()
                 except BaseException as error:
@@ -275,6 +281,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         'group_kill': group_kill, 'direct_child_reaped': child_reaped,
                         'interrupt_signal': interrupted, 'workload_output_qualified': False,
                         'executable_identity_verified': False,
+                        'process_observer_enabled': observe_child is not None,
                         'report_capture': report_capture,
                         'report_limit_bytes': report_limit_bytes if report_path is not None else None,
                         'scope': 'Direct-child exit and bounded merged stdout/stderr only; not workload '

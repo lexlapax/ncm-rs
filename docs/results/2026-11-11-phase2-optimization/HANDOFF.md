@@ -131,7 +131,22 @@ clock and the retained v2 CPU archive in a fresh interpreter. Default checks pas
 bracketing is not continuous sampling or per-call clock attribution. No new real
 collection ran. Frozen manifest/entry, launch-bound source/UUID/timezone, runtime
 library/process provenance, supervisor/collector/telemetry cross-bindings and
-remaining integration checks are still pending. Selection is resolved; tooling
+remaining integration checks are still pending. Owned-child observation now adds
+sampled executable/command/environment/affinity and executable-map checks via
+optional bounded-child/sequence/coordinator hooks. Eleven CPU-only tests include the
+fixed 12-child sequence and stopping on observation failure; default checks pass
+196 reporting tests. Follow-up coverage rejects a factory silently returning None;
+exec/exit snapshots with missing proc entries or uninstalled fields are counted as
+incomplete, never promoted. Later complete workload observation is mandatory;
+startup access denial cannot qualify without it, and later child exit cannot erase
+a detected mismatch. Fixed five-case fake-child batches retain earlier race
+failures and final passes. Initial failures exposed kernel maps reporting device 28 while
+pathname/executable stat reports 29. Both identities are retained separately with
+kernel map-link/path-inode checks, not treated as identical mapped-byte proof.
+Direct map_files stat returned PermissionError; no permission/global-tooling changes were
+made. Samples cannot prove whole-lifetime absence or immutable mapped bytes. Frozen
+launch entry, post-collection library hashes and final cross-bindings/readiness
+review remain pending; no GPU/model benchmark was run. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 

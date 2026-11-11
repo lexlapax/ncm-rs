@@ -66,7 +66,7 @@ def validate_report_paths(jobs, output_dir):
                 raise ValueError('report must use its unique sequence-owned path')
 
 
-def run_sequence(jobs, output_dir, *, cancel_check=None):
+def run_sequence(jobs, output_dir, *, cancel_check=None, process_observer_factory=None):
     """Run the fixed sequence once; any failure stops later jobs without retry.
 
     Each merged stdout/stderr capture (plain too) is capped at 1 GiB; the total
@@ -76,6 +76,8 @@ def run_sequence(jobs, output_dir, *, cancel_check=None):
     """
     if cancel_check is not None and not callable(cancel_check):
         raise ValueError('cancel_check must be callable')
+    if process_observer_factory is not None and not callable(process_observer_factory):
+        raise ValueError('process_observer_factory must be callable')
     jobs = validate_jobs(jobs)
     output_dir = Path(output_dir)
     validate_report_paths(jobs, output_dir)
@@ -88,6 +90,7 @@ def run_sequence(jobs, output_dir, *, cancel_check=None):
     manifest = {
         'schema_version': 1, 'diagnostic_only': True,
         'launch_readiness_verified': False,
+        'process_observation_enabled': process_observer_factory is not None,
         'sequence_seconds': SEQUENCE_SECONDS, 'child_seconds': CHILD_SECONDS,
         'capture_limit_bytes': CAPTURE_BYTES, 'total_limit_bytes': TOTAL_BYTES,
         'minimum_initial_free_bytes': MIN_FREE_BYTES,
@@ -118,17 +121,25 @@ def run_sequence(jobs, output_dir, *, cancel_check=None):
             stop_reason = 'free_space'
             break
         prefix = f'{ordinal:02d}-{job["condition"]}'
+        observer = process_observer_factory(ordinal, job) if process_observer_factory is not None else None
+        if process_observer_factory is not None and (observer is None
+                or not callable(getattr(observer, 'observe', None)) or not callable(getattr(observer, 'finish', None))):
+            raise ValueError('enabled process observation requires an observer for every job')
         receipt = run_bounded(
             job['argv'], cwd=job['cwd'], env=job['env'],
             capture_path=output_dir / (prefix + '.capture'),
             receipt_path=output_dir / (prefix + '.receipt.json'),
             timeout_seconds=CHILD_SECONDS, sequence_deadline=deadline,
             output_limit_bytes=min(CAPTURE_BYTES, remaining), report_path=job.get('report_path'),
-            cancel_check=cancel_check)
+            cancel_check=cancel_check, observe_child=observer.observe if observer is not None else None)
+        observation = observer.finish(receipt, output_dir / (prefix + '.process.json')) if observer is not None else None
         used += receipt['captured_bytes']
         receipts.append(dict(ordinal=ordinal, condition=job['condition'], receipt=receipt))
         if receipt['status'] != 'complete':
             stop_reason = 'child_failed'
+            break
+        if observation is not None and observation['status'] != 'complete':
+            stop_reason = 'process_observation_failed'
             break
     result = {
         'schema_version': 1,

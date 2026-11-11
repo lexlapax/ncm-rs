@@ -921,12 +921,149 @@ artifact/workload schema, pin or numerical-tolerance change occurred. Linux rema
 manifest/entry, runtime library/injection/process evidence and cross-bind the
 collector/supervisor/telemetry/analyzer results before readiness review.
 
+## Owned-child runtime observation — CPU-only validation
+
+`tools/bench/observe_readonly_process.py` supplies an optional bounded-capture
+callback. It inspects only a direct child still held waitable by this collector;
+no ptrace, signalling, injection changes, GPU queries or unrelated-PID inspection.
+The unchanged native benchmark binary is not recompiled. The callback is propagated
+through `run_bounded(observe_child=...)`, `run_sequence(process_observer_factory=...)`
+and `coordinate(process_observer_factory=...)`; a future frozen launch entry must
+construct one observer per job and enable it for **all 12 conditions**.
+
+At most one observation is attempted per 50 ms, including when a trace emits rapid
+stdout chunks. `/proc` reads are bounded (4 MiB maps, 64 KiB environment/command/stat),
+with at most 3,000 samples/observed races, 8 MiB distinct mapping inventory and a
+16 MiB serialized result cap. These are logical/read caps, not RSS or filesystem
+quotas. Each valid sample checks the kernel executable stat against prelaunch
+identity, exact argv/environment equality, process start/parent identity and CPU2
+workload affinity. A declared taskset launcher may exec the declared workload;
+other stable images fail. Changed exec images/argument data, not-yet-installed
+startup fields and proc entries/VMAs disappearing before exit becomes waitable are
+counted as incomplete samples, never combined into a guessed snapshot. At least
+one later complete workload sample remains mandatory. Missing fields after an
+earlier valid sample likewise provide no new evidence; whole-lifetime coverage
+remains false. Access denial before the first complete workload sample is also
+recorded as not-ready, not permission verification; persistent denial cannot
+qualify. After workload observation, access denial fails capture. Stable mismatches
+and limits fail capture and trigger owned-child cleanup; a subsequent child exit
+cannot erase a detected mismatch. Fixed guard failure reasons are retained without
+serializing environment values or unexpected command lines.
+
+Executable file mappings retain kernel-map device/inode, map-file symlink checks
+and current pathname stat device/inode. **Initial real CPU-child tests failed**:
+this host reports device 28 in `/proc/PID/maps` but device 29 via pathname/executable
+stat for the same named inode. A read-only self-process check established that
+map_files symlink readlink works, while stat of the underlying map_files target
+returns `PermissionError`. No privilege escalation, permission or system-policy
+change was attempted. The implementation now explicitly preserves both devices,
+requires the kernel map symlink to match the recorded path and the pathname inode
+to match the map inode, and compares prelaunch identities with pathname metadata.
+It does **not** equate the two device namespaces or claim direct mapped-byte access.
+Unsupported inode translations, deleted/escaped paths and changed identities fail.
+
+Plain conditions fail if the known injection image is observed. Traced conditions
+must observe its matching prelaunch identity during the workload, plus declared
+required library identities. No observation is whole-lifetime absence proof; short
+loads/unloads and anonymous/JIT executable regions are not byte-qualified. Mapping
+inventories preserve non-file executable labels separately. File hashing is not
+done during the workload/full telemetry; the final collector must bind observations
+to prelaunch and **post-collection** file checks and receipt PIDs. Sample overhead
+is part of this diagnostic's conditions, not acceptance timing.
+
+With the hook enabled, captures write `NN-CONDITION.process.json` exclusively. A failed
+observation stops the sequence even if the child exited successfully; there is no
+replacement/retry. Hash/report qualification and whole-run supervision remain
+separate. Results leave `launch_provenance_verified`, `mapped_file_bytes_verified`
+and `whole_lifetime_mapping_coverage` false. The per-job files and enabled-hook
+flags must be cross-bound by the final analyzer/manifest before collection readiness.
+
+Eleven tests use Python children and a read/execute-mapped copy of `/usr/bin/true` as
+an injection **surrogate**, never actual CUPTI. They cover plain/traced mapping
+presence, rate limiting, exact environment/command/image/affinity mismatches,
+unknown PID ownership, read/sample/inventory bounds, malformed/deleted/ambiguous
+maps, distinct device identities, permission failure, changed injection inode,
+missing required libraries, all 12 fresh sequence children, rejecting a factory
+that silently returns None, incomplete proc/exec samples without promoting missing
+evidence, and stopping after an otherwise-successful child's failed observation.
+All children are reaped. This does
+not establish real CUDA process observability or abort behavior.
+
+| Command / retained local log | Result | SHA-256 |
+| --- | --- | --- |
+| `python -m unittest discover -s tools/bench -p test_observe_readonly_process.py -v` → `reports/phase2-readonly-process-observation-tests-v1.log` | Initial mapping-device assumption fails, 5 subcase failures | `06bebb5fed7d5efd025eccfb97a02db9fcb511cf9282042e5515710f995b2383` |
+| Same command → `reports/phase2-readonly-process-observation-tests-v2.log` | 7 tests pass after explicit device separation | `11f1ced10e97a1f9ea80618821ea4160c6e8204902e12d11b24971a3bc0dec95` |
+| Same command → `reports/phase2-readonly-process-observation-tests-v3.log` | 8 tests pass, including device/permission regression | `22bbe4850b0e8e05e341643172a824381e1a71fce75760f7c74647a726e0c3ae` |
+| Same command → `reports/phase2-readonly-process-observation-tests-v4.log` | 9 tests pass, including full fixed sequence | `9184ab9b0bf383f334fd07be54a7d11f168c137db7ab7a5bd509efa923a1cad9` |
+| `CARGO_BUILD_JOBS=4 ./tools/check.sh` → `reports/phase2-readonly-process-observation-check-v1.log` | 192 reporting tests pass | `33fc60544e7f3976cd9a3b905c9297d97181b3325be7bbfda05f2c17798ff2f2` |
+| Same command → `reports/phase2-readonly-process-observation-check-v2.log` | 193 reporting tests pass | `99b00f17a78a7ff4f9a8100a5029b231c45145d9de363cdc4f2e4457bb09cda1` |
+| Same command → `reports/phase2-readonly-process-observation-check-v3.log` | 194 reporting tests pass | `46fbfaa133c070659e3fdb96c045ae9e90b5347cb740b890550afa81eced94d5` |
+
+Follow-up review found that an enabled factory could return None and silently
+skip observations. A mocked no-child regression failed before the fix; every enabled
+job now requires callable observe/finish methods before launch. Log
+`reports/phase2-readonly-process-observation-factory-red-v1.log` (command above with
+`-k enabled_factory`) has SHA-256
+`92672d7ce7d5d5f8c5158ab481bce003567dc2d224e479319a6bf670b54495ad`.
+
+A subsequent focused run failed intermittently despite a passing default suite;
+that was **not** accepted as sufficient evidence. Fixed batches of five CPU-only
+12-child tests (`... -p test_observe_readonly_process.py -k complete_sequence -v`)
+exposed incomplete mappings/environment during exec, then disappearing proc entries
+before exit became waitable. Stable image/environment mismatches still fail; only
+unverifiable partial samples are now explicitly counted without being promoted.
+Deterministic tests keep proc data unavailable for an entire child and verify that
+it cannot pass observation qualification. A final fixed five-case batch passes.
+All 15 batch logs (four failures across the first two batches) are indexed by
+`reports/phase2-readonly-process-observation-race-index-v1.json`, SHA-256
+`a9d8730d290ec79850a4fcb8dc826710570814f8b365133fd0a91104392a042c`.
+These are fixture/supervision tests, not measurement retries or new GPU samples.
+
+| Retained follow-up log (same focused/default commands above) | Result | SHA-256 |
+| --- | --- | --- |
+| `reports/phase2-readonly-process-observation-tests-v5.log` | 10 tests, intermittent full-sequence failure | `50158736c87c46ef0a8f7fc6ca835b3fbb78899a70f2039c230f9f700d054db6` |
+| `reports/phase2-readonly-process-observation-check-v4.log` | 195 tests pass; not enough to resolve intermittent failure | `24f00c91d1c5dabf9c39263c344a4ef0550551044774ef4d323580ad13c9884c` |
+| `reports/phase2-readonly-process-observation-tests-v6.log` | 11 tests pass; separate fixed batch still exposed exit race | `e1c3193ea81418057fa49fbe9d2c807c68b08665efe41c0ddcbac091e6b574dc` |
+| `reports/phase2-readonly-process-observation-check-v5.log` | 196 tests pass; exit handling still under review | `4514395b96bdfbda616e74343e7a8f4395d4e88f080df019f280d5015757750b` |
+| `reports/phase2-readonly-process-observation-tests-v7.log` | 11 tests pass before final guard review | `431c35a8bb5c95660f0ed1f637ec5f3bec361d8919f07a296fa42284a8cb18d5` |
+| `reports/phase2-readonly-process-observation-check-v6.log` | Default check passes, 196 reporting tests | `de5b59bac81a1bdfd6ab0866622929db360040d5b0f2fa0f395b19803d223159` |
+
+Final guard review additionally reproduced that catching **any** error after a
+child exit could erase an already-detected environment/injection mismatch. That
+catch-all was removed; the no-masking regression is retained in the environment
+mismatch test. A later focused run exposed startup `PermissionError`, although its
+full suite passed. Startup denial is now explicitly not-ready and counted; a later
+complete workload observation is mandatory, an entirely denied child fails
+qualification, and denial after a valid workload sample still fails capture. No
+permissions changed and no unavailable data was promoted. The last fixed five-case
+batch passes; all 20 batch logs (including the four earlier failures) are indexed
+in `reports/phase2-readonly-process-observation-race-index-v2.json`, SHA-256
+`b169cd913a01c64dde2e8e69074342cecefa487c705c1aee3a2bfb1840ade160`.
+
+| Final review log | Result | SHA-256 |
+| --- | --- | --- |
+| `reports/phase2-readonly-process-observation-late-exit-red-v1.log` (focused command with `-k mismatch_cancel`) | No-masking regression fails before catch-all removal | `111c6e91991fe298463a5417f141193fd2856c601b3ab724e3ced019ca7e2b13` |
+| `reports/phase2-readonly-process-observation-tests-v8.log` | Startup permission failure retained | `124b55c56fbfc93b107227bd281a12c5e53f3ddf1f2d61bda7353c8dfb5cd14e` |
+| `reports/phase2-readonly-process-observation-check-v7.log` | 196 pass, insufficient alone to resolve startup failure | `c4f17d02a2fd12297a931843ea78c122731806782226acb09394d6876db3a94f` |
+| `reports/phase2-readonly-process-observation-tests-v9.log` | 11 pass, including no-masking and denial regressions | `c005360597be04c0802486b57998e6c23e4d2ccef4e3c3719624d478c9c05dc4` |
+| `reports/phase2-readonly-process-observation-check-v8.log` | Default check: 196 reporting tests pass | `ca3dd541c508f37770c506c26c9baaf727f6f510c3091aba7db16aa2a7e3ca51` |
+| `reports/phase2-readonly-process-observation-tests-v10.log` | Final 11 pass; required-library iterables are snapshotted once, never silently consumed before enforcement | `69c1fd980d8f74dc7ac2372f4ee048c49054df6c923a4c088477445d5dd2bc50` |
+| `reports/phase2-readonly-process-observation-check-v9.log` | Final default check: 196 reporting tests pass | `b2a09e0c6b1a28bd88b78703f250e02cb8b889f6075e3defae6883b46d9dd297` |
+
+Retained local cause inspections: `phase2-readonly-process-observation-debug-v1.log`
+(`0bd1505a64ffae544495ed42070381e97177d970e09d6194391f3cc525762dbe`),
+`-debug-v2.log` (`e7669866a911315e507485ef6b003d0dea600a44f888d640179d55a31af1ad76`),
+and `-mapfiles-v1.log` (`0aca0a2cbfbc0950f009831fa20bcb28d388cdf7f1245366e4281b21dd34035b`),
+all under `reports/`. Only fake child/self-process metadata was inspected. Linux
+remains 72/78; no real GPU/model collection or production/policy change occurred.
+
 ## Launch blockers and outcome rules
 
-This document is **not executable launch readiness**. Offline helpers, the fixed
-sequence primitive and tested child/worker supervisors are prerequisites; the
-integrated coordinator, full telemetry lifecycle, runtime launch/report provenance
-and remaining integration/failure tests are pending.
+This document is **not executable launch readiness**. The coordinator, telemetry
+lifecycle/validator and sampled process observer are tested prerequisites. Frozen
+launch manifest/entry, post-collection file verification, process/report/library
+and supervisor/collector/telemetry cross-bindings, mapping-limitation review and
+remaining integrated failure tests are pending.
 No new capture exists to qualify. The user has chosen the read-only investigation;
 before collection, obtain a fresh quiet 15-minute window after the tested tooling,
 exact frozen manifest and identity checks are ready.

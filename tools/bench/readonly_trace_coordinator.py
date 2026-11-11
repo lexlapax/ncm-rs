@@ -87,7 +87,8 @@ def finish_observer(child, abort):
     return {'verified': True, 'returncode': code, 'kill_escalation': escalated}
 
 
-def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source, gpu_uuid):
+def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source, gpu_uuid,
+               process_observer_factory=None):
     """Start jobs only after readiness; wait for observation after ordinary job failure.
 
     An observer error/exit/deadline, cancellation or coordinator exception stops
@@ -99,6 +100,8 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
             and threading.active_count() == 1 and len(list(Path('/proc/self/task').iterdir())) == 1
             and signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL and not direct_children(),
             'fresh single-threaded Linux coordinator with exclusive reaping required')
+    require(process_observer_factory is None or callable(process_observer_factory),
+            'process_observer_factory must be callable')
     jobs = validate_jobs(jobs)
     directory = Path(output_dir).absolute()
     sequence_dir, telemetry_dir = directory / 'sequence', directory / 'telemetry'
@@ -166,7 +169,8 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
                         if monitor() or time.monotonic() - started >= STARTUP_SECONDS:
                             issue('observer_not_ready_at_launch')
                             break
-                        sequence = run_sequence(jobs, sequence_dir, cancel_check=monitor)
+                        sequence = run_sequence(jobs, sequence_dir, cancel_check=monitor,
+                                                process_observer_factory=process_observer_factory)
                         for job in sequence['jobs']:
                             if job['receipt']['interrupt_signal'] is not None:
                                 interrupted = job['receipt']['interrupt_signal']

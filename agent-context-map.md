@@ -43,9 +43,24 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   tests (virtual-clock serializer, negative cases, archived v2 CPU compatibility and
   exclusive offline CLI) pass; default checks pass **185 reporting tests**. No real
   collection or GPU query occurred. Source/UUID/timezone still need launch binding.
-  Frozen manifest/entry, runtime-library/provenance, supervisor/collector/telemetry
-  cross-bindings and remaining integration tests are pending. Supervisor SIGKILL/host
-  failure cannot guarantee cleanup. Next: finish those bindings, review readiness, then request
+  `observe_readonly_process.py` now samples only owned waitable children: executable
+  inode, expected command/environment equality, affinity and executable mappings.
+  Optional hooks connect bounded capture, sequence and coordinator; observation
+  failure stops later jobs. Eleven CPU-only tests include all 12 fresh children;
+  default checks pass **196 reporting tests**. Initial failures exposed differing
+  kernel-map/path device numbers (28/29): both are now retained, with kernel mapping
+  symlink and path-inode checks, not conflated. Direct map_files stat was denied;
+  no permissions changed. No mapped-byte/whole-lifetime proof is claimed, and no
+  GPU/model run occurred. Follow-up tests fixed silent factory disabling and
+  non-atomic exec/exit snapshots: incomplete samples are counted, never promoted;
+  later complete workload observation remains required. Startup access denial is
+  recorded as not-ready; persistent denial cannot qualify. Detected mismatches
+  cannot be erased by a later child exit. Fixed five-case fake-child batches retain
+  all four earlier race failures and final five passes. Logs and
+  mapping limitations are in the selected protocol.
+  Frozen manifest/entry, post-collection file checks, process/receipt/library and
+  supervisor/collector/telemetry cross-bindings remain pending. Supervisor SIGKILL/
+  host failure cannot guarantee cleanup. Next: finish bindings, review readiness, then request
   fresh availability; no automatic continuation establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
