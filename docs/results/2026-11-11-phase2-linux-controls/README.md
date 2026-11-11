@@ -78,6 +78,41 @@ next diagnostic than assuming GPU clocks explain all six failures. Any later
 system clock intervention still requires explicit permission. The 72/78 result,
 all uncertainty bands, all raw samples and the candidate remain unchanged.
 
+### Read-only CPU telemetry and resource-only refresh
+
+`tools/bench/sample_linux_cpu.py` now captures timestamped Linux CPU tick counters,
+SMT topology, driver-reported frequency, governor identity, system pressure and
+scheduling counters. It reads no process names/command lines and changes no system
+policy. Optional affinity is confined to its own observer process. Missing optional
+counters are labeled unavailable; interrupted files lack a completion record.
+Six regression tests cover parsing, guest-tick accounting, counter decreases,
+invalid settings, SMT placement and incomplete captures; the report suite now has
+**42 passing tests**. This sampler does not certify a quiet window or close a gate.
+
+A subsequent 60-second ambient observation found CPU 2 and CPU 3 are **SMT
+siblings**. CPU 2's non-idle/non-iowait activity had median 6%, maximum 17.65%;
+aggregate activity had median 8.91%. These are new observations, not telemetry
+from the earlier acceptance controls or proof of their cause.
+
+This also identifies a concrete confound in the earlier **resource-only** run:
+the auditor on CPU 3 could contend with workloads on CPU 2. Acceptance timings had
+already finished and are unaffected. A predeclared single refresh retained the
+same 45 jobs, inputs, binaries, CPU 2 affinity and three repeats, with no concurrent
+build/audit/debugger jobs. The observer ran on CPU 0, outside that SMT pair. All
+45 outputs qualify; all binary/job hashes match v1. The completed 301-sample,
+300-second telemetry capture covers the entire collection. Both versions remain.
+
+Refreshed whole-process CPU medians (accepted / candidate / Python milliseconds):
+codec **10329.902 / 9637.959 / 16686.862**; BERT **276.045 / 273.391 / 1527.872**;
+GPT-2 **877.274 / 877.169 / 3139.957**; Qwen **3753.031 / 3592.466 / 9558.362**;
+TinyStories **148.108 / 149.107 / 1872.803**. They remain whole-child diagnostics,
+not request CPU or a new acceptance run. No broad CPU speedup is established.
+The fixed refresh plan, logs, all reports and raw telemetry are preserved in
+`raw/cpu-resource-refresh-v2.tar.xz` (extract under `reports/`).
+
+**Linux remains 72/78.** No clocks/governors/services changed, no unrelated work
+was stopped, and no new acceptance timing matrix or MLX run was performed.
+
 ### Explicit reporting-tool extension
 
 Historical `summarize_codec_load_control.summarize(root, device)` behavior remains

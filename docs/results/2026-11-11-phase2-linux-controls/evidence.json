@@ -10,11 +10,15 @@
     "tools/bench/gdb_codec_metadata.py": "d9ac7011c71c71e3f52bf6a6b3f4694965d243c3e9d369c1d6403c3da09e653d",
     "tools/bench/test_gdb_codec_metadata.py": "e264650e0bf6b78be1cc2ce5338a92a62501d39aaf48a19b0a88885d287a7bce",
     "crates/ncm-backend-cuda/examples/codec_memory.rs": "6f4a6b4edc14ce3f0f4ad849b939565853633f1adb8bfebe105826fb9c29b901",
-    "crates/ncm-backend-cuda/Cargo.toml": "0a7c8403ea39af3a165e601341ce40e0ad2754038b8dc34a459209136a31de7f"
+    "crates/ncm-backend-cuda/Cargo.toml": "0a7c8403ea39af3a165e601341ce40e0ad2754038b8dc34a459209136a31de7f",
+    "tools/bench/sample_linux_cpu.py": "5cddef515c31008328c4a3315910b5d3da9a70f80568a9bc65f695d9d1b41569",
+    "tools/bench/test_linux_cpu_telemetry.py": "184b303aa166746dbd10cd8cd88ee094ebae5892e1460f4aa4d594cd1e8b254c"
   },
   "files_sha256": {
     "raw/linux-controls-v1.tar.xz": "618e1237c18ce57d8144d9622d3a44fe3b16a106592715566116761d9513ef31",
-    "summary.json": "c89b6f14b91c4d5770203b6208e51cc723815d94535a783a17510175799ec0be"
+    "summary.json": "c89b6f14b91c4d5770203b6208e51cc723815d94535a783a17510175799ec0be",
+    "raw/ambient-cpu-v1.jsonl.gz": "7e116cc17dc03e284aaf4896493efb83aa2ec3888476483808ebd0d2f06bb862",
+    "raw/cpu-resource-refresh-v2.tar.xz": "16191343e6e30d95b7a4fb452335451d7d23d3abb82659a8c6c9d462ed3fd3a0"
   },
   "benchmark_binary_sha256": {
     "previous": {
@@ -37,5 +41,31 @@
     "GDB instrumentation is allocation-entry attribution, not wall-time evidence.",
     "Shared-target stale-build incident occurred after timing/resource collection; candidate restored by clean package rebuild and exact binary hashes.",
     "Public raw-upload API remains unchanged/unapproved; no Apple run."
-  ]
+  ],
+  "ambient_cpu_observation": {
+    "benchmark_running": false,
+    "acceptance_evidence": false,
+    "samples": 61,
+    "target_cpu": 2,
+    "smt_siblings": [
+      2,
+      3
+    ],
+    "observer_affinity": [
+      0
+    ],
+    "raw_sha256": "2c7d46fd54260f733776abc91b6d1243d79910b7a1dfb60d8c962eb87c80697d",
+    "scope": "Read-only subsequent ambient observation; not telemetry from the earlier timing controls."
+  },
+  "resource_refresh": {
+    "acceptance_evidence": false,
+    "processes": 45,
+    "outputs_qualified": true,
+    "same_jobs_and_binaries_as_v1": true,
+    "telemetry_samples": 301,
+    "entire_job_interval_covered": true,
+    "summary_in_archive": "phase2-cpu-telemetry-v1/refresh-summary.json",
+    "reason": "Eliminate known observer-on-SMT-sibling contention in resource-only collection; preserve v1.",
+    "remaining_gate": "Linux 72/78; not changed by these diagnostics."
+  }
 }

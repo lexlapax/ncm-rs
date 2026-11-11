@@ -8,6 +8,11 @@ costs throughout; disposition conditional opportunities and publish a verified
 final candidate. Phase 3, generator/CLI work and a licensed inference release are
 outside this objective. An uncertain or missing gate is not achieved.
 
+Work is stopped for handoff at the user's request; see [continuation notes](HANDOFF.md).
+The resource-only CPU observer placement was corrected in a fixed 45-job refresh,
+with complete read-only telemetry and qualified outputs. No acceptance failure was
+waived: Linux remains 72/78 and Apple work remains pending.
+
 Contract: [approved five-step plan](../../PHASE2-OPTIMIZATION-REVIEW.md),
 [locked limits](acceptance-v1.json), [experiment ledger](experiments.json).
 

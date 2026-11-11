@@ -138,6 +138,19 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   tests pass. No new runs or policy changes.
   Do not change clocks/power/services or stop unrelated work without approval.
   No Apple run yet.
+- **Stopped for handoff at the user's request; expanded Phase 2 is not complete.**
+  Read [continuation notes](docs/results/2026-11-11-phase2-optimization/HANDOFF.md)
+  before resuming. Latest addition is the read-only Linux CPU sampler and six
+  tests (42 report tests total). Ambient observation identifies CPU 2/3 as SMT
+  siblings; CPU-3 auditor overlap confounded the earlier resource-only run, not
+  acceptance timings. One predeclared resource refresh used the same 45 jobs/
+  binaries/inputs with observer CPU 0 and no concurrent analysis/build/debugger
+  work. All outputs qualify, and 301 telemetry samples cover the entire run.
+  New raw archive/report is linked from the Linux controls report; v1 is retained.
+  No policy, production, public loader API or acceptance-gate change. Linux stays
+  72/78; MLX remains blocked. No background collection is left running. `.pi/`
+  remains intentionally untracked. Next: quiet/read-only-instrumented Linux
+  investigation, then remaining completion-audit requirements; do not mark complete.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2
