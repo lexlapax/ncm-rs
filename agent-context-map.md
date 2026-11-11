@@ -17,8 +17,16 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 121 reporting tests (logs in
   the [selected read-only protocol](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-proposal.md)).
   This import-only primitive is not a launch-ready collector or identity proof.
-  Next: whole-run supervision, frozen identity/injection/affinity/telemetry and
-  same-child trace/report integration, then readiness review and fresh availability.
+  Collector-side report receipts now bind an optional fresh report's post-exit
+  path/device/inode/size/hash alongside the PID/argv/capture hash, reject missing,
+  empty/oversized/nonregular/symlink/visibly replaced reports, and use unique
+  sequence-owned report names. Ten new offline tests pass; latest default check
+  passes **131 reporting tests**. The 16 MiB report cap bounds post-exit reads,
+  not live disk writes. Freshness/hash checks are not independent producer proof;
+  frozen executable provenance and codec qualification remain separate.
+  Next: connect receipt hashes/trace PID to the binder/qualifier, whole-run
+  supervision, frozen identity/injection/affinity/telemetry integration, then
+  readiness review and fresh availability.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

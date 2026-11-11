@@ -72,9 +72,14 @@ the original environment-bearing red log is restricted/unpublished. It is not a 
 launcher or containment for collector SIGKILL/escaped descendants. A subsequent
 import-only `readonly_trace_sequence.py` adds fixed order, exclusive plan/output,
 shared deadline, streaming aggregate cap and free-space checks with nine offline
-tests; default checks now pass 121 reporting tests. These primitives do not replace
-whole-run supervision, telemetry/affinity, frozen identities or integrated
-launch/report provenance, which remain pending. Selection is resolved; tooling
+tests. Optional collector-side report receipts now bind fresh report hashes with
+PID/argv/capture hashes; missing/nonregular/oversized/visibly changing reports fail.
+Sequence report paths are unique and prevalidated. Ten new offline tests cover
+this integration; latest default checks pass 131 reporting tests. The report read
+cap is not a live disk quota. No independent producer identity or output quality
+is established by these receipts. Connect them to the binder/qualifier next;
+whole-run supervision, telemetry/affinity, frozen identities and integrated
+launch/report provenance also remain pending. Selection is resolved; tooling
 readiness and a fresh quiet window still block launch. Neither proposal is ready
 to execute. No new measurements or settings changes occurred.
 

@@ -422,6 +422,49 @@ Focused command: `python -m unittest discover -s tools/bench -p test_readonly_tr
 `reports/phase2-readonly-sequence-check-v1.log`, SHA-256
 `f610318acd2c7afc03c1758ad7d14acab70cb7f1d6a309c5e912d012435c49ff`.
 
+## Collector-side report receipts
+
+The child primitive now optionally records a report file's path, inode/device,
+size and SHA-256 in the same receipt as the child's PID, exact argv and merged
+capture hash. The report must be an absent absolute argv argument beside the
+capture, distinct from collector outputs. After a successful exit and capture,
+only a nonempty regular non-symlink file of at most 16 MiB is read, using a bounded
+streaming hash; descriptor/path metadata changes while hashing fail. FIFOs are
+opened nonblocking and rejected, not allowed to hang report collection. A missing,
+oversized, empty, symlink or visibly replaced report makes the receipt fail even
+if the child exited zero. Failed children retain partial files without promoting
+them to verified report captures. Restored signal handlers remain effective during
+post-exit hashing; interrupts are not swallowed to manufacture a complete receipt.
+
+The sequence supports these optional report outputs at unique predetermined
+`NN-CONDITION.report.json` paths, validated for all jobs before any launch. Tests
+exercise all 12 fake CPU producers and reject duplicate report destinations.
+Eight additional report-receipt tests cover the file/hash/path/failure cases;
+two sequence tests cover integration. No actual codec report or GPU trace was
+collected. Both fresh-report absence and post-exit hashes are integrity evidence,
+**not independent producer identity, executable provenance or output quality**.
+Trusted directories with no concurrent external writers remain required; metadata
+checks are not an adversarial snapshot. The report cap bounds post-exit reads,
+not live child disk writes, and is separate from the streaming trace cap. Complete
+frozen-command/identity preflight must therefore precede using this interface.
+
+Validation actually run:
+
+- `python -m unittest discover -s tools/bench -p 'test_bounded*.py' -v` (22 pass),
+  then `python -m unittest discover -s tools/bench -p test_readonly_trace_sequence.py -v`
+  (11 pass). Local combined log `reports/phase2-readonly-report-receipt-tests-v1.log`,
+  SHA-256 `8b5758b103a684854d7873e0e9c2c48e76a61129bc929e253c04ca948d923470`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes with **131 reporting tests** after
+  recording the report limit explicitly in receipts. Local final log
+  `reports/phase2-readonly-report-receipt-check-v2.log`, SHA-256
+  `ab67bc663f90076cf9b63ad6ea2401bda775b85f8d9d159bac5a128573a65bda`.
+
+Next: connect collected trace PID/report hashes to the existing ordinal binder
+and output qualifier, bind frozen executable/input/library identities, and finish
+whole-run supervision and telemetry/affinity integration. These receipts alone do
+not resolve those launch blockers or authorize treating diagnostic timings as
+acceptance evidence.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers and a tested

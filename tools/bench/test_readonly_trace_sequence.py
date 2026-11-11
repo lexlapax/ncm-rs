@@ -43,6 +43,31 @@ class SequenceTests(unittest.TestCase):
         self.assertEqual(plan['sequence_seconds'], 600)
         self.assertEqual(plan['child_seconds'], 120)
 
+    def test_sequence_reports_get_distinct_paths_and_receipt_hashes(self):
+        for ordinal, job in enumerate(self.jobs, 1):
+            report = self.output / f'{ordinal:02d}-{job["condition"]}.report.json'
+            job['report_path'] = str(report)
+            job['argv'] = [sys.executable, '-c',
+                           'import pathlib,sys; pathlib.Path(sys.argv[1]).write_text("{}"); print("trace")',
+                           str(report)]
+        result = sequence.run_sequence(self.jobs, self.output)
+        self.assertEqual(result['status'], 'complete')
+        reports = [j['receipt']['report_capture'] for j in result['jobs']]
+        self.assertEqual(len({r['path'] for r in reports}), 12)
+        self.assertTrue(all(r['post_exit_hash_verified'] for r in reports))
+        self.assertTrue(all(not r['producer_identity_verified'] for r in reports))
+
+    def test_duplicate_report_destination_rejected_before_sequence(self):
+        report = str(self.output / '01-AP.report.json')
+        for job in self.jobs:
+            job['report_path'] = report
+            job['argv'].append(report)
+        with patch.object(sequence, 'run_bounded') as child:
+            with self.assertRaisesRegex(ValueError, 'unique sequence-owned'):
+                sequence.run_sequence(self.jobs, self.output)
+            child.assert_not_called()
+        self.assertFalse(self.output.exists())
+
     def test_validate_all_before_any_launch_or_output(self):
         for modification in ('order', 'count', 'argv', 'env', 'cwd', 'extra'):
             jobs = sequence.validate_jobs(self.jobs)

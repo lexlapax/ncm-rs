@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import selectors
 import signal
+import stat
 import subprocess
 import sys
 import threading
@@ -22,14 +23,50 @@ def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
+def fingerprint_report(path, limit_bytes):
+    """Bounded post-exit hash of a regular, non-symlink report in a trusted directory.
+
+    No live disk quota or independent proof of the file's producer is implied.
+    Refuse FIFOs/devices and visible mutation while reading. Caller must prevent
+    concurrent external writers; metadata checks are not an adversarial snapshot.
+    """
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= limit_bytes:
+            raise ValueError('report must be a nonempty bounded regular file')
+        digest = hashlib.sha256()
+        size = 0
+        while chunk := os.read(fd, min(65536, limit_bytes + 1 - size)):
+            size += len(chunk)
+            if size > limit_bytes:
+                raise ValueError('report exceeds byte limit')
+            digest.update(chunk)
+        after = os.fstat(fd)
+        fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns')
+        current = os.stat(path, follow_symlinks=False)
+        if size != before.st_size or any(getattr(before, k) != getattr(s, k)
+                                        for s in (after, current) for k in fields):
+            raise ValueError('report changed while hashing')
+        return {'path': str(path), 'size_bytes': size, 'sha256': digest.hexdigest(),
+                'device': before.st_dev, 'inode': before.st_ino,
+                'post_exit_hash_verified': True, 'producer_identity_verified': False}
+    finally:
+        os.close(fd)
+
+
 def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
-                output_limit_bytes, sequence_deadline=None):
+                output_limit_bytes, sequence_deadline=None, report_path=None,
+                report_limit_bytes=16 * 1024 ** 2):
     """Capture one owned session; return a failure receipt rather than retry.
 
     SIGINT/SIGTERM temporarily belong to this main-thread collector and result in
     an interrupted receipt. The caller MUST stop its sequence for any non-complete
     status. Only the direct child is waitable/reaped; no escaped-descendant or
     workload-completion guarantee is made. Existing paths are never overwritten.
+    Optional report_path must be an absent absolute argv argument beside capture;
+    its post-exit hash is bound into the receipt, not proof of producer/quality.
+    Its size limit bounds post-exit reading, NOT the child's live disk writes.
     """
     if sys.platform != 'linux' or not hasattr(os, 'WNOWAIT'):
         raise ValueError('Linux waitid(WNOWAIT) is required')
@@ -54,6 +91,18 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     capture_path, receipt_path = Path(capture_path), Path(receipt_path)
     if capture_path.resolve() == receipt_path.resolve():
         raise ValueError('capture and receipt must be separate files')
+    if report_path is not None:
+        if type(report_limit_bytes) is not int or report_limit_bytes <= 0:
+            raise ValueError('invalid report limit')
+        report_path = Path(report_path)
+        if not report_path.is_absolute() or str(report_path) not in argv:
+            raise ValueError('report must be an explicit absolute argv argument')
+        if report_path.parent.resolve(strict=True) != capture_path.parent.resolve(strict=True):
+            raise ValueError('report must be beside the capture in a trusted directory')
+        if report_path.resolve() in (capture_path.resolve(), receipt_path.resolve()):
+            raise ValueError('report and collector outputs must be separate files')
+        if os.path.lexists(report_path):
+            raise ValueError('report path already exists')
 
     child = None
     interrupted = None
@@ -196,6 +245,15 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         issue('interrupted')
                     if returncode not in (None, 0):
                         issue('nonzero_exit')
+                    report_capture = None
+                    if report_path is not None:
+                        report_capture = {'path': str(report_path), 'post_exit_hash_verified': False,
+                                          'producer_identity_verified': False}
+                        if not issues and child_reaped and eof:
+                            try:
+                                report_capture = fingerprint_report(report_path, report_limit_bytes)
+                            except (OSError, ValueError) as error:
+                                issue('report_error:' + type(error).__name__)
                     result = {
                         'schema_version': 1, 'status': 'complete' if not issues and child_reaped and eof else 'failed',
                         'issues': issues, 'argv': list(argv), 'cwd': str(cwd),
@@ -208,6 +266,8 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         'group_kill': group_kill, 'direct_child_reaped': child_reaped,
                         'interrupt_signal': interrupted, 'workload_output_qualified': False,
                         'executable_identity_verified': False,
+                        'report_capture': report_capture,
+                        'report_limit_bytes': report_limit_bytes if report_path is not None else None,
                         'scope': 'Direct-child exit and bounded merged stdout/stderr only; not workload '
                                  'qualification, launch identity proof, or escaped-descendant containment.',
                     }

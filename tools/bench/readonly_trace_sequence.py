@@ -29,7 +29,9 @@ def validate_jobs(jobs):
         raise ValueError('exactly twelve jobs required')
     validated = []
     for expected, job in zip(ORDER, jobs):
-        if not isinstance(job, dict) or set(job) != {'condition', 'argv', 'cwd', 'env'}:
+        if not isinstance(job, dict) or set(job) not in (
+                {'condition', 'argv', 'cwd', 'env'},
+                {'condition', 'argv', 'cwd', 'env', 'report_path'}):
             raise ValueError('invalid job fields')
         if job['condition'] != expected:
             raise ValueError('fixed AP/CP/AT/CT order required')
@@ -44,7 +46,13 @@ def validate_jobs(jobs):
         cwd = Path(job['cwd']).resolve(strict=True)
         if not cwd.is_dir():
             raise ValueError('cwd must be a directory')
-        validated.append(dict(condition=expected, argv=list(argv), cwd=str(cwd), env=dict(env)))
+        copied = dict(condition=expected, argv=list(argv), cwd=str(cwd), env=dict(env))
+        if 'report_path' in job:
+            path = Path(job['report_path'])
+            if not path.is_absolute() or str(path) not in argv:
+                raise ValueError('report must be an explicit absolute argv argument')
+            copied['report_path'] = str(path)
+        validated.append(copied)
     return validated
 
 
@@ -58,6 +66,11 @@ def run_sequence(jobs, output_dir):
     """
     jobs = validate_jobs(jobs)
     output_dir = Path(output_dir)
+    for ordinal, job in enumerate(jobs, 1):
+        if 'report_path' in job:
+            expected = output_dir.resolve() / f'{ordinal:02d}-{job["condition"]}.report.json'
+            if Path(job['report_path']) != expected:
+                raise ValueError('report must use its unique sequence-owned path')
     # Parent must exist; do not implicitly create an arbitrary directory tree.
     if shutil.disk_usage(output_dir.parent).free < MIN_FREE_BYTES:
         raise ValueError('at least 12 GiB free required before sequence')
@@ -70,7 +83,8 @@ def run_sequence(jobs, output_dir):
         'sequence_seconds': SEQUENCE_SECONDS, 'child_seconds': CHILD_SECONDS,
         'capture_limit_bytes': CAPTURE_BYTES, 'total_limit_bytes': TOTAL_BYTES,
         'minimum_initial_free_bytes': MIN_FREE_BYTES,
-        'jobs': [dict(ordinal=i, condition=j['condition'], argv=j['argv'], cwd=j['cwd'])
+        'jobs': [dict(ordinal=i, condition=j['condition'], argv=j['argv'], cwd=j['cwd'],
+                      report_path=j.get('report_path'))
                  for i, j in enumerate(jobs, 1)],
     }
     with (output_dir / 'sequence-plan.json').open('x') as file:
@@ -98,7 +112,7 @@ def run_sequence(jobs, output_dir):
             capture_path=output_dir / (prefix + '.capture'),
             receipt_path=output_dir / (prefix + '.receipt.json'),
             timeout_seconds=CHILD_SECONDS, sequence_deadline=deadline,
-            output_limit_bytes=min(CAPTURE_BYTES, remaining))
+            output_limit_bytes=min(CAPTURE_BYTES, remaining), report_path=job.get('report_path'))
         used += receipt['captured_bytes']
         receipts.append(dict(ordinal=ordinal, condition=job['condition'], receipt=receipt))
         if receipt['status'] != 'complete':
