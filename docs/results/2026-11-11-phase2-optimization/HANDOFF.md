@@ -57,8 +57,11 @@ policy, not inference from sampled clocks.
 The alternative [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
 defines 12 fixed native processes (plain/traced), unchanged frozen executables,
 strict time/output bounds and B1 trial-attribution checks. Offline inspection of
-three historical B4 traces found the expected 36 two-event/query windows, not a
-new B1 capture or validated analyzer. Required parser/runner tests are absent;
+three historical B4 traces found the expected 36 two-event/query windows. A new
+offline host-boundary helper has 14 tests, including archived B4 fixtures and a
+synthetic full schedule; default checks pass with 62 report tests. Large fixture
+parsing is child-isolated after an inherited-RSS test failure; both logs are
+retained. Kernel/copy attribution and the collection runner/tests remain absent;
 user investigation choice and a new quiet window remain launch blockers. Neither
 proposal is ready to execute. No new measurements or settings changes occurred.
 

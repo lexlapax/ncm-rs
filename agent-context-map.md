@@ -226,6 +226,17 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   change; parser/runner and required tests are not implemented. Next: user choice,
   implement/test the selected diagnostic, then obtain a fresh quiet window and
   bind launch prerequisites. Linux remains 72/78; no acceptance or Apple progress.
+- Offline boundary prerequisite implemented in `tools/bench/cupti_trace_boundaries.py`
+  with 14 tests: strict DRIVER syntax/counts/order/identity, source-assumed layout,
+  exclusive outputs, synthetic full schedule and all three published B4 captures.
+  This validates host boundaries only, NOT kernel/copy records, launch correlation,
+  output qualification or capture completeness. Remaining analyzer/runner/tests
+  and user choice/quiet window still block launch; no new measurements/settings.
+  `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes with 62 reporting tests. Initial full
+  check failed inherited-RSS isolation after large fixtures increased parent RSS;
+  moved archive parsing to a child, preserved the existing resource assertion.
+  Failed/passing logs and hashes are in the read-only proposal. Docs diff/link
+  checks pass. Linux remains 72/78; Apple and completion remain pending.
 - Within EVERY phase: finish Linux/CUDA work and validation, then macOS/MLX.
   Both gates before advancing. Phase 3 generator/CLI work is out of this goal.
 - Phase 1 is complete on both platforms ([acceptance](docs/PHASE1.md)). Phase 2

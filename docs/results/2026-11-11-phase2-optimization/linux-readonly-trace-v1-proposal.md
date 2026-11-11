@@ -111,10 +111,46 @@ captures as a separately labeled historical fixture, not evidence of B1 behavior
 A runner additionally needs fake-child success/failure/timeout/size-limit/interrupt
 and owned-child cleanup tests. No real benchmark is a substitute for these tests.
 
+## Offline tooling progress — boundary structure only
+
+`tools/bench/cupti_trace_boundaries.py` now validates DRIVER interval syntax,
+correlation uniqueness, single-process/thread attribution, query/event counts and
+the ordered two-event prefix. It sorts timestamps rather than trusting print order.
+Layouts distinguish the historical 36-window B4 captures from the source-derived
+2,008-query / 145-prefix full codec schedule. Output includes source-assumed labels,
+input/tool hashes and explicit scope limitations; output creation is exclusive.
+It **does not parse or validate kernel/copy activity**, match launches, qualify
+benchmark outputs, prove capture completeness, or authorize execution.
+
+Fourteen tests in `tools/bench/test_cupti_trace_boundaries.py` cover the synthetic
+full schedule and malformed/missing/duplicate/overlapping boundaries, wrong layouts,
+multiple processes/threads, dropped-record messages, shuffled print order and CLI
+output guards. All three published historical B4 trace hashes and 36-window layouts
+verify; each is rejected as a full B1-layout capture. Kernel overlap/stream/copy
+attribution tests and the bounded collection runner remain unimplemented.
+
+Validation: `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes, including **62 reporting
+tests**. The first full check failed an existing child-RSS test: parsing large
+archive fixtures in the suite process raised its inherited pre-exec RSS floor
+(`76410880 not greater than 86949888`). Archive validation now runs in a separate
+child; the existing resource assertion is unchanged. The corrected full check
+passes. This is a test-isolation fix, not a benchmark retry or memory improvement.
+Both local logs are retained:
+
+- `reports/phase2-readonly-boundary-preparation-v1-check.log` (failed), SHA-256
+  `6e36da8a179d69a520f35b32cfe18d4028fa62061e56a037fc034a848c31a59c`.
+- `reports/phase2-readonly-boundary-preparation-v2-check.log` (passed), SHA-256
+  `7a2bb8bc7265cebeed1ee7b170c310a85bd37bd3518191af58f3c8c573dcf060`.
+
+Reproduce the focused offline checks with
+`python -m unittest discover -s tools/bench -p test_cupti_trace_boundaries.py -v`.
+No GPUs, model weights, ignored traces or Python model packages are required.
+
 ## Launch blockers and outcome rules
 
-This document is **not executable launch readiness**. No full-harness B1 trace
-parser/runner or its required tests exist yet. Before collection, the user must
+This document is **not executable launch readiness**. The host-boundary helper
+is only one prerequisite; the full kernel/copy attribution analyzer, collection
+runner and remaining required tests do not exist yet. Before collection, the user must
 choose the read-only investigation and confirm a fresh quiet 15-minute window;
 the tested tooling, exact frozen manifest and identity checks must also be ready.
 No extra profiling permissions, system installation or CUPTI replacement may be
