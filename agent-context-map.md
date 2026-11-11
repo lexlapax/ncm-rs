@@ -227,17 +227,18 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   implement/test the selected diagnostic, then obtain a fresh quiet window and
   bind launch prerequisites. Linux remains 72/78; no acceptance or Apple progress.
 - Offline prerequisites under `tools/bench/`: `cupti_trace_boundaries.py`,
-  `cupti_kernel_windows.py`, `bind_cupti_trials.py`, 37 tests covering strict host
-  boundaries, DRIVER/RUNTIME kernel correlation, overlap arithmetic, source/hash/
-  PID declarations and ordinal joins. Synthetic full-layout coverage is not a
-  real current B1 trace. All three old B4 captures map 972 kernels to 36 windows;
-  retained-B4 report first/30-trial timing joins match exactly. Warmup timings
-  were not serialized and stay null. Byte declarations do not prove same-child
-  launch provenance or output quality. Non-kernel activity stays unattributed;
-  copy attribution, actual launch/report provenance, output qualification,
-  completeness and runner/tests remain pending. User choice/quiet window still
-  block launch; no new measurements/settings. `CARGO_BUILD_JOBS=4 ./tools/check.sh`
-  passes with 85 reporting tests. Initial
+  `cupti_kernel_windows.py`, `bind_cupti_trials.py`, 46 tests covering strict host
+  boundaries, DRIVER/RUNTIME kernel/copy/memset correlation, overlap arithmetic,
+  source/hash/PID declarations and ordinal joins. Synthetic full-layout coverage
+  is not a real current B1 trace. Each old B4 capture maps 972 kernels, 396 copies
+  and 72 memsets to 36 windows; retained-B4 first/30-trial timing joins match
+  exactly. Warmup timings were not serialized and stay null. Byte declarations do not prove same-child
+  launch provenance or output quality. Bookkeeping/overhead stays unattributed;
+  actual launch/report provenance, output qualification, completeness and
+  runner/tests remain pending. User choice/quiet window still block launch; no new measurements/settings. `CARGO_BUILD_JOBS=4 ./tools/check.sh`
+  passes with 94 reporting tests. Supported memory activities are matched in both
+  directions; unknown/ambiguous/cross-window records fail, overlap is not counted
+  twice, and equal-timestamp host records sort deterministically. Initial
   boundary-suite check failed inherited-RSS isolation; archive work now runs in
   a child, preserving the existing resource assertion. Kernel prototype initially
   missed RUNTIME launches; retained fixtures exposed both variants, now tested.

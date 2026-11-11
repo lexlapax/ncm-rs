@@ -226,11 +226,51 @@ Commands actually run:
   Local log `reports/phase2-readonly-binding-check-v1.log`, SHA-256
   `5c75f548852c238c74e3571c196d939079ce044ff8bc55755678b7775ad89de4`.
 
+## Offline copy and memset correlation
+
+The kernel-window helper now also parses supported `MEMCPY` / `MEMSET` records,
+including bytes, direction/kinds or fill value, interval, correlation and
+non-graph device/context/stream identity. It requires a corresponding supported
+host API and matches selected memory calls/activities in both directions. Missing,
+duplicate, ambiguous, cross-window or incompatible-stream records fail, as do
+unsupported copy counts, directions, kinds, APIs and graph provenance. Supported
+formats come from the inspected retained traces, not an assumed universal CUPTI
+parser. Unknown formats do not silently fall back to timing-only attribution.
+
+The three historical B4 captures each contain **396 HTOD copies and 72 memsets**
+within the same 36 windows as their 972 kernels. Those operations were previously
+preserved as unattributed headers; they are now separately correlated. This is
+another reason kernel-hull gaps must not be labeled CPU overhead or device idle
+time. It is not new current-B1 evidence or a diagnosis of its timing clusters.
+
+Output preserves kernel-only metrics and adds memory activities and a combined
+kernel/copy/memset interval union/hull. Overlap is not double-counted. Memory
+bookkeeping, profiler overhead and other timestamped records remain explicitly
+unattributed. `activity_attribution_complete` remains false; no counter proves
+capture completeness, output quality or launch provenance. Equal-timestamp host
+records now have deterministic tie ordering for offline reproduction.
+
+Nine new regression tests (23 kernel-helper tests total) cover copy directions,
+DRIVER/RUNTIME memsets, invalid size/duration/count/kinds, missing/duplicate/wrong
+correlations, stream/graph/boundary rejection, unknown APIs and tie ordering. The
+archived B4 tests verify all kernel/copy/memset counts; synthetic union tests retain
+separate kernel and combined coverage. All original trace/report records remain
+untouched. No collection or policy change occurred.
+
+Commands actually run:
+
+- `python -m unittest discover -s tools/bench -p test_cupti_kernel_windows.py -v`:
+  23 tests pass. Local log `reports/phase2-readonly-memory-tests-v1.log`, SHA-256
+  `7e5dc72b244110b38c6fa214162cceb7a20a900b1142b7bb6e4c8afea4d499b5`.
+- `CARGO_BUILD_JOBS=4 ./tools/check.sh`: passes, including **94 reporting tests**.
+  Final local log `reports/phase2-readonly-memory-check-v2.log`, SHA-256
+  `652ee458d11a9bc9c74ac537d7e4e7b70b996b74f6d10da4bdfa4ae474bb9b00`.
+
 ## Launch blockers and outcome rules
 
 This document is **not executable launch readiness**. Offline helpers are only
-prerequisites; copy attribution, output qualification, actual launch/report
-provenance, the collection runner and remaining tests are pending. Before collection, the user must
+prerequisites; output qualification, actual launch/report provenance, the collection
+runner and remaining tests are pending. Before collection, the user must
 choose the read-only investigation and confirm a fresh quiet 15-minute window;
 the tested tooling, exact frozen manifest and identity checks must also be ready.
 No extra profiling permissions, system installation or CUPTI replacement may be

@@ -36,6 +36,27 @@ def encode(rows):
     return ('\n'.join(rows) + '\n').encode()
 
 
+def memory_records(kind='MEMCPY', direction='HTOD', start=14, end=17, runtime=False):
+    device = ('\n\tdeviceId 0, contextId 1, streamId 13, graphId 0, graphNodeId 0, '
+              'channelId 1, channelType COMPUTE')
+    if kind == 'MEMCPY':
+        api, source, target = {
+            'HTOD': ('cuMemcpyHtoDAsync_v2', 'PAGEABLE', 'DEVICE'),
+            'DTOH': ('cuMemcpyDtoHAsync_v2', 'DEVICE', 'PINNED'),
+            'DTOD': ('cuMemcpyDtoDAsync_v2', 'DEVICE', 'DEVICE'),
+        }[direction]
+        activity = (f'MEMCPY "{direction}" [ {start}, {end} ] duration {end-start}, size 4, '
+                    f'copyCount 1, srcKind {source}, dstKind {target}, correlationId 4000')
+    else:
+        api = 'cudaMemsetAsync_v3020' if runtime else 'cuMemsetD8Async'
+        activity = (f'MEMSET [ {start}, {end} ] duration {end-start}, value 0, '
+                    'size 4, correlationId 4000')
+    host = launch(12, 13, 4000, api)
+    if runtime:
+        host = host.replace('DRIVER', 'RUNTIME', 1)
+    return [host, activity + device]
+
+
 def archived_results():
     root = Path(__file__).resolve().parents[2] / 'docs/results/2026-11-10-phase2-cuda-remediation'
     rows = []
@@ -48,6 +69,9 @@ def archived_results():
                          'expected_sha256': expected['trace_sha256'],
                          'windows': len(report['windows']),
                          'kernels': sum(len(w['kernels']) for w in report['windows']),
+                         'memory_counts': {kind: sum(a['kind'] == kind for w in report['windows']
+                                                    for a in w['memory_activity'])
+                                           for kind in ('MEMCPY', 'MEMSET')},
                          'expected_kernels': expected['totals']['CONCURRENT_KERNEL']['count'],
                          'complete': report['activity_attribution_complete']})
     return rows
@@ -157,20 +181,106 @@ class KernelWindowTests(unittest.TestCase):
             summarize(encode(fixture()), 'historical-block4')
 
     def test_copies_overhead_memory_and_unknown_activity_are_not_hidden(self):
+        device = ('\n\tdeviceId 0, contextId 1, streamId 13, graphId 0, graphNodeId 0, '
+                  'channelId 1, channelType COMPUTE')
         rows = records() + [
-            'MEMCPY "HTOD" [ 14, 17 ] duration 3, size 4, correlationId 4000',
-            'MEMSET [ 15, 17 ] duration 2, bytes 4',
+            launch(12, 13, 4000, 'cuMemcpyHtoDAsync_v2'),
+            'MEMCPY "HTOD" [ 14, 17 ] duration 3, size 4, copyCount 1, srcKind PAGEABLE, '
+            'dstKind DEVICE, correlationId 4000' + device,
+            launch(13, 14, 4001, 'cuMemsetD8Async'),
+            'MEMSET [ 15, 17 ] duration 2, value 0, size 4, correlationId 4001' + device,
             'OVERHEAD CUPTI_INSTRUMENTATION [ 15, 19 ] duration 4, THREAD, id 2',
             'MEMORY2 [ 16 ] memoryOperationType ALLOCATION, size 4',
             'OTHER_ACTIVITY [ 17, 19 ] duration 2, unknown detail',
         ]
         row = summarize(encode(rows), 'historical-block4')['windows'][0]
         self.assertEqual({x['kind'] for x in row['unattributed_activity']},
-                         {'MEMCPY', 'MEMSET', 'OVERHEAD', 'MEMORY2', 'OTHER_ACTIVITY'})
+                         {'OVERHEAD', 'MEMORY2', 'OTHER_ACTIVITY'})
+        self.assertEqual({a['kind'] for a in row['memory_activity']}, {'MEMCPY', 'MEMSET'})
         self.assertEqual(row['kernel_union_ns'], 3)
+        self.assertEqual(row['device_activity_union_ns'], 4)
         for suffix in ('MEMCPY malformed', 'MEMCPY "HTOD" [ 15, 17 ] duration 3, size 4'):
             with self.subTest(suffix=suffix), self.assertRaises(ValueError):
                 summarize(encode(records() + [suffix]), 'historical-block4')
+
+    def test_copy_directions_and_memset_driver_runtime(self):
+        for direction in ('HTOD', 'DTOH', 'DTOD'):
+            with self.subTest(direction=direction):
+                row = summarize(encode(records() + memory_records(direction=direction)),
+                                'historical-block4')['windows'][0]
+                self.assertEqual(row['memory_activity'][0]['direction'], direction)
+                self.assertEqual(row['memory_activity'][0]['bytes'], 4)
+                self.assertEqual(row['device_activity_union_ns'], 4)
+                self.assertEqual(row['device_activity_hull_uncovered_ns'], 0)
+        for runtime in (False, True):
+            row = summarize(encode(records() + memory_records('MEMSET', runtime=runtime)),
+                            'historical-block4')['windows'][0]
+            self.assertEqual(row['memory_activity'][0]['kind'], 'MEMSET')
+
+    def test_copy_header_size_duration_direction_and_kinds_fail_closed(self):
+        data = encode(records() + memory_records())
+        for before, after in ((b'copyCount 1', b'copyCount 2'), (b'size 4, copy', b'size 0, copy'),
+                              (b'srcKind PAGEABLE', b'srcKind DEVICE'),
+                              (b'dstKind DEVICE', b'dstKind UNKNOWN'),
+                              (b'MEMCPY "HTOD"', b'MEMCPY "UNKNOWN"'),
+                              (b'duration 3, size', b'duration 4, size'),
+                              (b'MEMCPY "HTOD"', b'MEMCPY2 "HTOD"')):
+            with self.subTest(after=after), self.assertRaises(ValueError):
+                summarize(data.replace(before, after, 1), 'historical-block4')
+        for start, end in ((14, 14), (17, 14)):
+            with self.assertRaises(ValueError):
+                summarize(encode(records() + memory_records(start=start, end=end)), 'historical-block4')
+
+    def test_memory_activity_requires_matching_host_and_direction(self):
+        calls = memory_records()
+        for extra in ([calls[0]], [calls[1]],
+                      [calls[0].replace('cuMemcpyHtoDAsync_v2', 'cuMemcpyDtoHAsync_v2'), calls[1]],
+                      [calls[0].replace('cuMemcpyHtoDAsync_v2', 'cuMemcpyUnknown'), calls[1]]):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                summarize(encode(records() + extra), 'historical-block4')
+
+    def test_memory_duplicate_and_kernel_correlation_collision(self):
+        calls = memory_records()
+        with self.assertRaisesRegex(ValueError, 'duplicate memory'):
+            summarize(encode(records() + calls + [calls[1]]), 'historical-block4')
+        with self.assertRaisesRegex(ValueError, 'kernel/memory'):
+            summarize(encode(records() + [calls[1].replace('correlationId 4000', 'correlationId 1000')]),
+                      'historical-block4')
+
+    def test_memory_metadata_graph_and_stream_rejections(self):
+        calls = memory_records()
+        for activity in (calls[1].split('\n')[0], calls[1].replace('graphId 0', 'graphId 1'),
+                         calls[1].replace('streamId 13', 'streamId 7'),
+                         calls[1] + '\n\tsourceGraphId 1, sourceGraphNodeId 0',
+                         calls[1] + '\n\tsourceGraphId unknown, sourceGraphNodeId 0'):
+            with self.subTest(activity=activity), self.assertRaises(ValueError):
+                summarize(encode(records() + [calls[0], activity]), 'historical-block4')
+
+    def test_memory_activity_cannot_cross_window_or_precede_host(self):
+        for start, end in ((14, 21), (45, 48), (11, 15)):
+            with self.subTest(start=start), self.assertRaises(ValueError):
+                summarize(encode(records() + memory_records(start=start, end=end)), 'historical-block4')
+
+    def test_missing_memset_and_invalid_memset_fields(self):
+        calls = memory_records('MEMSET')
+        for extra in ([calls[0]], [calls[1]],
+                      [calls[0], calls[1].replace('size 4', 'size 0')],
+                      [calls[0], calls[1].replace('value 0', 'value unknown')]):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                summarize(encode(records() + extra), 'historical-block4')
+
+    def test_memory_and_host_tie_order_is_reproducible(self):
+        rows = records() + memory_records()
+        # Same host interval as the copy, distinct correlation/name: deterministic output.
+        rows.append(launch(12, 13, 5000, 'cuCtxGetCurrent'))
+        expected = summarize(encode(rows), 'historical-block4')['windows']
+        random.Random(49).shuffle(rows)
+        self.assertEqual(summarize(encode(rows), 'historical-block4')['windows'], expected)
+
+    def test_unsupported_memory_api_without_activity_is_not_ignored(self):
+        rows = records() + [launch(12, 13, 4000, 'cudaMemcpyUnsupported')]
+        with self.assertRaisesRegex(ValueError, 'unsupported window memory'):
+            summarize(encode(rows), 'historical-block4')
 
     def test_archived_b4_correlations_in_isolated_process(self):
         # Keep large fixture allocator/RSS growth out of the parent resource tests.
@@ -187,6 +297,7 @@ class KernelWindowTests(unittest.TestCase):
                 self.assertEqual(row['windows'], 36)
                 self.assertEqual(row['kernels'], 972)
                 self.assertEqual(row['kernels'], row['expected_kernels'])
+                self.assertEqual(row['memory_counts'], {'MEMCPY': 396, 'MEMSET': 72})
                 self.assertFalse(row['complete'])
 
     def test_cli_guards_and_source_bindings(self):

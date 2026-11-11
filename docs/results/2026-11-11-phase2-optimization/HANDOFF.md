@@ -57,16 +57,16 @@ policy, not inference from sampled clocks.
 The alternative [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
 defines 12 fixed native processes (plain/traced), unchanged frozen executables,
 strict time/output bounds and B1 trial-attribution checks. Offline inspection of
-three historical B4 traces found the expected 36 two-event/query windows. A new
-offline boundary/kernel helpers and declared report/trial binder have 37 tests,
-including archived B4 fixtures and a synthetic full schedule; default checks pass
-with 85 report tests. All 972 kernels/capture map to 36 historical B4 windows, including
-RUNTIME launches; this is not current B1 evidence. Non-kernel activity remains
-explicitly unattributed. Large fixture parsing is child-isolated after an
-inherited-RSS test failure; logs are retained. The ordinal binder verifies declared
+three historical B4 traces found the expected 36 two-event/query windows. New
+offline boundary/kernel/memory helpers and declared report/trial binder have 46
+tests, including archived B4 fixtures and a synthetic full schedule; default
+checks pass with 94 report tests. Each historical B4 capture maps 972 kernels,
+396 copies and 72 memsets to 36 windows, including RUNTIME host calls; this is
+not current B1 evidence. Bookkeeping/overhead activity remains unattributed.
+Large fixture parsing is child-isolated after an inherited-RSS test failure; logs are retained. The ordinal binder verifies declared
 hashes/source layout and retains unavailable warmup timings as null; it does not
-prove same-child launch provenance or output quality. Copy attribution, actual
-launch/report provenance, output qualification and collection runner/tests remain pending;
+prove same-child launch provenance or output quality. Actual launch/report
+provenance, output qualification and collection runner/tests remain pending;
 user investigation choice and a new quiet window remain launch blockers. Neither
 proposal is ready to execute. No new measurements or settings changes occurred.
 
