@@ -801,6 +801,13 @@ seven new synthetic tests and actual metadata-only calls pass. Default checks pa
 rejects same-byte image inode replacement. Native/Python loader
 coverage, current upstream verification, full frozen entry binding and all live
 policy/permission/availability gates remain pending.
+The subsequent [standalone loader component and actual preparation](linux-clock-loader-preparation.md)
+cover six targets, 35 current-only libraries and bounded utility receipts. Native
+accepted/candidate resolution agrees; two cuBLAS SONAME paths differ across native
+and Python. Torch's explicit ctypes preloads mean these standalone listings must
+not be promoted wholesale into required runtime maps. Seven new tests, 22 focused
+and 325 reporting tests pass. Preload inventory/required-map review, current upstream
+verification, full entry/qualification and live policy gates remain pending.
 
 ## Fixed collection and cleanup contract
 

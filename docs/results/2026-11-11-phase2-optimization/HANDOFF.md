@@ -102,6 +102,15 @@ links, with launch_ready=false. A retained red/green case rejects same-byte imag
 inode replacement during preparation. See the Python audit for commands, exact limits,
 hashes and limitations. Native/Python loader coverage, current upstream verification
 and the full frozen production entry remain pending; no runtime gate closes.
+Subsequent [standalone loader preparation](linux-clock-loader-preparation.md) now
+captures six actual utility listings: 35 current-only libraries/3,547,116,642 bytes,
+matching native accepted/candidate resolution, two different native/Python cuBLAS
+paths. **22 focused and 325 reporting tests pass**, with the initial fixture-path
+failure retained. Torch source review shows explicit ctypes preloads: do not treat
+standalone `_C` dependencies as proven runtime selection or mandatory maps. Next:
+preload-candidate inventory/required-map review, current upstream verification and
+full frozen entry/final qualification. No Torch import/GPU query/policy/benchmark;
+launch readiness and live policy/permission/availability gates remain false/pending.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

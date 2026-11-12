@@ -249,6 +249,18 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   GPU query, clock action or benchmark. Remaining: Python/native loader inventory,
   current upstream check, frozen full entry/role bindings and final qualification;
   policy/controller/permission/fresh-window gates remain unanswered or unverified.
+  Latest: [standalone loader preparation](docs/results/2026-11-11-phase2-optimization/linux-clock-loader-preparation.md)
+  adds `prepare_clock_libraries.py`: all-six-target prechecks, bounded glibc listings,
+  canonical roots/library bounds and final device/inode/path rechecks. Seven new
+  tests; **22 focused and 325 reporting tests pass**. Initial fixture-path failure
+  retained. Actual preparation: six complete utility receipts, 35 current-only
+  libraries/3,547,116,642 bytes; native accepted/candidate resolution agrees.
+  Native/Python differ on two cuBLAS SONAME paths. Reviewed Torch startup explicitly
+  preloads CUDA libraries, so standalone listings are NOT its runtime mapping
+  contract; no environment/library changes or performance attribution. Next:
+  explicit preload-candidate inventory/required-map review, current upstream check,
+  frozen entry and final qualification. No Torch import/GPU query/clock/benchmark;
+  launch_ready=false, Linux 72/78, Apple pending; live policy gates unchanged.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
