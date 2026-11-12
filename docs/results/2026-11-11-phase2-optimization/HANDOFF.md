@@ -118,6 +118,13 @@ inventory; twelve overlapping identities agree. **20 focused and 331 reporting
 tests pass**. No runtime winner, full sys.path or dependency closure is inferred.
 Next: required-map/known-candidate binding and current upstream verification before
 full frozen entry/final qualification; live gates unchanged, no GPU or benchmark run.
+The [known-candidate guard](linux-clock-loader-preparation.md#sample-time-known-candidate-guard)
+now rejects a declared path with mismatched device/inode on its first complete
+sample without requiring optional candidates to load. Clock factories require an
+explicit copied known inventory containing the required set; read-only defaults
+and schemas stay unchanged. **22 focused and 333 reporting tests pass**. Actual
+inventory/subset compilation, frozen entry and independent clock postflight remain
+pending; no new preparation, Torch import, GPU query, clock action or benchmark.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

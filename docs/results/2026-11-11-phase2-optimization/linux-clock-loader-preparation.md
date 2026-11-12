@@ -271,3 +271,71 @@ verification, frozen full preparation/entry and final qualification. Complete
 import closure is not claimed by these component results. The live policy,
 permission/enforcement and fresh-window gates remain unresolved. Linux **72/78**,
 Apple pending; no acceptance cell closes and the active objective is incomplete.
+
+## Sample-time known-candidate guard
+
+The next component adds an opt-in `known_libraries` declaration to
+`ProcessObservation`. Its default remains empty for existing read-only callers;
+no observation schema, historical record, sample limit or timing budget changes.
+The clock `process_factory` now **requires** an explicit nonempty known-library
+inventory (at most 256 supplied identities), validates full declaration fields,
+rejects conflicting duplicate paths, and requires every mandatory library to be
+present with matching device/inode/size/SHA-256. Observation-only `path_device` /
+`path_inode` fields are rejected in clock file declarations, so sampled-path fields
+cannot override a prepared identity when constructing the required set. The handoff integration fixture
+now supplies this explicit argument too. This is internal diagnostic tooling,
+not a change to production model or public backend APIs.
+
+The factory deep-copies the declarations and builds independent per-job guard
+state before any job. Construction/issuance still performs no file reads, stats,
+path resolution, hashing or subprocess calls. During each otherwise complete
+sample, a mapped path that matches a known declaration must match its prepared
+**pathname device/inode**, including the very first observed sample. A mismatch
+raises a fixed local error and latches observer failure; the sequence stops after
+that child. It cannot be reclassified as an unknown post-only library simply
+because it was already changed at first observation. Kernel-map device values
+remain separate from pathname device values, as before.
+
+Known does **not** mean mandatory: a candidate absent from all samples is allowed
+unless it also belongs to the required set. Unlisted paths remain subject to the
+separate post-only rules. No candidate file hashing is added during workloads or
+telemetry. Same-inode byte mutation, arbitrary aliases, unsampled/transient maps
+and immutable mapped bytes are not proved by this pathname/inode guard; reviewed
+path bindings and final frozen-file checks remain necessary. The guard does not
+by itself establish that the caller supplied the full inventory or authentic
+preparation evidence.
+
+Tests extend the existing actual CPU-child factory suite:
+
+- An unused `true` executable acts as an absent optional candidate; all eighteen
+  fake codec processes still complete with independent real `/proc` observations.
+- A mismatched optional libm declaration fails the first child, retains failed
+  observation evidence/reaping and prevents a second job. Clearing the guard
+  after exit cannot erase the already-latched failure.
+- Empty, incomplete, conflicting and oversized inventories fail before work.
+  Observed-path fields in known or required declarations are rejected too.
+- Mutating caller-owned known identities after factory creation cannot mutate the
+  eighteen independent guards; the existing no-IO/no-hashing construction test
+  now covers this additional state.
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_process_observation test_observe_readonly_process test_clock_worker_handoff -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+**22 focused tests and default checks with 333 reporting tests pass.** Private logs:
+
+| Evidence under `reports/` | SHA-256 |
+| --- | --- |
+| `phase2-clock-known-library-tests-v1.log` | `563117422ee860c3ad55a3763d057d7903f58f382a2f8530d3cfbd6a200457bc` |
+| `phase2-clock-known-library-check-v1.log` | `ceb167bd6fdd0cdd97a1cd9ae1396bf84f1b68979032be29191f9308718ed939` |
+| `phase2-clock-known-library-tests-v2.log` (final, including observed-field rejection) | `22013ef0e761af821c2d468eebbd1f8413a66e7d3abe663854de1fa84dfa0104` |
+| `phase2-clock-known-library-check-v2.log` (final) | `f863346f5379a9cd0623c70e6a305a25bab917aa774175e3a8ea3e5471c48abf` |
+
+Still pending: compile/bind the actual prepared inventories and proposed mandatory
+subset into frozen roles; independently cross-check known-candidate identities in
+clock postflight; current upstream verification; full entry/lifecycle/telemetry/
+output qualification. No new real library preparation, Torch import, GPU query,
+clock operation or benchmark ran in this guard checkpoint. Policy confirmation,
+permissions/enforcement and later fresh availability are unchanged prerequisites.
+Linux **72/78**, Apple pending; no acceptance comparison or goal completion.

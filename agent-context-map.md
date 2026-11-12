@@ -273,6 +273,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   Next: implement/test required-map and known-candidate binding, current upstream
   check, frozen entry/final qualification. No GPU query/Torch import/benchmark or
   policy change; live authorization/availability gates and Linux 72/78 remain.
+  Latest: sample-time known-candidate guard now checks declared path device/inode
+  on the first and later complete samples. Clock factories require a copied bounded
+  known inventory containing every mandatory library; optional absence is allowed.
+  Observed-path fields cannot override prepared clock file declarations.
+  Read-only defaults and record schemas are unchanged. CPU tests cover eighteen
+  successful jobs with an absent optional candidate, first-child libm mismatch /
+  latched failure / no second job, declaration rejection and no-IO independent
+  factory state. **22 focused and 333 reporting tests pass**; logs/limits are in
+  the loader document. Remaining: actual inventory/mandatory-subset compilation,
+  frozen roles, independent clock postflight, upstream verification and full entry.
+  No GPU/Torch/benchmark/policy work; Linux 72/78 and all live gates remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

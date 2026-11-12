@@ -815,6 +815,14 @@ absent in this root; no runtime winner or global absence is inferred. Six new te
 20 focused and 331 reporting tests pass. Required-map/known-candidate binding,
 current upstream verification, frozen entry/final qualification and live gates
 remain pending; no Torch import, GPU query, benchmark or policy change occurred.
+The [sample-time known-candidate guard](linux-clock-loader-preparation.md#sample-time-known-candidate-guard)
+now rejects mismatched prepared path identities, including first observations,
+without requiring optional files to load. Clock factories require explicit known
+inventories containing every mandatory identity; read-only defaults/schemas stay
+unchanged. CPU tests cover optional absence, first-child failure/latching, invalid
+inventory and independent no-IO construction; 22 focused/333 reporting tests pass.
+Actual inventory/subset compilation, frozen role binding, independent clock
+postflight and full entry/qualification remain pending, as do all live policy gates.
 
 ## Fixed collection and cleanup contract
 

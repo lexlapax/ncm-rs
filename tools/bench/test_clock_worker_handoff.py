@@ -54,7 +54,8 @@ deadline=validate_handoff(path,parent_pid=parent,parent_argv=data['parent_argv']
     role_image=data['role_image'],taskset_path=data['taskset']['path'],cwd=sys.argv[1],env=data['env'])
 (root/'received-deadline.json').write_text(json.dumps({'deadline':deadline,'parent_pid':parent}))
 factory=process_factory(data['jobs'],env=data['env'],workloads=data['workloads'],taskset=data['taskset'],
-    injection=data['injection'],libraries=data['libraries'])
+    injection=data['injection'],libraries=data['libraries'],
+    known_libraries=[value for libraries in data['libraries'].values() for value in libraries])
 with patch.object(sequence,'plan_jobs',return_value=data['jobs']):
     result=sequence.run_sequence(root/'previous',root/'binaries',root/'sequence',root=root,env=data['env'],
         work_deadline=deadline,cancel_check=lambda:False,process_observer_factory=factory,taskset=data['taskset']['path'])

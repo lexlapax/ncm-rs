@@ -18,7 +18,8 @@ ORDER = ('previous', 'python', 'candidate', 'python', 'candidate', 'previous',
 
 
 def identity(value):
-    require(isinstance(value, dict) and isinstance(value.get('path'), str)
+    require(isinstance(value, dict) and not {'path_device', 'path_inode'} & value.keys()
+            and isinstance(value.get('path'), str)
             and '\0' not in value['path'] and Path(value['path']).is_absolute()
             and type(value.get('device')) is int and value['device'] >= 0
             and type(value.get('inode')) is int and value['inode'] > 0
@@ -28,18 +29,20 @@ def identity(value):
             'complete prelaunch file identity required')
 
 
-def process_factory(jobs, *, env, workloads, taskset, injection, libraries):
+def process_factory(jobs, *, env, workloads, taskset, injection, libraries, known_libraries):
     """Prebuild all 18 independent observers; reject command/env drift on issuance.
 
     workloads maps each runtime to {command_path, image}. command_path preserves
     the declared argv spelling (including a reviewed Python-venv symlink); image
     is the separately verified ELF identity. libraries maps runtimes to nonempty
-    prelaunch required-library lists. Lazy/unlisted mappings remain post-only.
+    prelaunch required-library lists. known_libraries is the explicit shared set
+    of reviewed candidates, including all required libraries. Known paths are
+    checked if sampled, not required to appear; only unlisted mappings are post-only.
     No filesystem reads, hashes, metadata subprocesses or path resolution occur.
     The trusted callback may issue each ordinal once, never reuse observer state.
     """
-    jobs, env, workloads, taskset, injection, libraries = deepcopy(
-        (jobs, env, workloads, taskset, injection, libraries))
+    jobs, env, workloads, taskset, injection, libraries, known_libraries = deepcopy(
+        (jobs, env, workloads, taskset, injection, libraries, known_libraries))
     fixed_env = {'PATH': os.defpath, 'LANG': 'C', 'LC_ALL': 'C',
                  'PYTHONNOUSERSITE': '1', 'TOKENIZERS_PARALLELISM': 'false'}
     require(isinstance(env, dict) and set(env) == set(fixed_env) | {'HOME'}
@@ -52,6 +55,15 @@ def process_factory(jobs, *, env, workloads, taskset, injection, libraries):
             'all runtime images and required libraries must be declared')
     identity(taskset)
     identity(injection)
+    require(isinstance(known_libraries, (list, tuple)) and 0 < len(known_libraries) <= 256,
+            'explicit bounded known-library inventory required')
+    known = {}
+    for library in known_libraries:
+        identity(library)
+        signature = tuple(library[k] for k in ('device', 'inode', 'bytes', 'sha256'))
+        require(library['path'] not in known or known[library['path']] == signature,
+                'conflicting known-library declarations')
+        known[library['path']] = signature
     for runtime in RUNTIMES:
         value = workloads[runtime]
         require(isinstance(value, dict) and set(value) == {'command_path', 'image'}
@@ -62,6 +74,8 @@ def process_factory(jobs, *, env, workloads, taskset, injection, libraries):
                 'nonempty required-library inventory for every runtime required')
         for library in libraries[runtime]:
             identity(library)
+            require(known.get(library['path']) == tuple(library[k] for k in ('device', 'inode', 'bytes', 'sha256')),
+                    'required library absent or different in known inventory')
     observers = []
     for index, job in enumerate(jobs):
         runtime = ORDER[index]
@@ -74,7 +88,8 @@ def process_factory(jobs, *, env, workloads, taskset, injection, libraries):
         observers.append(ProcessObservation(
             workload=workloads[runtime]['image'], workload_argv=job['argv'][3:],
             expected_env=env, cpu=2, injection=injection, traced=False,
-            required_libraries=libraries[runtime], launcher=taskset, launcher_argv=job['argv']))
+            required_libraries=libraries[runtime], launcher=taskset, launcher_argv=job['argv'],
+            known_libraries=known_libraries))
     issued = set()
 
     def make(ordinal, job, actual_env):

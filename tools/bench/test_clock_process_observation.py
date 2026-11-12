@@ -65,7 +65,10 @@ class ClockObservationTests(unittest.TestCase):
     def factory(self, **changes):
         args = dict(env=self.env, workloads=self.workloads, taskset=self.taskset,
                     injection=self.injection, libraries=self.libraries)
-        return process_factory(self.jobs, **(args | changes))
+        args.update(changes)
+        if 'known_libraries' not in args:
+            args['known_libraries'] = [v for values in args['libraries'].values() for v in values]
+        return process_factory(self.jobs, **args)
 
     def run_sequence(self, factory):
         with patch.object(sequence, 'plan_jobs', return_value=self.jobs):
@@ -76,13 +79,15 @@ class ClockObservationTests(unittest.TestCase):
 
     def test_factory_has_no_io_and_owns_independent_frozen_state(self):
         expected_jobs, expected_env = deepcopy(self.jobs), dict(self.env)
+        known = deepcopy(self.libraries['previous'])
         with patch('builtins.open', side_effect=AssertionError('no IO')), \
                 patch.object(Path, 'open', side_effect=AssertionError('no IO')), \
                 patch.object(Path, 'resolve', side_effect=AssertionError('no resolution')), \
                 patch('os.stat', side_effect=AssertionError('no metadata IO')), \
                 patch('subprocess.Popen', side_effect=AssertionError('no spawn')), \
                 patch('hashlib.sha256', side_effect=AssertionError('no hashing')):
-            factory = self.factory()
+            factory = self.factory(known_libraries=known)
+            known[0]['inode'] += 1
             self.jobs[0]['argv'].append('changed-after-freeze')
             self.env['HOME'] = '/different-after-freeze'
             self.workloads['previous']['image']['inode'] += 1
@@ -90,6 +95,8 @@ class ClockObservationTests(unittest.TestCase):
             observers = [factory(i, job, expected_env) for i, job in enumerate(expected_jobs, 1)]
             self.assertEqual(len({id(value) for value in observers}), 18)
             self.assertEqual(len({id(value.samples) for value in observers}), 18)
+            self.assertEqual(len({id(value.known) for value in observers}), 18)
+            self.assertEqual(observers[0].known[known[0]['path']][1] + 1, known[0]['inode'])
             with self.assertRaisesRegex(ValueError, 'already issued'):
                 factory(1, expected_jobs[0], expected_env)
         self.assertEqual(observers[0].workload['inode'] + 1, self.workloads['previous']['image']['inode'])
@@ -99,7 +106,9 @@ class ClockObservationTests(unittest.TestCase):
         self.assertEqual(observers[1].workload['path'], self.python)
 
     def test_real_observations_cover_all_eighteen_jobs_and_preserve_limits(self):
-        result = self.run_sequence(self.factory())
+        # The unrelated true executable is a known candidate that never loads.
+        known = [*self.libraries['previous'], self.injection]
+        result = self.run_sequence(self.factory(known_libraries=known))
         self.assertEqual(result['status'], 'complete')
         self.assertEqual(len(result['jobs']), 18)
         for job, row in zip(self.jobs, result['jobs']):
@@ -148,6 +157,42 @@ class ClockObservationTests(unittest.TestCase):
                     self.assertIn('process_observer_failed', row['observation']['issues'])
                 self.assertNotIn('not-for-observation-output', json.dumps(row['observation']))
 
+    def test_known_optional_library_mismatch_fails_first_child_and_latches(self):
+        maps, _ = executable_maps(Path('/proc/self/maps').read_bytes())
+        libm = next(row['path'] for row in maps if Path(row['path']).name == 'libm.so.6')
+        optional = file_identity(Path(libm).resolve())
+        optional['inode'] += 1
+        factory = self.factory(known_libraries=[*self.libraries['previous'], optional])
+        issued = []
+        def capture(ordinal, job, env):
+            observer = factory(ordinal, job, env)
+            issued.append(observer)
+            return observer
+        result = self.run_sequence(capture)
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(len(result['jobs']), 1)
+        row = result['jobs'][0]
+        self.assertTrue(row['receipt']['direct_child_reaped'])
+        self.assertIn('known library identity differs from preparation', row['observation']['observation_failures'])
+        self.assertIn('process_observer_failed', row['observation']['issues'])
+        self.assertFalse(Path(self.jobs[1]['report']).exists())
+        # Even a later absent/reaped process cannot erase the recorded mismatch.
+        observer = issued[0]
+        observer.known.clear()
+        again = observer.finish(row['receipt'], self.root/'failure-retained.json')
+        self.assertIn('process_observer_failed', again['issues'])
+
+    def test_known_inventory_required_complete_consistent_and_bounded(self):
+        known = deepcopy(self.libraries['previous'])
+        changed = deepcopy(known[0]); changed['inode'] += 1
+        for values in ([], [self.injection], [*known, changed], known*257,
+                       [dict(known[0], path_device=known[0]['device'])],
+                       [dict(known[0], path_inode=known[0]['inode'])]):
+            with self.subTest(size=len(values)), patch.object(subprocess, 'Popen') as spawn:
+                with self.assertRaises(ValueError): self.factory(known_libraries=values)
+                spawn.assert_not_called()
+        self.assertFalse(self.output.exists())
+
     def test_drift_in_last_job_or_environment_rejects_before_first_spawn(self):
         for field in ('cwd', 'env', 'ordinal'):
             with self.subTest(field=field):
@@ -177,6 +222,8 @@ class ClockObservationTests(unittest.TestCase):
         libraries = deepcopy(self.libraries); libraries['candidate'] = []
         bad.append({'libraries': libraries})
         bad.append({'env': dict(self.env, LD_PRELOAD='/not-allowed')})
+        libraries = deepcopy(self.libraries); libraries['previous'][0]['path_inode'] = 1
+        bad.append({'libraries': libraries})
         for options in bad:
             with self.subTest(fields=list(options)), self.assertRaises(ValueError):
                 self.factory(**options)

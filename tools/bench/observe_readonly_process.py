@@ -121,10 +121,11 @@ class ProcessObservation:
     No large file hashing is done while the workload or full telemetry runs.
     """
     def __init__(self, *, workload, workload_argv, expected_env, cpu, injection,
-                 traced, required_libraries=(), launcher=None, launcher_argv=None):
+                 traced, required_libraries=(), launcher=None, launcher_argv=None, known_libraries=()):
         require(type(cpu) is int and cpu >= 0 and type(traced) is bool, 'invalid observation condition')
-        required_libraries = tuple(required_libraries)
-        for item in [workload, injection, *required_libraries, *([launcher] if launcher else [])]:
+        required_libraries, known_libraries = tuple(required_libraries), tuple(known_libraries)
+        require(len(known_libraries) <= 256, 'known library inventory exceeds bound')
+        for item in [workload, injection, *required_libraries, *known_libraries, *([launcher] if launcher else [])]:
             require(isinstance(item, dict) and Path(item['path']).is_absolute()
                     and type(item['device']) is int and type(item['inode']) is int
                     and item['inode'] > 0, 'expected prelaunch file identity')
@@ -141,6 +142,14 @@ class ProcessObservation:
         self.env = {key.encode(): value.encode() for key, value in expected_env.items()}
         self.cpu, self.traced = cpu, traced
         self.required = {identity_key(value) for value in required_libraries}
+        # Known candidates need not load. If a known path appears, even its first
+        # complete sample must match preparation; it cannot become "post-only".
+        self.known = {}
+        for value in known_libraries:
+            expected = (value['device'], value['inode'])
+            require(value['path'] not in self.known or self.known[value['path']] == expected,
+                    'conflicting known library identities')
+            self.known[value['path']] = expected
         self.pid = self.start_ticks = None
         self.samples, self.mapping_sets, self.files = [], {}, {}
         self.transient_count = 0
@@ -234,6 +243,8 @@ class ProcessObservation:
         injection_seen = any(identity_key(value) == identity_key(self.injection) for value in files)
         require(self.traced or not injection_seen, 'injection observed in plain process')
         for value in files:
+            require(value['path'] not in self.known or identity_key(value) == self.known[value['path']],
+                    'known library identity differs from preparation')
             previous = self.files.get(value['path'])
             require(previous is None or previous == value, 'mapped file identity changed between samples')
             self.files[value['path']] = value
