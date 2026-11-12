@@ -277,13 +277,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   requiring optional presence; observed fields cannot override declarations.
   `clock_library_contract.py` now purely joins prepared records and selects native
   required mappings plus interpreter/_C/core-Torch mappings. No IO/hashing/probes.
-  **12 focused and 338 reporting tests pass** (five new compiler tests). Actual
-  retained-record compilation: required 11/11 native, 10 Python; 40 known identities,
-  50 path bindings. All eighteen unchanged commands construct observers, zero live
-  samples/children; Python startup preserved. This is not fresh preflight or source
-  authentication. Details/hashes are in the loader document. Next: independent
-  clock postflight, current upstream check, fresh full preparation/frozen entry.
-  No GPU/Torch/benchmark/policy work; Linux 72/78 and all live gates remain pending.
+  Retained-record compilation: required 11/11 native, 10 Python; 40 known identities,
+  50 path bindings; all eighteen commands construct observers without live work.
+  Latest: [clock process-record validator](docs/results/2026-11-11-phase2-optimization/linux-clock-process-validation.md)
+  independently checks eighteen receipts, mapping digests/identities, mandatory and
+  optional candidates, sequence-local clocks/deadlines and declared injection absence.
+  Six new tests include 40 negative variants and persisted writer/reader evidence
+  from eighteen real CPU-only fake jobs. **23 focused and 344 reporting tests pass**.
+  This is not producer authentication, restoration/telemetry/output qualification
+  or final file rehash. Next: full clock file/lifecycle finalization, current upstream
+  check, fresh complete preparation/frozen entry. No Torch/GPU/benchmark/policy work;
+  Linux 72/78 and all live policy/permission/availability gates remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

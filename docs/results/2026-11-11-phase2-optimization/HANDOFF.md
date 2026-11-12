@@ -132,6 +132,13 @@ observers with no children/samples and normal Python startup. **12 focused and 3
 reporting tests pass**. This is not a fresh filesystem preflight or authenticated
 producer binding. Next: independent clock postflight, current upstream verification,
 fresh full preparation/frozen entry and qualification; live gates remain unresolved.
+[Clock process-record validation](linux-clock-process-validation.md) now independently
+checks all eighteen jobs/receipts, known/mandatory mappings and sequence-local clocks
+against the supplied frozen declarations/deadline. Six new tests include forty
+negative variants and parsed persisted evidence from eighteen real CPU fake jobs;
+**23 focused and 344 reporting tests pass**. Restoration, telemetry, report quality,
+raw file checks and frozen rehash remain separate/unfinished. Current upstream check,
+fresh full preparation/entry and live policy/permission/availability gates remain.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

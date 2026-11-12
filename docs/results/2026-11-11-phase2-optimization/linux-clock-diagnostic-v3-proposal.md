@@ -830,6 +830,13 @@ observers without starting children; no fresh file verification is implied. Five
 new tests, 12 focused and 338 reporting tests pass. Independent clock postflight,
 upstream verification and fresh full preparation/frozen entry remain pending;
 no runtime/acceptance or live policy gate closes.
+The [independent process-record validator](linux-clock-process-validation.md) now
+checks all eighteen receipts/observations against frozen declarations and the
+original deadline, including rehashed bad-map rejection and optional-known identity
+checks. Six new tests include forty negative variants and persisted real CPU-fake
+sequence evidence; 23 focused/344 reporting tests pass. Full restoration/observer
+lifecycle, telemetry, outputs/capture files, final frozen rehash and launch binding
+remain separate gates. No actual GPU/clock/benchmark validation occurred.
 
 ## Fixed collection and cleanup contract
 
