@@ -236,6 +236,62 @@ return_value={0})` to require rejection of `validate_observer(2, 0)`. Retained l
 `4a6e0ae95965dc4213f5f1c34946231f6e5570090c42e70684a7938cedab0633`.
 Static source review supplies the other findings, not a live failure demonstration.
 
+### Pure command-plan extraction — no launch
+
+`run_phase2_linux_comparison.py::plan_jobs` now builds the same ordered argv/cwd/
+report destinations without reads, hashing, probes, affinity changes or spawning.
+It takes absolute roots and explicit options, returns fresh JSON-serializable job
+records, and can receive an absolute `taskset` path for later identity binding.
+Relative reference-script/fixture arguments deliberately retain their previous
+runtime cwd. It rejects malformed counts/workloads/CPU/options but does **not**
+verify files, permissions, environments, report-path freshness or binary identity.
+It is not a launch manifest or authorization. No clock CLI was added.
+
+The existing CLI now consumes this plan, built before its output creation and
+telemetry startup. Its metadata probes, inherited environment, monitors, child
+execution and report-copy behavior are otherwise unchanged; **the CLI remains
+unsuitable for direct use as the locked worker**. This extracts the command-only
+surface needed by preparation; it does not yet implement the isolated bounded
+18-job worker or connect restoration/telemetry/enforcement/final qualification.
+The runner is no longer byte-identical to v2: new source SHA-256
+`6b3a8f8bbbfbbc6a77e76bea8d1c8191b94644918b359ff5659aac16e046a375`.
+Historical pins/results are untouched; future preparation must bind this revision.
+
+Three fake-CLI tests passed **before** extraction and pass afterward, checking
+exact commands, cwd, order, report paths/copies and forwarded environment against
+an independent expected-command oracle: 18 codec jobs; 45 jobs across all five
+workloads without affinity; 18 tokenizer-only identical-binary-control jobs.
+All CLI subprocesses and affinity mutations are mocked; fake report bodies are
+not numerical qualification. Additional tests reject planner IO/probes/spawns,
+compare the pure plan with CLI calls, exercise explicit taskset and independent
+mutable results, and reject invalid options without outputs. No real benchmark or
+GPU command ran. This establishes command-construction compatibility, not live
+latency/resource equivalence or completion of any acceptance cell.
+
+Commands:
+
+```sh
+PYTHONPATH=tools/bench python -m unittest \
+  test_linux_comparison_plan.ComparisonPlanTests.test_existing_cli_codec_eighteen_commands_and_python_copies \
+  test_linux_comparison_plan.ComparisonPlanTests.test_existing_cli_all_workloads_and_unpinned_commands \
+  test_linux_comparison_plan.ComparisonPlanTests.test_existing_cli_identical_tokenizer_control_keeps_candidate_binary -v
+PYTHONPATH=tools/bench python -m unittest \
+  test_linux_comparison_plan.ComparisonPlanTests.test_plan_is_side_effect_free_and_matches_existing_cli -v
+PYTHONPATH=tools/bench python -m unittest test_linux_comparison_plan test_linux_comparison_affinity -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+The first two commands ran before implementation (legacy green/new helper absent);
+the final two ran after implementation. The existing affinity suite includes a
+real CPU-only child inheritance check, not a GPU test.
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-comparison-plan-legacy-v1.log` | 3 fake-CLI tests pass before extraction | `603a2b75a78ed9d0075972afe4d4fc68ec4aa8016b19d598f41ba77280c230df` |
+| `phase2-comparison-plan-red-v1.log` | New planner test fails: missing `plan_jobs` | `0b2c0a286c164f3ec96d842c9b3c5ef02db2b3df869be9d9b7db6a5557c4c6d8` |
+| `phase2-comparison-plan-tests-v1.log` | 6 planner + 6 affinity tests pass | `1043c6ebd0029011f951db79229c017a18f0e0a44108596d53b223f9c780506a` |
+| `phase2-comparison-plan-check-v1.log` | Default checks pass; 269 reporting tests | `ffd2beaf087f1369cc888c52fe8b2e45768130c4503385c2e3195f792cd793e7` |
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

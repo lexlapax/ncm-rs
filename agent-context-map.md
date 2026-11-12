@@ -126,14 +126,23 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   enforcement/frozen worker bindings; obtain still-pending default-policy/no-
   controller confirmation and permission evidence, then a fresh window. No real
   GPU command, lock/reset, permission test or benchmark ran in this follow-up.
-  Latest offline runner audit (source unchanged from v2) confirms the existing
+  Offline runner audit at `c82d847` (then source-identical to v2) confirmed the existing
   previous/Python/candidate cyclic order: 18 codec jobs, not a new runtime order.
   CPU0-only startup is rejected by the required CPU2/CPU0 eligibility checks.
   Source review finds worker-time preflight hashing/probes, inherited environment,
   unbounded per-job calls, internal monitors and misleading no-clock-change metadata
   must be separated/bound before integration. Details/source hash/probe log are in
-  the clock proposal. No runner code or live policy changed; the synthetic tests
-  do not cover these integration gaps. Policy/controller confirmation still pending.
+  the clock proposal. That audit changed no code or live policy.
+  Latest: extracted pure `plan_jobs` from the existing runner and made its CLI
+  consume the same plan. Three independent fake-CLI command/cwd/order/copy tests
+  passed before and after extraction; planner tests reject filesystem IO/probes.
+  Six new planner + six affinity tests pass; default checks
+  pass **269 reporting tests**. Legacy-green/new-helper-red logs and new runner
+  source hash are recorded in the proposal; frozen historical pins are unchanged.
+  This is command construction only, not a frozen launch manifest or GPU parity.
+  Next: bind the plan into an isolated bounded worker with full telemetry and
+  restoration; the existing CLI is still not suitable as that worker. Policy/
+  controller confirmation, permission evidence and later fresh window remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

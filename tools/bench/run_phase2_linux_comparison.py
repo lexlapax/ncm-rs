@@ -29,6 +29,64 @@ def order(repeat):
     return names[offset:] + names[:offset]
 
 
+def plan_jobs(previous, old_bins, output, *, root=ROOT, repeats=3,
+              workloads=('codec', 'bert', 'gpt2', 'qwen3', 'tinystories'),
+              cpu=None, identical_tokenizer_binary=False, taskset='taskset'):
+    """Describe commands without filesystem reads, probes, spawning or hashing.
+
+    Caller supplies resolved absolute roots and separately verifies their identity,
+    topology, environments, fresh destinations and (if requested) identical binaries.
+    A plan is neither launch authorization nor a frozen-input manifest. Relative
+    script/fixture arguments intentionally retain the existing per-runtime cwd.
+    Future isolated launchers must bind an absolute taskset executable explicitly.
+    """
+    previous, old_bins, output, root = map(Path, (previous, old_bins, output, root))
+    if any(not path.is_absolute() or '\0' in str(path) for path in (previous, old_bins, output, root)):
+        raise ValueError('absolute plan roots required')
+    if type(repeats) is not int or repeats < 3:
+        raise ValueError('at least three processes required')
+    if (not isinstance(workloads, (list, tuple)) or not workloads
+            or any(w not in ('codec', 'bert', 'gpt2', 'qwen3', 'tinystories') for w in workloads)
+            or len(set(workloads)) != len(workloads)):
+        raise ValueError('unique supported workloads required')
+    if cpu is not None and (type(cpu) is not int or cpu < 0):
+        raise ValueError('invalid workload CPU')
+    if not isinstance(taskset, str) or not taskset or '\0' in taskset:
+        raise ValueError('explicit taskset command required')
+    if type(identical_tokenizer_binary) is not bool or (identical_tokenizer_binary and 'codec' in workloads):
+        raise ValueError('identity control is tokenizer-only')
+    bins = {'previous': old_bins, 'candidate': root / 'target/release/examples'}
+    jobs = []
+    for repeat in range(1, repeats + 1):
+        for workload in workloads:
+            profile = None if workload == 'codec' else workload
+            prefix = 'codec' if profile is None else f'tokenizer-{profile}'
+            for runtime in order(repeat):
+                report = output/runtime/f"{prefix}-{'python' if runtime == 'python' else 'rust'}-{repeat}.json"
+                cwd = previous if runtime == 'previous' else root
+                if profile is None:
+                    if runtime == 'python':
+                        argv = [str(root/'.reference/venv/bin/python'), 'tools/reference/codec_bench.py',
+                                str(root/'artifacts/canonical/sudoku-easy-qualified'), str(root/'.reference/upstream-ncm')]
+                    else:
+                        argv = [str(bins[runtime]/'codec_bench'), str(root/'artifacts/canonical/sudoku-easy-qualified')]
+                    argv += ['tests/fixtures/codec-bench-v1.json', str(report)]
+                else:
+                    if runtime == 'python':
+                        argv = [str(root/'.reference/tokenizers-venv/bin/python'), 'tools/reference/text_tokenizer_bench.py',
+                                str(root/'artifacts/upstream/tokenizers-v2'), str(root/'.reference/upstream-ncm')]
+                    else:
+                        binary = bins['candidate' if identical_tokenizer_binary else runtime]/'asset_bench'
+                        argv = [str(binary), str(root/'artifacts/canonical/tokenizers-qualified')]
+                    argv += ['tests/fixtures/tokenizers-v1.json', profile, str(report)]
+                if cpu is not None:
+                    argv = [taskset, '-c', str(cpu)] + argv
+                copies = [str(output/destination/report.name) for destination in ('previous', 'candidate')] if runtime == 'python' else []
+                jobs.append({'runtime': runtime, 'repeat': repeat, 'workload': workload,
+                             'argv': argv, 'cwd': str(cwd), 'report': str(report), 'python_copies': copies})
+    return jobs
+
+
 def validate_observer(cpu, observer_cpu, sys_cpu=Path('/sys/devices/system/cpu')):
     """Check placement before creating output or narrowing the launcher's affinity."""
     if observer_cpu is None:
@@ -93,6 +151,9 @@ def main():
     if args.identical_tokenizer_binary:
         if "codec" in args.workloads or fingerprints["previous"]["asset_bench"] != fingerprints["candidate"]["asset_bench"]:
             raise ValueError("identity control requires tokenizer-only work and byte-identical binaries")
+    jobs = plan_jobs(previous, old_bins, output, root=ROOT, repeats=args.repeats,
+                     workloads=args.workloads, cpu=args.cpu,
+                     identical_tokenizer_binary=args.identical_tokenizer_binary)
     output.mkdir(parents=True, exist_ok=False)
     for name in ("previous", "candidate", "python"):
         (output/name).mkdir()
@@ -124,8 +185,6 @@ def main():
     def save():
         (output/"environment.json").write_text(json.dumps(environment, indent=2)+"\n")
     def run(command, cwd, runtime, report):
-        if args.cpu is not None:
-            command = ["taskset", "-c", str(args.cpu)] + command
         entry = {"argv": command, "cwd": str(cwd), "runtime": runtime,
                  "started_utc": datetime.now(timezone.utc).isoformat()}
         environment["commands"].append(entry)
@@ -140,32 +199,10 @@ def main():
         monitor = subprocess.Popen(["nvidia-smi", "--query-gpu=timestamp,utilization.gpu,memory.used,temperature.gpu,power.draw,clocks.sm,clocks.mem", "--format=csv", "-l", "1"], stdout=telemetry)
         processes = subprocess.Popen(["nvidia-smi", "pmon", "-s", "u", "-d", "1"], stdout=utilization)
         try:
-            for repeat in range(1, args.repeats + 1):
-                for profile in args.workloads:
-                    profile = None if profile == "codec" else profile
-                    prefix = "codec" if profile is None else f"tokenizer-{profile}"
-                    for runtime in order(repeat):
-                        report = output/runtime/f"{prefix}-{'python' if runtime == 'python' else 'rust'}-{repeat}.json"
-                        cwd = previous if runtime == "previous" else ROOT
-                        if profile is None:
-                            if runtime == "python":
-                                command = [str(ROOT/".reference/venv/bin/python"), "tools/reference/codec_bench.py",
-                                           str(ROOT/"artifacts/canonical/sudoku-easy-qualified"), str(ROOT/".reference/upstream-ncm")]
-                            else:
-                                command = [str(bins[runtime]/"codec_bench"), str(ROOT/"artifacts/canonical/sudoku-easy-qualified")]
-                            command += ["tests/fixtures/codec-bench-v1.json", str(report)]
-                        else:
-                            if runtime == "python":
-                                command = [str(ROOT/".reference/tokenizers-venv/bin/python"), "tools/reference/text_tokenizer_bench.py",
-                                           str(ROOT/"artifacts/upstream/tokenizers-v2"), str(ROOT/".reference/upstream-ncm")]
-                            else:
-                                binary = bins["candidate" if args.identical_tokenizer_binary else runtime]/"asset_bench"
-                                command = [str(binary), str(ROOT/"artifacts/canonical/tokenizers-qualified")]
-                            command += ["tests/fixtures/tokenizers-v1.json", profile, str(report)]
-                        run(command, cwd, runtime, report)
-                        if runtime == "python":
-                            for destination in ("previous", "candidate"):
-                                shutil.copyfile(report, output/destination/report.name)
+            for job in jobs:
+                run(job['argv'], Path(job['cwd']), job['runtime'], Path(job['report']))
+                for destination in job['python_copies']:
+                    shutil.copyfile(job['report'], destination)
             if monitor.poll() is not None or processes.poll() is not None:
                 raise RuntimeError("telemetry process exited early")
         finally:
