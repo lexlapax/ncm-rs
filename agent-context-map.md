@@ -235,6 +235,20 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   default checks not rerun (prior fef3b08: 311 reporting tests). Next: explicit
   current-only Python/loader/startup inventory in frozen preparation, then entry
   binding and final qualification. Linux 72/78 and all live authorization gates remain.
+  Latest: import-only `prepare_clock_python.py` now binds the seven historical
+  records, three source pins, current venv/ELF/link chain, distribution metadata,
+  requirements lock, static Torch build tag and explicitly reviewed startup files.
+  It executes no interpreter/package/probe and keeps current-only/provenance gates
+  false. Seven synthetic tests cover drift, unsupported inputs, inventory races and
+  bounds; **12 focused tests and default checks with 318 reporting tests pass**.
+  Three actual file-only component preparations agree: 3 historical sources, 43
+  current-only files, 37 distributions (extra pip retained), 3 interpreter links;
+  launch_ready=false. A retained red/green case now rejects same-byte interpreter
+  inode replacement during preparation; final checks bind device/inode/path too.
+  Exact commands/hashes are in the Python audit. No Torch import,
+  GPU query, clock action or benchmark. Remaining: Python/native loader inventory,
+  current upstream check, frozen full entry/role bindings and final qualification;
+  policy/controller/permission/fresh-window gates remain unanswered or unverified.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

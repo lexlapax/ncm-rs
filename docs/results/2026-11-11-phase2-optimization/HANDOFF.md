@@ -93,6 +93,15 @@ existing startup hooks and preserve intrinsic harness hash/Git checks; do not ad
 collector probes or early frozen rehash. Documented reproduction passes without
 Torch/GPU use; no default-suite rerun for that docs-only audit. Python loader/startup
 inventory and production-entry binding remain the next preparation work.
+The following file-only `prepare_clock_python.py` component now binds historical
+records/source pins to current venv/interpreter/metadata/startup snapshots without
+executing packages or probes. Seven new synthetic tests pass; **12 focused tests
+and default checks with 318 reporting tests pass**. Three actual metadata-only calls
+agree on 3 historical sources, 43 current-only files, 37 distributions and 3 Python
+links, with launch_ready=false. A retained red/green case rejects same-byte image
+inode replacement during preparation. See the Python audit for commands, exact limits,
+hashes and limitations. Native/Python loader coverage, current upstream verification
+and the full frozen production entry remain pending; no runtime gate closes.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

@@ -794,6 +794,13 @@ Preserve intrinsic benchmark hashing and Git checks rather than claiming run-wid
 absence; the added collector's frozen rehash still belongs last. Documented metadata
 reproduction passes with system Python `-S`, no Torch import or GPU command. This
 is not launch readiness or a change to the qualified benchmark.
+The subsequent [file-only preparation component](linux-clock-python-preparation-audit.md#file-only-preparation-component)
+now freezes the reviewed Python metadata/startup surface without executing it;
+seven new synthetic tests and actual metadata-only calls pass. Default checks pass
+318 reporting tests. The three current snapshots agree; a retained red/green test
+rejects same-byte image inode replacement. Native/Python loader
+coverage, current upstream verification, full frozen entry binding and all live
+policy/permission/availability gates remain pending.
 
 ## Fixed collection and cleanup contract
 

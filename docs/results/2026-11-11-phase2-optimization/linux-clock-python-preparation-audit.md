@@ -209,3 +209,112 @@ reproduction versions passed. Logs were created exclusively with `umask 077`.
 No executable production/tool source changed in this audit. Default checks were
 not rerun for this documentation-only checkpoint; the prior `fef3b08` checkpoint's
 311 reporting tests remain historical evidence, not new hardware validation.
+
+## File-only preparation component
+
+The subsequent `tools/bench/prepare_clock_python.py` implements this metadata
+surface as an **import-only preparation component**. It has no CLI, subprocess
+probe, installed-package import, startup-hook execution or GPU/policy command.
+Call it before telemetry; never from the locked worker. It is not the final
+preparation manifest, launch entry, full Python provenance or qualification.
+
+`historical_reference(root)` binds seven selected records (six Python reports and
+the environment record) to the published archive digest/member inventory. It checks
+checkpoint/upstream/runtime/protocol and all six metadata sets. `prepare` checks
+the three current helper files against historical digests. Raw historical Git status/environment
+fields are not returned. Other archive bodies are bound by the whole-archive hash,
+not individually rehashed by this component; the earlier audit verified all 110.
+
+`prepare(root, reviewed_startup=...)` separately captures current-only venv config,
+resolved executable/link spellings, requirements lock, distribution METADATA,
+static Torch version declaration and explicitly reviewed startup files. It requires
+the archived interpreter version in config, no system-site packages, an executable
+ELF marker, and a consistent executable/home/link chain. **It does not execute the
+interpreter to verify its runtime version or parse ELF dependencies.** Required
+package metadata versions must match the historical report exactly; extra versions
+are retained for review, not silently installed, removed or authorized. The lock
+must retain the same entries/versions. The Torch source literal must match the
+separate archived runtime build tag. No Torch import occurs.
+
+All top-level `.pth` names must match explicit reviewed hashes; helper files are
+also supplied explicitly. The current call uses the two reviewed hashes above
+for `distutils-precedence.pth` and `_distutils_hack/__init__.py`. Unknown/custom
+startup modules, egg-info layouts, duplicate names/headers/config fields, changed
+hooks, symlinked metadata/source/startup paths or inconsistent inventory fail.
+Final inventory/link and file device/inode/path checks reject observed changes
+during preparation. A retained red/green test replaces the interpreter with a
+same-byte new inode: the initial digest-only recheck accepted stale identity;
+the fixed recheck rejects it. This is
+not a complete import-closure analysis or an atomic filesystem snapshot; trusted
+directory ancestors and separate full preflight/postflight checks remain necessary.
+
+New preparation-only bounds (not changes to diagnostic collection quotas):
+
+- 1 MiB per text metadata/source/startup/config input, 64 MiB interpreter image;
+  parsed bytes are cross-checked against bounded-size snapshots.
+- At most 128 distribution directories and 32 explicitly reviewed startup files.
+- 16 MiB compressed archive, at most 512 declared regular members, 16 MiB/member
+  and 64 MiB declared expanded total; streaming traversal, no extraction to disk.
+
+Seven synthetic tests cover historical/source drift, malformed metadata/config,
+version/build distinction, startup review and path guards, inventory/link changes,
+input bounds and no execution. Fake ELF markers and package files cannot establish
+runtime correctness. The new seven tests plus five process-binding tests pass;
+`CARGO_BUILD_JOBS=4 ./tools/check.sh` passes **318 reporting tests**.
+
+Three actual file-only component calls, including the final identity-rechecking
+implementation, produced equal parsed JSON (v3 sorts keys differently): **3 historical
+source files, 43 current-only files, 37 distribution versions (extra pip retained),
+3 interpreter symlinks**. All keep `launch_ready`, historical interpreter/library byte verification, actual
+runtime-version probing, Torch import, startup import-closure verification, library
+resolution and current upstream worktree verification **false**. The 43-file set
+is not the entire venv/stdlib/native-library tree. No CUDA/Torch runtime, benchmark,
+permission test or clock intervention ran. None of these results is a clean full-launch
+preparation or evidence that the failed read-only attempt passed postflight.
+
+Commands used for tests:
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_prepare_clock_python -v
+PYTHONPATH=tools/bench python -m unittest test_prepare_clock_python test_clock_process_observation -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+Actual metadata call, from the repository root in a fresh `python -S` interpreter
+with `umask 077`; output files were opened exclusively, never overwritten:
+
+```python
+from pathlib import Path
+import json, sys
+root = Path.cwd()
+sys.path.insert(0, str(root / 'tools/bench'))
+from prepare_clock_python import prepare
+assert 'torch' not in sys.modules
+result = prepare(root, reviewed_startup={
+    'distutils-precedence.pth': '2638ce9e2500e572a5e0de7faed6661eb569d1b696fcba07b0dd223da5f5d224',
+    '_distutils_hack/__init__.py': 'ced72e54431ecf2d8d7dbd8a1e27724f1b171af3ca1503c304bf11c59a7fe861',
+})
+assert 'torch' not in sys.modules and result['launch_ready'] is False
+# Each run used its own fresh v1/v2/v3 filename under private ignored reports/.
+```
+
+| Private evidence under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-clock-python-preparation-tests-v1.log` | Initial seven synthetic tests pass | `3c6c6a4d8c50a4fcf26a30d181230ffd17e27b64ff3aa2be8b0f4a920fb01ff6` |
+| `phase2-clock-python-preparation-tests-v2.log` | 12 focused tests before identity-recheck regression | `eeb6230e1fc7970fed32cea36394f5f6bd9c6c07ab548b9d76e033d13a5bd08b` |
+| `phase2-clock-python-preparation-run-v1.log` | Initial actual component preparation | `2324c543a829e3a12ba83a0f1568c206963d6a517af6848b2490ba49aacc0f74` |
+| `phase2-clock-python-preparation-run-v2.log` | Bounded implementation agrees with initial snapshot | `b98df47b92e68a82e8cca9eaaa17447874f1d942308c43ded9186085815a707c` |
+| `phase2-clock-python-preparation-v1.json` | Metadata-only component output | `95653c998c2ee2898f3035b560014256bcc6ddf96eee8233edbc1671826d4fe0` |
+| `phase2-clock-python-preparation-v2.json` | Same metadata-only output after final bounded checks | `95653c998c2ee2898f3035b560014256bcc6ddf96eee8233edbc1671826d4fe0` |
+| `phase2-clock-python-preparation-check-v1.log` | Default checks before identity-recheck regression; 318 reporting tests | `d5fc41369b8c24b50d6426924c2ba2471c508ea015742d81cdcd9138b89f337f` |
+| `phase2-clock-python-preparation-identity-red-v1.log` | Same-byte replacement incorrectly accepted before fix | `524215d8469bb1912127df165f131a73b7fc92b739de6b9fa41a15787b6ba683` |
+| `phase2-clock-python-preparation-tests-v3.log` | Final 12 focused tests pass, including replacement rejection | `65649e53d88a69c444fd60590576cbb2bc23b45c0f25a9d5cceb004d77395dd3` |
+| `phase2-clock-python-preparation-check-v2.log` | Final default checks pass; 318 reporting tests | `7c32b69b1607b7b32efcd9a621cb3f002d5e379fd98506d5cb1a7f4d1833e016` |
+| `phase2-clock-python-preparation-run-v3.log` | Final identity-recheck implementation agrees with earlier snapshots | `008c38efcfc67dff093e7ec12dd53dc2261cc40ba8a4a63f55dcc38a3b6cb7fd` |
+| `phase2-clock-python-preparation-v3.json` | Same parsed metadata; sorted keys | `b38b01c656cb2848a55cfc56086bd435b6892880b0c4a18af55d3efa0e5dd221` |
+
+Next: native/Python loader coverage and reviewed current-only required-library
+inventories, current upstream verification, frozen full preparation/entry binding,
+and actual lifecycle/process/telemetry/output qualification with frozen rehash last.
+The unanswered default-policy/no-controller question, permissions/enforcement and a
+later fresh quiet window remain gates. **Linux 72/78; Apple pending.**
