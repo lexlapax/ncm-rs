@@ -341,9 +341,16 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   Four new test methods use actual validators with archived outputs/synthetic clocks,
   maps and policy; 15 gate failures/two publication failures retain partial evidence.
   **18 focused/391 reporting tests pass**. Import-only composition is not a frozen
-  entry or independent reaping/provenance/hardware proof. Next: current upstream,
-  fresh complete preparation/entry and live policy/permission/availability gates.
-  No GPU/benchmark work; Linux 72/78/Apple pending.
+  entry or independent reaping/provenance/hardware proof. Latest: [current upstream snapshot](docs/results/2026-11-11-phase2-optimization/linux-clock-upstream-verification.md)
+  at `f536960` verifies raw pinned commit `c702742`, replacement objects disabled,
+  HEAD/index and 39 tracked files/877,235 bytes; zero untracked/ignored entries.
+  Accepted/candidate Git guards pass, production/manifests unchanged; candidate's
+  four allowed session entries stay private (counts only). Ten upstream probes and
+  six native guards completed; 25-member compact archive consistency/privacy checked.
+  **15 focused/391 reporting tests pass**. V1 retained before stronger v2 commit/object
+  checks; no import-closure/historical-library/atomic-snapshot or launch claim.
+  Next: fresh complete preparation/entry (recheck upstream in that snapshot), then
+  live policy/permission/availability gates. No GPU/benchmark work; Linux 72/78/Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

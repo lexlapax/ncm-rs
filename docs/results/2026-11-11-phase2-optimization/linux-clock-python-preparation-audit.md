@@ -318,3 +318,13 @@ inventories, current upstream verification, frozen full preparation/entry bindin
 and actual lifecycle/process/telemetry/output qualification with frozen rehash last.
 The unanswered default-policy/no-controller question, permissions/enforcement and a
 later fresh quiet window remain gates. **Linux 72/78; Apple pending.**
+
+Subsequent [current upstream inspection](linux-clock-upstream-verification.md) at
+`f536960` verifies the raw pinned commit with replacement objects disabled and all
+39 tracked files/877,235 bytes against the HEAD tree/index, with zero untracked/
+ignored entries. This is new current-only evidence, not a retroactive qualification
+of the historical Python preparation above. Native Git guards also pass; 15 focused/
+391 reporting tests pass. The [same-evidence finalizer](linux-clock-finalization.md)
+is now implemented; fresh full preparation/frozen entry, rechecking these snapshots,
+and all outstanding live gates remain required. No interpreter/library equivalence
+or Python import-closure claim follows from the upstream file check.

@@ -908,6 +908,14 @@ Four new tests use actual validators over archived outputs/synthetic collection,
 This import-only helper is not a frozen production entry or proof of live reaping/
 role provenance/hardware restoration. Next: upstream verification, fresh complete
 preparation/entry and all outstanding live gates; no acceptance comparison closes.
+[Current upstream verification](linux-clock-upstream-verification.md) now supplies a
+metadata-only snapshot at `f536960`: pinned raw commit with replacement objects off,
+39 tracked files/877,235 bytes matching HEAD/index, zero untracked/ignored entries.
+Accepted/candidate source/manifest Git guards pass; private session names are not
+published. Ten upstream/six native probes complete, 25-member archive reviewed;
+15 focused/391 reporting tests pass. Current-only snapshots must be rechecked in
+fresh complete preparation; Python closure/historical library bytes and full entry/
+live policy/permission/readiness gates remain pending. No GPU/benchmark run.
 
 ## Fixed collection and cleanup contract
 

@@ -212,6 +212,17 @@ runner call is not independently proved live ownership/reaping; complete prepara
 production entry/remaining live role bindings and hardware gates remain owed. Next:
 current upstream verification, fresh complete preparation/entry, then policy/permission/
 restoration/readiness and a new quiet window. No acceptance cells close.
+[Current upstream snapshot](linux-clock-upstream-verification.md) at `f536960` now
+verifies the unchanged raw `c702742` commit with replacement objects disabled and
+39 tracked files/877,235 bytes against HEAD/index/blob identities; zero untracked/
+ignored entries. Native accepted/candidate Git guards also pass, production and
+manifests unchanged; four allowed candidate session entries stay private, counts
+only. Ten upstream probes/six native probes completed. The 25-member public archive
+passes consistency/privacy review; **15 focused/391 reporting tests pass**. Earlier
+v1 is retained before v2's stronger object checks. This is current-only inspection,
+not Python closure, historical library equivalence, atomic snapshot or full preflight.
+Next: fresh complete preparation/entry, incorporating a fresh upstream recheck, and
+all live policy/permission/readiness/availability gates. No GPU/benchmark action.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

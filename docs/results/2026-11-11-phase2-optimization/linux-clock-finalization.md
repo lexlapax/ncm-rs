@@ -104,8 +104,9 @@ failure from the prior file-check checkpoint, remains retained; no repair is inf
 
 ## Remaining work
 
-Current upstream verification and fresh complete preparation; reviewed frozen entry
-with live coordinator/observer-supervisor/GPU role bindings and restoration-aware
+A [current upstream snapshot](linux-clock-upstream-verification.md) now verifies the
+pinned checkout at `f536960`; it must be rechecked in fresh complete preparation.
+A reviewed frozen entry still owes live coordinator/observer-supervisor/GPU role bindings and restoration-aware
 ownership/reaping. Default-policy/no-custom-lock/no-controller confirmation,
 permissions/enforcement/restoration evidence and a **new quiet window after readiness**
 remain required before the fixed clock diagnostic. Its outcome cannot substitute for

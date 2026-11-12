@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "diagnostic_only": true,
+  "measured_repository": "f53696043e71fa5cdaa3f72e28b8c37fef5911d5",
+  "upstream": {
+    "upstream_commit": "c70274273f489abc73832b2b98584a8483b6b203",
+    "tracked_file_count": 39,
+    "tracked_bytes": 877235,
+    "tracked_clean": true,
+    "untracked_count": 0,
+    "ignored_entry_count": 0,
+    "replacement_objects_disabled": true,
+    "raw_commit_sha1_verified": true,
+    "current_upstream_snapshot_verified": true
+  },
+  "worktrees": {
+    "schema_version": 1,
+    "worktree_state_verified": true,
+    "launch_ready": false,
+    "git_identity": {
+      "path": "/usr/bin/git",
+      "sha256": "2912a2a32f408c9b8122e476251b32f4b35f4c3f0c15961686ae87ca456d384c",
+      "bytes": 4968112,
+      "device": 29,
+      "inode": 8058809,
+      "expected_digest_verified": false
+    },
+    "states": {
+      "accepted": {
+        "head": "3307dff82a08f7251b64de0866a01d131528b74f",
+        "tracked_clean": true,
+        "allowed_untracked_count": 0
+      },
+      "candidate": {
+        "head": "f53696043e71fa5cdaa3f72e28b8c37fef5911d5",
+        "tracked_clean": true,
+        "allowed_untracked_count": 4
+      }
+    },
+    "production_base": "d44beaa82bbf026b353cb44461da44d25efbfb87",
+    "manifest_base": "fa040ed34a44a577bc4e6e297c944393cdf6cfda",
+    "scope": "Read-only current Git state; recheck at launch. Ignored artifacts are covered separately by frozen hashes, not by Git cleanliness."
+  },
+  "probes": {
+    "head-before": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 41,
+      "observed_bytes": 41,
+      "capture_sha256": "ef47e6c0c517b86cd0c1e2f81cbe57813f3da4127215469635c3b79f0ec99df1",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "raw-commit": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 230,
+      "observed_bytes": 230,
+      "capture_sha256": "77afe400ba3fa4ae9e34bd4e43f3a26d827b8afdc53b22e978fa2a4874952e55",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "top-level": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 64,
+      "observed_bytes": 64,
+      "capture_sha256": "f3738bc9131124ddd7dea14dd889d92f4161e120122b74e721b67469f369d0db",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "status-before": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 0,
+      "observed_bytes": 0,
+      "capture_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "index-flags": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 935,
+      "observed_bytes": 935,
+      "capture_sha256": "6837ffe0c10dd941cb8caa6caf2006717df8e1592bf951c32a95256b8ecb93ed",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "head-tree": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 2924,
+      "observed_bytes": 2924,
+      "capture_sha256": "c0721ac38dcfafa89eeb002096bc410ea9fecefa74037eef09e95f40d2e3b64f",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "index-entries": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 2807,
+      "observed_bytes": 2807,
+      "capture_sha256": "cc34233cc35734f4115ad87d25e878356da7762f7590c6ecfc4c578e9aa6b817",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "ignored": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 0,
+      "observed_bytes": 0,
+      "capture_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "head-after": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 41,
+      "observed_bytes": 41,
+      "capture_sha256": "ef47e6c0c517b86cd0c1e2f81cbe57813f3da4127215469635c3b79f0ec99df1",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    },
+    "status-after": {
+      "status": "complete",
+      "returncode": 0,
+      "timeout_seconds": 10,
+      "output_limit_bytes": 1048576,
+      "captured_bytes": 0,
+      "observed_bytes": 0,
+      "capture_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "direct_child_reaped": true,
+      "capture_eof": true
+    }
+  },
+  "archive": {
+    "path": "docs/results/2026-11-11-phase2-optimization/raw/linux-clock-upstream-v2.tar.xz",
+    "bytes": 10524,
+    "sha256": "f8bd1fe71a7224737f05d57c8fe446838b7c4c89f3542815f6bc3a8136c89e4e",
+    "members": [
+      {
+        "path": "reports/phase2-clock-upstream-verify-v2.py",
+        "bytes": 6943,
+        "sha256": "b7cc9cd3824d2925887987b9d23f9d518778e04a1b265ddda95695d60c102fff"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verify-v2.log",
+        "bytes": 250,
+        "sha256": "8e929fe968fc897c87d0fe441d85984b2353caa20d0d7c9354604eb73edd67c9"
+      },
+      {
+        "path": "reports/phase2-clock-worktrees-verification-v1/worktrees.json",
+        "bytes": 907,
+        "sha256": "691334d1d5ebaab56c1d7eec4d6a6b680d334d85cfcb938d477a4489b2c268ab"
+      },
+      {
+        "path": "reports/phase2-clock-worktrees-verification-v1.log",
+        "bytes": 399,
+        "sha256": "14088ff799306d5439c3ebe80426923ace02e9e2d4ff91b47db95297f846da94"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/head-after.receipt.json",
+        "bytes": 1787,
+        "sha256": "320dd1cb6dcae773d671637006f6fc1264f4195ed273a0af09edd18463a4c1cc"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/head-after.txt",
+        "bytes": 41,
+        "sha256": "ef47e6c0c517b86cd0c1e2f81cbe57813f3da4127215469635c3b79f0ec99df1"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/head-before.receipt.json",
+        "bytes": 1786,
+        "sha256": "743979e2c4cc3aa97c41e669b553f86b8a2e458064172dc7dcc6983f07a71fd3"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/head-before.txt",
+        "bytes": 41,
+        "sha256": "ef47e6c0c517b86cd0c1e2f81cbe57813f3da4127215469635c3b79f0ec99df1"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/head-tree.receipt.json",
+        "bytes": 1862,
+        "sha256": "38e71078b92589fc91ebb6137882f436b3e41249c61987c31e525aeec561bf5a"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/head-tree.txt",
+        "bytes": 2924,
+        "sha256": "c0721ac38dcfafa89eeb002096bc410ea9fecefa74037eef09e95f40d2e3b64f"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/ignored.receipt.json",
+        "bytes": 1840,
+        "sha256": "9370114a74d4271f2327f533b605680b2d1ec17afb7d30bcf03864d7287a3ee5"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/ignored.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/index-entries.receipt.json",
+        "bytes": 1803,
+        "sha256": "8e5abdc637208e44738f17fba0c89586b3d2f6088a9361bef1d79092b61e4cd2"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/index-entries.txt",
+        "bytes": 2807,
+        "sha256": "cc34233cc35734f4115ad87d25e878356da7762f7590c6ecfc4c578e9aa6b817"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/index-flags.receipt.json",
+        "bytes": 1796,
+        "sha256": "c57ed7dd6f0955a4b45f1a9b52b8a861a955cef847d41c0c6eda00bb017e7fe9"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/index-flags.txt",
+        "bytes": 935,
+        "sha256": "6837ffe0c10dd941cb8caa6caf2006717df8e1592bf951c32a95256b8ecb93ed"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/raw-commit.receipt.json",
+        "bytes": 1837,
+        "sha256": "11ab3d8474c5c1478fabf845d34502738fa6cbbd49869f731f80a7862119acce"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/raw-commit.txt",
+        "bytes": 230,
+        "sha256": "77afe400ba3fa4ae9e34bd4e43f3a26d827b8afdc53b22e978fa2a4874952e55"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/status-after.receipt.json",
+        "bytes": 1830,
+        "sha256": "ba62c6d9378ec7a8b1108ffcd63955df50b3055ee4257d12c1028eb34647c39f"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/status-after.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/status-before.receipt.json",
+        "bytes": 1831,
+        "sha256": "81bf5f2021b9f5081c040cda905b46b17f1ed473009389cede12f450581a23e3"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/status-before.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/top-level.receipt.json",
+        "bytes": 1798,
+        "sha256": "2f923f93206794d43709edce139149f27a3027735d65a6c51438e837fe79bb17"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/top-level.txt",
+        "bytes": 64,
+        "sha256": "f3738bc9131124ddd7dea14dd889d92f4161e120122b74e721b67469f369d0db"
+      },
+      {
+        "path": "reports/phase2-clock-upstream-verification-v2/upstream.json",
+        "bytes": 41436,
+        "sha256": "250c55d07177330441cd85aad6f747a8f1a7ad8e455f3f2bcbdc8eccce3d38ad"
+      }
+    ]
+  },
+  "retained_private_evidence": [
+    {
+      "path": "reports/phase2-clock-upstream-verify-v1.py",
+      "bytes": 6607,
+      "sha256": "7e5587398c37d72c867d52f7c840fb56c9817023b2aaa03974dc672f348c6d3d"
+    },
+    {
+      "path": "reports/phase2-clock-upstream-verify-v1.log",
+      "bytes": 250,
+      "sha256": "8e929fe968fc897c87d0fe441d85984b2353caa20d0d7c9354604eb73edd67c9"
+    },
+    {
+      "path": "reports/phase2-clock-upstream-verification-v1/upstream.json",
+      "bytes": 38987,
+      "sha256": "8be42d0e036ce420ce64444941960f11b5a5b9954e260a89393884fa69889865"
+    },
+    {
+      "path": "reports/phase2-clock-upstream-tests-v1.log",
+      "bytes": 2773,
+      "sha256": "7c925a6ea1a24e461473abb80546d8706b1001da2372e1f050f82a334740cf04"
+    },
+    {
+      "path": "reports/phase2-clock-upstream-check-v1.log",
+      "bytes": 72348,
+      "sha256": "b90d0f9049210ea5559a89d83a7b9bf18ddf6a43fd08e8835c4cd5f4e1c96d87"
+    }
+  ],
+  "launch_ready": false,
+  "complete_preparation_verified": false,
+  "python_import_closure_verified": false,
+  "historical_interpreter_library_bytes_verified": false,
+  "performance_acceptance_evaluated": false,
+  "scope": "Current metadata-only upstream snapshot and native Git guards, not an import/stdlib/native closure, atomic snapshot or future preflight. Raw candidate Git status/session filenames remain private; only counts/summary are public. No policy/GPU/benchmark work or acceptance closure."
+}
