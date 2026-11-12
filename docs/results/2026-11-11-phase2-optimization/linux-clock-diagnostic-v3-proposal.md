@@ -67,6 +67,72 @@ policy changes are included. Never use GPU/device reset. The RTX 3060 Ti's known
 PCI address is `00000000:01:00.0`; rebind address/UUID/name before launch rather than
 assuming enumeration index zero still refers to it.
 
+## Tested restoration transaction primitive — not a launch entry
+
+`tools/bench/supervised_restoration.py::supervise_restoration` is import-only;
+there is no GPU CLI or automatic policy action. It takes three reviewed argv lists
+(set, one worker, reset), an explicit environment/parent and fresh private outputs.
+It requires a dedicated single-threaded Linux `-S` interpreter, default SIGCHLD,
+exclusive child ownership and no existing children/subreaper role. All commands,
+environment and timeout bounds are checked before creating the attempt directory.
+
+The independent supervisor writes/closes `obligation.json` before attempting set.
+Even set failure, output/capture failure or an exception after command reaping
+requires reset: set may have partially applied. Set runs at most once, worker at
+most once; an interrupted/failed set or orphan prevents worker submission. Owned
+worker/session-escaping descendants are cleaned before reset. Parent loss or a
+pending interrupt cannot suppress reset. One bounded **cleanup-only** retry is
+allowed; initial cleanup failures remain failed even if the second reset succeeds.
+Two failed resets or unresolved owned cleanup emit an explicit stderr warning.
+The private attempt directory cannot be reused. No frozen-input hashing is done.
+
+Command captures are bounded at 1 MiB, set/reset commands at at most 10 seconds,
+and set/worker share a cancellation deadline at most 600 seconds from arming.
+**This is not yet the protocol's complete 600-second reset-request deadline:**
+owned cleanup and reset command bounds are additional work. The future integrated
+entry must reserve cleanup time, enforce its absolute deadline, and bind actual
+clock enforcement, telemetry readiness/full 900-second completion, worker commands,
+policy/permissions and frozen identities before any real policy command. This
+primitive does not silently extend the protocol deadline or establish launch
+readiness. If owned cleanup fails, it still attempts reset best-effort and retains
+failure; uninterruptible tasks, supervisor SIGKILL and host failure remain outside
+successful containment guarantees.
+
+`reset_command_succeeded` means only a complete owned reset command with exit zero.
+`hardware_policy_restoration_verified`, `clock_enforcement_verified`, launch
+provenance and output qualification remain **false**. No test establishes NVIDIA
+permission, enforced graphics clocks, appropriate default policy or CUDA abort
+behavior. The user's default-policy/no-controller confirmation is still pending;
+automatic continuation is not that confirmation or a new quiet window.
+
+Sixteen fresh-process CPU-only tests use a local fake policy file and Python
+commands, never `nvidia-smi`: arm-before-set; partial set failure; set timeout;
+worker failure/deadline/interrupt; set/worker output overflow; worker SIGKILL with
+session-escaping descendants; unrelated survivor; parent disappearance; interrupted
+reset; one cleanup retry; two failing/timed-out resets and warning; exceptions
+before/after command reaping; cleanup, signal-setup and obligation-write failures;
+malformed commands/env/bounds/parent; existing children/role; attempted reuse.
+The fake reset itself checks `/proc` to require the worker and escaped child gone
+before modifying its fake state. These tests check actual subprocess waiting, not
+merely a serialized reaping flag. Staged review added a reset-timestamp failure
+regression: initially the timestamp exception bypassed reset. The retained red test
+fails; guarded metadata recording now preserves the failure while still attempting
+reset, and the green/full suites pass. This is fake-policy evidence, not a live lock.
+
+Commands: `python -m unittest discover -s tools/bench -p test_supervised_restoration.py -v`
+and `CARGO_BUILD_JOBS=4 ./tools/check.sh`.
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-restoration-tests-v1.log` | Initial 12 tests pass | `6f84dcb0d24b7615eaa3ebbcfa228842cd29bcb9d3949652b5f80bf340e65e47` |
+| `phase2-restoration-tests-v2.log` | Expanded 14 tests pass | `9b15bec0092dca1eba2036cfa8d1f148d31d405e9de13c4346d39344a7b89cc3` |
+| `phase2-restoration-tests-v3.log` | Expanded 16 tests pass before timestamp regression | `3acef58b191915177a254b8da870b9989c2148a97adb80b700e9e2cd1d370827` |
+| `phase2-restoration-check-v1.log` | Initial default checks pass; 259 reporting tests | `fd6ac64264abed9c033feca04d00716a104a3bfc81d8dba9a5201a940bc230ac` |
+| `phase2-restoration-clock-red-v1.log` | Reset-timestamp failure bypasses cleanup before fix | `4e9ae95fdcb22e33063bc007abf6890ae7cbcca5e3184aec6bfa22e445fcf6c9` |
+| `phase2-restoration-clock-green-v1.log` | Four exception subcases, including reset timestamp, pass | `16fd45ef9cc41df7ddbb6816b1fe52be00a3c9e89f705c5719bab05cee3c0240` |
+| `phase2-restoration-tests-v4.log` | Final 16 tests pass | `88d685afcee254fe4db18b9ef75f2c3c1d4b36a0b7645c0bfb4208308e970261` |
+| `phase2-restoration-check-v2.log` | Final default checks pass; 259 reporting tests | `ef0bb76238a733ac4918a6e1353fd5334147fcdf7e52bd72bae540d5807b334d` |
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

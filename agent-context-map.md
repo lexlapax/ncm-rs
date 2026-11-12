@@ -97,13 +97,28 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   insufficient attribution data, not a clock-cause finding. Initial offline alias
   counting error retained/corrected using existing ELAPSED names. Compact 36-member
   archive published; full 1 GiB capture retained locally by hash, not public raw
-  reproduction. Next: clock-restoration fake tests and policy/controller/permission
-  checks, then new availability; no clock intervention is ready or performed.
+  reproduction. Clock-restoration integration and policy/controller/permission
+  checks remain before new availability; no clock intervention is ready or performed.
   Supervisor SIGKILL/host failure cannot guarantee cleanup. Linux remains 72/78,
   Apple pending; no GPU-policy/production changes or completion. Post-attempt
   `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes 243 reporting tests; all 36 archive
   hashes and telemetry revalidation pass in clean `git archive b7f61b5` scratch.
   Checks/log hashes and raw-trace reproduction limitation are in the result.
+  Latest preparation: `supervised_restoration.py` adds an import-only independent
+  set/one-worker/reset transaction, obligation written before set, owned/adopted
+  cleanup, parent-loss/interrupt handling and at most one cleanup-only retry.
+  No GPU command/CLI is supplied or run. Sixteen fake-policy CPU subprocess tests
+  pass, including actual escaped-child reaping before reset, unrelated survivors,
+  partial set failure, deadline/overflow, interrupted/timed-out reset, serialization
+  exceptions and setup failures. Staged review's reset-timestamp regression failed
+  before guarding metadata recording so it cannot bypass reset; red/green retained.
+  Final 16 focused tests pass; default checks pass **259 reporting tests**.
+  [Clock proposal](docs/results/2026-11-11-phase2-optimization/linux-clock-diagnostic-v3-proposal.md)
+  records exact logs and limits: reset exit zero is not hardware restoration proof;
+  cancellation timeout plus cleanup is not yet the full 600-second reset-request
+  deadline. Next: integrate absolute deadline/telemetry/enforcement/frozen worker
+  bindings; obtain still-pending default-policy/no-controller confirmation and
+  permission evidence, then a fresh window. No real lock/reset or permission test.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

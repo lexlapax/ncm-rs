@@ -57,8 +57,15 @@ The following preparation chronology predates that failed attempt; old pending
 launch notes are historical, not instructions to repeat it. Tooling was published
 at `b7f61b5`; actual metadata preparation/comparison passed before the attempt.
 The evidence index retains a compact archive and identifies the unpublished local
-1 GiB capture. Next work is fake-command clock-restoration supervision and explicit
-policy/controller/permission checks before requesting another quiet window.
+1 GiB capture. An import-only `supervised_restoration.py` transaction now passes
+16 fake-policy subprocess tests (259 reporting tests in default checks). It arms
+before set, stops/reaps owned workers/escaped descendants, and attempts reset on
+failure/interrupt/parent loss, with at most one cleanup-only retry. No real GPU
+commands ran. See the clock proposal for logs and scope: command exit is not
+hardware restoration; integration still owes the absolute 600-second reset-request
+deadline, full telemetry, enforcement and frozen worker binding. Default-policy/
+no-controller confirmation remains unanswered, permission evidence pending, and
+another quiet window must wait until readiness. Do not rerun read-only v1.
 
 The [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
 defines 12 fixed native processes (plain/traced), unchanged frozen executables,
