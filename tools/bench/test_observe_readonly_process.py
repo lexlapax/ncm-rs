@@ -130,13 +130,27 @@ class ProcessObservationTests(unittest.TestCase):
         actual = observation.mapped_paths
         for incomplete_forever in (False, True):
             argv, observer = self.spec()
-            calls = 0
             def pending(pid, raw):
-                nonlocal calls
-                calls += 1
-                return ([], []) if incomplete_forever or calls == 1 else actual(pid, raw)
-            with patch.object(observation, 'mapped_paths', side_effect=pending):
+                # Inject until the intended classification has actually occurred,
+                # not merely until one attempt was lost to another startup race.
+                return ([], []) if incomplete_forever or observer.startup_incomplete_count == 0 else actual(pid, raw)
+            actual_stat = observation.os.stat
+            image_reads = 0
+            def exec_race(path, *args, **kwargs):
+                nonlocal image_reads
+                value = actual_stat(path, *args, **kwargs)
+                if str(path).startswith('/proc/') and str(path).endswith('/exe'):
+                    image_reads += 1
+                    if image_reads == 2:
+                        return SimpleNamespace(st_dev=value.st_dev, st_ino=value.st_ino + 1,
+                                               st_mode=value.st_mode)
+                return value
+            # The first empty-map sample can be discarded as a mixed exec before
+            # startup classification. Make that ordering deterministic here.
+            with patch.object(observation, 'mapped_paths', side_effect=pending), \
+                    patch.object(observation.os, 'stat', side_effect=exec_race):
                 receipt, result = self.collect(argv, observer, 'startup-' + str(incomplete_forever))
+            self.assertGreaterEqual(image_reads, 2)
             self.assertEqual(receipt['status'], 'complete')
             self.assertGreaterEqual(result['startup_incomplete_samples'], 1)
             self.assertEqual(result['status'], 'failed' if incomplete_forever else 'complete')

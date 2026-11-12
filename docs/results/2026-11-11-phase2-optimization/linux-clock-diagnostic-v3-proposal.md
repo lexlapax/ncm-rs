@@ -618,6 +618,88 @@ permissions/enforcement and a fresh window after readiness. No GPU command,
 permission test, real telemetry or benchmark ran. Linux remains **72/78**; Apple
 pending. No acceptance cell closes.
 
+## Fixed-job process observation binding — CPU-only
+
+`clock_process_observation.py::process_factory` now connects frozen job/env/image/
+library declarations to the existing real `ProcessObservation`, for use by
+`clock_codec_sequence.run_sequence`. It constructs all 18 independent observers
+before issuance; exact job dictionaries/environment must match on each callback,
+including the eighteenth job before the worker creates outputs or launches work.
+Ordinals may be issued only once. Inputs are copied so subsequent caller mutation
+cannot silently alter the declared commands, images, libraries or environment.
+
+The factory requires all three runtime image declarations and nonempty required-
+library inventories, the CPU2 taskset prefix, fixed runtime/repetition order, and
+the isolated environment. Python's declared command path may be a reviewed venv
+symlink; its separately declared ELF identity is used for `/proc` image checks.
+There is no path resolution, filesystem read/stat, file hashing or metadata
+subprocess in factory construction/issuance. Tests prohibit those operations.
+File identities must have path/device/inode/size/digest metadata, but the factory
+**does not independently verify the declarations**. Frozen preparation must do so
+before collection and bind the exact qualified Python image, native binaries,
+launcher, forbidden injection identity and required libraries.
+
+The existing observer still samples only the owned waitable child: command/env
+match, executable inode, CPU2 affinity, injection absence and executable maps.
+Required libraries must appear in complete workload samples. No mapped file bytes
+are hashed during workloads/remaining telemetry; small mapping metadata digests
+are retained as before. The unchanged observer limits remain 3,000 recorded/transient
+samples combined, 50 ms sampling interval, 8 MiB mapping inventory and 16 MiB serialized
+observation bound. Missing samples/limits/mismatches fail, not disable observation.
+Lazy extra libraries remain post-only; no continuous injection-absence, immutable
+mapped bytes, independent provenance or full-output qualification claim follows.
+Sampling adds diagnostic host work relative to historical v2; it is not an
+acceptance-latency equivalence claim.
+
+Five new CPU-only tests cover:
+
+- Actual real `/proc` observations for 18 fake codec children, in the fixed order,
+  under taskset CPU2, with a real required libc mapping and Python argv symlink.
+  All receipts bind PIDs/commands, complete workload observations and owned reaping;
+  Python copies remain deferred. No Torch/CUDA model or GPU command is used.
+- Independent copied state and single issuance, with IO/hashing/probes forbidden
+  during construction/issuance.
+- Live wrong image/environment or forbidden mapped-identity detection, and absent
+  required libraries. Each stops after the first child; missing-library failure
+  remains failed even when that child's exit/report succeeded. Environment mismatch
+  values are not serialized. The forbidden-library test uses libc as a surrogate,
+  not a real injected CUPTI process.
+- Last-job cwd/environment/ordinal drift before first spawn, incomplete
+  runtime/library/identity declarations and wrong CPU placement.
+
+The broader suite exposed an existing **test fixture race**, not a new observation
+failure: its first forced empty mapping snapshot could be discarded as mixed exec
+before reaching the startup-incomplete counter. A deterministic synthetic second-
+image-read change reproduces that failure. The fixture now maintains its injected
+empty mapping until the intended startup classification actually occurs; the
+original counter/completion assertions remain. Permanent incomplete snapshots
+still fail qualification; later full samples are still mandatory. No production
+observer logic, time allowance, numerical tolerance, sampling or benchmark retries
+changed. Initial and deterministic red evidence are retained.
+
+Commands (exclusive private logs, `umask 077`):
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_process_observation -v
+PYTHONPATH=tools/bench python -m unittest test_clock_process_observation test_clock_codec_sequence test_observe_readonly_process -v
+PYTHONPATH=tools/bench python -m unittest test_observe_readonly_process.ProcessObservationTests.test_incomplete_exec_startup_is_not_promoted_without_later_full_sample -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-clock-process-binding-tests-v1.log` | Five new tests pass | `c19dc53ffc2b10668c897794f62e5e033f9e10a1cc53548ec831dcbd468cc76d` |
+| `phase2-clock-process-binding-tests-v2.log` | 25 tests; existing startup fault-injection race fails | `3345f8338209ea30ed217f6a9debf2be3eb99ded5222524ad9d0cacc03e98154` |
+| `phase2-clock-process-startup-red-v1.log` | Deterministic startup fixture regression fails before fix | `b77aba548ee888005fc642a41d4bc549150fdb11848910efec171be4d9382d1f` |
+| `phase2-clock-process-binding-tests-v3.log` | All 25 focused tests pass | `ba56b9b702ec30b71c0724d8e55599689ca4b240378a44cb3388b3743cf832a2` |
+| `phase2-clock-process-binding-check-v1.log` | Default checks pass; 307 reporting tests | `458ec1501d152638eb6653dc2a7fd193108a534a692895f552bd22dd47891df6` |
+
+Still not a launch: bind this factory, actual library/image inventories, roles and
+absolute budgets into frozen preparation/entry and the final lifecycle/process/
+telemetry/output qualification. Default-policy/no-controller confirmation and
+permissions/enforcement remain unanswered/unverified; request a new quiet window
+only after readiness. Linux remains **72/78**, Apple pending.
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

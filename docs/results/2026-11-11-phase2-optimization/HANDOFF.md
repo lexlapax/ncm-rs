@@ -69,7 +69,14 @@ and cancels work on observer loss or interruption without suppressing reset. It 
 requires readiness from the sole live child of a separate observer supervisor.
 Nine CPU-only coordinator tests include all 18 fake jobs, invalid argv/readiness,
 coordinator TERM/SIGKILL and telemetry-worker SIGKILL with escaped sampler cleanup.
-Forty focused tests and default checks with **302 reporting tests pass**. Tests use
+Those forty focused tests pass. The subsequent `clock_process_observation.py`
+factory binds all 18 jobs to independent real `/proc` observers without construction-
+time IO/hashing: copied job/env declarations, per-runtime image/libraries and
+separate Python argv-path/ELF identity. Five new CPU-only tests cover all 18 fake
+jobs, live mismatches/missing libraries and prelaunch drift; **25 focused tests and
+default checks with 307 reporting tests pass**. A deterministic red/green follow-up
+fixes a startup fault-injection fixture race, not production observation semantics.
+Factory-to-frozen-production-entry binding/postflight remain pending. Tests use
 shortened synthetic telemetry, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

@@ -201,7 +201,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   permission test or benchmark. Read-only defaults unchanged. Still owed: frozen
   roles/deadlines, actual per-job observation and full telemetry/output qualification;
   default-policy/no-controller confirmation, permissions and a later fresh window.
-  Linux stays 72/78; Apple pending.
+  New `clock_process_observation.py` prebuilds 18 independent real process observers
+  from copied declarations, with per-runtime image/library identities, exact job/env
+  binding and one-time ordinal issuance. It preserves Python argv symlink spelling
+  separately from ELF identity and performs no construction-time IO/hashing/probes.
+  Five new CPU-only tests exercise actual `/proc` observation across all 18 fake
+  jobs, live mismatches, missing libraries and prelaunch drift. **25 focused tests
+  and default checks with 307 reporting tests pass**. A broader run exposed an
+  existing startup fault-injection race; deterministic red/green coverage fixes
+  only the fixture, preserving production sampling rules/assertions. Logs/hashes
+  are in the clock proposal. Frozen hardware/entry binding and postflight remain
+  pending; no GPU command, policy action or benchmark. Linux stays 72/78; Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
