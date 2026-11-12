@@ -325,6 +325,59 @@ and `CARGO_BUILD_JOBS=4 ./tools/check.sh`.
 | `phase2-restoration-observer-tests-v1.log` | 22 restoration tests pass | `bd1076378b771a50809fadca1fbb3ff2a21a08d36bf881637496e2869e26eb66` |
 | `phase2-restoration-observer-check-v1.log` | Default checks pass; 272 reporting tests | `151259ca7b0e6b05f4b106a3c66b8d594bfd99c5fbfc849bbb6da13244e82660` |
 
+### Bounded eighteen-job codec worker — CPU-only validation
+
+`tools/bench/clock_codec_sequence.py::run_sequence` now consumes the shared pure
+planner for six codec-only cyclic repetitions. It is import-only: no clock command,
+CLI, telemetry monitor or executable launch contract is supplied. Before creating
+outputs or spawning a child it checks the complete order, CPU2 taskset/report
+arguments, all eighteen executable paths and mandatory observer objects. Factories
+receive copied job/environment values. File existence is not frozen identity;
+preparation still owes source/binary/payload/library hashes and clean-state checks.
+
+The worker takes the restorer's **absolute work deadline**, at most 590 seconds
+away, rather than starting another 600-second allowance. It runs each child through
+owned bounded capture with mandatory observation and cancellation. Child, report,
+observer, cancellation or callback failure stops further submission; no retry.
+A complete child receipt cannot override failed observation or later cancellation.
+Reports retain their original runtime-directory paths. Python-copy destinations
+are recorded but copies are deferred until post-collection analysis; they must not
+be counted as extra processes. Result fields explicitly leave provenance, numerical
+qualification and whole-run supervision false.
+
+Prospective clock-worker safety bounds are **1 MiB captured stdout/stderr per job**,
+**16 MiB post-exit report-read limit**, and **1 GiB free-space headroom** checked
+before output creation and each job. These are not a live report-write/disk quota
+or an overall observation-output cap. They do not revise the failed read-only v1
+quotas or authorize another attempt. Child environments are explicit PATH/HOME/
+C-locale/PYTHONNOUSERSITE values plus `TOKENIZERS_PARALLELISM=false`; unknown keys
+are rejected. No frozen-file hashing or metadata subprocess probes occur in this
+worker. CPU0 worker placement and bounded observer callbacks remain entry obligations.
+
+Nine CPU-only tests substitute fake Python commands for native/reference programs
+and a waitable-child/CPU2 observer for full identity/library observations. They run
+all 18 children, verify exact isolated child environments, owned reaping, report
+binding, private/fresh outputs and deferred copies; cover child/report/capture/
+deadline failures, live/late cancellation, observer/callback failure, and complete
+prevalidation of a bad eighteenth observer/executable. Fixed-order, environment,
+deadline and free-space failures prevent submission. No real codec, GPU policy,
+quality measurement or hardware performance comparison ran.
+
+Commands: `PYTHONPATH=tools/bench python -m unittest test_clock_codec_sequence -v`
+and `CARGO_BUILD_JOBS=4 ./tools/check.sh`. Both passed on the first retained run.
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-clock-sequence-tests-v1.log` | 9 fake-workload sequence tests pass | `dd308fa1fc6e3b3780f212a4dbe778b39d2e15e32eacdc5ec7c08dee65fa7151` |
+| `phase2-clock-sequence-check-v1.log` | Default checks pass; 281 reporting tests | `f720fc2427e19da93dadb94eaf9734b5a80a33844ae06f4db6b548c82380ad3a` |
+
+Remaining: bind this worker to the frozen preparation and the actual supervisor's
+obligation/deadline; enforce failed-result exit status in its future process entry;
+compose telemetry readiness/loss/full 900 seconds, restoration, process/lifecycle
+validation and all 18 output qualifications. Policy/controller confirmation,
+permissions/enforcement and later fresh availability are still missing. These
+component tests do not make the clock diagnostic launch-ready or close Linux cells.
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

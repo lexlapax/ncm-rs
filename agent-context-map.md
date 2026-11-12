@@ -152,6 +152,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   No GPU command or benchmark ran. Remaining work is integrated bounded jobs,
   bound readiness/coverage, enforcement and outer supervision; live policy/
   controller confirmation and permissions remain required before a new window.
+  Latest offline component: `clock_codec_sequence.py` executes the fixed 18-job
+  pure plan through bounded owned captures, explicit isolated environments,
+  mandatory observers and the restorer-supplied absolute work deadline. It stops
+  on first failure without retry; Python report copies are deferred. Prospective
+  bounds (1 MiB capture/job, 16 MiB post-exit report read, 1 GiB free headroom) and
+  limitations are recorded in the proposal; read-only v1 bounds are unchanged.
+  Nine real CPU-only/fake-workload tests pass, including all 18 children and
+  cancellation/prevalidation failures; default checks pass **281 reporting tests**.
+  No GPU/model run or clock command occurred. Still not launch-ready: frozen
+  preparation/entry, live observation binding, telemetry/restoration composition,
+  final qualification and the unanswered policy/controller/permission gates remain.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
