@@ -43,7 +43,36 @@ class BoundedChildTests(unittest.TestCase):
         self.assertEqual(self.capture.read_bytes(), b'helloerror')
         self.assertTrue(result['capture_eof'] and result['direct_child_reaped'])
         self.assertEqual(result['returncode'], 0)
+        spawn = result['spawn_returned_monotonic_seconds']
+        self.assertGreaterEqual(spawn, result['lifetime']['start']['monotonic_after_ns'] / 1e9)
+        self.assertLessEqual(spawn, result['lifetime']['end']['monotonic_before_ns'] / 1e9)
         self.assertEqual({s: signal.getsignal(s) for s in handlers}, handlers)
+
+    def test_spawn_timestamp_failure_still_cleans_owned_child(self):
+        actual_spawn, actual_clock = subprocess.Popen, time.monotonic
+        fail_next = False
+
+        def spawn(*args, **kwargs):
+            nonlocal fail_next
+            child = actual_spawn(*args, **kwargs)
+            fail_next = True
+            return child
+
+        def clock():
+            nonlocal fail_next
+            if fail_next:
+                fail_next = False
+                raise OSError('synthetic post-spawn clock error')
+            return actual_clock()
+
+        with patch('bounded_child.subprocess.Popen', side_effect=spawn), patch(
+                'bounded_child.time.monotonic', side_effect=clock):
+            result = self.run_child('import time;time.sleep(30)')
+        self.assertEqual(result['status'], 'failed')
+        self.assertIsNone(result['spawn_returned_monotonic_seconds'])
+        self.assertIn('capture_error:OSError', result['issues'])
+        self.assertTrue(result['direct_child_reaped'])
+        self.assertFalse(Path(f'/proc/{result["pid"]}').exists())
 
     def test_nonzero_exit_is_not_complete(self):
         result = self.run_child("import sys; print('failed'); sys.exit(7)")
@@ -122,6 +151,7 @@ class BoundedChildTests(unittest.TestCase):
                              timeout_seconds=1, output_limit_bytes=10)
         self.assertEqual(result['status'], 'failed')
         self.assertIsNone(result['pid'])
+        self.assertIsNone(result['spawn_returned_monotonic_seconds'])
         self.assertIn('capture_error:FileNotFoundError', result['issues'])
         self.capture.unlink(); self.receipt.unlink()
         with patch('bounded_child.os.killpg', side_effect=PermissionError('fake cleanup failure')):

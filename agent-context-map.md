@@ -112,13 +112,20 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   partial set failure, deadline/overflow, interrupted/timed-out reset, serialization
   exceptions and setup failures. Staged review's reset-timestamp regression failed
   before guarding metadata recording so it cannot bypass reset; red/green retained.
-  Final 16 focused tests pass; default checks pass **259 reporting tests**.
+  That checkpoint's 16 focused tests/default checks passed 259 reporting tests.
+  Follow-up now separates absolute reset and earlier work deadlines, persisted
+  before set: default 600 seconds with a 10-second cleanup reserve. A new owned
+  post-Popen timestamp must bound first-reset submission within the deadline;
+  late/missing evidence fails even after exit-zero reset. Restoration reports are
+  schema 2; bounded-child receipts add a spawn-time field, no historical retrofit.
+  Red missing-argument/field tests retained; **34 focused tests and 263 reporting
+  tests pass**, including delayed spawn and post-spawn clock-error cleanup.
   [Clock proposal](docs/results/2026-11-11-phase2-optimization/linux-clock-diagnostic-v3-proposal.md)
-  records exact logs and limits: reset exit zero is not hardware restoration proof;
-  cancellation timeout plus cleanup is not yet the full 600-second reset-request
-  deadline. Next: integrate absolute deadline/telemetry/enforcement/frozen worker
-  bindings; obtain still-pending default-policy/no-controller confirmation and
-  permission evidence, then a fresh window. No real lock/reset or permission test.
+  records commands/log hashes and limitations: no hard real-time guarantee or
+  hardware restoration proof. Next: integrate fixed deadline settings, telemetry,
+  enforcement/frozen worker bindings; obtain still-pending default-policy/no-
+  controller confirmation and permission evidence, then a fresh window. No real
+  GPU command, lock/reset, permission test or benchmark ran in this follow-up.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

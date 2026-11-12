@@ -58,14 +58,19 @@ launch notes are historical, not instructions to repeat it. Tooling was publishe
 at `b7f61b5`; actual metadata preparation/comparison passed before the attempt.
 The evidence index retains a compact archive and identifies the unpublished local
 1 GiB capture. An import-only `supervised_restoration.py` transaction now passes
-16 fake-policy subprocess tests (259 reporting tests in default checks). It arms
-before set, stops/reaps owned workers/escaped descendants, and attempts reset on
-failure/interrupt/parent loss, with at most one cleanup-only retry. No real GPU
-commands ran. See the clock proposal for logs and scope: command exit is not
-hardware restoration; integration still owes the absolute 600-second reset-request
-deadline, full telemetry, enforcement and frozen worker binding. Default-policy/
-no-controller confirmation remains unanswered, permission evidence pending, and
-another quiet window must wait until readiness. Do not rerun read-only v1.
+19 fake-policy subprocess tests, plus 15 bounded-child tests (263 reporting tests
+in default checks). It arms before set, stops/reaps owned workers/escaped
+descendants, and attempts reset on failure/interrupt/parent loss, with at most one
+cleanup-only retry. Absolute reset/work deadlines are now persisted before set:
+default 600 seconds with a 10-second cleanup reserve. Late/missing first-reset
+spawn evidence fails even after exit-zero reset; no hard real-time or driver-action
+timestamp guarantee. The clock proposal documents schema-2 restoration reports,
+additive child-receipt spawn time, retained red/green logs and limitations.
+No real GPU commands ran. Command exit is not hardware restoration; integration
+still owes fixed-deadline binding, full telemetry, enforcement and frozen worker
+binding. Default-policy/no-controller confirmation remains unanswered, permission
+evidence pending, and another quiet window must wait until readiness. Do not
+rerun read-only v1.
 
 The [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
 defines 12 fixed native processes (plain/traced), unchanged frozen executables,

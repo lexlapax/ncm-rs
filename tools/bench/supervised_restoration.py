@@ -21,6 +21,7 @@ from supervised_worker import cleanup_owned, direct_children, subreaper
 
 COMMAND_SECONDS = 10
 MAX_LOCK_SECONDS = 600
+CLEANUP_RESERVE_SECONDS = 10
 CAPTURE_BYTES = 1024 ** 2
 
 
@@ -42,14 +43,17 @@ def completed(receipt):
 
 def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output_dir,
                           parent_pid, lock_seconds=MAX_LOCK_SECONDS,
-                          command_seconds=COMMAND_SECONDS):
+                          command_seconds=COMMAND_SECONDS,
+                          cleanup_reserve_seconds=CLEANUP_RESERVE_SECONDS):
     """Attempt set once, worker at most once, reset at most twice; never retry work.
 
     Persist an obligation before set. All normal/exception/timeout/signal/parent-loss
     paths after arming reach reset. Only owned/adopted children are cleaned; reset
-    is best effort even if that cleanup fails, with failure retained. The deadline
-    triggers cancellation, not a hard real-time reset completion guarantee. Cleanup
-    and reset timeouts are additional bounded work. No frozen-file hashing occurs.
+    is best effort even if that cleanup fails, with failure retained. Set/worker
+    cancellation reserves time before the absolute reset-request deadline. Missing
+    or late first-reset spawn evidence fails the transaction but never suppresses
+    reset. Scheduling/IO/cleanup may overrun: no hard real-time guarantee. Reset
+    completion has its own bounded timeout. No frozen-file hashing occurs.
     Successful reset exit is NOT proof of enforcement or restored hardware policy.
     """
     if sys.platform != 'linux' or not sys.flags.no_site or threading.current_thread() is not threading.main_thread() \
@@ -63,6 +67,10 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
     for value, maximum in ((lock_seconds, MAX_LOCK_SECONDS), (command_seconds, COMMAND_SECONDS)):
         if type(value) not in (int, float) or not math.isfinite(value) or not 0 < value <= maximum:
             raise ValueError('invalid bounded transaction timeout')
+    if (type(cleanup_reserve_seconds) not in (int, float)
+            or not math.isfinite(cleanup_reserve_seconds)
+            or not 0 < cleanup_reserve_seconds < lock_seconds):
+        raise ValueError('invalid cleanup reserve')
     if not isinstance(env, dict) or not all(isinstance(k, str) and k and '=' not in k and '\0' not in k
             and isinstance(v, str) and '\0' not in v for k, v in env.items()):
         raise ValueError('explicit valid environment required')
@@ -78,8 +86,9 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
     interrupted = None
     parent_lost = orphan_observed = armed = role_acquired = restored = False
     set_receipt = worker_receipt = None
-    deadline = None
+    deadline = reset_deadline = None
     reset_started = None
+    reset_request_within_deadline = False
 
     def interrupt(signum, _frame):
         nonlocal interrupted
@@ -123,14 +132,18 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
         if not cancelled():
             # Failure to write this marker prevents set. No live-policy action
             # precedes a successfully closed marker; no environment values stored.
+            reset_deadline = time.monotonic() + lock_seconds
+            deadline = reset_deadline - cleanup_reserve_seconds
             with (directory / 'obligation.json').open('x') as file:
-                json.dump({'schema_version': 1, 'armed_before_set': True,
+                json.dump({'schema_version': 2, 'armed_before_set': True,
                            'set_argv': set_argv, 'worker_argv': worker_argv, 'reset_argv': reset_argv,
                            'lock_seconds': lock_seconds, 'command_seconds': command_seconds,
+                           'cleanup_reserve_seconds': cleanup_reserve_seconds,
+                           'work_deadline_monotonic_seconds': deadline,
+                           'reset_deadline_monotonic_seconds': reset_deadline,
                            'maximum_reset_attempts': 2, 'clock': diagnostic_clock.stamp()}, file, indent=2)
                 file.write('\n')
             armed = True
-            deadline = time.monotonic() + lock_seconds
             set_receipt = capture(set_argv, 'set', command_seconds)
             set_clean = clean('set')
             if completed(set_receipt) and set_clean and not cancelled() and time.monotonic() < deadline:
@@ -144,8 +157,8 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
             # Evidence/clock failures must not bypass the armed cleanup action.
             try:
                 reset_started = diagnostic_clock.stamp()
-                if deadline is None or time.monotonic() >= deadline:
-                    errors.append('lock_deadline_reached_or_unavailable')
+                if reset_deadline is None or time.monotonic() >= reset_deadline:
+                    errors.append('reset_deadline_reached_or_unavailable')
             except BaseException as error:
                 errors.append('reset_clock_error:' + type(error).__name__)
             for attempt in range(1, 3):
@@ -158,6 +171,18 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
                 except BaseException as error:
                     errors.append('reset_capture_error:' + type(error).__name__)
                 resets.append(receipt)
+                if attempt == 1:
+                    # The pre-capture reset stamp can precede slow file opens or
+                    # spawn. Only the later owned Popen return bounds submission;
+                    # it still does not prove execution or hardware restoration.
+                    spawn = receipt.get('spawn_returned_monotonic_seconds') if isinstance(receipt, dict) else None
+                    pid = receipt.get('pid') if isinstance(receipt, dict) else None
+                    reset_request_within_deadline = (
+                        type(pid) is int and pid > 0 and type(spawn) in (int, float)
+                        and math.isfinite(spawn) and reset_deadline is not None
+                        and reset_deadline - lock_seconds <= spawn <= reset_deadline)
+                    if not reset_request_within_deadline:
+                        errors.append('reset_request_deadline_unverified_or_missed')
                 reset_clean = clean(f'reset-{attempt}')
                 if completed(receipt) and reset_clean:
                     break
@@ -178,18 +203,22 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
     reset_ok = bool(resets) and completed(resets[-1])
     success = (armed and completed(set_receipt) and completed(worker_receipt) and reset_ok
                and restored and not errors and not parent_lost and not orphan_observed and interrupted is None)
-    result = {'schema_version': 1, 'status': 'complete' if success else 'failed',
+    result = {'schema_version': 2, 'status': 'complete' if success else 'failed',
               'armed': armed, 'set': set_receipt, 'worker': worker_receipt, 'reset_attempts': resets,
               'reset_command_succeeded': reset_ok, 'reset_started_clock': reset_started,
-              'lock_deadline_monotonic_seconds': deadline, 'cleanups': cleanups, 'errors': errors,
+              'work_deadline_monotonic_seconds': deadline,
+              'reset_deadline_monotonic_seconds': reset_deadline,
+              'cleanup_reserve_seconds': cleanup_reserve_seconds,
+              'reset_request_within_deadline': reset_request_within_deadline,
+              'cleanups': cleanups, 'errors': errors,
               'parent_lost': parent_lost, 'orphan_observed': orphan_observed,
               'interrupt_signal': interrupted, 'subreaper_restored': restored,
               'hardware_policy_restoration_verified': False, 'clock_enforcement_verified': False,
               'launch_provenance_verified': False, 'benchmark_outputs_qualified': False,
               'lifetime': diagnostic_clock.finish(lifetime),
               'scope': 'Owned command transaction only, not launch authorization or hardware verification. '
-                       'Reset after bounded cleanup is best effort on cleanup failure; deadlines are cancellation '
-                       'triggers, not hard real-time reset guarantees. Surviving supervisor required.'}
+                       'Early work cancellation reserves cleanup time; late/unverified reset submission fails '
+                       'without suppressing restoration. No hard real-time reset guarantee. Surviving supervisor required.'}
     with (directory / 'restoration.json').open('x') as file:
         json.dump(result, file, indent=2, allow_nan=False)
         file.write('\n')

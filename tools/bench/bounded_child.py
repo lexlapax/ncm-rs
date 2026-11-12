@@ -76,6 +76,8 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     Optional termination_grace_seconds (0..10) gives a live supervisor SIGTERM
     before final group cleanup. Default/native jobs still use immediate cleanup.
     Grace is additional cleanup time, not an extension of the capture deadline.
+    spawn_returned_monotonic_seconds is an upper bound on Popen start, recorded
+    after Popen returns; not an exec timestamp or proof the requested action ran.
     """
     if type(termination_grace_seconds) not in (int, float) or not math.isfinite(termination_grace_seconds) \
             or not 0 <= termination_grace_seconds <= 10:
@@ -121,6 +123,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
             raise ValueError('report path already exists')
 
     child = None
+    spawn_returned = None
     interrupted = None
     saved_handlers = {}
     issues = []
@@ -195,6 +198,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         child = subprocess.Popen(list(argv), cwd=cwd, env=env, stdin=subprocess.DEVNULL,
                                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                                  start_new_session=True)
+                        spawn_returned = time.monotonic()
                         os.set_blocking(child.stdout.fileno(), False)
                         selector.register(child.stdout, selectors.EVENT_READ)
                         while not issues:
@@ -298,6 +302,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         'schema_version': 1, 'status': 'complete' if not issues and child_reaped and eof else 'failed',
                         'issues': issues, 'argv': list(argv), 'cwd': str(cwd),
                         'pid': child.pid if child is not None else None, 'returncode': returncode,
+                        'spawn_returned_monotonic_seconds': spawn_returned,
                         'started_utc': started_utc, 'finished_utc': utc_now(),
                         'elapsed_seconds_including_cleanup': time.monotonic() - started,
                         'timeout_seconds': timeout_seconds, 'output_limit_bytes': output_limit_bytes,

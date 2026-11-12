@@ -86,17 +86,22 @@ allowed; initial cleanup failures remain failed even if the second reset succeed
 Two failed resets or unresolved owned cleanup emit an explicit stderr warning.
 The private attempt directory cannot be reused. No frozen-input hashing is done.
 
-Command captures are bounded at 1 MiB, set/reset commands at at most 10 seconds,
-and set/worker share a cancellation deadline at most 600 seconds from arming.
-**This is not yet the protocol's complete 600-second reset-request deadline:**
-owned cleanup and reset command bounds are additional work. The future integrated
-entry must reserve cleanup time, enforce its absolute deadline, and bind actual
-clock enforcement, telemetry readiness/full 900-second completion, worker commands,
-policy/permissions and frozen identities before any real policy command. This
-primitive does not silently extend the protocol deadline or establish launch
-readiness. If owned cleanup fails, it still attempts reset best-effort and retains
-failure; uninterruptible tasks, supervisor SIGKILL and host failure remain outside
-successful containment guarantees.
+Command captures are bounded at 1 MiB and set/reset commands at at most 10 seconds.
+The absolute reset-request deadline is at most 600 seconds, fixed **before writing
+the obligation**, not extended after set. A default 10-second cleanup reserve
+cancels set/worker at 590 seconds. The first reset's owned `Popen` return must be
+recorded no later than the absolute deadline; late/missing evidence fails the
+transaction without suppressing reset or allowing another workload. The earlier
+pre-capture timestamp alone cannot pass this check. See the follow-up below.
+
+**This still is not an integrated protocol launch gate.** The future entry must
+bind the fixed 600/10-second settings, clock enforcement, telemetry readiness/full
+900-second completion, worker commands, policy/permissions and frozen identities
+before any real policy command. No hard real-time guarantee is made: scheduling,
+IO or cleanup can overrun the reserve, and command submission is not a timestamp
+of the driver's policy action. If owned cleanup fails, reset is still attempted
+best-effort with failure retained. Uninterruptible tasks, supervisor SIGKILL and
+host failure remain outside successful containment guarantees.
 
 `reset_command_succeeded` means only a complete owned reset command with exit zero.
 `hardware_policy_restoration_verified`, `clock_enforcement_verified`, launch
@@ -105,7 +110,7 @@ permission, enforced graphics clocks, appropriate default policy or CUDA abort
 behavior. The user's default-policy/no-controller confirmation is still pending;
 automatic continuation is not that confirmation or a new quiet window.
 
-Sixteen fresh-process CPU-only tests use a local fake policy file and Python
+The initial sixteen fresh-process CPU-only tests use a local fake policy file and Python
 commands, never `nvidia-smi`: arm-before-set; partial set failure; set timeout;
 worker failure/deadline/interrupt; set/worker output overflow; worker SIGKILL with
 session-escaping descendants; unrelated survivor; parent disappearance; interrupted
@@ -132,6 +137,50 @@ and `CARGO_BUILD_JOBS=4 ./tools/check.sh`.
 | `phase2-restoration-clock-green-v1.log` | Four exception subcases, including reset timestamp, pass | `16fd45ef9cc41df7ddbb6816b1fe52be00a3c9e89f705c5719bab05cee3c0240` |
 | `phase2-restoration-tests-v4.log` | Final 16 tests pass | `88d685afcee254fe4db18b9ef75f2c3c1d4b36a0b7645c0bfb4208308e970261` |
 | `phase2-restoration-check-v2.log` | Final default checks pass; 259 reporting tests | `ef0bb76238a733ac4918a6e1353fd5334147fcdf7e52bd72bae540d5807b334d` |
+
+### Absolute reset deadline follow-up — CPU-only
+
+Restoration obligation/result reports now use **schema version 2**. The earlier
+ambiguous `lock_deadline_monotonic_seconds` result field is replaced with separate
+`work_deadline_monotonic_seconds` and `reset_deadline_monotonic_seconds`; both are
+persisted before set. `cleanup_reserve_seconds` must be finite, positive and less
+than the lock interval. `reset_request_within_deadline` requires the first reset's
+owned PID and finite post-`Popen` time within that interval. Reset retry evidence
+cannot repair a missed/unverified first-request deadline. Exit-zero reset remains
+separate from deadline evidence and does not prove restored hardware policy.
+
+New bounded-child schema-1 receipts add `spawn_returned_monotonic_seconds`, null
+if spawn failed or its clock read failed. This is a process-local monotonic upper
+bound on spawn submission, not an exact exec/driver-call time or independent
+provenance. Historical receipts are not rewritten or retroactively credited.
+A clock failure after successful spawn still kills/reaps the owned child. No
+model/artifact/workload schemas, fixtures, pins or acceptance limits changed.
+
+Tests now include a real fake worker cancelled early enough for reset; the
+pre-set obligation's deadline equality; a delayed reset spawn after its earlier
+pre-capture timestamp; absent spawn evidence; invalid cleanup reserves; and a
+post-spawn clock exception. Late/missing evidence stays failed even when fake
+reset succeeds. Nineteen restoration plus fifteen bounded-child tests pass.
+Tests use shortened synthetic intervals/reserves; they do **not** prove the
+10-second reserve suffices under CUDA aborts or arbitrary scheduler/IO delays.
+
+Commands (all offline/fake-command):
+
+- Red regression: `PYTHONPATH=tools/bench python -m unittest
+  test_supervised_restoration.RestorationTests.test_cleanup_reserve_and_absolute_deadlines_are_armed_before_set
+  test_supervised_restoration.RestorationTests.test_late_or_missing_spawn_evidence_cannot_use_earlier_reset_timestamp
+  test_bounded_child.BoundedChildTests.test_success_merged_streams_and_signal_restoration -v`.
+- Focused: `PYTHONPATH=tools/bench python -m unittest test_supervised_restoration test_bounded_child -v`.
+- Default: `CARGO_BUILD_JOBS=4 ./tools/check.sh`.
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-reset-deadline-red-v1.log` | 3 tests fail before implementation: new argument/receipt field absent | `c2a575b63d8d8fc4c867f48983466faef409d3532237569c9c140ca47e36acc2` |
+| `phase2-reset-deadline-tests-v1.log` | 34 focused tests pass | `8aaa22552b332ab31010479316414f735ee5501e0d08970e7a074377982d26c3` |
+| `phase2-reset-deadline-check-v1.log` | Default checks pass; 263 reporting tests | `3bc43a89743b4360d48162fdb0d7a18648d2518c3b8a3bd436f3b23cfc80c47a` |
+
+No GPU command, permission test, policy change or benchmark ran in this follow-up.
+Policy/controller confirmation and integrated readiness remain pending.
 
 ## Fixed collection and cleanup contract
 

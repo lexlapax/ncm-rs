@@ -49,7 +49,8 @@ else:raise AssertionError(stage)
 '''
 
 
-def code(root, mode, parent, *, lock_seconds=3, command_seconds=.5, inject=None):
+def code(root, mode, parent, *, lock_seconds=3, command_seconds=.5,
+         cleanup_reserve_seconds=.1, inject=None):
     fake = root / 'fake.py'
     fake.write_text(FAKE)
     commands = [[str(Path(sys.executable).resolve()), '-S', str(fake), str(root), stage, mode]
@@ -57,7 +58,8 @@ def code(root, mode, parent, *, lock_seconds=3, command_seconds=.5, inject=None)
     prefix = 'import json,os,signal\nfrom unittest.mock import patch\nimport supervised_restoration as s\n'
     call = (f's.supervise_restoration(*{commands!r},cwd={str(root)!r},env={ENV!r},'
             f'output_dir={str(root / "transaction")!r},parent_pid={parent},'
-            f'lock_seconds={lock_seconds!r},command_seconds={command_seconds!r})')
+            f'lock_seconds={lock_seconds!r},command_seconds={command_seconds!r},'
+            f'cleanup_reserve_seconds={cleanup_reserve_seconds!r})')
     if inject == 'capture':
         prefix += '''actual=s.run_bounded
 def capture(argv,**kwargs):
@@ -91,6 +93,18 @@ def stamp():
     return actual_stamp()
 s.run_bounded=capture
 s.diagnostic_clock.stamp=stamp
+'''
+    if inject in ('late_reset', 'missing_spawn'):
+        prefix += f'''actual_capture=s.run_bounded
+def capture(argv,**kwargs):
+    if kwargs['capture_path'].name=='reset-1.txt' and {inject!r}=='late_reset':
+        deadline=json.loads((s.Path({str(root)!r})/'transaction/obligation.json').read_bytes())['reset_deadline_monotonic_seconds']
+        s.time.sleep(max(0,deadline-s.time.monotonic())+.02)
+    receipt=actual_capture(argv,**kwargs)
+    if kwargs['capture_path'].name=='reset-1.txt' and {inject!r}=='missing_spawn':
+        receipt.pop('spawn_returned_monotonic_seconds',None)
+    return receipt
+s.run_bounded=capture
 '''
     if inject == 'arm':
         prefix += '''actual_open=s.Path.open
@@ -147,6 +161,41 @@ class RestorationTests(unittest.TestCase):
         self.assertTrue(result['reset_command_succeeded'])
         self.assertTrue(result['subreaper_restored'])
         self.assertFalse((root / 'lock').exists())
+
+    def test_cleanup_reserve_and_absolute_deadlines_are_armed_before_set(self):
+        root, result, events, _ = self.run_case('success', cleanup_reserve_seconds=1)
+        obligation = json.loads((root / 'transaction/obligation.json').read_bytes())
+        self.assertEqual(events, ['set', 'worker', 'reset'])
+        self.assertEqual(result['status'], 'complete')
+        self.assertTrue(result['reset_request_within_deadline'])
+        self.assertEqual(obligation['cleanup_reserve_seconds'], 1)
+        for key in ('reset_deadline_monotonic_seconds', 'work_deadline_monotonic_seconds'):
+            self.assertEqual(result[key], obligation[key])
+        self.assertEqual(result['reset_deadline_monotonic_seconds'] - result['work_deadline_monotonic_seconds'], 1)
+        spawn = result['reset_attempts'][0]['spawn_returned_monotonic_seconds']
+        self.assertLessEqual(spawn, result['reset_deadline_monotonic_seconds'])
+
+    def test_work_deadline_leaves_time_for_actual_reset_request(self):
+        root, result, events, _ = self.run_case('timeout', lock_seconds=1.5, cleanup_reserve_seconds=.8)
+        self.assertEqual(events, ['set', 'worker', 'reset'])
+        self.assertEqual(result['status'], 'failed')
+        self.assertIn('sequence_deadline', result['worker']['issues'])
+        self.assertTrue(result['reset_request_within_deadline'])
+        self.assertFalse((root / 'lock').exists())
+
+    def test_late_or_missing_spawn_evidence_cannot_use_earlier_reset_timestamp(self):
+        for inject in ('late_reset', 'missing_spawn'):
+            with self.subTest(inject=inject):
+                root, result, events, _ = self.run_case('success', lock_seconds=1, inject=inject)
+                self.assertEqual(events, ['set', 'worker', 'reset'])
+                self.assertEqual(result['status'], 'failed')
+                self.assertTrue(result['reset_command_succeeded'])
+                self.assertFalse(result['reset_request_within_deadline'])
+                self.assertIn('reset_request_deadline_unverified_or_missed', result['errors'])
+                self.assertFalse((root / 'lock').exists())
+                # The earlier coordinator timestamp alone would wrongly pass.
+                early = result['reset_started_clock']['monotonic_after_ns'] / 1e9
+                self.assertLess(early, result['reset_deadline_monotonic_seconds'])
 
     def test_partial_set_failure_skips_worker_but_restores(self):
         root, result, events, _ = self.run_case('set_fail')
@@ -272,7 +321,10 @@ root=Path(''' + repr(str(self.root)) + ''')
 base=dict(cwd=root,env={},output_dir=root/'transaction',parent_pid=os.getppid())
 argv=[sys.executable,'-S','-c','raise AssertionError("must not execute")']
 for changed in ({'parent_pid':0},{'env':None},{'env':{'bad=key':'x'}}, {'lock_seconds':601},
-                {'command_seconds':11},{'command_seconds':True},{'lock_seconds':float('nan')}):
+                {'command_seconds':11},{'command_seconds':True},{'lock_seconds':float('nan')},
+                {'cleanup_reserve_seconds':0},{'cleanup_reserve_seconds':True},
+                {'cleanup_reserve_seconds':float('inf')},{'cleanup_reserve_seconds':600},
+                {'lock_seconds':5,'cleanup_reserve_seconds':6}):
     try:supervise_restoration(argv,argv,argv,**(base|changed))
     except ValueError:pass
     else:raise AssertionError(changed)
