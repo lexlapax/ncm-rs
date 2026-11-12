@@ -149,6 +149,15 @@ The assertion now includes sequence details; no guards or budgets changed. The f
 checker does not enforce finalization ordering or prove full inventory completeness.
 Next: restoration/observer lifecycle and telemetry/output/capture finalization with
 rehash last, then fresh full preparation/entry; all live gates remain pending.
+[Restoration-record validation](linux-clock-restoration-validation.md) now independently
+binds obligation/transaction/sequence clocks, original deadlines, command receipts
+and cleanup records. Six new tests cover 52 negative variants and default-budget
+fake-policy/eighteen-CPU-job persisted transport; **18 focused/359 reporting tests
+pass**. An initial imported TestCase duplicated six tests; module import fixed
+collection, with the first green log retained. No actual hardware restoration,
+outer reaping, sibling coverage or complete finalization is proved. Next: bind the
+sibling lifecycle/readiness, full telemetry/captures/outputs and rehash-last finalizer.
+Current upstream, fresh preparation/entry and all live gates remain pending.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

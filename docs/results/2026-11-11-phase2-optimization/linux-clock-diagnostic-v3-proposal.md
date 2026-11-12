@@ -847,6 +847,15 @@ assertion now includes sequence details. No guard/budget was changed. This compo
 does not enforce rehash-last ordering, authenticate/complete the preparation inventory
 or qualify restoration/telemetry/outputs. Full finalizer and frozen entry remain
 pending, as do current upstream verification and all live launch gates.
+[Restoration-record validation](linux-clock-restoration-validation.md) now independently
+checks the obligation, original deadlines/fixed budgets, command/clock order,
+first-reset submission evidence and cleanups. Six new tests include 52 negatives
+and real default-budget fake-policy/eighteen-CPU-job transport; 18 focused/359
+reporting tests pass. This does not bind outer reaping/sibling observer coverage or
+prove hardware enforcement/restoration. Initial duplicate test discovery is retained
+and corrected; the earlier lifecycle failure's cause remains unestablished. Next:
+sibling/readiness, full telemetry/output/capture and rehash-last finalizer binding;
+current upstream verification, fresh preparation/entry and all live gates remain.
 
 ## Fixed collection and cleanup contract
 

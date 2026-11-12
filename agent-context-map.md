@@ -293,10 +293,18 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   telemetry completed, but its assertion omitted sequence details. That diagnostic
   is now included; one focused and one full rerun pass, cause unestablished/red log
   retained. No guard/budget changes. [Scope and evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-process-validation.md#final-current-file-component)
-  distinguish a file-check component from enforced finalization ordering. Next:
-  clock restoration/observer lifecycle, telemetry/output/capture finalization with
-  frozen rehash last; current upstream check, fresh full preparation/frozen entry.
-  No Torch/GPU/benchmark/policy work; Linux 72/78 and all live gates remain pending.
+  distinguish a file-check component from enforced finalization ordering.
+  Latest: [restoration-record validation](docs/results/2026-11-11-phase2-optimization/linux-clock-restoration-validation.md)
+  independently checks the armed obligation, 600/10/10 budgets, original deadline,
+  set/worker/reset command/clock order, first-reset spawn and cleanups. Six new tests
+  include 52 negatives and persisted default-budget fake-policy/eighteen-CPU-job
+  transport; **18 focused/359 reporting tests pass**. Initial focused discovery
+  duplicated six imported tests; module import corrected it, original log retained.
+  This is not actual enforcement/restoration, outer reaping or sibling-observer
+  coverage. Next: sibling lifecycle/readiness and telemetry/output/capture binding,
+  finalizer enforcing frozen rehash last; current upstream check and fresh complete
+  preparation/frozen entry. No Torch/GPU/benchmark/policy work; Linux 72/78 and all
+  live policy/permission/availability gates remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
