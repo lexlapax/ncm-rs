@@ -111,6 +111,13 @@ standalone `_C` dependencies as proven runtime selection or mandatory maps. Next
 preload-candidate inventory/required-map review, current upstream verification and
 full frozen entry/final qualification. No Torch import/GPU query/policy/benchmark;
 launch readiness and live policy/permission/availability gates remain false/pending.
+The follow-up [file-only preload inventory](linux-clock-loader-preparation.md#file-only-preload-candidate-follow-up)
+now records 16 source entries/15 ELF candidates in the reviewed site root; optional
+NVTX absent here, no multiple matches. Three candidates add to the earlier standalone
+inventory; twelve overlapping identities agree. **20 focused and 331 reporting
+tests pass**. No runtime winner, full sys.path or dependency closure is inferred.
+Next: required-map/known-candidate binding and current upstream verification before
+full frozen entry/final qualification; live gates unchanged, no GPU or benchmark run.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

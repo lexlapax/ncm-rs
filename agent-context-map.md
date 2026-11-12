@@ -261,6 +261,18 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   explicit preload-candidate inventory/required-map review, current upstream check,
   frozen entry and final qualification. No Torch import/GPU query/clock/benchmark;
   launch_ready=false, Linux 72/78, Apple pending; live policy gates unchanged.
+  Latest: file-only `prepare_clock_preloads.py` inventories the three reviewed Torch
+  preload layouts in one site-packages root without importing/executing candidates.
+  Six new tests; **20 focused and 331 reporting tests pass**. Actual inventory:
+  16 source entries, 15 ELF candidates/1,956,767,857 bytes; optional NVTX pattern
+  absent here, no ambiguous matches. Twelve identities overlap the standalone
+  inventory; cuSOLVER/nvJitLink/NVRTC-builtins add three current-only files (38-file
+  union across preparations, not a new simultaneous snapshot). Runtime selection,
+  complete sys.path/closure and launch readiness stay false. Loader document now
+  records a proposed mandatory core-map subset versus frozen optional candidates.
+  Next: implement/test required-map and known-candidate binding, current upstream
+  check, frozen entry/final qualification. No GPU query/Torch import/benchmark or
+  policy change; live authorization/availability gates and Linux 72/78 remain.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

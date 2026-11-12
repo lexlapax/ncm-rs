@@ -808,6 +808,13 @@ and Python. Torch's explicit ctypes preloads mean these standalone listings must
 not be promoted wholesale into required runtime maps. Seven new tests, 22 focused
 and 325 reporting tests pass. Preload inventory/required-map review, current upstream
 verification, full entry/qualification and live policy gates remain pending.
+The [file-only preload follow-up](linux-clock-loader-preparation.md#file-only-preload-candidate-follow-up)
+now inventories 16 source-declared patterns/15 ELF candidates in the reviewed site,
+including three candidates outside the earlier standalone set. Optional NVTX is
+absent in this root; no runtime winner or global absence is inferred. Six new tests,
+20 focused and 331 reporting tests pass. Required-map/known-candidate binding,
+current upstream verification, frozen entry/final qualification and live gates
+remain pending; no Torch import, GPU query, benchmark or policy change occurred.
 
 ## Fixed collection and cleanup contract
 

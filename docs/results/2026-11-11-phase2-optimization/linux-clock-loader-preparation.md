@@ -160,3 +160,114 @@ full preparation/entry and role binding, final lifecycle/process/telemetry/outpu
 qualification with frozen rehash last. Default-policy/no-controller confirmation,
 permission/enforcement evidence and a later fresh quiet window are still missing.
 The new helper and 35-library inventory close no acceptance comparison.
+
+## File-only preload candidate follow-up
+
+`prepare_clock_preloads.py::inventory` now inventories the reviewed Torch source's
+preload candidates within **one explicitly supplied site-packages directory**.
+It imports no Torch code, calls no candidate `dlopen`, starts no utility and makes
+no GPU query. Three explicit current-only source digests are required; bounded AST
+literal parsing extracts the CUDA version, build tag, loader flags, ordered CUDA
+list and final optional NVTX call. The caller must review the whole source/layout
+logic; AST extraction is not a general semantic verifier or independent approval.
+
+The three reviewed layouts are `nvidia/<folder>/lib`, `nvidia/cu<major>/lib`, and
+`<folder>/lib`, under that one root. Up to 4,096 directory entries across distinct
+search directories are scanned, with 128 distinct candidate files, 2 GiB/file and
+8 GiB total bounds before candidate hashing. Source reads retain the existing
+1 MiB bound. Search-directory symlinks and candidate escapes fail; in-root library
+aliases are retained and canonical identities deduplicated. Directory names,
+matched path resolutions, sources and file identities are rechecked. Missing or
+multiple matches are retained, never installed or silently selected. This is not
+an atomic filesystem snapshot; trusted ancestors and later full rechecks remain
+necessary. Directory entries outside the matched patterns are not frozen content.
+
+**Source list order is retained; sorted match order is not Python's glob order.**
+Every `runtime_selected_path` is null. Site candidate inventory is verified, but
+complete `sys.path`, dependency closure, actual load selection, historical byte
+equivalence and launch readiness remain false. The helper does not claim that an
+optional best-effort preload succeeds just because its candidate file exists.
+
+Actual fresh system `python -S` call, under `umask 077` with exclusive output/log
+creation (the qualified benchmark is unchanged):
+
+```python
+from pathlib import Path
+import json, sys
+root = Path.cwd()
+sys.path.insert(0, str(root / 'tools/bench'))
+from prepare_clock_preloads import inventory
+assert 'torch' not in sys.modules
+result = inventory(root / '.reference/venv/lib/python3.14/site-packages', reviewed_sources={
+    '__init__.py': '7ed81103f3d256de131b886e67be458b3205784e3b4af9c495041282391e19db',
+    '_utils_internal.py': 'eb77101e63128e55da13b29c7133e42b702a00e0b6eb1d44521ba1944178e794',
+    'version.py': '6feda231420514c053c7116e00e36d3313d6708aa1ab2a93dfa07ad4e5735184',
+})
+assert 'torch' not in sys.modules and result['launch_ready'] is False
+with (root / 'reports/phase2-clock-preload-inventory-v1.json').open('x') as output:
+    json.dump(result, output, indent=2, sort_keys=True)
+    output.write('\n')
+```
+
+Results: **16 source entries, 53 scanned directory entries, 15 distinct ELF
+candidates / 1,956,767,857 bytes**. No pattern had multiple matches in this root.
+The optional `libnvToolsExt.so.*[0-9]` pattern has no match here; no package or policy
+was changed. This is not absence proof across all `sys.path` roots or the system.
+
+Twelve overlapping files agree with the earlier standalone inventory on
+path/device/inode/size/SHA-256. Three additional **current-only** candidates are:
+
+| Candidate | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `libcusolver.so.12` | 156,946,784 | `bdf40a5229a90438ae8ee9fd32bb9fcacc70024e7e74b61ab98a9f5e315fea31` |
+| `libnvJitLink.so.13` | 117,247,464 | `0ba4a7e2c0819291ce928513755f4931dd69c77c63fb77677d14dc1360f28601` |
+| `libnvrtc-builtins.so.13.2` | 4,442,056 | `6b1c571cc730d5fcfd57f322e1fa7e0e65de7454b2239ff6d552a09b82d47dbe` |
+
+The union is 38 files / 3,825,752,946 bytes **across two preparations**, not a fresh
+simultaneous snapshot of all 38 files. No numerical/performance attribution follows.
+
+### Required-mapping integration boundary
+
+Candidate files and mandatory executable mappings are different sets. The next
+binding must keep these distinctions rather than requiring every candidate to load:
+
+- Native previous/candidate: retain the matching eleven standalone dependencies.
+- Python: bind its interpreter dependencies, `_C` image and stable core Torch code
+  libraries (`libtorch_python`, `libtorch_cpu`, `libtorch_cuda`, `libc10`,
+  `libc10_cuda`) as a proposed mandatory subset, to be tested in the frozen entry.
+  Do not claim this proposal is already implemented or observed on hardware.
+- Freeze reviewed candidate identities even when optional or not required to map.
+  For observed known candidates, validate the matching prepared identity; do not
+  silently treat a changed known file as a new post-only dependency.
+- Preserve additional/lazy mappings as post-only with existing bounds and explicit
+  limitations. An inventory is not an allowlist claiming all other mappings absent.
+- No removal of startup hooks, forced shared native/Python CUDA tree, changed
+  Python argv, or widened numerical/output requirements is justified by this work.
+
+Six new tests cover the three layouts, absent/ambiguous/aliased candidates,
+no execution, malformed or changed source declarations, path escapes, invalid ELF,
+source flags, concurrent directory/inode replacement and bounds before candidate
+hashing. They use synthetic source/ELF fixtures, not CUDA. Exact checks:
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_prepare_clock_preloads test_prepare_clock_libraries test_prepare_clock_python -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+**20 focused tests and default checks with 331 reporting tests pass.** The following
+private evidence remains under `reports/`; the JSON is not published as a portable
+or authenticated environment image:
+
+| Evidence | SHA-256 |
+| --- | --- |
+| `phase2-clock-preload-tests-v1.log` | `8391f828fbbcf95b95786e1cb0e13ed1528fb80bdeed111f6394d445dcd803b7` |
+| `phase2-clock-preload-check-v1.log` | `21d31ce2a2b45b7c2aef1d5a8aecbd690568bed389d634171af53fa0f5ec5fdb` |
+| `phase2-clock-preload-inventory-v1.log` | `26433721a7cd4d575be3a00929ff854da99aff72a85f76bad4bdf12baced0c91` |
+| `phase2-clock-preload-inventory-v1.json` | `63dce3fd03d4af607c50c631bdf7e66703ea95fade7c1770d34fd3672578faa2` |
+| `phase2-clock-preload-overlap-v1.log` | `45be09985597e2e92101898b505a2cd39c22d803dc4112f3f8beb79912f732fb` |
+
+Next: implement/test the required-map and known-candidate binding, current upstream
+verification, frozen full preparation/entry and final qualification. Complete
+import closure is not claimed by these component results. The live policy,
+permission/enforcement and fresh-window gates remain unresolved. Linux **72/78**,
+Apple pending; no acceptance cell closes and the active objective is incomplete.
