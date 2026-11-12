@@ -292,6 +292,39 @@ real CPU-only child inheritance check, not a GPU test.
 | `phase2-comparison-plan-tests-v1.log` | 6 planner + 6 affinity tests pass | `1043c6ebd0029011f951db79229c017a18f0e0a44108596d53b223f9c780506a` |
 | `phase2-comparison-plan-check-v1.log` | Default checks pass; 269 reporting tests | `ffd2beaf087f1369cc888c52fe8b2e45768130c4503385c2e3195f792cd793e7` |
 
+### Observer-failure cancellation hook — CPU-only
+
+The import-only restoration primitive now accepts `external_cancel_check`, a
+trusted **nonblocking** Boolean predicate. It is checked before arming, before/
+during set and worker capture, and again after worker receipt construction. A true
+result is latched: a later healthy reading cannot resume work. Exceptions or
+non-Boolean results latch failure and retain the error type. A noncallable hook is
+rejected before output creation. Reset and its cleanup-only retry never consult
+this predicate, so observer loss cannot suppress the armed restoration obligation.
+Schema-2 results add `external_cancel_check_enabled` and `external_cancelled`;
+no historical receipts or model/artifact schemas are changed.
+
+Three new CPU-only tests cover healthy observation, cancellation/invalid status
+before arming, transient observer loss during set/worker, predicate exceptions,
+and loss arriving after a **complete** worker receipt. Fake commands write a local
+failure marker; reset checks actual worker reaping as before. Tests assert the
+predicate is not called during reset and a transient failure remains latched.
+This is a cancellation integration hook, **not** an implemented/authenticated
+telemetry monitor: readiness, full 900-second coverage, bounded callback behavior,
+outer supervision and final collection validation remain the caller's obligations.
+No GPU commands, clock changes, permission tests or benchmarks ran.
+
+Commands: red focused test `PYTHONPATH=tools/bench python -m unittest
+ test_supervised_restoration.RestorationTests.test_external_observer_loss_stops_set_or_worker_but_not_reset -v`;
+then `PYTHONPATH=tools/bench python -m unittest test_supervised_restoration -v`
+and `CARGO_BUILD_JOBS=4 ./tools/check.sh`.
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-restoration-observer-red-v1.log` | New hook test fails before implementation | `4cbf2a617e78a834cfe1b3dcfc93848e797d00e96c76d7fe8ab0fea8d675ce68` |
+| `phase2-restoration-observer-tests-v1.log` | 22 restoration tests pass | `bd1076378b771a50809fadca1fbb3ff2a21a08d36bf881637496e2869e26eb66` |
+| `phase2-restoration-observer-check-v1.log` | Default checks pass; 272 reporting tests | `151259ca7b0e6b05f4b106a3c66b8d594bfd99c5fbfc849bbb6da13244e82660` |
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

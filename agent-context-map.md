@@ -143,6 +143,15 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   Next: bind the plan into an isolated bounded worker with full telemetry and
   restoration; the existing CLI is still not suitable as that worker. Policy/
   controller confirmation, permission evidence and later fresh window remain pending.
+  Further offline preparation adds a trusted nonblocking external cancellation
+  hook to restoration: observer loss/errors latch failure, including after a
+  complete worker receipt, but never suppress reset. No actual telemetry monitor
+  is supplied by the hook. Three new fake-policy tests cover healthy/transient/
+  invalid/error/late-loss cases; **22 restoration tests and 272 reporting tests
+  pass**. Red/green logs and additive schema-2 fields are in the clock proposal.
+  No GPU command or benchmark ran. Remaining work is integrated bounded jobs,
+  bound readiness/coverage, enforcement and outer supervision; live policy/
+  controller confirmation and permissions remain required before a new window.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

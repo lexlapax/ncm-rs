@@ -16,12 +16,16 @@ with (root/'events').open('a') as f:f.write(stage+'\\n')
 if stage=='set':
     assert json.loads((root/'transaction/obligation.json').read_bytes())['armed_before_set'] is True
     (root/'lock').write_text('fake policy')
+    if mode=='observer_set':
+        (root/'observer_failed').touch();time.sleep(30)
     if mode=='set_fail':raise SystemExit(2)
     if mode=='set_timeout':time.sleep(30)
     if mode=='set_output':sys.stdout.write('x'*(1024**2+65536));sys.stdout.flush();time.sleep(30)
 elif stage=='worker':
     assert (root/'lock').exists()
     (root/'worker.pid').write_text(str(os.getpid()))
+    if mode in ('observer_worker','observer_error'):
+        (root/'observer_failed').touch();time.sleep(30)
     if mode=='worker_fail':raise SystemExit(7)
     if mode=='worker_output':sys.stdout.write('x'*(1024**2+65536));sys.stdout.flush();time.sleep(30)
     if mode=='crash':
@@ -60,6 +64,27 @@ def code(root, mode, parent, *, lock_seconds=3, command_seconds=.5,
             f'output_dir={str(root / "transaction")!r},parent_pid={parent},'
             f'lock_seconds={lock_seconds!r},command_seconds={command_seconds!r},'
             f'cleanup_reserve_seconds={cleanup_reserve_seconds!r})')
+    if inject in ('external_before', 'external_watch', 'external_error', 'external_invalid', 'external_late'):
+        call = call[:-1] + ',external_cancel_check=check)'
+        prefix += f'''root=s.Path({str(root)!r})
+def check():
+    events=(root/'events').read_text().splitlines() if (root/'events').exists() else []
+    assert 'reset' not in events,'cancellation must not run during reset'
+    if {inject!r}=='external_before':return True
+    if {inject!r}=='external_invalid':return None
+    failed=(root/'observer_failed').exists()
+    if failed and {inject!r}=='external_error':raise OSError('synthetic observer failure')
+    if failed and {inject!r}=='external_watch':(root/'observer_failed').unlink()
+    return failed
+'''
+        if inject == 'external_late':
+            prefix += '''actual_capture=s.run_bounded
+def capture(argv,**kwargs):
+    receipt=actual_capture(argv,**kwargs)
+    if kwargs['capture_path'].name=='worker.txt':(root/'observer_failed').touch()
+    return receipt
+s.run_bounded=capture
+'''
     if inject == 'capture':
         prefix += '''actual=s.run_bounded
 def capture(argv,**kwargs):
@@ -197,6 +222,51 @@ class RestorationTests(unittest.TestCase):
                 early = result['reset_started_clock']['monotonic_after_ns'] / 1e9
                 self.assertLess(early, result['reset_deadline_monotonic_seconds'])
 
+    def test_external_cancel_or_invalid_status_before_arm_prevents_all_commands(self):
+        for inject in ('external_before', 'external_invalid'):
+            with self.subTest(inject=inject):
+                root, result, events, _ = self.run_case('success', inject=inject)
+                self.assertEqual(events, [])
+                self.assertEqual(result['status'], 'failed')
+                self.assertFalse(result['armed'])
+                self.assertTrue(result['external_cancel_check_enabled'])
+                self.assertTrue(result['external_cancelled'])
+                self.assertFalse((root / 'transaction/obligation.json').exists())
+                if inject == 'external_invalid':
+                    self.assertIn('external_cancel_error:ValueError', result['errors'])
+
+    def test_external_observer_loss_stops_set_or_worker_but_not_reset(self):
+        _, healthy, events, _ = self.run_case('success', inject='external_watch')
+        self.assertEqual(healthy['status'], 'complete')
+        self.assertTrue(healthy['external_cancel_check_enabled'])
+        self.assertFalse(healthy['external_cancelled'])
+        self.assertEqual(events, ['set', 'worker', 'reset'])
+        for mode, stage in (('observer_set', 'set'), ('observer_worker', 'worker')):
+            with self.subTest(mode=mode):
+                root, result, events, _ = self.run_case(mode, inject='external_watch')
+                self.assertEqual(events, ['set', 'reset'] if stage == 'set' else ['set', 'worker', 'reset'])
+                self.assertEqual(result['status'], 'failed')
+                self.assertTrue(result['external_cancelled'])
+                self.assertIn('external_cancelled', result[stage]['issues'])
+                self.assertFalse((root / 'observer_failed').exists(), 'transient loss must stay latched')
+                self.assertTrue(result['reset_command_succeeded'])
+                self.assertFalse((root / 'lock').exists())
+
+    def test_external_check_exception_or_loss_after_worker_receipt_still_restores(self):
+        for mode, inject in (('observer_error', 'external_error'), ('success', 'external_late')):
+            with self.subTest(inject=inject):
+                root, result, events, _ = self.run_case(mode, inject=inject)
+                self.assertEqual(events, ['set', 'worker', 'reset'])
+                self.assertEqual(result['status'], 'failed')
+                self.assertTrue(result['external_cancelled'])
+                self.assertTrue(result['reset_command_succeeded'])
+                self.assertFalse((root / 'lock').exists())
+                if inject == 'external_error':
+                    self.assertIn('external_cancel_error:OSError', result['errors'])
+                    self.assertIn('capture_error:OSError', result['worker']['issues'])
+                else:
+                    self.assertEqual(result['worker']['status'], 'complete')
+
     def test_partial_set_failure_skips_worker_but_restores(self):
         root, result, events, _ = self.run_case('set_fail')
         self.assertEqual(result['status'], 'failed')
@@ -324,7 +394,7 @@ for changed in ({'parent_pid':0},{'env':None},{'env':{'bad=key':'x'}}, {'lock_se
                 {'command_seconds':11},{'command_seconds':True},{'lock_seconds':float('nan')},
                 {'cleanup_reserve_seconds':0},{'cleanup_reserve_seconds':True},
                 {'cleanup_reserve_seconds':float('inf')},{'cleanup_reserve_seconds':600},
-                {'lock_seconds':5,'cleanup_reserve_seconds':6}):
+                {'lock_seconds':5,'cleanup_reserve_seconds':6}, {'external_cancel_check':False}):
     try:supervise_restoration(argv,argv,argv,**(base|changed))
     except ValueError:pass
     else:raise AssertionError(changed)

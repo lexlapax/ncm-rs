@@ -44,7 +44,8 @@ def completed(receipt):
 def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output_dir,
                           parent_pid, lock_seconds=MAX_LOCK_SECONDS,
                           command_seconds=COMMAND_SECONDS,
-                          cleanup_reserve_seconds=CLEANUP_RESERVE_SECONDS):
+                          cleanup_reserve_seconds=CLEANUP_RESERVE_SECONDS,
+                          external_cancel_check=None):
     """Attempt set once, worker at most once, reset at most twice; never retry work.
 
     Persist an obligation before set. All normal/exception/timeout/signal/parent-loss
@@ -55,6 +56,9 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
     reset. Scheduling/IO/cleanup may overrun: no hard real-time guarantee. Reset
     completion has its own bounded timeout. No frozen-file hashing occurs.
     Successful reset exit is NOT proof of enforcement or restored hardware policy.
+    Optional external_cancel_check is a trusted nonblocking Boolean predicate for
+    observer failure. True/errors latch cancellation; reset never calls it. This
+    hook does not itself establish telemetry readiness, identity or full coverage.
     """
     if sys.platform != 'linux' or not sys.flags.no_site or threading.current_thread() is not threading.main_thread() \
             or threading.active_count() != 1 or len(list(Path('/proc/self/task').iterdir())) != 1:
@@ -71,6 +75,8 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
             or not math.isfinite(cleanup_reserve_seconds)
             or not 0 < cleanup_reserve_seconds < lock_seconds):
         raise ValueError('invalid cleanup reserve')
+    if external_cancel_check is not None and not callable(external_cancel_check):
+        raise ValueError('external_cancel_check must be callable')
     if not isinstance(env, dict) or not all(isinstance(k, str) and k and '=' not in k and '\0' not in k
             and isinstance(v, str) and '\0' not in v for k, v in env.items()):
         raise ValueError('explicit valid environment required')
@@ -89,16 +95,27 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
     deadline = reset_deadline = None
     reset_started = None
     reset_request_within_deadline = False
+    external_cancelled = False
 
     def interrupt(signum, _frame):
         nonlocal interrupted
         interrupted = signum
 
     def cancelled():
-        nonlocal parent_lost, orphan_observed
+        nonlocal parent_lost, orphan_observed, external_cancelled
         parent_lost |= os.getppid() != parent_pid
         orphan_observed |= len(direct_children()) > 1
-        return interrupted is not None or parent_lost or orphan_observed
+        if external_cancel_check is not None and not external_cancelled:
+            try:
+                status = external_cancel_check()
+                if type(status) is not bool:
+                    raise ValueError('external cancellation status must be Boolean')
+                external_cancelled = status
+            except BaseException as error:
+                external_cancelled = True
+                errors.append('external_cancel_error:' + type(error).__name__)
+                raise
+        return interrupted is not None or parent_lost or orphan_observed or external_cancelled
 
     def clean(label):
         nonlocal orphan_observed
@@ -148,6 +165,9 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
             set_clean = clean('set')
             if completed(set_receipt) and set_clean and not cancelled() and time.monotonic() < deadline:
                 worker_receipt = capture(worker_argv, 'worker', lock_seconds)
+                # Catch observer loss during final worker cleanup/receipt writing.
+                # A complete worker receipt cannot erase failed collection state.
+                cancelled()
     except BaseException as error:
         errors.append('transaction_error:' + type(error).__name__)
     finally:
@@ -202,7 +222,8 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
             signal.signal(sig, handler)
     reset_ok = bool(resets) and completed(resets[-1])
     success = (armed and completed(set_receipt) and completed(worker_receipt) and reset_ok
-               and restored and not errors and not parent_lost and not orphan_observed and interrupted is None)
+               and restored and not errors and not parent_lost and not orphan_observed
+               and not external_cancelled and interrupted is None)
     result = {'schema_version': 2, 'status': 'complete' if success else 'failed',
               'armed': armed, 'set': set_receipt, 'worker': worker_receipt, 'reset_attempts': resets,
               'reset_command_succeeded': reset_ok, 'reset_started_clock': reset_started,
@@ -212,6 +233,8 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
               'reset_request_within_deadline': reset_request_within_deadline,
               'cleanups': cleanups, 'errors': errors,
               'parent_lost': parent_lost, 'orphan_observed': orphan_observed,
+              'external_cancel_check_enabled': external_cancel_check is not None,
+              'external_cancelled': external_cancelled,
               'interrupt_signal': interrupted, 'subreaper_restored': restored,
               'hardware_policy_restoration_verified': False, 'clock_enforcement_verified': False,
               'launch_provenance_verified': False, 'benchmark_outputs_qualified': False,
