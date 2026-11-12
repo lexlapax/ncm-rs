@@ -182,6 +182,60 @@ Commands (all offline/fake-command):
 No GPU command, permission test, policy change or benchmark ran in this follow-up.
 Policy/controller confirmation and integrated readiness remain pending.
 
+### Existing comparison runner integration audit — no launch
+
+Inspected `tools/bench/run_phase2_linux_comparison.py` at `c82d847`; its diff
+against measured v2 `fa040ed` is empty. Source SHA-256:
+`1d53a932a0953100e182d16c6d366bdd153f0e6048e81b90d6042346b0661be1`.
+Calling only `order` and mocked `validate_observer` under `python -S` confirms
+18 codec jobs and rejects a worker initially eligible only on CPU0. No `main`,
+subprocess, hardware probe, permission check or benchmark was invoked by the probe.
+
+The actual existing order is **previous/Python/candidate**, then
+**Python/candidate/previous**, then **candidate/previous/Python**, repeated twice.
+The prose list of three runtimes above is not a different order authorization.
+Preserve this existing rotation, full harness/scopes and six fresh processes per
+runtime; copied Python reports are still not independent processes.
+
+A direct use of this CLI as the restoration worker is **not ready**:
+
+- Before measurement it hashes native binaries and tools and runs Git, `rustc`,
+  `lscpu`, `nvcc`, GPU queries and both Python package inventories. Under set →
+  worker → reset these would occur after the clock request. Preparation must be
+  separated before telemetry/intervention, not performed inside the locked worker.
+  The explicit minimal PATH does not establish availability of those tools.
+- It requires initial eligibility on CPU2 and CPU0, then pins its launcher to CPU0
+  before spawning monitors; passing an already CPU0-only worker fails preflight.
+  Arrange the verified startup mask deliberately, not by relaxing CPU2/CPU0 checks.
+- It inherits the whole environment and adds `TOKENIZERS_PARALLELISM=false`.
+  It checks only three injection variables, not the stronger isolated launch
+  contract. Freeze exact parent/child environments and document differences from
+  inherited-environment v2; do not silently compare them as identical conditions.
+- Workload `subprocess.run` calls lack per-child bounded captures, cancellation,
+  owned process observations and monotonic receipts. An outer subreaper/deadline
+  alone supplies neither per-job identity binding nor qualification of 18 reports.
+- GPU query/pmon subprocesses are owned inside the runner and checked for premature
+  exit only after all jobs. Their lifetime is not the required full 900-second CPU
+  telemetry collection, and observer failure does not immediately stop later jobs.
+  Compose telemetry readiness, live failure cancellation and full sampler cleanup
+  explicitly; do not nest duplicate unreviewed monitor sets.
+- `environment.json` includes raw candidate Git status and a historical
+  “No clock/power/global tooling changes” limitation. Clock-run evidence must stay
+  private where required and accurately label the intervention; do not publish raw
+  session filenames or retain the unchanged no-clock-change claim for this run.
+
+These are integration requirements, not reasons to rerun v2/read-only v1 or change
+workloads, gates, policy or permissions. No runner code was changed in this audit.
+The import-only restoration primitive and its tests do not cover these gaps.
+
+Offline probe: `PYTHONPATH=tools/bench python -S -` imported `order` and
+`validate_observer`, asserted the six rotations above, and used
+`unittest.mock.patch('run_phase2_linux_comparison.os.sched_getaffinity',
+return_value={0})` to require rejection of `validate_observer(2, 0)`. Retained log:
+`reports/phase2-clock-runner-audit-v1.log`, SHA-256
+`4a6e0ae95965dc4213f5f1c34946231f6e5570090c42e70684a7938cedab0633`.
+Static source review supplies the other findings, not a live failure demonstration.
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

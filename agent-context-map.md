@@ -126,6 +126,14 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   enforcement/frozen worker bindings; obtain still-pending default-policy/no-
   controller confirmation and permission evidence, then a fresh window. No real
   GPU command, lock/reset, permission test or benchmark ran in this follow-up.
+  Latest offline runner audit (source unchanged from v2) confirms the existing
+  previous/Python/candidate cyclic order: 18 codec jobs, not a new runtime order.
+  CPU0-only startup is rejected by the required CPU2/CPU0 eligibility checks.
+  Source review finds worker-time preflight hashing/probes, inherited environment,
+  unbounded per-job calls, internal monitors and misleading no-clock-change metadata
+  must be separated/bound before integration. Details/source hash/probe log are in
+  the clock proposal. No runner code or live policy changed; the synthetic tests
+  do not cover these integration gaps. Policy/controller confirmation still pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
