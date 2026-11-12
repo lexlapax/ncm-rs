@@ -158,6 +158,15 @@ collection, with the first green log retained. No actual hardware restoration,
 outer reaping, sibling coverage or complete finalization is proved. Next: bind the
 sibling lifecycle/readiness, full telemetry/captures/outputs and rehash-last finalizer.
 Current upstream, fresh preparation/entry and all live gates remain pending.
+[Sibling lifecycle validation](linux-clock-restoration-validation.md#sibling-lifecycle-follow-up)
+now binds both supervisors, readiness and CPU brackets to the coordinator and
+restoration transaction, including all eighteen job receipts. Five new tests cover
+40 negatives and real sibling fake-policy transport with default restoration budgets,
+five-second synthetic telemetry and stub process observations; **26 focused/364
+reporting tests pass**. Live ownership/ancestry, role authentication, full telemetry,
+process maps and outputs remain separate. Next: full telemetry/readiness contents,
+output/capture qualification and same-record rehash-last finalization; current
+upstream, fresh complete preparation/roles and all live gates remain pending.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

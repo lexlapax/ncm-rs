@@ -83,7 +83,9 @@ from supervised_restoration import supervise_restoration
 from supervised_worker import direct_children,subreaper
 result=supervise_restoration({policy_argv + ['set']!r},{worker_argv!r},{policy_argv + ['reset']!r},
     cwd={str(HERE)!r},env={env!r},output_dir={str(directory / 'restoration')!r},
-    parent_pid=os.getppid(),lock_seconds=10,cleanup_reserve_seconds=1,command_seconds=1)
+    parent_pid=os.getppid(),lock_seconds={600 if mode == 'lifecycle_validation' else 10},
+    cleanup_reserve_seconds={10 if mode == 'lifecycle_validation' else 1},
+    command_seconds={10 if mode == 'lifecycle_validation' else 1})
 assert direct_children()==[] and subreaper()==0,result
 print(json.dumps({{'status':result['status']}}),flush=True)
 raise SystemExit(0 if result['status']=='complete' else 1)

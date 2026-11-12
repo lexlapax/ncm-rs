@@ -300,11 +300,16 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   include 52 negatives and persisted default-budget fake-policy/eighteen-CPU-job
   transport; **18 focused/359 reporting tests pass**. Initial focused discovery
   duplicated six imported tests; module import corrected it, original log retained.
-  This is not actual enforcement/restoration, outer reaping or sibling-observer
-  coverage. Next: sibling lifecycle/readiness and telemetry/output/capture binding,
-  finalizer enforcing frozen rehash last; current upstream check and fresh complete
-  preparation/frozen entry. No Torch/GPU/benchmark/policy work; Linux 72/78 and all
-  live policy/permission/availability gates remain pending.
+  Latest: [sibling lifecycle validation](docs/results/2026-11-11-phase2-optimization/linux-clock-restoration-validation.md#sibling-lifecycle-follow-up)
+  binds that transaction to coordinator/observer-supervisor/telemetry parent chains,
+  readiness clocks/digest, outer 660/60 capture, CPU-sample brackets and eighteen job
+  receipts. Five new tests include 40 negatives and real sibling fake-policy/default-
+  budget transport with five-second synthetic telemetry/stub process observations;
+  **26 focused/364 reporting tests pass**. No live ancestry/provenance, full telemetry,
+  mapped-byte/output quality or hardware restoration claim. Next: full telemetry/
+  readiness contents and output/capture qualification, finalizer binding the same
+  records with frozen rehash last; current upstream and fresh preparation/roles.
+  No Torch/GPU/benchmark/policy work; Linux 72/78 and all live gates remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

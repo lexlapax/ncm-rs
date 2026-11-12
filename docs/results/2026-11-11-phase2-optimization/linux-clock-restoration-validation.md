@@ -89,3 +89,80 @@ Current upstream verification, fresh complete preparation and frozen launch role
 remain pending. Default-policy/no-custom-lock/no-competing-controller confirmation,
 permission/enforcement evidence and a later new quiet window remain unresolved.
 No acceptance cell or live launch gate closes from this component.
+
+## Sibling lifecycle follow-up
+
+`tools/bench/validate_clock_lifecycle.py::validate` now composes the restoration
+validator with coordinator, restorer outer receipt, independent observer supervisor,
+telemetry worker, readiness, CPU samples and all eighteen sequence receipts. It
+performs no file IO, process execution or frozen rehash.
+
+It independently checks:
+
+- Restorer and observer-supervisor lifetimes are **siblings under the coordinator**;
+  the telemetry worker belongs only to the observer supervisor. Captured worker
+  PIDs, receipt-collector identities, parents and nested lifetime envelopes agree.
+  Collector, observer, policy-command, worker and all eighteen workload PIDs are
+  distinct. A reparented or duplicated record cannot satisfy a green status alone.
+- Clean coordinator/observer supervisor/telemetry status, no orphan cleanup,
+  verified non-escalated observer-supervisor reaping and GPU-observer shutdown
+  (exit zero or intentional TERM). Observer receipts have no termination, mismatched
+  capture accounting or unsupported observation/output claims.
+- The restorer outer receipt retains 660-second timeout, 60-second TERM grace and
+  1 MiB capture cap, without extending the separately checked 600/590 deadlines.
+  Capture accounting/digest and owned spawn timestamp are checked, not raw bytes.
+- Readiness binds the actual declared telemetry/GPU PIDs and CPU0 affinity, matches
+  the coordinator's readiness digest, is inside the CPU receipt and precedes the
+  restorer outer capture. GPU launch/stop envelopes enclose CPU capture. These are
+  recorded lifecycle bounds, not first/last GPU measurements or per-call clocks.
+- Supplied CPU samples are indexed/ordered and inside their receipt; the first
+  precedes readiness and the first/last bracket the entire restorer outer capture.
+  All eighteen jobs have fixed runtime/repetition order, complete receipts, enabled
+  observation, serial envelopes inside their sequence and CPU-sample brackets.
+- Restoration and observer records share one consistent UTC/monotonic offset
+  interval with unchanged quantization. Canonical digests bind both branches and
+  all job receipts for later composition.
+
+Only `sibling_lifecycle_consistency_verified` and the nested restoration-record
+consistency flag are true. Caller-side live reaping/ancestry safety is **not proved**
+by supplied records. The validator does not bind observer/outer role argv, image or
+environment, authenticate producers, qualify process mappings or inspect captures.
+Readiness source/GPU fields and CPU/GPU counters/duration/gaps need their content
+validators. It deliberately accepts 2–901 supplied CPU samples for lifecycle
+checking; that does **not** pass the separate 901-sample/full-900-second gate.
+No continuous telemetry, hardware enforcement/restoration, model outputs or enforced
+rehash-last ordering is claimed. The same records must reach every separate gate.
+
+Five new tests cover **40 negative variants** of parent chains/duplicate PIDs,
+failed cleanup/status, termination/capture scope, ready digests/timing, sample
+brackets/clock domains and missing/reordered/overlapping job receipts. The real
+CPU-only integration parses persisted records from the actual sibling coordinator,
+restoration and observer supervisors, with fake set/reset commands and eighteen
+fake jobs. A new **test-only** fixture mode uses production 600/10/10 restoration
+budgets while retaining five-second synthetic telemetry and stub process observation
+hooks; other fixture modes are unchanged. The integration reconstructs policy/worker
+commands separately and uses the received handoff deadline. Recorded coordinator,
+supervisor, observer and job PIDs are absent afterward. This is not real process-map,
+codec-output, boundary-duration, GPU or complete finalizer qualification.
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_validate_clock_lifecycle -v
+PYTHONPATH=tools/bench python -m unittest test_validate_clock_lifecycle test_validate_clock_restoration test_clock_diagnostic_coordinator test_validate_readonly_lifecycle -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+Initial five tests pass; final **26 focused and 364 reporting tests pass** after
+adding observer-receipt termination/accounting negatives. No production runner,
+budget, policy, benchmark or pin changes. The earlier unresolved lifecycle-fixture
+failure remains retained, not declared repaired by these passes.
+
+| Private evidence under `reports/` | SHA-256 |
+| --- | --- |
+| `phase2-clock-sibling-lifecycle-tests-v1.log` | `6c11d122a07e0cab96d560738e612c3aa32c9baed53c41bdd46855d4bb8fb61e` |
+| `phase2-clock-sibling-lifecycle-tests-v2.log` (26 pass) | `f5362b0975daf5fa435cb3bad26a57594044e85e1722e037938113497826f5c3` |
+| `phase2-clock-sibling-lifecycle-check-v1.log` (364 pass) | `51e8437ba73128f5435bf12c92aa4820c3e7d49a49c4bb618a38953d0c93dc82` |
+
+Next: full telemetry/readiness content validation, report/output and raw-capture
+qualification, and a finalizer binding these gates to the same files before frozen
+rehash. Current upstream verification, fresh preparation/frozen roles and all live
+policy/permission/availability gates remain pending. Linux remains 72/78.

@@ -856,6 +856,15 @@ prove hardware enforcement/restoration. Initial duplicate test discovery is reta
 and corrected; the earlier lifecycle failure's cause remains unestablished. Next:
 sibling/readiness, full telemetry/output/capture and rehash-last finalizer binding;
 current upstream verification, fresh preparation/entry and all live gates remain.
+[Sibling lifecycle validation](linux-clock-restoration-validation.md#sibling-lifecycle-follow-up)
+now composes both supervisor branches, readiness clocks/digest, CPU-sample brackets
+and eighteen job receipts with the independent restoration check. Five new tests
+include 40 negatives and real fake-policy/default-budget sibling transport with
+five-second synthetic telemetry and stub observations; 26 focused/364 reporting
+tests pass. This is not live ownership/ancestry, observer/outer role authentication,
+full telemetry content or output qualification. Next: bind full readiness/telemetry,
+raw captures and outputs into same-record finalization with frozen rehash last.
+Current upstream, fresh preparation/entry and all live gates remain pending.
 
 ## Fixed collection and cleanup contract
 
