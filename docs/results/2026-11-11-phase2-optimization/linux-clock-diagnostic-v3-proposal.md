@@ -837,6 +837,16 @@ checks. Six new tests include forty negative variants and persisted real CPU-fak
 sequence evidence; 23 focused/344 reporting tests pass. Full restoration/observer
 lifecycle, telemetry, outputs/capture files, final frozen rehash and launch binding
 remain separate gates. No actual GPU/clock/benchmark validation occurred.
+The [final current-file component](linux-clock-process-validation.md#final-current-file-component)
+now checks all supplied frozen files, optional known candidates, mapped paths and
+alias targets, retaining unknown libraries as post-only. Nine new tests include
+actual eighteen-job CPU-only transport; final 31 focused/353 reporting tests pass.
+An initial full-check failure in the existing read-only lifecycle test is retained;
+its sequence failure cause is unestablished, telemetry/cleanup completed, and the
+assertion now includes sequence details. No guard/budget was changed. This component
+does not enforce rehash-last ordering, authenticate/complete the preparation inventory
+or qualify restoration/telemetry/outputs. Full finalizer and frozen entry remain
+pending, as do current upstream verification and all live launch gates.
 
 ## Fixed collection and cleanup contract
 

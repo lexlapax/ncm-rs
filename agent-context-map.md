@@ -285,9 +285,18 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   Six new tests include 40 negative variants and persisted writer/reader evidence
   from eighteen real CPU-only fake jobs. **23 focused and 344 reporting tests pass**.
   This is not producer authentication, restoration/telemetry/output qualification
-  or final file rehash. Next: full clock file/lifecycle finalization, current upstream
-  check, fresh complete preparation/frozen entry. No Torch/GPU/benchmark/policy work;
-  Linux 72/78 and all live policy/permission/availability gates remain pending.
+  or final file rehash. Latest: `verify_clock_files.py` rechecks supplied frozen
+  files, known libraries/images, alias targets and current mapped paths, with unknown
+  libraries explicitly post-only. Nine new tests include real eighteen-job CPU-only
+  observer→validator→file-check transport; **31 focused/353 reporting tests pass**.
+  The first full check failed an existing read-only lifecycle sequence; cleanup and
+  telemetry completed, but its assertion omitted sequence details. That diagnostic
+  is now included; one focused and one full rerun pass, cause unestablished/red log
+  retained. No guard/budget changes. [Scope and evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-process-validation.md#final-current-file-component)
+  distinguish a file-check component from enforced finalization ordering. Next:
+  clock restoration/observer lifecycle, telemetry/output/capture finalization with
+  frozen rehash last; current upstream check, fresh full preparation/frozen entry.
+  No Torch/GPU/benchmark/policy work; Linux 72/78 and all live gates remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

@@ -103,3 +103,81 @@ supervisor, set/reset commands or post-reset hardware state. No real collection,
 permission test or policy change occurred. Default-policy/no-controller confirmation,
 permissions/enforcement and a later fresh quiet window remain unresolved. Neither
 this verifier nor its tests close a Linux acceptance cell or the Phase 2 objective.
+
+## Final current-file component
+
+`tools/bench/verify_clock_files.py::verify_files` now supplies an import-only final
+file checker. It merges the supplied full-preparation identities with the compiled
+known libraries, workload/taskset images and forbidden injection identity. Every
+supplied frozen file is checked even if never mapped (including optional candidates).
+Mandatory identities must agree with known declarations; conflicts fail. Contract
+path aliases, workload command spellings and caller-supplied additional aliases must
+resolve to their declared frozen canonical targets before and after hashing.
+
+All file paths/types, observed pathname device/inode, frozen device/inode/size and
+byte/count budgets are checked before any file hashing. Bounds are 256 unique files,
+2 GiB/file, 8 GiB total and 512 unique path bindings. Unknown observed files must be
+ELF-magic regular shared-library paths under explicit canonical non-root library
+roots. They receive **post-only**, not invented prelaunch, hashes. Sampled known
+paths cannot become post-only. Kernel-map devices remain separate from pathname
+devices; forbidden injection identity/path remains rejected.
+
+The shared descriptor-based hasher checks file metadata before/after reading and
+compares known SHA-256 values. A final canonical-path/alias and all-file metadata
+pass detects visible earlier-file changes while later files are hashed. This is
+not an atomic filesystem snapshot, protection against arbitrary adversarial swaps,
+immutable mapped-byte proof or historical interpreter/library-byte equivalence.
+Aliases bind resolved targets, not symlink inode/text identity; additional full
+preparation/link-chain validation remains necessary. No hashing wall-time bound
+is claimed. The same-inode byte mutation test fails on the frozen digest; same-byte
+new-inode replacement fails on identity, not on digest.
+
+**Ordering remains the caller's obligation:** this component must run only after
+all supervision, restoration, telemetry, process, output and capture gates have
+finished. No current clock finalizer enforces that yet. The component reports only
+`supplied_frozen_file_bytes_rechecked`, `current_mapped_paths_verified` and
+`supplied_path_bindings_rechecked`; `finalization_order_verified`,
+`whole_run_qualified`, mapped-byte and launch-provenance claims remain false.
+The supplied inventory's completeness/authenticity is not proved by matching it.
+No actual diagnostic evidence or installed CUDA/Torch inventory was rehashed here.
+
+Nine new tests cover positive optional absence/post-only distinctions, unmapped
+frozen mutation/replacement, sampled identity/injection drift, command/alias/parent
+symlink changes, roots/names/non-ELF/FIFO/symlink rejection, pre-hash budgets,
+conflicting declarations and changes during later-file hashing. A real CPU-only
+integration freezes its fake script before eighteen jobs, parses the saved sequence,
+uses the independent process validator and checks the current executable/system
+library files. All child PIDs are absent afterward. This tests transport with small
+CPU fixtures, not the forty-library CUDA contract, 900-second telemetry, actual codec
+outputs or complete finalization ordering.
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_verify_clock_files test_verify_clock_processes test_verify_readonly_processes -v
+PYTHONPATH=tools/bench python -m unittest test_validate_readonly_lifecycle test_verify_clock_files test_verify_clock_processes test_verify_readonly_processes -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+The first focused run passed 24 tests; adding the actual CPU transport yielded 25.
+The first full check ran 353 tests and **failed** the existing
+`test_real_writers_and_owned_process_samples_compose`: the supervisor's worker
+returned 1 because sequence status was failed; telemetry, reaping and supervisor
+cleanup completed. Its assertion included no sequence record, and its temporary
+fixture was removed, so the sequence's original cause is **unestablished**, not
+attributed to timing or declared repaired. The assertion now includes that record.
+One subsequent focused run passed **31 tests**, then one full check passed **353**.
+All logs remain retained; no skip, guard/timeout/budget change, benchmark rerun or
+policy action occurred. If this failure recurs, inspect the newly included sequence
+receipt before changing production or test behavior.
+
+| Private evidence under `reports/` | SHA-256 |
+| --- | --- |
+| `phase2-clock-file-postflight-tests-v1.log` | `c72ff0fff0af0e04f96fec1a57e808b47d666a6893d1442fdfd0c0a706b7b09a` |
+| `phase2-clock-file-postflight-tests-v2.log` | `75dc727dc320402be6aa6c541a851b908e6457ddbf8675856692d9e38ba7f6a4` |
+| `phase2-clock-file-postflight-check-v1.log` (failed) | `32bb0a83e66bf7fa518d899c4f971751de9e049fabaaaf31436450d208573fd4` |
+| `phase2-clock-file-postflight-tests-v3.log` (31 pass) | `dca4008a2882fb1cb0299859f97b78d2a45bbdb337b619121ae3c9a7088b0b0a` |
+| `phase2-clock-file-postflight-check-v2.log` (353 pass) | `09d648947d5f95d43b8b7e70edc8852e13e4b6ecc3298eaa3811bed1915a472e` |
+
+Next remains full restoration/observer lifecycle and telemetry/output/capture
+finalization, enforcing frozen rehash last, current upstream verification, fresh
+complete preparation and frozen entry. No live policy/permission/availability gate
+or acceptance comparison is closed by these tests.

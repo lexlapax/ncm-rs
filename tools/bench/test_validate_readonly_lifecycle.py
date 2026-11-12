@@ -163,7 +163,8 @@ class LifecycleTests(unittest.TestCase):
             tel = read('collection/telemetry/telemetry.json')
             ready = read('collection/telemetry/ready.json')
             self.assertEqual(outer['status'], 'complete', (root / 'outer.txt').read_text())
-            self.assertEqual(sup['status'], 'complete', {'supervisor': sup, 'collection': coord, 'telemetry': tel})
+            self.assertEqual(sup['status'], 'complete',
+                             {'supervisor': sup, 'collection': coord, 'sequence': seq, 'telemetry': tel})
             self.assertEqual(coord['status'], 'complete', coord)
             observations = [read(f'collection/sequence/{i:02d}-{c}.process.json') for i, c in enumerate(ORDER, 1)]
             samples = [json.loads(line) for line in (root / 'collection/telemetry/cpu.jsonl').read_text().splitlines()]

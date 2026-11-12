@@ -1,0 +1,196 @@
+"""Synthetic files and CPU-child/system-library transport; no Torch or GPU work."""
+from copy import deepcopy
+from pathlib import Path
+import json
+import os
+import sys
+import time
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from readonly_trace_preflight import file_identity
+import verify_clock_files as check
+import verify_clock_processes
+import test_clock_process_observation as live
+
+
+class ClockFileTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name).resolve()
+        self.lib = self.root/'lib'; self.lib.mkdir()
+        self.ids = {}
+        for name in ('previous','candidate','python','taskset','injection','required.so','optional.so','lazy.so','source'):
+            path = (self.lib if name.endswith('.so') else self.root)/name
+            path.write_bytes((b'\x7fELF' if name != 'source' else b'text')+name.encode())
+            self.ids[name] = file_identity(path)
+        self.alias = self.lib/'alias.so'; self.alias.symlink_to('required.so')
+        self.command = self.root/'python-command'; self.command.symlink_to('python')
+        self.contract = dict(schema_version=1,prepared_declaration_consistency_verified=True,
+            runtime_mapping_verified=False,launch_ready=False,taskset=self.ids['taskset'],
+            workloads={r:dict(image=self.ids[r],command_path=str(self.command) if r=='python' else self.ids[r]['path'])
+                       for r in ('previous','candidate','python')},
+            libraries={r:[self.ids['required.so']] for r in ('previous','candidate','python')},
+            known_libraries=[self.ids['required.so'], self.ids['optional.so']],
+            path_bindings=[dict(path=str(self.alias),canonical_path=self.ids['required.so']['path'])])
+        self.observed = {}
+        for name in ('previous','candidate','python','required.so','lazy.so'):
+            value = self.ids[name]
+            self.observed[value['path']] = dict(path=value['path'],device=28,inode=value['inode'],
+                path_device=value['device'],path_inode=value['inode'],kernel_map_link_verified=True)
+        self.binding = dict(schema_version=1,process_receipt_consistency_verified=True,
+            frozen_files_rechecked=False,mapped_file_bytes_verified=False,launch_provenance_verified=False,
+            observed_files=self.observed)
+        self.frozen = [self.ids['source']]
+
+    def verify(self, **kw):
+        args = dict(frozen_identities=self.frozen,path_bindings=[],injection=self.ids['injection'],library_roots=[self.lib])
+        args.update(kw)
+        return check.verify_files(self.binding,self.contract,**args)
+
+    def test_all_frozen_including_absent_optional_and_post_only_no_processes(self):
+        before = deepcopy((self.binding,self.contract,self.frozen))
+        with patch('subprocess.Popen',side_effect=AssertionError('no child processes')):
+            result = self.verify()
+        self.assertEqual(before,(self.binding,self.contract,self.frozen))
+        rows = {Path(r['identity']['path']).name:r for r in result['files']}
+        self.assertEqual(set(rows),set(self.ids))
+        self.assertEqual(rows['lazy.so']['binding'],'post_only')
+        self.assertFalse(rows['lazy.so']['identity']['expected_digest_verified'])
+        self.assertEqual(rows['optional.so']['binding'],'prelaunch_and_post')
+        self.assertFalse(rows['optional.so']['observed_executable_mapping'])
+        self.assertEqual(rows['required.so']['kernel_map_device'],28)
+        self.assertEqual(result['bytes_hashed'],sum(v['bytes'] for v in self.ids.values()))
+        self.assertTrue(result['supplied_path_bindings_rechecked'])
+        for key in ('mapped_file_bytes_verified','launch_provenance_verified','whole_run_qualified','finalization_order_verified'):
+            self.assertFalse(result[key])
+        result['files'][0]['identity']['path']='changed'
+        self.assertEqual(before,(self.binding,self.contract,self.frozen))
+
+    def test_unmapped_frozen_byte_mutation_and_same_byte_replacement(self):
+        for name in ('source','optional.so','injection'):
+            path=Path(self.ids[name]['path']); original=path.read_bytes()
+            with self.subTest(name=name,mode='bytes'):
+                path.write_bytes(b'X'+original[1:])
+                with self.assertRaisesRegex(ValueError,'digest mismatch'): self.verify()
+                path.write_bytes(original)
+            # Keep old inode linked, so the filesystem cannot reuse it.
+            saved=path.with_suffix('.saved'); path.rename(saved); path.write_bytes(original)
+            with self.subTest(name=name,mode='replacement'), self.assertRaisesRegex(ValueError,'identity changed'):
+                self.verify()
+            path.unlink(); saved.rename(path)
+
+    def test_known_observed_drift_and_injection_cannot_be_post_only(self):
+        path=self.ids['required.so']['path']
+        self.observed[path]['path_inode']+=1; self.observed[path]['inode']+=1
+        with self.assertRaisesRegex(ValueError,'mapped pathname identity'): self.verify()
+        self.observed[path]['path_inode']-=1; self.observed[path]['inode']-=1
+        value=self.ids['injection']
+        self.observed[value['path']]=dict(path=value['path'],device=28,inode=value['inode'],
+            path_device=value['device'],path_inode=value['inode'],kernel_map_link_verified=True)
+        with self.assertRaisesRegex(ValueError,'injection'): self.verify()
+
+    def test_alias_command_and_parent_symlink_drift_before_hash(self):
+        with patch.object(check,'file_identity',side_effect=AssertionError('must fail before hash')):
+            self.alias.unlink(); self.alias.symlink_to('optional.so')
+            with self.assertRaisesRegex(ValueError,'alias target changed'): self.verify()
+            self.alias.unlink(); self.alias.symlink_to('required.so')
+            self.command.unlink(); self.command.symlink_to('candidate')
+            with self.assertRaisesRegex(ValueError,'alias target changed'): self.verify()
+            self.command.unlink(); self.command.symlink_to('python')
+            moved=self.root/'moved'; self.lib.rename(moved); self.lib.symlink_to(moved)
+            with self.assertRaisesRegex(ValueError,'canonical'): self.verify()
+
+    def test_unlisted_roots_names_non_elf_and_symlinks(self):
+        with self.assertRaisesRegex(ValueError,'non-root'): self.verify(library_roots=[Path('/')])
+        other=self.root/'other'; other.mkdir()
+        with self.assertRaisesRegex(ValueError,'unreviewed'): self.verify(library_roots=[other])
+        with self.assertRaisesRegex(ValueError,'normalized'): self.verify(library_roots=[self.lib/'..'])
+        path=Path(self.ids['lazy.so']['path']); renamed=self.lib/'unreviewed-executable'
+        path.rename(renamed)
+        mapping=self.observed.pop(str(path)); mapping['path']=str(renamed); self.observed[str(renamed)]=mapping
+        with self.assertRaisesRegex(ValueError,'unreviewed'): self.verify()
+
+    def test_post_only_file_types_and_bounds_before_hash(self):
+        path=Path(self.ids['lazy.so']['path'])
+        original=path.read_bytes(); path.write_bytes(b'notELF'+original[6:])
+        with self.assertRaisesRegex(ValueError,'ELF-magic'): self.verify()
+        path.write_bytes(original)
+        for constant, value in (('FILE_COUNT_LIMIT',1),('FILE_BYTES_LIMIT',1),('FILE_SIZE_LIMIT',1),('PATH_COUNT_LIMIT',1)):
+            with self.subTest(constant=constant), patch.object(check,constant,value), \
+                 patch.object(check,'file_identity',side_effect=AssertionError('no hashing over budget')):
+                with self.assertRaises(ValueError): self.verify()
+        saved=path.with_suffix('.saved'); path.rename(saved); os.mkfifo(path)
+        with self.assertRaisesRegex(ValueError,'non-regular'): self.verify()
+        path.unlink(); path.symlink_to(saved)
+        with self.assertRaisesRegex(ValueError,'canonical'): self.verify()
+
+    def test_invalid_or_conflicting_declarations(self):
+        for mode in ('known','required','frozen','alias','unbound','schema','claim'):
+            contract,binding=deepcopy((self.contract,self.binding))
+            frozen,aliases=deepcopy(self.frozen),[]
+            if mode=='known': contract['known_libraries'].append(deepcopy(contract['known_libraries'][0]))
+            if mode=='required': contract['libraries']['python']=[dict(self.ids['required.so'],sha256='0'*64)]
+            if mode=='frozen': frozen.append(dict(self.ids['optional.so'],sha256='0'*64))
+            if mode=='alias': aliases=[dict(path=str(self.alias),canonical_path=self.ids['optional.so']['path'])]
+            if mode=='unbound': aliases=[dict(path=str(self.alias),canonical_path=str(self.root/'unknown'))]
+            if mode=='schema': binding['schema_version']=True
+            if mode=='claim': binding['mapped_file_bytes_verified']=True
+            with self.subTest(mode=mode), self.assertRaises(ValueError):
+                check.verify_files(binding,contract,frozen_identities=frozen,path_bindings=aliases,
+                                   injection=self.ids['injection'],library_roots=[self.lib])
+
+    def test_real_cpu_sequence_binding_to_file_check(self):
+        if getattr(live.ClockObservationTests,'__unittest_skip__',False): self.skipTest('Linux CPU2/taskset required')
+        fixture=live.ClockObservationTests(); fixture.setUp(); self.addCleanup(fixture.doCleanups)
+        known=[*fixture.libraries['previous'],fixture.injection]
+        contract=dict(schema_version=1,prepared_declaration_consistency_verified=True,
+                      runtime_mapping_verified=False,launch_ready=False,workloads=fixture.workloads,
+                      taskset=fixture.taskset,libraries=fixture.libraries,known_libraries=known,path_bindings=[])
+        frozen=[file_identity(fixture.script)]
+        roots=sorted({Path(known[0]['path']).parent, (Path(sys.base_prefix)/'lib').resolve()})
+        deadline=time.monotonic()+30
+        with patch.object(live.sequence,'plan_jobs',return_value=fixture.jobs):
+            live.sequence.run_sequence(fixture.previous,fixture.binaries,fixture.output,root=fixture.root,
+                env=fixture.env,work_deadline=deadline,cancel_check=lambda:False,
+                process_observer_factory=fixture.factory(known_libraries=known),taskset=fixture.taskset['path'])
+        result=json.loads((fixture.output/'sequence-result.json').read_bytes())
+        binding=verify_clock_processes.validate_processes(fixture.jobs,result,contract,
+                    injection=fixture.injection,work_deadline=deadline)
+        checked=check.verify_files(binding,contract,frozen_identities=frozen,path_bindings=[],
+                                   injection=fixture.injection,library_roots=roots)
+        self.assertTrue(checked['supplied_frozen_file_bytes_rechecked'])
+        self.assertTrue(any(r['binding']=='post_only' for r in checked['files']))
+        self.assertTrue(all(not Path('/proc/'+str(row['pid'])).exists() for row in binding['jobs']))
+        self.assertFalse(checked['whole_run_qualified'])
+
+    def test_drift_during_hashing_including_previously_hashed_file(self):
+        original=check.file_identity
+        for mode in ('alias','replacement','earlier_bytes'):
+            with self.subTest(mode=mode):
+                changed=False
+                # source sorts last; change an earlier input during its hash.
+                victim=Path(self.ids['optional.so']['path']); raw=victim.read_bytes()
+                saved=victim.with_suffix('.saved')
+                def hashing(path,*args):
+                    nonlocal changed
+                    result=original(path,*args)
+                    if path == Path(self.ids['source']['path']) and not changed:
+                        changed=True
+                        if mode=='alias':
+                            self.alias.unlink(); self.alias.symlink_to('optional.so')
+                        elif mode=='replacement':
+                            victim.rename(saved); victim.write_bytes(raw)
+                        else: victim.write_bytes(b'X'+raw[1:])
+                    return result
+                with patch.object(check,'file_identity',side_effect=hashing), self.assertRaises(ValueError): self.verify()
+                self.assertTrue(changed)
+                if mode=='alias':
+                    self.alias.unlink(); self.alias.symlink_to('required.so')
+                elif mode=='replacement': victim.unlink(); saved.rename(victim)
+                else: victim.write_bytes(raw)
+
+
+if __name__ == '__main__': unittest.main()

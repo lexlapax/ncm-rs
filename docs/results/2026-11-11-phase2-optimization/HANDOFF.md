@@ -139,6 +139,16 @@ negative variants and parsed persisted evidence from eighteen real CPU fake jobs
 **23 focused and 344 reporting tests pass**. Restoration, telemetry, report quality,
 raw file checks and frozen rehash remain separate/unfinished. Current upstream check,
 fresh full preparation/entry and live policy/permission/availability gates remain.
+The [final current-file component](linux-clock-process-validation.md#final-current-file-component)
+now rechecks supplied frozen files, optional known libraries, images and alias targets;
+unknown mapped libraries stay post-only. Nine new tests include actual eighteen-job
+CPU-only transport into process/file validation. **31 focused/353 reporting tests
+pass** after one retained full-check failure in the existing read-only lifecycle
+fixture. Its failed sequence's cause is unestablished; telemetry/cleanup completed.
+The assertion now includes sequence details; no guards or budgets changed. The file
+checker does not enforce finalization ordering or prove full inventory completeness.
+Next: restoration/observer lifecycle and telemetry/output/capture finalization with
+rehash last, then fresh full preparation/entry; all live gates remain pending.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test
