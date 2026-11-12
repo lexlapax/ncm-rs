@@ -781,6 +781,20 @@ frozen rehash last. Policy/controller confirmation and permissions/enforcement
 remain missing, followed by a new quiet window only after readiness. No GPU
 command, permission test or benchmark ran. Linux remains **72/78**, Apple pending.
 
+## Python frozen-preparation coverage audit — metadata only
+
+The [offline Python audit](linux-clock-python-preparation-audit.md) verifies all
+110 archived v2 members and current agreement with six reports' three source pins
+and 36 distribution versions. It distinguishes Torch distribution version from
+runtime build tag, and historical source/metadata pins from current-only interpreter,
+config and startup-file snapshots. Historical interpreter/library byte equivalence
+is not established. Existing native loader preparation does not cover Python;
+startup hooks and lazy dependencies remain explicit preparation/observation work.
+Preserve intrinsic benchmark hashing and Git checks rather than claiming run-wide
+absence; the added collector's frozen rehash still belongs last. Documented metadata
+reproduction passes with system Python `-S`, no Torch import or GPU command. This
+is not launch readiness or a change to the qualified benchmark.
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

@@ -84,6 +84,15 @@ all 18 actually observed fake jobs under default restoration budgets and ninetee
 rejected handoffs that reset without workloads. **32 focused tests and default
 checks with 311 reporting tests pass**. No boundary-length/CUDA cleanup proof follows.
 Factory/handoff-to-frozen-production-entry binding and postflight remain pending.
+The subsequent [offline Python preparation audit](linux-clock-python-preparation-audit.md)
+verifies all 110 v2 archive members, six Python metadata sets, three source pins and
+current 36 distribution versions, but not historical interpreter/library bytes.
+Current-only interpreter/config/startup snapshots must not become historical pins;
+keep Torch's distribution version separate from its runtime build tag. Account for
+existing startup hooks and preserve intrinsic harness hash/Git checks; do not add
+collector probes or early frozen rehash. Documented reproduction passes without
+Torch/GPU use; no default-suite rerun for that docs-only audit. Python loader/startup
+inventory and production-entry binding remain the next preparation work.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

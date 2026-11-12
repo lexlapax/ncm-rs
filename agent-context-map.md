@@ -223,6 +223,18 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   No GPU/policy/permission/benchmark run. This is a tested handoff component, not
   the frozen preparation/production entry or full qualification; those and the
   unanswered policy/controller/permission/fresh-window gates remain pending.
+  [Offline Python preparation audit](docs/results/2026-11-11-phase2-optimization/linux-clock-python-preparation-audit.md)
+  verifies all 110 v2 members, six Python metadata sets, three historical source
+  pins and current 36 distribution versions. No historical interpreter/library
+  byte equivalence is established; five current-only file hashes remain snapshots.
+  Torch distribution version 2.15.0 differs from runtime build 2.15.0+cu132; retain
+  both. Current pip is extra to the benchmark lock; the existing .pth startup shim
+  must be accounted for, not disabled. Preserve intrinsic harness hashes/Git checks
+  while forbidding added collector probes/early rehash. Documented offline
+  reproduction passes; no Torch import, GPU command or benchmark. Docs-only work;
+  default checks not rerun (prior fef3b08: 311 reporting tests). Next: explicit
+  current-only Python/loader/startup inventory in frozen preparation, then entry
+  binding and final qualification. Linux 72/78 and all live authorization gates remain.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
