@@ -58,17 +58,22 @@ launch notes are historical, not instructions to repeat it. Tooling was publishe
 at `b7f61b5`; actual metadata preparation/comparison passed before the attempt.
 The evidence index retains a compact archive and identifies the unpublished local
 1 GiB capture. An import-only `supervised_restoration.py` transaction now passes
-22 fake-policy subprocess tests, plus 18 bounded-child tests. The fixed 18-job
+23 fake-policy subprocess tests, plus 18 bounded-child tests. The fixed 18-job
 worker has nine CPU-only tests; four composed tests now exercise actual nested
 restoration/worker ownership, shared-deadline handoff, failure exit status and
 reset after observer loss/deadline abort. Four outer-capture tests include a real
 12-second fake-policy cleanup retry after cancellation and large final output.
 The latest import-only `clock_diagnostic_coordinator.py` gates the restoration-aware
 capture on telemetry readiness, waits out the sampler after ordinary worker failure,
-and cancels work on observer loss or interruption without suppressing reset. Six new
-CPU-only tests exercise these paths, all 18 fake jobs, invalid argv/readiness and
-coordinator TERM; fourteen focused tests and default checks with **298 reporting
-tests pass**. Tests use shortened synthetic telemetry, not real 900-second coverage.
+and cancels work on observer loss or interruption without suppressing reset. It now
+requires readiness from the sole live child of a separate observer supervisor.
+Nine CPU-only coordinator tests include all 18 fake jobs, invalid argv/readiness,
+coordinator TERM/SIGKILL and telemetry-worker SIGKILL with escaped sampler cleanup.
+Forty focused tests and default checks with **302 reporting tests pass**. Tests use
+shortened synthetic telemetry, not real 900-second coverage. A broken warning pipe
+can no longer skip final restoration evidence/role cleanup; reset failure remains
+failed. The proposal retains that red regression and the initial exit120-vs-1 test
+failure after coordinator loss; nonzero plus actual cleanup evidence is required.
 The supervisor arms before set, stops/reaps owned workers/escaped descendants,
 and attempts reset on failure/interrupt/parent loss, with at most one
 cleanup-only retry. Absolute reset/work deadlines are now persisted before set:
@@ -80,8 +85,11 @@ No real GPU commands ran. Command exit is not hardware restoration; integration
 still owes production role/deadline binding, full telemetry qualification, enforcement
 and frozen worker binding. Do not wrap the clock coordinator/restorer with a generic
 adoption-and-KILL supervisor: restoration must survive coordinator loss. The observer
-branch still needs separate orphan/escape cleanup; the new lifecycle tests do not
-prove whole-launch parent-loss safety. Review and test that ancestry before launch.
+branch now has separately supervised orphan/escape cleanup in the composed tests.
+Two sibling supervisors survive coordinator loss and clean their own descendants;
+the test-only outer adopter waits/reaps rather than killing those branches. Bind
+this topology to reviewed frozen production roles before claiming launch safety.
+Supervisor SIGKILL/host failure and arbitrary CUDA abort behavior remain unproved.
 Do not reuse the read-only outer wrapper's 10-second TERM
 grace for clock restoration: it cannot cover two permitted 10-second reset attempts
 plus cleanup. `clock_restoration_capture.py` now provides a 660-second outer budget

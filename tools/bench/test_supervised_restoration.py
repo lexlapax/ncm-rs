@@ -131,6 +131,11 @@ def capture(argv,**kwargs):
     return receipt
 s.run_bounded=capture
 '''
+    if inject == 'warning':
+        prefix += '''def warning(*args,**kwargs):
+    raise BrokenPipeError('synthetic lost parent warning pipe')
+s.print=warning
+'''
     if inject == 'arm':
         prefix += '''actual_open=s.Path.open
 def opening(path,*args,**kwargs):
@@ -178,6 +183,15 @@ class RestorationTests(unittest.TestCase):
                 self.assertTrue(receipt['direct_child_reaped'])
                 self.assertFalse(Path(f'/proc/{receipt["pid"]}').exists())
         return root, result, events, run.stderr
+
+    def test_failed_warning_pipe_does_not_skip_role_cleanup_or_retained_failure(self):
+        root, result, events, _ = self.run_case('reset_fail', inject='warning')
+        self.assertEqual(events, ['set', 'worker', 'reset', 'reset'])
+        self.assertEqual(result['status'], 'failed')
+        self.assertFalse(result['reset_command_succeeded'])
+        self.assertTrue(result['subreaper_restored'])
+        self.assertTrue((root / 'lock').exists())
+        self.assertIn('warning_delivery_error:BrokenPipeError', result['errors'])
 
     def test_success_arms_before_set_and_resets_after_reaping(self):
         root, result, events, _ = self.run_case('success')

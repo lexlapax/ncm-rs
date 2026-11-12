@@ -208,8 +208,13 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
                     break
                 errors.append(f'reset_attempt_failed:{attempt}')
             if not resets or not completed(resets[-1]) or not reset_clean:
-                print('RESET UNCONFIRMED OR OWNED CLEANUP FAILED: manual inspection required; no more workloads.',
-                      file=sys.stderr, flush=True)
+                try:
+                    print('RESET UNCONFIRMED OR OWNED CLEANUP FAILED: manual inspection required; no more workloads.',
+                          file=sys.stderr, flush=True)
+                except BaseException as error:
+                    # Parent loss can close stderr. Still restore the process role
+                    # and persist failed reset evidence; never turn it into success.
+                    errors.append('warning_delivery_error:' + type(error).__name__)
         parent_lost |= os.getppid() != parent_pid
         if role_acquired:
             try:

@@ -536,6 +536,88 @@ CARGO_BUILD_JOBS=4 ./tools/check.sh
 | `phase2-clock-coordinator-tests-v2.log` | Final 14 focused tests pass, including coordinator TERM | `906999749f96bed41f892937d9281ccdaf89d68e0210563140585d92fea2656f` |
 | `phase2-clock-coordinator-check-v1.log` | Default checks pass; 298 reporting tests | `e7e856729d766626d56fafb67175439651e54c1dea05f3d9c1f3ff4771faa9e1` |
 
+## Independent observer branch and lost-output regression — CPU-only
+
+The clock coordinator now requires a distinct supervised telemetry worker, rather
+than directly owning that worker. Its readiness validator checks the existing
+sample metadata, then requires the declared worker to be the sole child of the
+owned observer supervisor and a non-zombie procfs process with that parent. The
+coordinator checks its own waitable supervisor before/after readiness. These are
+sampled relationships, not independent role authentication, immutable identity,
+continuous liveness or permission to signal an indirectly owned PID. Missing or
+inconsistent snapshots fail before the restorer starts. Read-only readiness and
+its default limits remain unchanged.
+
+The composed CPU tests now use the existing real `supervised_worker.supervise`
+only on the observer branch, separately from `supervise_restoration`:
+
+```text
+coordinator
+  observer supervisor -> telemetry worker -> CPU/GPU sampler processes
+  restoration supervisor -> set / fixed codec worker / reset
+```
+
+The observer and restoration supervisors are siblings. No generic adoption-and-
+KILL supervisor surrounds the restorer. The launch entry still must construct,
+freeze and verify these roles/argv/parents/budgets; this import-only component does
+not generate or authenticate them. Test wrapper commands are not a production
+entry and their shortened timeouts are not the launch limits.
+
+Nine coordinator tests now cover the previous six scenarios plus:
+
+- Actual coordinator SIGKILL during the first fake workload: both supervisors
+  detect parent loss, the restorer reaps work and resets fake policy, the observer
+  supervisor reaps its worker plus two session-escaped samplers. Their reports
+  remain failed; coordinator completion is absent. A separate test-only adopter
+  **waits/reaps**, without generic termination on the successful path; an unrelated
+  child survives. PID absence and retained cleanup reports are checked.
+- Telemetry worker self-SIGKILL after workload startup: its supervisor adopts/reaps
+  both sampler processes; observer-branch failure cancels the clock work and the
+  independent restorer still resets. No borrowed numeric worker PID is signalled
+  by the coordinator/test parent.
+- Mocked procfs readiness rejection for a different/additional child, changed
+  parent, zombie/dead state, inconsistent stat PID or invalid declared PID.
+
+The initial parent-loss test wrongly required exit1 for both branches; Python
+returned exit120 for one. Parent loss can close the restorer's capture pipe during
+final output flushing. The corrected test requires **nonzero exit and retained
+failed cleanup evidence**, never inferring restoration from an exit code. The
+failed initial log remains retained; no workload or acceptance criterion changed.
+
+Related source review found a genuine lost-output failure: after unsuccessful
+reset attempts, a stderr warning exception could skip role restoration and final
+`restoration.json`. A new fake-command regression failed before the fix. Warning
+write exceptions now append `warning_delivery_error:<type>` and allow final role
+cleanup/evidence writing. Two failed resets still leave fake policy unresolved,
+record failure and allow no further work; this does not claim the warning reached
+the user or that hardware policy was restored. All 23 restoration tests pass.
+
+Commands (exclusive private logs, `umask 077`):
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_diagnostic_coordinator test_readonly_trace_coordinator -v
+PYTHONPATH=tools/bench python -m unittest test_supervised_restoration.RestorationTests.test_failed_warning_pipe_does_not_skip_role_cleanup_or_retained_failure -v
+PYTHONPATH=tools/bench python -m unittest test_clock_diagnostic_coordinator test_readonly_trace_coordinator test_supervised_restoration -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-clock-observer-branch-tests-v1.log` | 17 tests; initial exact exit1 expectation fails on exit120 | `31e36c1b7f3d891d524a53652c7eeb0c7bfdf0ca0a8898df5b7f93db42c205bf` |
+| `phase2-clock-observer-branch-tests-v2.log` | 17 focused tests pass | `05441ad46cb78ef22c233acf2e228624f451459b1b87952e9d3294d22a0ed026` |
+| `phase2-clock-warning-pipe-red-v1.log` | Warning exception bypasses final result before fix | `7a327e7d7cdbd4ec7f3ab11a900b5f42b03a4f84e37b0ba881326ef479c91e77` |
+| `phase2-clock-observer-branch-tests-v3.log` | All 40 focused tests pass | `b72d761882a91948155846ea6fb366153790c864bee1627c210a9d6911049fbf` |
+| `phase2-clock-observer-branch-check-v1.log` | Default checks pass; 302 reporting tests | `4e030a7ae7d8e5fc89e063d22d6bbb9f3b2b020045cb665299344ba9500ee323` |
+
+This tests failure containment only with surviving branch supervisors and fake
+policy/workloads/telemetry. It does not guarantee cleanup after supervisor SIGKILL,
+host failure, arbitrary IO/scheduling stalls or uninterruptible CUDA tasks. Full
+900-second coverage, actual per-job observation/qualification and frozen production
+entry bindings remain pending, as do default-policy/no-controller confirmation,
+permissions/enforcement and a fresh window after readiness. No GPU command,
+permission test, real telemetry or benchmark ran. Linux remains **72/78**; Apple
+pending. No acceptance cell closes.
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

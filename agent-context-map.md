@@ -184,19 +184,24 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   No GPU/policy/permission/benchmark run. Still need frozen role/budget binding,
   full telemetry/restoration composition, final qualifications and the unanswered
   default-policy/no-controller confirmation before readiness and a new quiet window.
-  Latest offline integration: `clock_diagnostic_coordinator.py` gates the one
-  restoration-aware capture on telemetry readiness; ordinary worker failure keeps
-  the sampler running, observer loss/TERM cancels work without suppressing reset.
-  Six new CPU-only tests use the real restoration/worker/capture with fake policy,
-  workloads and shortened synthetic telemetry. **14 focused tests and default
-  checks with 298 reporting tests pass**; exact logs/hashes are in the clock proposal.
-  Read-only coordinator defaults/results remain compatible; no retry or hardware run.
-  Still not launch-ready: frozen role/deadline bindings, actual per-job observations,
-  full telemetry/output qualification and restoration-aware ancestry remain owed.
-  A generic adoption-and-KILL ancestor must not surround the restorer; the observer
-  branch still needs independent orphan/escape cleanup before parent-loss safety can
-  be claimed. Policy/controller confirmation, permissions and a later fresh window
-  remain missing. Linux stays 72/78; Apple pending.
+  Latest offline integration: `clock_diagnostic_coordinator.py` gates restoration
+  on telemetry readiness and now requires a separate observer-supervisor branch.
+  Readiness PID must be its sole live child in sampled procfs relationships; not
+  independent provenance or continuous liveness. Nine clock-coordinator CPU tests
+  include two surviving sibling supervisors after coordinator SIGKILL, telemetry-
+  worker SIGKILL/session-escaped sampler reaping, unrelated-child survival and
+  prior readiness/failure/TERM cases. Generic adoption-and-KILL must not surround
+  the restorer. The frozen production entry must still bind this tested role tree.
+  A lost warning-pipe regression initially skipped final restoration evidence;
+  warning errors now remain failed while role cleanup/result writing proceed.
+  An initial test's exact exit-1 assumption failed with Python exit120 after parent
+  loss; it now requires nonzero plus actual retained cleanup evidence. All failures
+  retained in the proposal. **40 focused tests and default checks with 302 reporting
+  tests pass**. Synthetic shortened telemetry/fake policy only; no GPU command,
+  permission test or benchmark. Read-only defaults unchanged. Still owed: frozen
+  roles/deadlines, actual per-job observation and full telemetry/output qualification;
+  default-policy/no-controller confirmation, permissions and a later fresh window.
+  Linux stays 72/78; Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

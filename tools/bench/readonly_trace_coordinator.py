@@ -119,7 +119,7 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
 
 
 def _coordinate_action(observer_argv, *, cwd, env, output_dir, expected_cpu_source,
-                       gpu_uuid, run_action, status_key):
+                       gpu_uuid, run_action, status_key, ready_validator=None):
     """Shared lifecycle only: one trusted action after readiness, never a retry.
 
     The action returns its result dict plus any captured SIGINT/SIGTERM. An ordinary
@@ -133,6 +133,7 @@ def _coordinate_action(observer_argv, *, cwd, env, output_dir, expected_cpu_sour
             'fresh single-threaded Linux coordinator with exclusive reaping required')
     require(callable(run_action) and status_key in ('sequence_status', 'restoration_supervisor_status'),
             'supported lifecycle action required')
+    require(ready_validator is None or callable(ready_validator), 'invalid readiness validator')
     directory = Path(output_dir).absolute()
     telemetry_dir = directory / 'telemetry'
     require(isinstance(observer_argv, (list, tuple)) and observer_argv
@@ -195,7 +196,8 @@ def _coordinate_action(observer_argv, *, cwd, env, output_dir, expected_cpu_sour
                     path = telemetry_dir / 'ready.json'
                     if os.path.lexists(path):
                         ready = read_record(path)
-                        validate_ready(ready, observer.pid, expected_cpu_source, gpu_uuid)
+                        (validate_ready if ready_validator is None else ready_validator)(
+                            ready, observer.pid, expected_cpu_source, gpu_uuid)
                         ready_observed_clock = diagnostic_clock.stamp()
                         # Validation/clock recording must not bypass a deadline, cancellation or worker exit.
                         if monitor() or time.monotonic() - started >= STARTUP_SECONDS:
