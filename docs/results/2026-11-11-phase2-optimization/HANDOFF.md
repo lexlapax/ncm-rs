@@ -250,6 +250,13 @@ successful). Cause unestablished; retained log and expanded bounded fixture diag
 not a claimed fix or relaxed timing. This checks only the caller's flag, not ancestor
 safety or frozen role binding. Full preparation/entry, both user answers and live gates
 remain pending; no limit/policy/benchmark change or acceptance closure.
+A [fixed six-attempt CPU-only reproduction](linux-clock-diagnostic-v3-proposal.md#fixed-cpu-only-handoff-reproduction-batch)
+at `1ec6aaa` retained all 108 jobs, original deadlines and six successful fake resets/
+cleanups. All attempts passed; historical failure **not reproduced, not resolved**.
+Independent audit hashes 566 private test files/1,930,063 bytes; not clock preparation
+or an admission-limit bypass. No source/timing/policy/limit changes or additional batch.
+Default suite not rerun for this evidence-only checkpoint (prior 397 pass retained).
+Both user answers, fresh preparation/entry and all live gates remain outstanding.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

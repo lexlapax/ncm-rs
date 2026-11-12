@@ -377,6 +377,14 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   bounded sequence/worker diagnostics on recurrence. No timing/expectation relaxation.
   Local flag checking does not inspect ancestors or prove safe launch topology. Both
   user answers, fresh preparation/entry and live gates remain pending; limits unchanged.
+  A [fixed six-attempt CPU-only handoff reproduction](docs/results/2026-11-11-phase2-optimization/linux-clock-diagnostic-v3-proposal.md#fixed-cpu-only-handoff-reproduction-batch)
+  at `1ec6aaa` retained all 108 jobs and six successful fake resets/cleanup records.
+  All attempts passed; the original failure did not reproduce and remains unresolved.
+  Independent file audit verifies original deadlines, observations/reaping records and
+  a private 566-file/1,930,063-byte inventory. Not clock preparation or a cap bypass.
+  No timing/source/policy/limit changes; default suite not rerun for this evidence-only
+  checkpoint (prior 397 pass and failed full run both retained). No further batch;
+  await requested decisions and complete frozen preparation/entry before live gates.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

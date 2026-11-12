@@ -982,6 +982,48 @@ Fresh complete preparation/entry and both requested user answers are still owed.
 | `phase2-clock-coordinator-admission-tests-v2.log` (32 pass) | `82c827a70318d6bfff044a79d7f37fc4be4fca13bfd6c5cfecf94f504f05c82a` |
 | `phase2-clock-coordinator-admission-check-v2.log` (397 pass) | `c335642ad5e86d727e63dc065f7f92cab7de9d4386764f28b5bd97ac5e909955` |
 
+### Fixed CPU-only handoff reproduction batch
+
+At `1ec6aaa`, a predeclared **six-attempt** batch investigated the unexplained handoff
+fixture failure above. Each attempt used a fresh `-S` interpreter and the existing
+`test_default_budget_handoff_preserves_deadline_and_all_eighteen_real_observations`
+with unchanged fake policy, 18 CPU jobs, observation interval and fixture timeouts.
+Only the temporary fixture output root moved to an exclusive private retained path.
+The plan/commands and ten selected source hashes were written before the first attempt;
+this is selected-source binding, not full import closure. Every attempt ran once.
+
+**All six passed; the original failure did not reproduce and remains unresolved.**
+An independent file audit checks all 108 distinct job PIDs/complete observations,
+receipt reaping flags, six single successful fake resets/cleanup records, removed
+fake-lock files and original handoff deadlines. It totals 221 recorded samples and
+103 discarded transient samples, including eight proc-unavailable samples; none are
+promoted into verified observations. These counts do not establish a cause for the
+historical failure. Do not infer a repaired race or acceptance improvement.
+
+All 566 fixture files / 1,930,063 bytes are retained privately with a per-file hash
+inventory; files are 0600 and directories 0700. This is an offline test-artifact audit,
+**not** a clock preparation/postflight inventory or a workaround for its unchanged
+256-file cap. No failed attempt was discarded and no additional batch is planned.
+No source fix/timing relaxation, Torch import, real GPU query/policy action or benchmark
+occurred. Default checks were not repeated for this evidence-only checkpoint; the prior
+397-test pass and preceding failed full run both remain recorded. Full preparation/entry,
+512-file decision, default-policy/no-controller facts and live gates remain pending.
+
+```sh
+python -S reports/phase2-clock-handoff-reproduction-v1.py
+python -S reports/phase2-clock-handoff-reproduction-audit-v1.py
+```
+
+| Private evidence under `reports/` | SHA-256 |
+| --- | --- |
+| `phase2-clock-handoff-reproduction-v1.py` | `15aa384c14ee18ae3216348924531227bcc9774871c207c02726075a431919b7` |
+| `phase2-clock-handoff-reproduction-v1.log` | `eee9f6e2de410f7ee78951f837ce01d4eeb945b019958b25c152eb1cd434a0cd` |
+| `phase2-clock-handoff-reproduction-v1/plan.json` | `fcb4d9f069469ee84c3c46054bcbdd80098eb3de2c4288f9d2746aebea0a2a3c` |
+| `phase2-clock-handoff-reproduction-v1/summary.json` | `b78a0759d5be65d70d121fdfab0d8d2bce2c4feab1f9a4abdf0f523e1bffd36c` |
+| `phase2-clock-handoff-reproduction-audit-v1.py` | `97ae6734459aedb4834c8f765ff6b7eeb9671e42b7ed65efca4d3f2aeba86565` |
+| `phase2-clock-handoff-reproduction-audit-v1.json` | `a1c559a546ded5605abd04eff74dedb714aa7530166bfb7aa16331af797c7707` |
+| `phase2-clock-handoff-reproduction-audit-v1.log` | `8b73a8030c46f836e8947f6cbd303daf0f16a087206be56dd24a5bd709661f77` |
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest
