@@ -163,6 +163,15 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   No GPU/model run or clock command occurred. Still not launch-ready: frozen
   preparation/entry, live observation binding, telemetry/restoration composition,
   final qualification and the unanswered policy/controller/permission gates remain.
+  Four new composed CPU-only tests run the real restoration supervisor and bounded
+  worker together with fake policy/workloads: exact deadline handoff, 18 successes,
+  failed-worker exit, observer loss and deadline abort, owned cleanup before reset,
+  and unrelated-child survival. Default checks pass **285 reporting tests**.
+  Source audit found an outer-wrapper blocker: read-only TERM grace is capped at
+  10 seconds, insufficient for two 10-second reset attempts plus cleanup. Do not
+  reuse it for clock restoration without a reviewed/tested shutdown budget.
+  Tests use shortened limits, not live CUDA or a production entry. No policy,
+  benchmark, permission or grace-bound change; proposal/HANDOFF record evidence.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

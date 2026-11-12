@@ -378,6 +378,44 @@ validation and all 18 output qualifications. Policy/controller confirmation,
 permissions/enforcement and later fresh availability are still missing. These
 component tests do not make the clock diagnostic launch-ready or close Linux cells.
 
+### Composed restoration/worker tests — still no live launch
+
+`test_clock_restoration_composition.py` now runs the actual restoration supervisor
+and bounded codec worker together in fresh `-S` interpreters. Policy commands
+only create/remove a local fake-lock file; all eighteen workloads and process
+observers are substituted CPU-only fixtures. The test worker reads the actual
+supervisor obligation's work deadline, passes it unchanged to the sequence, and
+exits nonzero for a failed sequence. This is test transport, not the production
+role/obligation authentication or launch entry.
+
+Four tests cover all 18 successful jobs followed by reset; failure of job 2 with
+no replacement/later job; observer loss during job 2; and expiry of the shared
+deadline during job 1. The fake reset checks that every recorded workload PID is
+already gone. The dedicated supervisor checks no owned children remain and its
+subreaper role is restored; an unrelated child survives the observer-loss case.
+Deadline equality and the worker's observed parent PID are checked against the
+supervisor's records. A worker killed mid-cleanup may leave its sequence result
+absent; that remains failure, not fabricated completion. No hardware-policy,
+continuous observation or native output qualification follows from these tests.
+
+**Outer supervision remains an integration blocker.** Source inspection confirms
+that the read-only entry uses a 10-second TERM grace and `bounded_child` currently
+caps that grace at 10 seconds. Two permitted reset attempts can each take 10
+seconds, before their additional owned-child/pipe cleanup. Do not transplant that
+read-only outer wrapper as a clock-restorer wrapper: it could kill the supervisor
+before its cleanup retry. The integrated clock parent needs a reviewed/tested
+restoration-aware shutdown budget; these short synthetic tests do not supply one.
+Scheduling/IO, supervisor SIGKILL, host failure and uninterruptible tasks retain
+their stated limitations. No grace bound or live policy changed in this checkpoint.
+
+Commands: `PYTHONPATH=tools/bench python -m unittest test_clock_restoration_composition -v`
+and `CARGO_BUILD_JOBS=4 ./tools/check.sh`.
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-clock-composition-tests-v1.log` | 4 composed CPU-only tests pass | `88096ba14524910699b7a67dde0548b0e249e5f630bbbb61afe57d03c441ff25` |
+| `phase2-clock-composition-check-v1.log` | Default checks pass; 285 reporting tests | `51d67b45277527c69d6768a03da03ab5cd5f36f708ad45ebbb4db52edb43a851` |
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest
