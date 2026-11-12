@@ -50,6 +50,62 @@ class ClockFileTests(unittest.TestCase):
         args.update(kw)
         return check.verify_files(self.binding,self.contract,**args)
 
+    def declare(self, **kw):
+        args=dict(frozen_identities=self.frozen,path_bindings=[],injection=self.ids['injection'])
+        args.update(kw)
+        return check.declared_inventory(self.contract,**args)
+
+    def test_pure_admission_count_boundary_deduplication_and_post_only_overflow(self):
+        self.assertEqual(check.FILE_COUNT_LIMIT,256)
+        frozen=deepcopy(self.frozen)
+        frozen += [dict(self.ids['source'],path=str(self.root/f'future-{i}')) for i in range(248)]
+        frozen.append(deepcopy(self.ids['source']))  # Equal repeated declarations count once.
+        before=deepcopy((self.contract,frozen))
+        with patch('builtins.open',side_effect=AssertionError('no reads')), \
+             patch.object(os,'open',side_effect=AssertionError('no descriptor reads')), \
+             patch.object(Path,'stat',side_effect=AssertionError('no stats')), \
+             patch.object(Path,'resolve',side_effect=AssertionError('no resolution')), \
+             patch.object(check,'file_identity',side_effect=AssertionError('no hashing')):
+            pinned,aliases=self.declare(frozen_identities=frozen)
+            self.assertEqual(len(pinned),256); self.assertEqual(len(aliases),4)
+            for count in (257,261,303):
+                oversized=frozen+[dict(self.ids['source'],path=str(self.root/f'extra-{i}')) for i in range(count-256)]
+                with self.subTest(count=count), self.assertRaisesRegex(ValueError,'count bound'):
+                    self.declare(frozen_identities=oversized)
+            # The post-only lazy mapping is a 257th path: early admission never
+            # replaces the final union limit or reserves room for unknown mappings.
+            with self.assertRaisesRegex(ValueError,'count bound'): self.verify(frozen_identities=frozen)
+        pinned[self.ids['source']['path']]['sha256']='0'*64; aliases.clear()
+        self.assertEqual((self.contract,frozen),before)
+
+    def test_pure_admission_byte_boundaries_without_reading_large_files(self):
+        self.assertEqual((check.FILE_SIZE_LIMIT,check.FILE_BYTES_LIMIT),(2*1024**3,8*1024**3))
+        baseline,_=self.declare(); size=sum(v['bytes'] for v in baseline.values())
+        extra=[dict(self.ids['source'],path=str(self.root/f'large-{i}'),
+                    bytes=check.FILE_SIZE_LIMIT-(size if i==3 else 0)) for i in range(4)]
+        with patch.object(Path,'stat',side_effect=AssertionError('no stats')), \
+             patch.object(Path,'resolve',side_effect=AssertionError('no resolution')), \
+             patch.object(check,'file_identity',side_effect=AssertionError('no hashing')):
+            pinned,_=self.declare(frozen_identities=self.frozen+extra)
+            self.assertEqual(sum(v['bytes'] for v in pinned.values()),8*1024**3)
+            extra[-1]['bytes']+=1
+            with self.assertRaisesRegex(ValueError,'byte bound'): self.declare(frozen_identities=self.frozen+extra)
+            extra[-1]['bytes']-=1; extra[0]['bytes']+=1
+            with self.assertRaisesRegex(ValueError,'per-file bound'): self.declare(frozen_identities=self.frozen+extra)
+
+    def test_pure_admission_alias_boundary_and_conflicts_without_resolution(self):
+        self.assertEqual(check.PATH_COUNT_LIMIT,512)
+        aliases=[dict(path=str(self.root/f'alias-{i}'),canonical_path=self.ids['source']['path']) for i in range(508)]
+        with patch.object(Path,'resolve',side_effect=AssertionError('no resolution')), \
+             patch.object(Path,'stat',side_effect=AssertionError('no stats')):
+            _,bound=self.declare(path_bindings=aliases); self.assertEqual(len(bound),512)
+            aliases.append(dict(path=str(self.root/'extra-alias'),canonical_path=self.ids['source']['path']))
+            with self.assertRaisesRegex(ValueError,'count exceeds bound'): self.declare(path_bindings=aliases)
+            with self.assertRaisesRegex(ValueError,'conflicting'):
+                self.declare(frozen_identities=self.frozen+[dict(self.ids['optional.so'],sha256='0'*64)])
+            with self.assertRaisesRegex(ValueError,'unbound/conflicting'):
+                self.declare(path_bindings=[dict(path=str(self.alias),canonical_path=self.ids['source']['path'])])
+
     def test_all_frozen_including_absent_optional_and_post_only_no_processes(self):
         before = deepcopy((self.binding,self.contract,self.frozen))
         with patch('subprocess.Popen',side_effect=AssertionError('no child processes')):

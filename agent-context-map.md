@@ -358,8 +358,16 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   collection/deadline/telemetry/acceptance limit. No change applied; do not omit files
   or split batches to evade the cap. Need that decision AND the unanswered default-
   clock/no-custom-lock/no-controller answer; continuation establishes neither.
-  Then finish fresh preparation/entry and live permission/readiness gates. No quiet
-  window requested, GPU/benchmark work or acceptance closure; Linux 72/78/Apple pending.
+  Safe offline progress while those answers remain pending: [early fail-closed admission](docs/results/2026-11-11-phase2-optimization/linux-clock-preparation-admission.md#early-fail-closed-admission-follow-up)
+  now shares pure declaration checks between finalizer and postflight. A retained red
+  test showed 257 files reached the callback; now oversized/conflicting declarations
+  reject before filesystem inspection, output creation or collection. No file IO/
+  hashes added to this early check; actual file rehash remains last. Four new tests
+  cover exact count/byte/alias boundaries, no-IO admission and seven finalizer faults;
+  **17 focused/395 reporting tests pass**. No limit change: the 303-file plan still
+  fails the 256-file cap. Fresh complete preparation/entry and live readiness gates
+  remain pending. No quiet window requested, GPU/benchmark work or acceptance closure;
+  Linux 72/78/Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

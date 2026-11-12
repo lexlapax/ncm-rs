@@ -1,8 +1,9 @@
 """Final current-file checks for clock diagnostics, not a collection/finalizer entry.
 
-Call only after supervision, telemetry, process and output/capture validation.
-This function cannot establish that ordering, authenticate its supplied inventory,
-or prove immutable mapped bytes. No subprocesses, Torch imports or GPU calls.
+Call verify_files only after supervision, telemetry, process and output/capture
+validation. declared_inventory is pure early admission, not a file recheck. Neither
+function authenticates its inventory or proves immutable mapped bytes. No subprocesses,
+Torch imports or GPU calls.
 """
 from copy import deepcopy
 import os
@@ -29,21 +30,16 @@ def canonical_spelling(value):
     return path
 
 
-def verify_files(binding, contract, *, frozen_identities, path_bindings, injection, library_roots):
-    """Recheck all supplied frozen files, known libraries/images and path aliases last.
+def declared_inventory(contract, *, frozen_identities, path_bindings, injection):
+    """Admit supplied declarations without any file reads/stats/resolution/hashes.
 
-    `frozen_identities` must come from the future full preparation, not from current
-    observations. Additional mappings get post-only hashes under reviewed roots.
-    Contract aliases and workload command spellings are always checked; callers
-    supply additional interpreter/utility/payload link bindings separately.
+    Reject a known-impossible inventory before collection, using the same bounds as
+    final postflight. This does not establish completeness/current bytes or reserve
+    room for additional mappings; those must also pass the final combined gate.
+    Returns independent pinned-path and alias dictionaries, not readiness evidence.
     """
-    binding, contract, frozen_identities, path_bindings, injection = deepcopy(
-        (binding, contract, frozen_identities, path_bindings, injection))
-    require(type(binding['schema_version']) is int and binding['schema_version'] == 1
-            and binding['process_receipt_consistency_verified'] is True
-            and binding['frozen_files_rechecked'] is False
-            and binding['mapped_file_bytes_verified'] is False
-            and binding['launch_provenance_verified'] is False, 'process consistency binding required')
+    contract, frozen_identities, path_bindings, injection = deepcopy(
+        (contract, frozen_identities, path_bindings, injection))
     require(type(contract['schema_version']) is int and contract['schema_version'] == 1
             and contract['prepared_declaration_consistency_verified'] is True
             and contract['runtime_mapping_verified'] is False and contract['launch_ready'] is False,
@@ -56,6 +52,7 @@ def verify_files(binding, contract, *, frozen_identities, path_bindings, injecti
     pinned = {}
     def add(value):
         current = signature(value)
+        require(value['bytes'] <= FILE_SIZE_LIMIT, 'declared file exceeds per-file bound')
         canonical_spelling(value['path'])
         require(value['path'] not in pinned or signature(pinned[value['path']]) == current,
                 'conflicting frozen identities')
@@ -81,6 +78,28 @@ def verify_files(binding, contract, *, frozen_identities, path_bindings, injecti
                 'unbound/conflicting path binding')
         aliases[path] = target
     require(len(aliases) <= PATH_COUNT_LIMIT, 'path binding count exceeds bound')
+    require(len(pinned) <= FILE_COUNT_LIMIT, 'declared file inventory exceeds count bound')
+    require(sum(value['bytes'] for value in pinned.values()) <= FILE_BYTES_LIMIT,
+            'declared file inventory exceeds byte bound')
+    return pinned, aliases
+
+
+def verify_files(binding, contract, *, frozen_identities, path_bindings, injection, library_roots):
+    """Recheck all supplied frozen files, known libraries/images and path aliases last.
+
+    `frozen_identities` must come from the future full preparation, not from current
+    observations. Additional mappings get post-only hashes under reviewed roots.
+    Contract aliases and workload command spellings are always checked; callers
+    supply additional interpreter/utility/payload link bindings separately.
+    """
+    binding, injection = deepcopy((binding, injection))
+    require(type(binding['schema_version']) is int and binding['schema_version'] == 1
+            and binding['process_receipt_consistency_verified'] is True
+            and binding['frozen_files_rechecked'] is False
+            and binding['mapped_file_bytes_verified'] is False
+            and binding['launch_provenance_verified'] is False, 'process consistency binding required')
+    pinned, aliases = declared_inventory(contract, frozen_identities=frozen_identities,
+                                         path_bindings=path_bindings, injection=injection)
     observed = binding['observed_files']
     require(isinstance(observed, dict) and observed, 'observed file inventory required')
     names = sorted(pinned.keys() | observed.keys())

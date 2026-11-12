@@ -924,6 +924,13 @@ that cap unchanged; default suite not rerun (prior 391). Approval requested to r
 and every collection/deadline/telemetry/acceptance limit. No change or coverage trim
 applied. This decision and the default-clock/no-controller answer remain outstanding;
 no quiet window requested and no GPU/benchmark work.
+[Early admission follow-up](linux-clock-preparation-admission.md#early-fail-closed-admission-follow-up)
+now rejects known-impossible file/byte/alias declarations before the finalizer creates
+paths or calls its runner, sharing pure rules with postflight. Retained red regression
+reached a test callback with 257 files; four new tests/seven finalizer fault variants
+pass, with 17 focused/395 reporting tests green. No early file IO/hash, no cap change,
+no reordered final frozen rehash. The 303-file plan and both requested answers remain
+pending; safe offline strengthening is not launch readiness or acceptance closure.
 
 ## Fixed collection and cleanup contract
 

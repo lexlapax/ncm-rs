@@ -19,7 +19,7 @@ from validate_clock_restoration import finite
 from validate_clock_lifecycle import validate as validate_lifecycle
 from validate_clock_telemetry import validate as validate_telemetry
 from verify_clock_processes import validate_processes
-from verify_clock_files import canonical_spelling, verify_files
+from verify_clock_files import canonical_spelling, declared_inventory, verify_files
 from qualify_clock_codec import qualify
 
 FIELDS = {'schema_version','kind','collection_root','jobs','roles','library_contract','injection',
@@ -59,6 +59,10 @@ def run_then_finalize(inputs_raw,expected_sha256,launch_dir,run_collection):
             and inputs['schema_version']==1 and inputs['kind']=='clock-finalization-inputs'
             and type(inputs['external_cancel_check_enabled']) is bool and callable(run_collection),
             'explicit finalization inputs and trusted runner required')
+    # Pure declaration admission, not early frozen-file hashing. Never spend a
+    # collection on an inventory already known to exceed unchanged postflight caps.
+    declared_inventory(inputs['library_contract'],frozen_identities=inputs['frozen_identities'],
+                       path_bindings=inputs['path_bindings'],injection=inputs['injection'])
     collection=canonical_spelling(inputs['collection_root']); launch=canonical_spelling(str(launch_dir))
     require(collection.parent.resolve(strict=True)==collection.parent and launch.parent.resolve(strict=True)==launch.parent
             and not os.path.lexists(collection) and not os.path.lexists(launch)

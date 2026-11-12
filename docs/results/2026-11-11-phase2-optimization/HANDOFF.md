@@ -232,6 +232,15 @@ rerun (prior 391). User approval requested for a **clock-only 512-file count**, 
 limits unchanged. Do not silently change the cap, trim coverage or split batches.
 Also still need the default-clock/no-custom-lock/no-controller answer. No quiet
 window yet; frozen preparation/entry and live readiness gates remain pending.
+[Early fail-closed admission](linux-clock-preparation-admission.md#early-fail-closed-admission-follow-up)
+was safe to implement without either answer. The retained red case reached a test
+callback with 257 files. A shared pure declaration merge/admission now rejects count,
+byte, size, alias and identity conflicts before path inspection, output creation or
+the finalizer callback; no early file reads/stats/resolution/hashes. Final combined
+observed-file bounds and rehash-last order remain. Four new tests, including seven
+finalizer fault cases, pass; **17 focused/395 reporting tests pass**. The cap is still
+256, so the 303-file plan remains inadmissible and the 512-file proposal unapproved.
+No GPU/policy/benchmark action or acceptance closure.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

@@ -19,6 +19,7 @@ import finalize_clock_diagnostic as finalizer
 import test_validate_clock_lifecycle as life
 import test_verify_clock_processes as processes
 import test_validate_readonly_telemetry as telemetry
+import test_verify_clock_files as file_fixture
 from test_qualify_clock_codec import archived_inputs
 from test_clock_evidence import write, record
 from clock_control_evidence import FIELDS
@@ -211,6 +212,30 @@ class ClockFinalizationTests(unittest.TestCase):
     def test_real_gate_composition_and_publication(self): self.child('success')
     def test_failed_gates_preserve_partial_evidence_without_rehash_or_completion(self): self.child('gates')
     def test_failed_publication_never_exposes_completion_marker(self): self.child('publication')
+
+    def test_impossible_declared_inventory_never_invokes_runner_or_creates_launch(self):
+        fixture=file_fixture.ClockFileTests(); fixture.setUp(); self.addCleanup(fixture.doCleanups)
+        for mode in (257,261,303,'bytes','size','aliases','conflict'):
+            frozen=deepcopy(fixture.frozen); aliases=[]
+            # Fixture has eight unique pinned paths including contract/injection.
+            if isinstance(mode,int):
+                frozen += [dict(fixture.ids['source'],path=str(fixture.root/f'future-{i}')) for i in range(mode-8)]
+            if mode=='bytes':
+                frozen += [dict(fixture.ids['source'],path=str(fixture.root/f'large-{i}'),bytes=2*1024**3) for i in range(4)]
+            if mode=='size': frozen[0]['bytes']=2*1024**3+1
+            if mode=='aliases':
+                aliases=[dict(path=str(fixture.root/f'alias-{i}'),canonical_path=frozen[0]['path']) for i in range(513)]
+            if mode=='conflict': frozen.append(dict(fixture.ids['optional.so'],sha256='0'*64))
+            inputs={name:None for name in finalizer.FIELDS}
+            inputs.update(schema_version=1,kind='clock-finalization-inputs',collection_root=str(fixture.root/'collection'),
+                external_cancel_check_enabled=False,library_contract=fixture.contract,frozen_identities=frozen,
+                path_bindings=aliases,injection=fixture.ids['injection'])
+            raw=json.dumps(inputs).encode(); launch=fixture.root/'launch'
+            with self.subTest(mode=mode), patch.object(Path,'resolve',side_effect=AssertionError('no resolution')), \
+                 patch.object(Path,'stat',side_effect=AssertionError('no stats')), self.assertRaises(ValueError):
+                finalizer.run_then_finalize(raw,hashlib.sha256(raw).hexdigest(),launch,
+                    lambda:self.fail('runner invoked for impossible inventory'))
+            self.assertFalse(launch.exists()); self.assertFalse((fixture.root/'collection').exists())
 
     def test_bad_inputs_never_invoke_runner(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -84,3 +84,53 @@ with no custom lock or competing controller (“unsure” is acceptable). Contin
 goal is not either answer. No quiet window is requested yet: full preparation, frozen
 restoration-aware entry, permissions/enforcement/restoration and readiness remain
 pending. Phase 2 completion and both runtime acceptance gates remain unachieved.
+
+## Early fail-closed admission follow-up
+
+A safe offline change does not require either outstanding answer: prevent collection
+when its supplied inventory is already known to be inadmissible. The initial
+finalizer relied on its future caller's complete preflight, then applied the file
+limit only at postflight. A retained red regression demonstrated that a synthetic
+**257-file declaration invoked the test callback and created a launch directory**.
+It failed with `AssertionError: runner invoked for impossible inventory`; no GPU or
+real collection was involved. The additional directory-absence assertion also failed.
+
+`verify_clock_files.declared_inventory` now shares the existing declaration merge,
+identity/conflict and alias rules between final postflight and early finalizer
+admission. Before creating output paths or invoking the callback, the finalizer
+rejects known file-count, declared-byte/per-file, alias-count and identity conflicts.
+The function copies inputs and performs **no reads, stats, path resolution, hashes,
+probes or subprocesses**. It checks declarations, not current files or completeness.
+
+**All limits remain unchanged:** 256 files, 8 GiB total, 2 GiB/file and 512 aliases.
+Actual identities/bytes/aliases are still checked after every collection validator;
+frozen rehash remains last. The final file-count and byte limits also include any
+additional observed paths. Early admission does not reserve space for unknown maps,
+qualify incomplete inventories, authorize launch or replace full fresh preflight.
+The 303-file plan is now rejected earlier, not made admissible.
+
+Four new test methods cover exact 256/257-file, 8 GiB/+1-byte, 2 GiB/+1-byte and
+512/513-alias boundaries without large allocations; identical declarations dedupe,
+conflicts fail and returned data cannot mutate inputs. A 256-file admitted inventory
+plus one post-only mapping still fails the final combined count before file IO.
+Seven finalizer cases (257/261/303 files, aggregate bytes, per-file size, aliases,
+conflicting identities) reject before filesystem inspection, callback or directories.
+Existing full-validator archive fixtures and real CPU transport still pass.
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_finalize_clock_diagnostic.ClockFinalizationTests.test_impossible_declared_inventory_never_invokes_runner_or_creates_launch -v
+PYTHONPATH=tools/bench python -m unittest test_verify_clock_files test_finalize_clock_diagnostic -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+The first command produced the retained red regression before the fix. Final
+**17 focused / 395 reporting tests pass**. The first green log predates expanding
+finalizer rejection cases beyond counts. No native production, artifact, protocol,
+limit, GPU policy or benchmark change; the 512-file proposal is still unapproved.
+
+| Private evidence under `reports/` | SHA-256 |
+| --- | --- |
+| `phase2-clock-early-admission-red-v1.log` | `e411acaef45e9a5563ce46308a2252345d3ca3c3e8700c05d5b1983b7f760c95` |
+| `phase2-clock-early-admission-tests-v1.log` | `d5dd36d29640acfb519edee4cfb3473ec41d29a0c40b1efe0a0880b9cd5d08ab` |
+| `phase2-clock-early-admission-tests-v2.log` (17 pass) | `76792954414832a8f336e08cd4806cfc932bc8e3e21feb31c8176407bfab3a21` |
+| `phase2-clock-early-admission-check-v1.log` (395 pass) | `47f76a6a5af030d5672f733a1f91667e15bd03778199da20b7e6482be6e5aa94` |

@@ -16,7 +16,11 @@ commands/budgets, library contract, frozen file/alias inventory, injection ident
 source/reference declarations, CPU source, GPU UUID/timezone and restoration cwd/
 cancellation-hook expectation. Input consistency is not authentication or proof that
 the inventory is complete. The future entry must validate the complete preparation
-before any launch; this helper's structural checks are not that preflight.
+before any launch; this helper's structural checks are not that preflight. A later
+[early-admission follow-up](linux-clock-preparation-admission.md#early-fail-closed-admission-follow-up)
+now rejects already-impossible declared file/byte/alias inventories and conflicts
+before path inspection, output creation or the runner. This pure check does no
+frozen-file IO/hashing and leaves the 256-file bound and rehash-last order unchanged.
 
 Collection and launch paths must be canonical, fresh and disjoint. The helper creates
 an exclusive 0700 launch directory and 0600 input copy before invoking the callback
