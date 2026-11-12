@@ -333,10 +333,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   explicitly post-only; coordinator/observer-supervisor/GPU launch bindings remain
   owed by the frozen entry. Six new tests include predeclared real sibling fake-policy
   transport through the lifecycle validator; **25 focused/387 reporting tests pass**.
-  No new producer authentication, live policy proof or full finalization. Next:
-  same-evidence finalizer with rehash last; current upstream, fresh preparation/entry
-  and live policy/permission/availability gates. No GPU/benchmark work; Linux 72/78/
-  Apple pending.
+  No new producer authentication or live policy proof. Latest: [same-evidence finalizer](docs/results/2026-11-11-phase2-optimization/linux-clock-finalization.md)
+  invokes one trusted restoration-aware runner, then gates those 95 files through
+  full telemetry, sibling/restoration, process and eighteen-report qualification;
+  receipt digests/clock domains agree, metadata rechecks precede frozen rehash last.
+  Exclusive private completion marker appears only after all gates/output writes.
+  Four new test methods use actual validators with archived outputs/synthetic clocks,
+  maps and policy; 15 gate failures/two publication failures retain partial evidence.
+  **18 focused/391 reporting tests pass**. Import-only composition is not a frozen
+  entry or independent reaping/provenance/hardware proof. Next: current upstream,
+  fresh complete preparation/entry and live policy/permission/availability gates.
+  No GPU/benchmark work; Linux 72/78/Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

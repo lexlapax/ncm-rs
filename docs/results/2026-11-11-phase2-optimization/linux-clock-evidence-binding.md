@@ -161,9 +161,12 @@ No GPU/Torch/policy/benchmark action or frozen library rehash occurred.
 
 ## Remaining boundary
 
-Same-evidence finalizer enforcing all validators before frozen rehash **last**, then
-current upstream verification, fresh full preparation/frozen entry (including the
-remaining live role bindings and safe sibling reaping). Observer-supervisor stdout
+The [same-evidence finalizer](linux-clock-finalization.md) now composes these readers
+with all required diagnostic validators before frozen rehash **last**; 18 focused/
+391 reporting tests pass. Current upstream verification and fresh full preparation/
+frozen entry (including remaining live role bindings and safe sibling reaping) remain
+pending. This import-only composition does not independently prove runner ownership.
+Observer-supervisor stdout
 is post-only, not retroactively producer-bound. Default-policy/no-controller
 confirmation, permission/enforcement/restoration evidence and a later new quiet
 window remain pending. No acceptance comparison or live launch gate is closed.

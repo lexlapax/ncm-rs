@@ -899,6 +899,15 @@ fake-policy transport through the lifecycle validator; 25 focused/387 reporting
 tests pass. No real telemetry/policy/benchmark action or launch-provenance claim.
 Next: same-evidence finalizer with frozen rehash last, upstream verification, fresh
 full preparation/entry and all live launch gates.
+[Same-evidence finalization](linux-clock-finalization.md) now invokes one trusted
+restoration-aware runner, then binds 95 files through all full-content/lifecycle/
+process/report gates before frozen rehash last. Receipt digests and clock domains
+must agree; partial output writes cannot expose the exclusive completion marker.
+Four new tests use actual validators over archived outputs/synthetic collection,
+15 gate faults and two publication faults; 18 focused/391 reporting tests pass.
+This import-only helper is not a frozen production entry or proof of live reaping/
+role provenance/hardware restoration. Next: upstream verification, fresh complete
+preparation/entry and all outstanding live gates; no acceptance comparison closes.
 
 ## Fixed collection and cleanup contract
 

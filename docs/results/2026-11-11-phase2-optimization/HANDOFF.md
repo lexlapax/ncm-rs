@@ -202,6 +202,16 @@ plans written before launch, feeding bound records to the lifecycle validator;
 content/coverage, policy enforcement or launch provenance. Next: compose the
 same-evidence finalizer with rehash last, then upstream/fresh preparation/frozen
 entry and outstanding live gates. No GPU/Torch/policy/benchmark action occurred.
+[Same-evidence finalizer](linux-clock-finalization.md) now composes the 95-file
+readers, full telemetry/readiness, sibling/restoration, process and all-report gates
+before frozen rehash last. Receipt digests and clock-domain intersections must agree;
+completion is exclusively published only after all derived writes. Four new tests
+use actual validators over archived outputs/synthetic collection, including 15 gate
+faults and two publication faults; **18 focused/391 reporting tests pass**. One trusted
+runner call is not independently proved live ownership/reaping; complete preparation,
+production entry/remaining live role bindings and hardware gates remain owed. Next:
+current upstream verification, fresh complete preparation/entry, then policy/permission/
+restoration/readiness and a new quiet window. No acceptance cells close.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test
