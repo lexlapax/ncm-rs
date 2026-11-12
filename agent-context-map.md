@@ -320,9 +320,16 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   **7 focused/373 reporting tests pass**. Retained first failure was a no-op order
   mutation in the fixture, corrected without weakening guards. This is not fresh
   collection, capture integrity, producer authenticity or performance acceptance.
-  Next: raw-capture/report-file/role binding and same-evidence finalizer with rehash
-  last; current upstream, fresh preparation/roles and all live launch gates.
-  No Torch/GPU/benchmark/policy work; Linux 72/78 and Apple pending.
+  Latest: [sequence evidence-file binding](docs/results/2026-11-11-phase2-optimization/linux-clock-evidence-binding.md)
+  reads 74 private files through bounded no-symlink descriptor traversal, binds
+  frozen jobs/deadline, embedded/individual records, capture hashes and report
+  pathname identities, then rechecks visible metadata. Eight new tests include
+  real eighteen-CPU-job transport and isolated archived outputs through the actual
+  qualifier; **17 focused/381 reporting tests pass**. Capture inode provenance is
+  explicitly unavailable (same-byte pre-read replacement allowed); no atomic/file-
+  producer/whole-run proof. Next: outer-capture/role binding and same-evidence
+  finalizer with rehash last; current upstream, fresh preparation/entry and all live
+  policy/permission/availability gates. No GPU/benchmark work; Linux 72/78/Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

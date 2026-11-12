@@ -882,6 +882,14 @@ is retained/corrected; no guard/tolerance changes. This is not new collection,
 producer authenticity, raw-file integrity or performance acceptance. Next: raw
 capture/report-file/role binding and same-evidence finalization with rehash last;
 current upstream, fresh preparation/roles and all live gates remain pending.
+[Sequence evidence-file binding](linux-clock-evidence-binding.md) now binds the 74
+private files to frozen jobs/deadline, individual/embedded records, capture hash/
+length and report pathname identities. Eight new tests include real eighteen-CPU-
+job transport and archived outputs through the actual qualifier; 17 focused/381
+reporting tests pass. Capture inode provenance remains unavailable; postflight read
+bounds do not change collection quotas or imply atomic snapshots. Next: outer
+capture/role binding and same-evidence rehash-last finalizer; upstream verification,
+fresh full preparation/entry and all live launch gates remain pending.
 
 ## Fixed collection and cleanup contract
 

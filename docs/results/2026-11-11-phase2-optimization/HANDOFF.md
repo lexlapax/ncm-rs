@@ -184,6 +184,14 @@ failure was a no-op test order mutation, retained/corrected without weakening gu
 Not new collection, process provenance, capture integrity or performance acceptance.
 Next: raw-capture/report-file/role binding, same-evidence finalization with rehash
 last, current upstream and fresh preparation/roles; all live gates remain pending.
+[Sequence evidence-file binding](linux-clock-evidence-binding.md) now reads/binds
+74 private files to the supplied plan/deadline, individual/embedded records, capture
+hashes and report device/inode identities. Eight new tests include actual eighteen-
+CPU-job transport and archived outputs through the actual qualifier; **17 focused/
+381 reporting tests pass**. Same-byte capture replacement before reading is explicitly
+not detectable from producer hash/length alone. Reader bounds are not collection/RSS
+quotas or producer authentication. Next: outer-capture/role binding and same-evidence
+finalization with rehash last; current upstream, fresh entry and all live gates remain.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test
