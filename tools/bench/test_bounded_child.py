@@ -74,6 +74,84 @@ class BoundedChildTests(unittest.TestCase):
         self.assertTrue(result['direct_child_reaped'])
         self.assertFalse(Path(f'/proc/{result["pid"]}').exists())
 
+    def test_grace_drains_output_without_truncating_supervisor_cleanup(self):
+        for limit in (200000, 1024):
+            with self.subTest(limit=limit):
+                ready = self.root / f'ready-{limit}'
+                code = ("import signal,sys,time;from pathlib import Path\n"
+                        "def stop(*_):\n    sys.stdout.write('x'*100000);sys.stdout.flush();raise SystemExit(0)\n"
+                        f"signal.signal(signal.SIGTERM,stop);Path({str(ready)!r}).touch();time.sleep(30)")
+                result = run_bounded([sys.executable, '-S', '-c', code], cwd=self.root, env=CHILD_ENV,
+                                     capture_path=self.root / f'capture-{limit}',
+                                     receipt_path=self.root / f'receipt-{limit}.json',
+                                     timeout_seconds=3, output_limit_bytes=limit,
+                                     cancel_check=ready.exists, termination_grace_seconds=.5)
+                self.assertEqual(result['status'], 'failed')  # Cancellation is not successful collection.
+                self.assertEqual(result['returncode'], 0, result)
+                self.assertFalse(result['termination_grace_exhausted'])
+                self.assertTrue(result['direct_child_reaped'] and result['capture_eof'])
+                self.assertEqual(result['captured_bytes'], min(limit, 100000))
+                self.assertEqual(result['observed_bytes'], 100000)
+                if limit == 1024:
+                    self.assertIn('output_limit', result['issues'])
+
+    def test_grace_capture_write_failure_does_not_block_child_shutdown(self):
+        actual_open = Path.open
+        class BrokenCapture:
+            def __init__(self, file):
+                self.file = file
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                self.file.close()
+            def write(self, _):
+                raise OSError('synthetic grace capture failure')
+        def opening(path, *args, **kwargs):
+            file = actual_open(path, *args, **kwargs)
+            mode = args[0] if args else kwargs.get('mode', 'r')
+            return BrokenCapture(file) if path == self.capture and mode == 'xb' else file
+        ready = self.root / 'ready'
+        code = ("import signal,sys,time;from pathlib import Path\n"
+                "def stop(*_):\n    sys.stdout.write('x'*100000);sys.stdout.flush();raise SystemExit(0)\n"
+                f"signal.signal(signal.SIGTERM,stop);Path({str(ready)!r}).touch();time.sleep(30)")
+        with patch.object(Path, 'open', autospec=True, side_effect=opening):
+            result = self.run_child(code, output_limit_bytes=200000, cancel_check=ready.exists,
+                                    termination_grace_seconds=.5)
+        self.assertEqual(result['returncode'], 0, result)
+        self.assertFalse(result['termination_grace_exhausted'])
+        self.assertIn('capture_error:OSError', result['issues'])
+        self.assertEqual(result['captured_bytes'], 0)
+        self.assertTrue(result['direct_child_reaped'])
+
+    def test_grace_selector_error_does_not_lose_owned_child_cleanup(self):
+        ready = self.root / 'ready'
+        pids = []
+        def observe(pid):
+            pids.append(pid)
+            end = time.monotonic() + 2
+            while not ready.exists():
+                self.assertLess(time.monotonic(), end)
+                time.sleep(.01)
+        code = ("import signal,time;from pathlib import Path;signal.signal(signal.SIGTERM,signal.SIG_IGN);"
+                f"Path({str(ready)!r}).touch();time.sleep(30)")
+        try:
+            with patch('bounded_child.selectors.DefaultSelector.select', side_effect=OSError('synthetic selector error')):
+                result = self.run_child(code, observe_child=observe, termination_grace_seconds=.1)
+            self.assertTrue(result['direct_child_reaped'], result)
+            self.assertEqual(result['returncode'], -signal.SIGKILL)
+            self.assertNotIn('child_ownership_unconfirmed', result['issues'])
+            self.assertIn('capture_error:OSError', result['issues'])
+        finally:
+            # Also safely clean the pre-fix regression's leaked fake child.
+            for pid in set(pids):
+                try:
+                    state = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                    if state is None:
+                        os.killpg(pid, signal.SIGKILL)
+                    os.waitpid(pid, 0)
+                except ChildProcessError:
+                    pass  # Already reaped; never signal that numeric PID.
+
     def test_nonzero_exit_is_not_complete(self):
         result = self.run_child("import sys; print('failed'); sys.exit(7)")
         self.assertEqual(result['status'], 'failed')
@@ -239,7 +317,7 @@ class BoundedChildTests(unittest.TestCase):
                         {'output_limit_bytes': True}, {'output_limit_bytes': 0},
                         {'sequence_deadline': time.monotonic() - 1},
                         {'receipt_path': self.capture}, {'env': None},
-                        {'termination_grace_seconds': -1}, {'termination_grace_seconds': 11},
+                        {'termination_grace_seconds': -1}, {'termination_grace_seconds': 61},
                         {'termination_grace_seconds': True}, {'termination_grace_seconds': float('nan')}):
             with self.subTest(changed=changed), patch('bounded_child.subprocess.Popen') as launch:
                 with self.assertRaises(ValueError):

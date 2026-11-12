@@ -171,7 +171,19 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   10 seconds, insufficient for two 10-second reset attempts plus cleanup. Do not
   reuse it for clock restoration without a reviewed/tested shutdown budget.
   Tests use shortened limits, not live CUDA or a production entry. No policy,
-  benchmark, permission or grace-bound change; proposal/HANDOFF record evidence.
+  benchmark, permission or grace-bound change in that checkpoint.
+  Latest: `clock_restoration_capture.py` adds an import-only 660-second outer
+  capture/60-second cleanup grace; generic explicit grace now permits 60 seconds,
+  while native default zero and read-only fixed ten remain unchanged. A red test
+  exposed stdout backpressure during grace; capture now keeps draining under the
+  cap, including after writer failure. A real fake-policy supervisor completes
+  two six-second reset attempts and >128 KiB final output after cancellation;
+  failed collection/first reset stay failed. Review also caught a selector-error
+  path skipping owned reaping; its red/green regression is retained. Final
+  **22 focused tests and 292 reporting tests pass**. Proposal/HANDOFF retain red/green logs and limitations.
+  No GPU/policy/permission/benchmark run. Still need frozen role/budget binding,
+  full telemetry/restoration composition, final qualifications and the unanswered
+  default-policy/no-controller confirmation before readiness and a new quiet window.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

@@ -398,10 +398,9 @@ supervisor's records. A worker killed mid-cleanup may leave its sequence result
 absent; that remains failure, not fabricated completion. No hardware-policy,
 continuous observation or native output qualification follows from these tests.
 
-**Outer supervision remains an integration blocker.** Source inspection confirms
-that the read-only entry uses a 10-second TERM grace and `bounded_child` currently
-caps that grace at 10 seconds. Two permitted reset attempts can each take 10
-seconds, before their additional owned-child/pipe cleanup. Do not transplant that
+**Historical finding at `c7d9432`:** source inspection confirmed that the read-only
+entry uses a 10-second TERM grace and `bounded_child` then capped grace at ten
+seconds. Two permitted reset attempts can each take ten seconds, before their additional owned-child/pipe cleanup. Do not transplant that
 read-only outer wrapper as a clock-restorer wrapper: it could kill the supervisor
 before its cleanup retry. The integrated clock parent needs a reviewed/tested
 restoration-aware shutdown budget; these short synthetic tests do not supply one.
@@ -415,6 +414,71 @@ and `CARGO_BUILD_JOBS=4 ./tools/check.sh`.
 | --- | --- | --- |
 | `phase2-clock-composition-tests-v1.log` | 4 composed CPU-only tests pass | `88096ba14524910699b7a67dde0548b0e249e5f630bbbb61afe57d03c441ff25` |
 | `phase2-clock-composition-check-v1.log` | Default checks pass; 285 reporting tests | `51d67b45277527c69d6768a03da03ab5cd5f36f708ad45ebbb4db52edb43a851` |
+
+### Restoration-aware outer capture and grace pipe draining — CPU-only
+
+`clock_restoration_capture.py::capture_restorer` now supplies an import-only outer
+capture with a **660-second supervisor budget**, **60-second TERM grace** and
+**1 MiB capture limit**. It requires a Boolean cancellation monitor and emits a
+verification warning for failed/cancelled capture or capture exceptions. A receipt
+is not proof of restored hardware policy. The caller still owes frozen role/parent
+binding, validated restoration evidence and full telemetry/output qualification.
+There is no CLI or GPU policy command in this helper.
+
+The generic capture primitive now permits explicit grace up to 60 seconds; its
+**default remains zero**, and the **read-only entry remains fixed at ten seconds**.
+Set/reset command limits remain ten seconds each with at most one cleanup-only
+retry; work cancellation remains 590 seconds and reset request deadline 600.
+Configured waits for an interrupted command, up to four owned cleanup scans and
+two reset attempts can total 40 seconds (three wait/drain pairs × 4 seconds,
+four scans × 2 seconds, two commands × 10 seconds). Sixty seconds reserves margin;
+it is not a bound on arbitrary scheduling, filesystem IO or uninterruptible tasks.
+The 660-second outer budget is not permission to extend the inner reset deadline.
+Final kill/wait/drain may add time after grace, and host/supervisor failure remains
+outside guaranteed containment. A full clock entry must bind these budgets.
+
+A new red test exposed a separate grace bug: the old wait loop stopped reading
+stdout, so a child trying to flush 100,000 bytes from its TERM handler blocked
+and was killed (`returncode=-9`, exhausted grace). Both ordinary and over-cap
+captures failed that test. Grace now drains the pipe while retaining capture caps;
+excess bytes are discarded, and a failed capture writer disables further writes
+but still allows draining. Errors/cancellation remain failed receipts even when
+child shutdown finishes. This does not repair or reinterpret historical captures.
+
+Three new bounded-child tests cover normal/over-cap grace draining, write-error
+shutdown and selector-error cleanup. Review of the drain change exposed a selector
+`OSError` being misclassified as lost child ownership, skipping reaping. That red
+regression explicitly cleaned its still-owned fake child; local selector-error
+handling now retains capture failure without abandoning owned cleanup. Actual
+`waitid` ownership loss still prohibits a later numeric group signal. Four outer-capture tests cover normal exit with the fixed budgets;
+mandatory/invalid cancellation and capture-setup failure; bounded escalation; and
+an actual independent restoration supervisor whose two fake reset commands each
+sleep six seconds. The first reset fails, the cleanup-only retry succeeds, and the
+supervisor flushes more than 128 KiB before exit: **over twelve seconds of cleanup
+complete without exhausted grace**. The interrupted collection and initial reset
+failure remain failed; only the local fake-lock file is restored. No GPU, codec,
+permission or live policy experiment ran. The final tests add strict Boolean
+monitor-result rejection; initial green evidence is retained too.
+
+Commands:
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_bounded_child.BoundedChildTests.test_grace_drains_output_without_truncating_supervisor_cleanup -v
+PYTHONPATH=tools/bench python -m unittest test_bounded_child.BoundedChildTests.test_grace_selector_error_does_not_lose_owned_child_cleanup -v
+PYTHONPATH=tools/bench python -m unittest test_bounded_child test_clock_restoration_capture -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-restoration-grace-drain-red-v1.log` | Two grace-drain subcases fail before fix | `ece793baf44ded22670c7d7d9bf7d1f60c369b418afe9b00ddd262f5384953f2` |
+| `phase2-restoration-grace-tests-v1.log` | Initial 21 focused tests pass | `c275b621825ecf5924f195d1c1333547bc8f19b6c2d7b967d22027a87a27d830` |
+| `phase2-restoration-grace-check-v1.log` | Initial default checks pass; 291 reporting tests | `d5b935d949cadb40d27926a7d7c372ba8b37dbcfcbb44c7e38c9f6709a6138fa` |
+| `phase2-restoration-grace-tests-v2.log` | Boolean-guard revision: 21 focused tests pass | `f4d43c6136bcdc0c477bc0a5849b451468fbe94b4804d8b52c0d2791bb2b3cde` |
+| `phase2-restoration-grace-check-v2.log` | Boolean-guard revision: default checks pass; 291 reporting tests | `d7727ed798f4d7fffcd812e3982c023d98ec0a76bc93ef381abcd96342c508af` |
+| `phase2-restoration-grace-selector-red-v1.log` | Draft drain change misclassifies selector error; owned child not reaped | `7026cedcb5be4a3507e5183df2598e893df52ccbea090ce625db0fea31e3f8b2` |
+| `phase2-restoration-grace-tests-v3.log` | Final 22 focused tests pass | `8cd823198d5d79bb61d0e2a7cdd391a90cfe04e35f0a7e9754036618043b2e13` |
+| `phase2-restoration-grace-check-v3.log` | Final default checks pass; 292 reporting tests | `811aeb650c14ac9025c202dc273b57dd0c60f73d6fb27a46cf281c3452a9b5be` |
 
 ## Fixed collection and cleanup contract
 

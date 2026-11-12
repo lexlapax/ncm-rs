@@ -19,6 +19,8 @@ import sys
 import threading
 import time
 
+MAX_TERMINATION_GRACE_SECONDS = 60
+
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -73,14 +75,16 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     before spawn and while collecting; true means failure and owned-child cleanup.
     observe_child is an optional trusted bounded callback receiving the owned,
     unreaped live PID during capture; exceptions fail capture and clean the child.
-    Optional termination_grace_seconds (0..10) gives a live supervisor SIGTERM
-    before final group cleanup. Default/native jobs still use immediate cleanup.
+    Optional termination_grace_seconds (0..60) gives a live supervisor SIGTERM
+    before final group cleanup. Default/native jobs still use immediate cleanup;
+    callers must select a reviewed budget. Output keeps draining during grace,
+    discarding excess/failed-capture bytes to avoid pipe-backpressure stalls.
     Grace is additional cleanup time, not an extension of the capture deadline.
     spawn_returned_monotonic_seconds is an upper bound on Popen start, recorded
     after Popen returns; not an exec timestamp or proof the requested action ran.
     """
     if type(termination_grace_seconds) not in (int, float) or not math.isfinite(termination_grace_seconds) \
-            or not 0 <= termination_grace_seconds <= 10:
+            or not 0 <= termination_grace_seconds <= MAX_TERMINATION_GRACE_SECONDS:
         raise ValueError('invalid termination grace')
     if observe_child is not None and not callable(observe_child):
         raise ValueError('observe_child must be callable')
@@ -128,6 +132,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     saved_handlers = {}
     issues = []
     captured = observed = 0
+    capture_broken = False
     capture_digest = hashlib.sha256()
     eof = False
     child_reaped = False
@@ -160,7 +165,7 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     with capture_path.open('xb', buffering=0) as output, receipt_path.open('x') as receipt:
         with selectors.DefaultSelector() as selector:
             def read_chunk():
-                nonlocal captured, observed, eof
+                nonlocal captured, observed, eof, capture_broken
                 try:
                     data = os.read(child.stdout.fileno(), 65536)
                 except BlockingIOError:
@@ -170,16 +175,20 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                     selector.unregister(child.stdout)
                     return
                 observed += len(data)
-                keep = data[:max(0, output_limit_bytes - captured)]
-                while keep:
-                    written = output.write(keep)
-                    if not written:
-                        raise OSError('capture write made no progress')
-                    capture_digest.update(keep[:written])
-                    captured += written
-                    keep = keep[written:]
                 if observed > output_limit_bytes:
                     issue('output_limit')
+                keep = b'' if capture_broken else data[:max(0, output_limit_bytes - captured)]
+                try:
+                    while keep:
+                        written = output.write(keep)
+                        if not written:
+                            raise OSError('capture write made no progress')
+                        capture_digest.update(keep[:written])
+                        captured += written
+                        keep = keep[written:]
+                except BaseException:
+                    capture_broken = True
+                    raise
 
             try:
                 for sig in (signal.SIGINT, signal.SIGTERM):
@@ -238,7 +247,23 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                                     issue('graceful_signal_failed')
                                 grace_end = time.monotonic() + termination_grace_seconds
                                 while exited is None and time.monotonic() < grace_end:
-                                    time.sleep(.02)
+                                    # A supervisor may emit its receipt before exiting.
+                                    # Keep draining even after cancellation/output failure;
+                                    # otherwise pipe backpressure can consume all its grace.
+                                    wait_seconds = min(.02, max(0, grace_end - time.monotonic()))
+                                    try:
+                                        events = selector.select(wait_seconds)
+                                    except BaseException as error:
+                                        # Pipe/selector failure is not loss of waitable-child
+                                        # ownership. Preserve cleanup and avoid a busy loop.
+                                        issue('capture_error:' + type(error).__name__)
+                                        events = ()
+                                        time.sleep(wait_seconds)
+                                    for _key, _mask in events:
+                                        try:
+                                            read_chunk()
+                                        except BaseException as error:
+                                            issue('capture_error:' + type(error).__name__)
                                     exited = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
                                 termination_grace_exhausted = exited is None
                         except OSError:
