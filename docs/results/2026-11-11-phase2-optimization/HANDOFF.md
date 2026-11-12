@@ -175,6 +175,15 @@ regressions reject impossible local/first-GPU ordering. Virtual-clock serializat
 and sparse/unavailable GPU fixtures do not establish real clocks or enforcement.
 Next: report/output/raw-capture qualification and same-record finalization enforcing
 rehash last; current upstream, fresh preparation/roles and all live gates remain.
+[Clock report qualification](linux-clock-output-qualification.md) now checks all
+six reports/runtime in fixed halves against unchanged frozen-reference/codec checks,
+including current Python directly against frozen Python (no tolerance chaining).
+Three new tests include eighteen hash-verified historical reports with synthetic
+receipts and 43 altered cases; **7 focused/373 reporting tests pass**. The first
+failure was a no-op test order mutation, retained/corrected without weakening guards.
+Not new collection, process provenance, capture integrity or performance acceptance.
+Next: raw-capture/report-file/role binding, same-evidence finalization with rehash
+last, current upstream and fresh preparation/roles; all live gates remain pending.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

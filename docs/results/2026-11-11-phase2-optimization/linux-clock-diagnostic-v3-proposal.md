@@ -873,6 +873,15 @@ reporting tests pass. Virtual-clock and sparse/unavailable GPU fixtures are not
 actual collection, clock enforcement or restoration evidence. Next: report/output
 and raw captures, then same-record finalization with frozen rehash last; current
 upstream, fresh preparation/roles and all live launch gates remain pending.
+[Clock report qualification](linux-clock-output-qualification.md) now covers all six
+reports/runtime in fixed triples through unchanged codec/frozen-reference checks,
+including direct current-Python versus frozen-Python output checks. Three new tests
+cover eighteen archive members with synthetic receipts and 43 altered cases;
+7 focused/373 reporting tests pass. An initial no-op order-mutation fixture failure
+is retained/corrected; no guard/tolerance changes. This is not new collection,
+producer authenticity, raw-file integrity or performance acceptance. Next: raw
+capture/report-file/role binding and same-evidence finalization with rehash last;
+current upstream, fresh preparation/roles and all live gates remain pending.
 
 ## Fixed collection and cleanup contract
 

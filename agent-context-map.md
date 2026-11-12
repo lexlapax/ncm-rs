@@ -312,9 +312,16 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   **21 focused/370 reporting tests pass**. Retained red/green readiness-time cases
   reject local time before sampling and a first GPU sample after readiness. Virtual-
   clock serialization/sparse GPU fixtures are not real collection or enforcement;
-  gaps/unavailable values remain explicit. Next: report/output and raw-capture
-  qualification, same-record finalizer with frozen rehash last; current upstream,
-  fresh full preparation/roles and live policy/permission/availability gates.
+  gaps/unavailable values remain explicit. Latest: [clock report qualification](docs/results/2026-11-11-phase2-optimization/linux-clock-output-qualification.md)
+  checks all six reports/runtime in fixed 1–3/4–6 halves with the unchanged codec
+  checker and frozen Python reference. Current Python outputs compare directly to
+  frozen Python, avoiding tolerance chaining. Three new tests include eighteen
+  hash-verified historical report members/synthetic receipts and 43 altered cases;
+  **7 focused/373 reporting tests pass**. Retained first failure was a no-op order
+  mutation in the fixture, corrected without weakening guards. This is not fresh
+  collection, capture integrity, producer authenticity or performance acceptance.
+  Next: raw-capture/report-file/role binding and same-evidence finalizer with rehash
+  last; current upstream, fresh preparation/roles and all live launch gates.
   No Torch/GPU/benchmark/policy work; Linux 72/78 and Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
