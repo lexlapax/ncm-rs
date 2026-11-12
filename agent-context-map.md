@@ -273,16 +273,16 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   Next: implement/test required-map and known-candidate binding, current upstream
   check, frozen entry/final qualification. No GPU query/Torch import/benchmark or
   policy change; live authorization/availability gates and Linux 72/78 remain.
-  Latest: sample-time known-candidate guard now checks declared path device/inode
-  on the first and later complete samples. Clock factories require a copied bounded
-  known inventory containing every mandatory library; optional absence is allowed.
-  Observed-path fields cannot override prepared clock file declarations.
-  Read-only defaults and record schemas are unchanged. CPU tests cover eighteen
-  successful jobs with an absent optional candidate, first-child libm mismatch /
-  latched failure / no second job, declaration rejection and no-IO independent
-  factory state. **22 focused and 333 reporting tests pass**; logs/limits are in
-  the loader document. Remaining: actual inventory/mandatory-subset compilation,
-  frozen roles, independent clock postflight, upstream verification and full entry.
+  Latest: known-candidate sampling rejects first-sample identity drift without
+  requiring optional presence; observed fields cannot override declarations.
+  `clock_library_contract.py` now purely joins prepared records and selects native
+  required mappings plus interpreter/_C/core-Torch mappings. No IO/hashing/probes.
+  **12 focused and 338 reporting tests pass** (five new compiler tests). Actual
+  retained-record compilation: required 11/11 native, 10 Python; 40 known identities,
+  50 path bindings. All eighteen unchanged commands construct observers, zero live
+  samples/children; Python startup preserved. This is not fresh preflight or source
+  authentication. Details/hashes are in the loader document. Next: independent
+  clock postflight, current upstream check, fresh full preparation/frozen entry.
   No GPU/Torch/benchmark/policy work; Linux 72/78 and all live gates remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

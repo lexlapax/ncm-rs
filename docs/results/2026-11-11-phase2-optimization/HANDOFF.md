@@ -125,6 +125,13 @@ explicit copied known inventory containing the required set; read-only defaults
 and schemas stay unchanged. **22 focused and 333 reporting tests pass**. Actual
 inventory/subset compilation, frozen entry and independent clock postflight remain
 pending; no new preparation, Torch import, GPU query, clock action or benchmark.
+The [pure library contract compiler](linux-clock-loader-preparation.md#compilation-of-the-observation-library-contract)
+now joins the actual retained records: native required 11/11, Python 10, known 40,
+path bindings 50. All eighteen unchanged job commands construct independent
+observers with no children/samples and normal Python startup. **12 focused and 338
+reporting tests pass**. This is not a fresh filesystem preflight or authenticated
+producer binding. Next: independent clock postflight, current upstream verification,
+fresh full preparation/frozen entry and qualification; live gates remain unresolved.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

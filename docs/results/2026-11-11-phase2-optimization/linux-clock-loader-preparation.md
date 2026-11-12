@@ -339,3 +339,90 @@ output qualification. No new real library preparation, Torch import, GPU query,
 clock operation or benchmark ran in this guard checkpoint. Policy confirmation,
 permissions/enforcement and later fresh availability are unchanged prerequisites.
 Linux **72/78**, Apple pending; no acceptance comparison or goal completion.
+
+## Compilation of the observation library contract
+
+`clock_library_contract.py::compile_contract(python, loader, preloads)` now joins
+the three preparation records without IO, probes, file hashing or path resolution.
+It checks schema/scope declarations, Python interpreter/build/version-source
+agreement, site and Torch target paths, identity consistency across inventories,
+path bindings, inventory byte accounting and missing/unbound references. Observed-
+path fields cannot override declared identities. Each file is bounded to 2 GiB;
+the combined known set is bounded to 256 files/8 GiB. These are preparation bounds,
+not relaxed collection or additional-library quotas.
+
+The implemented required set is the preceding proposal: all standalone native
+dependencies; Python's interpreter dependencies plus `_C` and the five named core
+Torch code libraries. The known set retains every standalone/preload candidate,
+plus `_C` and `libtorch_global_deps`, whether or not mandatory. Optional absence is
+not promoted to failure. Conflicting shared identities/path bindings, fabricated
+runtime-selection claims and weakened mandatory declarations fail. Records are
+copied; runtime required lists and known identities do not share mutable state.
+
+The result exposes `workloads`, `taskset`, `libraries`, `known_libraries` for the
+factory, plus the retained listed-to-canonical `path_bindings` for future pre/post
+checks. Python's command spelling remains separate from its resolved image.
+`prepared_declaration_consistency_verified` is true; runtime mapping verification
+and launch readiness remain false. These flags do **not** authenticate producers,
+prove that a supplied loader listing is genuine, or replace fresh file checks.
+
+Actual offline compilation used precisely these retained inputs:
+
+1. `reports/phase2-clock-python-preparation-v3.json`
+2. `reports/phase2-clock-loader-preparation-v1/libraries.json`
+3. `reports/phase2-clock-preload-inventory-v1.json`
+
+From fresh system `python -S`, import the compiler with `PYTHONPATH=tools/bench`
+(or insert that directory explicitly), parse the three inputs with `json.loads`,
+and call `compile_contract(*records)`. Results were exclusively written under
+`umask 077` as `reports/phase2-clock-library-contract-v{1,2}.json`, using
+`json.dump(..., indent=2, sort_keys=True)` plus a newline. The final compiler's
+per-file and Python-image inventory guards preserve the same byte-identical result:
+
+- Required: **previous 11, candidate 11, Python 10**.
+- Known: **40 identities / 3,825,790,348 bytes**, including both Torch target images.
+- **50** retained listed-to-canonical path bindings.
+
+This joins earlier preparations, **not a new simultaneous filesystem snapshot**.
+The actual fixed eighteen-job planner/factory also accepted that contract, with
+forty known paths in each independent observer and zero samples. No child started
+and no workload directory was created. The old read-only preparation's injection
+identity was reused only as a declaration for this construction check; it was not
+freshly verified. All six Python job commands retain normal startup (no `-S`).
+This does not resurrect the failed read-only collection or qualify its outputs.
+
+Five new synthetic tests cover pure construction/factory compatibility, independent
+state, cross-record drift, missing dependencies, unbound candidates, conflicting
+aliases, invalid namespace/scope/schema claims and per-file/combined bounds.
+A twenty-one-case identity/reference/scope fault matrix includes absent Python
+image inventory and altered version-source evidence. Missing mandatory dependency
+fixtures also remove the corresponding file/accounting entries, so an otherwise
+consistent reduced inventory must still fail the required-set guard. No synthetic declaration or
+ELF filename is evidence that the proposed GPU mappings have actually been observed.
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_library_contract test_clock_process_observation -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+**12 focused tests and default checks with 338 reporting tests pass.** Private logs
+and records under `reports/`:
+
+| Evidence | SHA-256 |
+| --- | --- |
+| `phase2-clock-library-contract-tests-v1.log` | `ff4a26c2951bb678cb481c5e6fee9fad3b28bdcb58df55ae13cff4d762e6863b` |
+| `phase2-clock-library-contract-tests-v2.log` | `4e3c2348459c9301cba9626e031f54ff4f0adea3c0f5fd14169932f5bf1b1539` |
+| `phase2-clock-library-contract-check-v1.log` | `258aabc18213c57485d4ac341add05d452fed73f863202dca1506f7fac12e626` |
+| `phase2-clock-library-contract-tests-v3.log` (final) | `073122413015d14771399a239d2631cab74f50e7a20239c5d543f3b40d54c8ba` |
+| `phase2-clock-library-contract-check-v2.log` (final) | `4a6e7f5539a2347962bdd030f1bd0209a1bb08bbf872dd6585288a930f93d314` |
+| `phase2-clock-library-contract-v1.log` | `40ebd1df8da13b232d0ef67f84be360a7103ad495e20306d1a3037f8bb6e2f7b` |
+| `phase2-clock-library-contract-v1.json` | `24c4faf94477db7fbeabfabc88bc95b7dfece83263e71fc7358298e3f44b1b9e` |
+| `phase2-clock-library-contract-v2.log` | `bfd45c0251292a2b4e5e601e8d9e588a92d9f673e19503674aa9b8786ac7d5bb` |
+| `phase2-clock-library-contract-v2.json` | `24c4faf94477db7fbeabfabc88bc95b7dfece83263e71fc7358298e3f44b1b9e` |
+| `phase2-clock-library-contract-binding-v1.log` | `00e25a6091f0a82027317a1d9da57a490e25dba108d1544f2222212ff8e8e251` |
+
+Remaining: independent clock process/postflight validation, current upstream
+verification, fresh full preparation and frozen entry/role binding, then complete
+lifecycle/telemetry/output qualification. No GPU query, Torch import, clock change,
+benchmark or fresh library scan occurred. Live policy/controller/permission and
+fresh-window gates remain unresolved; Linux **72/78**, Apple pending.

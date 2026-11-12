@@ -823,6 +823,13 @@ unchanged. CPU tests cover optional absence, first-child failure/latching, inval
 inventory and independent no-IO construction; 22 focused/333 reporting tests pass.
 Actual inventory/subset compilation, frozen role binding, independent clock
 postflight and full entry/qualification remain pending, as do all live policy gates.
+The [pure observation-library compiler](linux-clock-loader-preparation.md#compilation-of-the-observation-library-contract)
+now joins the retained preparation records: required native 11/11 and Python 10,
+known 40 identities, 50 path bindings. All eighteen unchanged commands construct
+observers without starting children; no fresh file verification is implied. Five
+new tests, 12 focused and 338 reporting tests pass. Independent clock postflight,
+upstream verification and fresh full preparation/frozen entry remain pending;
+no runtime/acceptance or live policy gate closes.
 
 ## Fixed collection and cleanup contract
 
