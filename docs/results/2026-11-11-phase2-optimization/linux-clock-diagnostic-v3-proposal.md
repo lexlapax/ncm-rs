@@ -700,6 +700,87 @@ telemetry/output qualification. Default-policy/no-controller confirmation and
 permissions/enforcement remain unanswered/unverified; request a new quiet window
 only after readiness. Linux remains **72/78**, Apple pending.
 
+## Armed worker role/deadline handoff — CPU-only
+
+`clock_worker_handoff.py::validate_handoff` now supplies an import-only check between
+the armed restoration supervisor and the bounded codec worker. It returns the
+persisted absolute work deadline; it does not create a new allowance, execute a
+command, hash frozen source/payload/library files or authorize a clock intervention.
+Caller-provided reviewed role commands/image/environment/private paths still need
+binding to the future frozen preparation and production entry.
+
+The helper requires a fresh single-threaded Linux `-S` worker with default SIGCHLD,
+no children/subreaper role, isolated environment, expected cwd and CPU0. It reads
+at most 1 MiB from `obligation.json` in an owned non-symlink mode-0700 directory;
+the leaf must be regular/non-symlink. Duplicate JSON keys/nonfinite values fail.
+It checks armed schema 2, the fixed 600-second reset budget, 10-second command
+budget/reserve, two maximum reset attempts, and reviewed set/worker/reset argv.
+The worker command retains CPU0 taskset explicitly; post-exec interpreter argv
+must match the running worker. Parent and worker executable inode/device,
+command/environment and affinity are checked from procfs/current process state.
+The parent must still be the expected process with unchanged ancestry/start ticks,
+and this worker must be its sole child. Unexpected argv/env contents are not
+serialized by the helper.
+
+New **additive schema-2 obligation fields** `supervisor_pid` and
+`supervisor_parent_pid` are written by `supervise_restoration` before set, from its
+own lifetime record. The handoff requires these to agree with live ownership and
+ancestry. Historical obligations are not rewritten or credited with these fields.
+No model/artifact/workload schema, dependency pin, fixture or tolerance changes.
+
+The work/reset deadline difference must remain exactly the reserved ten seconds;
+finite monotonic values, the arming clock and current time must agree. The supplied
+work deadline must still be live and at most 590 seconds away. All checks precede
+workload submission. Command/environment/image consistency is not independent producer
+authentication; procfs samples cannot prove continuous ancestry/image immutability.
+Directory ancestors and declaration provenance remain trusted entry obligations.
+Actual set success/enforcement and restored hardware policy are not established
+by this helper; neither is a hard real-time deadline guarantee.
+
+Four CPU-only test methods exercise:
+
+- The real default-budget restoration transaction, checked handoff, bounded worker
+  and real process-observation factory over all 18 fake codec children. The received
+  deadline equals both obligation and restoration result, the ten-second reserve
+  is unchanged, all workload observations complete, all children are gone before
+  fake reset, and failure/qualification scope flags remain honest. The test runs
+  for a few seconds, **not** to the 600-second boundary; it proves no worst-case
+  CUDA cleanup time or full 900-second telemetry coverage.
+- Nine role/command failures: changed set argv, parent argv/PID/affinity, role image,
+  expected environment, self argv, supervisor ancestry or writer PID.
+- Four time-contract failures: changed lock budget, inconsistent work deadline,
+  expired deadline and pre-arming clock.
+- Six malformed/private-input failures: Boolean schema version, duplicate JSON key,
+  nonfinite value, symlink leaf, oversized file and public restoration directory.
+
+Each of the nineteen rejected handoffs exits the worker nonzero, creates no sequence
+or workload-PID file, and still runs the supervisor's fake reset. Deliberate test
+obligation tampering is confined to new temporary fake-policy transactions; no
+historical evidence is altered. Policy actions in tests are local file operations,
+not GPU utility commands. Frozen file identities are collected before these tests
+launch the restoration process, not while fake workloads run.
+
+Commands (exclusive private logs, `umask 077`):
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_worker_handoff -v
+PYTHONPATH=tools/bench python -m unittest test_clock_worker_handoff test_supervised_restoration test_clock_process_observation -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-clock-handoff-tests-v1.log` | Four test methods pass | `19b8b36a690b364b82dd4699a8d400d64a0763d6ae7cc0f33a8e59488e683c70` |
+| `phase2-clock-handoff-tests-v2.log` | All 32 focused tests pass | `5cb2b5908e473e999834ae8866f2c9b68a384a15c3c5504ea1c5426de30fbc14` |
+| `phase2-clock-handoff-check-v1.log` | Default checks pass; 311 reporting tests | `51d913d1d62eefff6e5173a57e561ae61b4809096ae95a156444b4cda6cd4667` |
+
+Still required: freeze/verify preparation, source/tools/actual image/library
+inventories and all production role commands; bind the tested sibling-supervisor
+entry and handoff; qualify full telemetry/lifecycle/process/output evidence with
+frozen rehash last. Policy/controller confirmation and permissions/enforcement
+remain missing, followed by a new quiet window only after readiness. No GPU
+command, permission test or benchmark ran. Linux remains **72/78**, Apple pending.
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

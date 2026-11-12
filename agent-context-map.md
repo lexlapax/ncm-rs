@@ -212,6 +212,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   only the fixture, preserving production sampling rules/assertions. Logs/hashes
   are in the clock proposal. Frozen hardware/entry binding and postflight remain
   pending; no GPU command, policy action or benchmark. Linux stays 72/78; Apple pending.
+  Latest: `clock_worker_handoff.py` validates a bounded private obligation, fixed
+  600/590/10-second budget relationship, reviewed commands and actual worker/parent
+  argv/image/env/CPU0/ancestry before returning the original absolute deadline.
+  Schema-2 obligations now add supervisor/parent PID fields; no historical rewrite.
+  Four CPU-only test methods exercise all 18 jobs with real observations under
+  default restoration budgets, plus nineteen rejected handoff cases with reset
+  and zero workload submissions. **32 focused tests and default checks with 311
+  reporting tests pass**; exact evidence/limitations are in the clock proposal.
+  No GPU/policy/permission/benchmark run. This is a tested handoff component, not
+  the frozen preparation/production entry or full qualification; those and the
+  unanswered policy/controller/permission/fresh-window gates remain pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

@@ -153,6 +153,7 @@ def supervise_restoration(set_argv, worker_argv, reset_argv, *, cwd, env, output
             deadline = reset_deadline - cleanup_reserve_seconds
             with (directory / 'obligation.json').open('x') as file:
                 json.dump({'schema_version': 2, 'armed_before_set': True,
+                           'supervisor_pid': lifetime['pid'], 'supervisor_parent_pid': lifetime['parent_pid'],
                            'set_argv': set_argv, 'worker_argv': worker_argv, 'reset_argv': reset_argv,
                            'lock_seconds': lock_seconds, 'command_seconds': command_seconds,
                            'cleanup_reserve_seconds': cleanup_reserve_seconds,

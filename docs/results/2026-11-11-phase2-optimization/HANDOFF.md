@@ -76,8 +76,15 @@ separate Python argv-path/ELF identity. Five new CPU-only tests cover all 18 fak
 jobs, live mismatches/missing libraries and prelaunch drift; **25 focused tests and
 default checks with 307 reporting tests pass**. A deterministic red/green follow-up
 fixes a startup fault-injection fixture race, not production observation semantics.
-Factory-to-frozen-production-entry binding/postflight remain pending. Tests use
-shortened synthetic telemetry, not real 900-second coverage. A broken warning pipe
+The subsequent `clock_worker_handoff.py` checks the private bounded obligation,
+fixed budgets, reviewed commands and live worker/parent role identities/CPU0/env/
+ancestry, returning the original deadline. Obligations add supervisor/parent PIDs
+under schema 2; historical records are unchanged. Four CPU-only test methods cover
+all 18 actually observed fake jobs under default restoration budgets and nineteen
+rejected handoffs that reset without workloads. **32 focused tests and default
+checks with 311 reporting tests pass**. No boundary-length/CUDA cleanup proof follows.
+Factory/handoff-to-frozen-production-entry binding and postflight remain pending.
+Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test
 failure after coordinator loss; nonzero plus actual cleanup evidence is required.
