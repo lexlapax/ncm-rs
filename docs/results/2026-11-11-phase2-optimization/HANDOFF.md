@@ -167,6 +167,14 @@ reporting tests pass**. Live ownership/ancestry, role authentication, full telem
 process maps and outputs remain separate. Next: full telemetry/readiness contents,
 output/capture qualification and same-record rehash-last finalization; current
 upstream, fresh complete preparation/roles and all live gates remain pending.
+[Clock telemetry-content validation](linux-clock-telemetry-validation.md) now reuses
+unchanged CPU/GPU parsers for all 901 CPU samples, binds readiness/raw receipts and
+brackets the restorer plus eighteen jobs. Six new tests cover 43 negatives;
+**21 focused/370 reporting tests pass**. Two retained red/green readiness-time
+regressions reject impossible local/first-GPU ordering. Virtual-clock serialization
+and sparse/unavailable GPU fixtures do not establish real clocks or enforcement.
+Next: report/output/raw-capture qualification and same-record finalization enforcing
+rehash last; current upstream, fresh preparation/roles and all live gates remain.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

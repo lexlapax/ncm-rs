@@ -305,11 +305,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   readiness clocks/digest, outer 660/60 capture, CPU-sample brackets and eighteen job
   receipts. Five new tests include 40 negatives and real sibling fake-policy/default-
   budget transport with five-second synthetic telemetry/stub process observations;
-  **26 focused/364 reporting tests pass**. No live ancestry/provenance, full telemetry,
-  mapped-byte/output quality or hardware restoration claim. Next: full telemetry/
-  readiness contents and output/capture qualification, finalizer binding the same
-  records with frozen rehash last; current upstream and fresh preparation/roles.
-  No Torch/GPU/benchmark/policy work; Linux 72/78 and all live gates remain pending.
+  **26 focused/364 reporting tests pass**. No live ancestry/provenance, mapped-byte/
+  output quality or hardware restoration claim. Latest: [clock telemetry contents](docs/results/2026-11-11-phase2-optimization/linux-clock-telemetry-validation.md)
+  reuses unchanged CPU/GPU parsers for all 901 samples, binds raw receipts/readiness
+  and brackets the restorer plus eighteen jobs. Six new tests cover 43 negatives;
+  **21 focused/370 reporting tests pass**. Retained red/green readiness-time cases
+  reject local time before sampling and a first GPU sample after readiness. Virtual-
+  clock serialization/sparse GPU fixtures are not real collection or enforcement;
+  gaps/unavailable values remain explicit. Next: report/output and raw-capture
+  qualification, same-record finalizer with frozen rehash last; current upstream,
+  fresh full preparation/roles and live policy/permission/availability gates.
+  No Torch/GPU/benchmark/policy work; Linux 72/78 and Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

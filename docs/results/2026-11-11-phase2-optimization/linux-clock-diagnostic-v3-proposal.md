@@ -865,6 +865,14 @@ tests pass. This is not live ownership/ancestry, observer/outer role authenticat
 full telemetry content or output qualification. Next: bind full readiness/telemetry,
 raw captures and outputs into same-record finalization with frozen rehash last.
 Current upstream, fresh preparation/entry and all live gates remain pending.
+[Full telemetry-content validation](linux-clock-telemetry-validation.md) now reuses
+the unchanged CPU/GPU parsers for all 901 CPU samples, binds raw receipts/readiness
+and brackets the entire restorer plus eighteen jobs. Six new tests include 43
+negatives, with retained red/green readiness-time ordering cases; 21 focused/370
+reporting tests pass. Virtual-clock and sparse/unavailable GPU fixtures are not
+actual collection, clock enforcement or restoration evidence. Next: report/output
+and raw captures, then same-record finalization with frozen rehash last; current
+upstream, fresh preparation/roles and all live launch gates remain pending.
 
 ## Fixed collection and cleanup contract
 
