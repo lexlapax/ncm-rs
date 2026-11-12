@@ -9,10 +9,12 @@ No ancestry safety, full telemetry qualification or hardware restoration proof
 is supplied here; those remain launch-entry and completion requirements.
 """
 from pathlib import Path
+import sys
 
 from clock_restoration_capture import capture_restorer
 from readonly_trace_coordinator import _coordinate_action, validate_ready
 from readonly_trace_preflight import require
+from supervised_worker import subreaper
 
 
 def validate_supervised_ready(record, supervisor_pid, source, uuid):
@@ -44,8 +46,12 @@ def coordinate(restorer_argv, observer_argv, *, cwd, env, output_dir,
     exiting nonzero on any supervisor failure. It must not own the restorer.
     Ordinary failed restorer capture preserves the sampler lifetime. Observer
     failure or interruption cancels the restorer through its cleanup-aware outer
-    capture. A successful lifecycle result does not qualify clocks or codec output.
+    capture. Reject an existing local subreaper role before either branch starts;
+    this does not inspect ancestors or prove restoration-aware launch ancestry.
+    A successful lifecycle result does not qualify clocks or codec output.
     """
+    require(sys.platform == 'linux', 'Linux clock coordinator required')
+    require(subreaper() == 0, 'clock coordinator must not already be a child subreaper')
     directory = Path(output_dir).absolute()
     require(isinstance(restorer_argv, (list, tuple)) and restorer_argv
             and all(isinstance(arg, str) and arg and '\0' not in arg for arg in restorer_argv)

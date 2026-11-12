@@ -241,6 +241,15 @@ observed-file bounds and rehash-last order remain. Four new tests, including sev
 finalizer fault cases, pass; **17 focused/395 reporting tests pass**. The cap is still
 256, so the 303-file plan remains inadmissible and the 512-file proposal unapproved.
 No GPU/policy/benchmark action or acceptance closure.
+[Coordinator admission follow-up](linux-clock-diagnostic-v3-proposal.md#coordinator-local-subreaper-admission-follow-up)
+rejects an existing local child-subreaper role before lifecycle/output/branch creation;
+query failure and unsupported platforms also fail closed. Two new tests include a
+fresh-process real-flag red regression. **32 focused/397 reporting tests pass**; the
+first full run failed a separate handoff fixture (worker exit 1, fake reset/cleanup
+successful). Cause unestablished; retained log and expanded bounded fixture diagnostics,
+not a claimed fix or relaxed timing. This checks only the caller's flag, not ancestor
+safety or frozen role binding. Full preparation/entry, both user answers and live gates
+remain pending; no limit/policy/benchmark change or acceptance closure.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

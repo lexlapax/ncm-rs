@@ -368,6 +368,15 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   fails the 256-file cap. Fresh complete preparation/entry and live readiness gates
   remain pending. No quiet window requested, GPU/benchmark work or acceptance closure;
   Linux 72/78/Apple pending.
+  Further offline safety work: [coordinator local-subreaper admission](docs/results/2026-11-11-phase2-optimization/linux-clock-diagnostic-v3-proposal.md#coordinator-local-subreaper-admission-follow-up)
+  rejects an existing process-local child-subreaper role before lifecycle/outputs/branches;
+  query failure also stops, and unsupported platforms never query. Two new tests retain
+  a red real-flag/mocked-lifecycle regression; **32 focused/397 reporting tests pass**.
+  First full check failed a separate default-budget handoff fixture (worker exit 1,
+  fake reset/cleanup successful); log retained, cause unestablished, now includes
+  bounded sequence/worker diagnostics on recurrence. No timing/expectation relaxation.
+  Local flag checking does not inspect ancestors or prove safe launch topology. Both
+  user answers, fresh preparation/entry and live gates remain pending; limits unchanged.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

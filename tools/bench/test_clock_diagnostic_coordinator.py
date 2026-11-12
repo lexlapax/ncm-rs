@@ -326,6 +326,58 @@ class ClockCoordinatorTests(unittest.TestCase):
         self.assertFalse((root / 'collection/restoration').exists())
         self.assertFalse((root / 'collection/restorer.capture').exists())
 
+    def test_existing_subreaper_rejected_before_lifecycle_or_outputs(self):
+        directory = self.root / 'collection'
+        script = f'''import os
+from pathlib import Path
+from unittest.mock import patch
+import clock_diagnostic_coordinator as clock
+from supervised_worker import direct_children, subreaper
+assert direct_children() == [] and subreaper() == 0
+subreaper(1)
+try:
+    with patch.object(clock, '_coordinate_action',
+                      side_effect=AssertionError('existing subreaper reached lifecycle')) as lifecycle:
+        try:
+            clock.coordinate(['/not-executed', {str(directory / 'restoration')!r}],
+                             ['/not-executed', {str(directory / 'telemetry')!r}],
+                             cwd={str(HERE)!r}, env=dict(os.environ), output_dir={str(directory)!r},
+                             expected_cpu_source={SOURCE!r}, gpu_uuid={UUID!r})
+        except ValueError as error:
+            assert str(error) == 'clock coordinator must not already be a child subreaper'
+        else:
+            raise AssertionError('existing subreaper accepted')
+        lifecycle.assert_not_called()
+    assert not Path({str(directory)!r}).exists()
+    assert direct_children() == [] and subreaper() == 1
+finally:
+    subreaper(0)
+assert subreaper() == 0
+'''
+        run = subprocess.run([sys.executable, '-S', '-c', script], cwd=HERE, env=ENV,
+                             capture_output=True, text=True, timeout=10)
+        self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+        self.assertFalse(directory.exists())
+
+    def test_unavailable_subreaper_state_cannot_reach_lifecycle(self):
+        directory = self.root / 'collection'
+        kwargs = dict(cwd=HERE, env=ENV, output_dir=directory,
+                      expected_cpu_source=SOURCE, gpu_uuid=UUID)
+        argv = ['/not-executed', str(directory / 'restoration')]
+        observer = ['/not-executed', str(directory / 'telemetry')]
+        with patch.object(clock, '_coordinate_action') as lifecycle:
+            with patch.object(clock, 'subreaper', side_effect=OSError('unavailable')) as query:
+                with self.assertRaisesRegex(OSError, 'unavailable'):
+                    clock.coordinate(argv, observer, **kwargs)
+                query.assert_called_once_with()
+                query.reset_mock()
+                with patch.object(clock.sys, 'platform', 'darwin'):
+                    with self.assertRaisesRegex(ValueError, 'Linux clock coordinator required'):
+                        clock.coordinate(argv, observer, **kwargs)
+                query.assert_not_called()
+            lifecycle.assert_not_called()
+        self.assertFalse(directory.exists())
+
     def test_invalid_restorer_arguments_prevent_observer_spawn(self):
         directory = self.root / 'collection'
         for argv in (['/bin/true'], ['relative', str(directory / 'restoration')], None):

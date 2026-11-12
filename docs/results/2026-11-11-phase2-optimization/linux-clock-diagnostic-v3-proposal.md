@@ -932,6 +932,56 @@ pass, with 17 focused/395 reporting tests green. No early file IO/hash, no cap c
 no reordered final frozen rehash. The 303-file plan and both requested answers remain
 pending; safe offline strengthening is not launch readiness or acceptance closure.
 
+## Coordinator local-subreaper admission follow-up
+
+While file-limit approval and the default-policy/no-controller answer remain pending,
+`clock_diagnostic_coordinator.coordinate` now rejects a caller already acting as a
+Linux child subreaper **before entering the lifecycle, creating outputs or launching
+either branch**. Existing shared admission checked threads, SIGCHLD and existing
+children but did not check this process-local role. The new guard only queries
+`PR_GET_CHILD_SUBREAPER`; it never clears the flag or changes another process.
+Unsupported platforms reject before the query; query failure is not treated as zero.
+
+A retained red CPU-only regression activated the flag in a fresh `-S` subprocess
+and reached a mocked lifecycle sentinel: `AssertionError: existing subreaper reached
+lifecycle`. After the guard, it rejects without a lifecycle call, children or outputs,
+and leaves the flag set until test-owned cleanup restores it. A second test covers
+query failure and unsupported-platform rejection. Existing actual sibling fake-policy
+transport, parent-loss cleanup and handoff/lifecycle/control-binding tests still run.
+This is a **local precondition**, not ancestor inspection, restoration-aware ancestry
+proof, production role binding, full preparation or launch authorization. In particular,
+a process whose own flag is zero may still have an unsafe generic supervisor ancestor.
+
+The first full check ran 397 reporting tests and failed the existing
+`test_real_default_budget_handoff_with_eighteen_cpu_jobs`: its worker returned 1
+with an empty capture, while fake reset succeeded, owned cleanup completed and the
+restoration subreaper flag was restored. That handoff fixture does not call the changed
+coordinator. Its temporary sequence files were removed by existing fixture cleanup;
+the cause is **unestablished**, not claimed fixed by a later green run. The fixture's
+failure message now includes bounded worker/sequence outputs before that cleanup.
+No workload duration, observation interval, expectation or deadline was relaxed.
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_diagnostic_coordinator.ClockCoordinatorTests.test_existing_subreaper_rejected_before_lifecycle_or_outputs -v
+PYTHONPATH=tools/bench python -m unittest test_clock_diagnostic_coordinator test_clock_control_evidence test_validate_clock_lifecycle -v
+PYTHONPATH=tools/bench python -m unittest test_clock_diagnostic_coordinator test_clock_control_evidence test_validate_clock_lifecycle test_validate_clock_restoration test_clock_worker_handoff -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+The first command retained the pre-fix red result; focused runs passed 22 then **32**
+tests. The full check ran twice: one failure above, then **397 reporting tests pass**.
+All five private logs remain 0600. No real GPU query, clock-policy action, Torch import,
+benchmark, limit change or acceptance closure; Linux remains 72/78 and Apple pending.
+Fresh complete preparation/entry and both requested user answers are still owed.
+
+| Private log under `reports/` | SHA-256 |
+| --- | --- |
+| `phase2-clock-coordinator-admission-red-v1.log` | `2490a757a7f00733e50feea4c5818aab836e3ea9512fed4138ec8a62c351f509` |
+| `phase2-clock-coordinator-admission-tests-v1.log` (22 pass) | `af967ed6cad54d92acc8d180c3e0201b7b714fc703b229c270a58dd249990450` |
+| `phase2-clock-coordinator-admission-check-v1.log` (one failure) | `c78bf1f4f8d8a797aaa51505f2c2515156582bc42bf3411eb87bdba336e828c7` |
+| `phase2-clock-coordinator-admission-tests-v2.log` (32 pass) | `82c827a70318d6bfff044a79d7f37fc4be4fca13bfd6c5cfecf94f504f05c82a` |
+| `phase2-clock-coordinator-admission-check-v2.log` (397 pass) | `c335642ad5e86d727e63dc065f7f92cab7de9d4386764f28b5bd97ac5e909955` |
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

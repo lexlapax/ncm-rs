@@ -122,7 +122,17 @@ class ClockHandoffTests(unittest.TestCase):
         (root/'prepared.json').write_text(json.dumps(prepared))
         run = subprocess.run([self.taskset['path'], '-c', '0', *argv], cwd=HERE, env=env,
                              capture_output=True, text=True, timeout=20)
-        self.assertEqual(run.returncode, 0 if mode == 'success' else 1, run.stdout + run.stderr)
+        expected_code = 0 if mode == 'success' else 1
+        if run.returncode != expected_code:
+            # Keep fixture failures diagnosable before TemporaryDirectory cleanup.
+            # These are test-owned outputs, not unexpected live argv/environment.
+            from analyze_readonly_trace import read_bounded
+            details = {'stdout': run.stdout, 'stderr': run.stderr}
+            for name in ('restoration/worker.txt', 'sequence/sequence-result.json'):
+                path = root / name
+                if path.is_file():
+                    details[name] = read_bounded(path, 1024**2).decode('utf-8', errors='replace')
+            self.fail(json.dumps(details))
         result = json.loads(run.stdout)
         self.assertTrue(result['reset_command_succeeded'], result)
         self.assertTrue(result['subreaper_restored'])
