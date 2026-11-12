@@ -1,4 +1,4 @@
-# Clock sequence evidence-file binding
+# Clock diagnostic evidence-file binding
 
 **Status: post-collection reader component, not complete finalization. Linux 72/78;
 Apple pending.** `tools/bench/clock_evidence.py` adds `Evidence` and `read_sequence`
@@ -97,10 +97,73 @@ retained; unrelated lifecycle-fixture failure is not declared repaired.
 | `phase2-clock-evidence-tests-v2.log` (17 pass) | `0b60f40ec26e351de0733d1fd35d25856950b659375047d46a296c471e7aa0a8` |
 | `phase2-clock-evidence-check-v1.log` (381 pass) | `c1b56ec8aae9529f26f5dfadc0640d0b5e4a74d9ed8d88c7b06924d47f938e1b` |
 
+## Control-side follow-up
+
+`tools/bench/clock_control_evidence.py::read_control(reader, roles=...)` reads **21
+additional files**, sharing the existing reader's admission/identity checks. Together
+with the sequence reader this is **95 files**, not two independent budgets:
+
+- Collection, restorer receipt, restoration transaction/armed obligation, observer
+  supervisor, telemetry and readiness records; set/worker/reset, telemetry-worker
+  and CPU receipts; six receipt-backed captures; CPU/GPU raw telemetry and the
+  observer-supervisor stdout file.
+- Exactly six separately supplied role declarations: restorer, set, worker, reset,
+  telemetry worker and CPU sampler. Exact argv/cwd/timeout/grace/output/report bounds
+  must match receipts. The reader requires 1 MiB capture declarations and a 16 MiB
+  CPU report; only the CPU role may declare a report. It does not select production
+  observer deadlines or authenticate the supplied role plan.
+- Complete receipts with distinct PIDs, no termination/overflow or unsupported
+  observation/qualification flags. Individual files must equal embedded records.
+  Armed obligation commands must match declarations; failed/retried restoration
+  cannot be presented as a clean one-reset transaction. Full restoration/lifecycle
+  semantics remain the independent validators' responsibility.
+- Six captures match producer receipt hash/observed/captured lengths. CPU telemetry
+  additionally matches receipt path/device/inode/size/hash. GPU bytes match the
+  telemetry record's SHA. Captures still have **no producer-inode proof**.
+- **Observer-supervisor stdout has no producer hash receipt.** It is bounded/read
+  with a current identity, explicitly marked **post-only**, never upgraded to a
+  producer-bound capture. Existing records also do not log the coordinator's own,
+  observer supervisor's or GPU sampler's full launch commands/environments. Those
+  live bindings remain a frozen-entry obligation, not inferred from six receipts.
+
+The reader returns the exact parsed records and CPU/GPU bytes for the other gates,
+rechecks all previously read metadata and writes nothing. Its sole positive flag is
+`control_file_receipt_consistency_verified`; lifecycle, telemetry contents, launch
+provenance, hardware restoration and finalization order remain false. CPU report
+identity is not authentication; matching bytes do not prove who produced them.
+
+Six new test methods cover 21/95-file inventories, eight invalid role declarations
+rejected before reads, fourteen failed record/receipt/command/budget/capture cases,
+CPU same-byte inode replacement and earlier-file changes during later reads. Actual
+short sibling supervisors use declarations written **before launching roles**, fake
+policy and eighteen CPU jobs. Bound records/raw samples feed the actual lifecycle
+validator, with original default restoration budgets and five-second synthetic
+telemetry; child PIDs are absent. This is not the full 901-sample content gate,
+900-second collection, valid GPU data or fresh benchmark output.
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_control_evidence -v
+PYTHONPATH=tools/bench python -m unittest test_clock_control_evidence test_clock_evidence test_validate_clock_lifecycle test_validate_clock_telemetry -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+Final **25 focused / 387 reporting tests pass**. Earlier green logs are retained;
+the final revision additionally feeds bound transport to the actual lifecycle gate.
+No GPU/Torch/policy/benchmark action or frozen library rehash occurred.
+
+| Private evidence under `reports/` | SHA-256 |
+| --- | --- |
+| `phase2-clock-control-evidence-tests-v1.log` (6 pass) | `9d59b99a2585669617998995a4e97dccfbb5e6211fc76aec9e0754b638b6fa32` |
+| `phase2-clock-control-evidence-tests-v2.log` (25 pass) | `4e09d2e58ae0bb098e18a5b44b4aa3f4456f072e5b0aa471691826b9c16ca01c` |
+| `phase2-clock-control-evidence-check-v1.log` (387 pass) | `5b13537e04cffae77007303d8ce76178c6a1f341d2f33060b5e62661338ac849` |
+| `phase2-clock-control-evidence-tests-v3.log` (final 25 pass) | `79ff715dc8723f22b1c1dc031d9a4083c6e3aef993ab0087beffab003f2e7aab` |
+| `phase2-clock-control-evidence-check-v2.log` (final 387 pass) | `fe8d172f84697c2a82b96a13b6117fdd1aa062c4c359b0be8ded01f96c5dd0c5` |
+
 ## Remaining boundary
 
-Observer/restorer/coordinator role-command and outer-capture file binding, then a
-same-evidence finalizer enforcing all validators before frozen rehash **last**.
-Current upstream, fresh full preparation/frozen entry, default-policy/no-controller
+Same-evidence finalizer enforcing all validators before frozen rehash **last**, then
+current upstream verification, fresh full preparation/frozen entry (including the
+remaining live role bindings and safe sibling reaping). Observer-supervisor stdout
+is post-only, not retroactively producer-bound. Default-policy/no-controller
 confirmation, permission/enforcement/restoration evidence and a later new quiet
 window remain pending. No acceptance comparison or live launch gate is closed.

@@ -327,9 +327,16 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   real eighteen-CPU-job transport and isolated archived outputs through the actual
   qualifier; **17 focused/381 reporting tests pass**. Capture inode provenance is
   explicitly unavailable (same-byte pre-read replacement allowed); no atomic/file-
-  producer/whole-run proof. Next: outer-capture/role binding and same-evidence
-  finalizer with rehash last; current upstream, fresh preparation/entry and all live
-  policy/permission/availability gates. No GPU/benchmark work; Linux 72/78/Apple pending.
+  producer/whole-run proof. Latest: [control-side binding](docs/results/2026-11-11-phase2-optimization/linux-clock-evidence-binding.md#control-side-follow-up)
+  adds 21 files (95 total in one bounded reader), six declared role receipts/capture
+  digests, CPU report inode and GPU digest checks. Observer-supervisor stdout stays
+  explicitly post-only; coordinator/observer-supervisor/GPU launch bindings remain
+  owed by the frozen entry. Six new tests include predeclared real sibling fake-policy
+  transport through the lifecycle validator; **25 focused/387 reporting tests pass**.
+  No new producer authentication, live policy proof or full finalization. Next:
+  same-evidence finalizer with rehash last; current upstream, fresh preparation/entry
+  and live policy/permission/availability gates. No GPU/benchmark work; Linux 72/78/
+  Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

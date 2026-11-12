@@ -890,6 +890,15 @@ reporting tests pass. Capture inode provenance remains unavailable; postflight r
 bounds do not change collection quotas or imply atomic snapshots. Next: outer
 capture/role binding and same-evidence rehash-last finalizer; upstream verification,
 fresh full preparation/entry and all live launch gates remain pending.
+[Control-side binding](linux-clock-evidence-binding.md#control-side-follow-up) now
+adds 21 files (95 combined) with six declared role/receipt/capture checks, CPU report
+identity and GPU digest binding. Observer-supervisor stdout stays explicitly
+post-only; coordinator/observer-supervisor/GPU live command/environment binding is
+still owed by the frozen entry. Six new tests include predeclared actual sibling
+fake-policy transport through the lifecycle validator; 25 focused/387 reporting
+tests pass. No real telemetry/policy/benchmark action or launch-provenance claim.
+Next: same-evidence finalizer with frozen rehash last, upstream verification, fresh
+full preparation/entry and all live launch gates.
 
 ## Fixed collection and cleanup contract
 

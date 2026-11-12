@@ -93,6 +93,25 @@ raise SystemExit(0 if result['status']=='complete' else 1)
     restorer = [python, '-S', '-c', restorer_code, str(directory / 'restoration')]
     observer = [python, '-S', '-c', 'from test_clock_diagnostic_coordinator import supervised_observer; '
                 f'supervised_observer({str(directory / "telemetry")!r},{observer_mode!r})', str(directory / 'telemetry')]
+    if mode == 'lifecycle_validation':
+        # Independent test declarations saved BEFORE role launch, never inferred
+        # from collected receipts. Short fake-observer budgets are not production.
+        from test_readonly_trace_telemetry import fixture_commands
+        cpu, _ = fixture_commands(directory / 'telemetry', 'complete', 0, seconds=5)
+        cpu[0] = python
+        telemetry_worker_argv = [python, '-S', '-c',
+            'from test_clock_diagnostic_coordinator import telemetry_worker; '
+            f'telemetry_worker({str(directory / "telemetry")!r},{observer_mode!r})']
+        role_args = {'restorer': (restorer, HERE, 660, 60, None),
+                     'set': (policy_argv + ['set'], HERE, 10, 0, None),
+                     'worker': (worker_argv, HERE, 600, 0, None),
+                     'reset': (policy_argv + ['reset'], HERE, 10, 0, None),
+                     'telemetry_worker': (telemetry_worker_argv, HERE, 15, 0, None),
+                     'cpu': (cpu, directory, 15, 0, 16*1024**2)}
+        roles = {name: dict(argv=argv, cwd=str(cwd), timeout_seconds=seconds,
+                           termination_grace_seconds=grace, output_limit_bytes=1024**2,
+                           report_limit_bytes=report) for name, (argv,cwd,seconds,grace,report) in role_args.items()}
+        (root / 'declared-roles.json').write_text(json.dumps(roles))
     # No generic adoption-and-SIGKILL ancestor around the clock restorer.
     result = clock.coordinate(restorer, observer, cwd=HERE, env=env, output_dir=directory,
                               expected_cpu_source=SOURCE, gpu_uuid=UUID)

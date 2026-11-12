@@ -192,6 +192,16 @@ CPU-job transport and archived outputs through the actual qualifier; **17 focuse
 not detectable from producer hash/length alone. Reader bounds are not collection/RSS
 quotas or producer authentication. Next: outer-capture/role binding and same-evidence
 finalization with rehash last; current upstream, fresh entry and all live gates remain.
+[Control-side follow-up](linux-clock-evidence-binding.md#control-side-follow-up) now
+binds 21 additional files (95 in one reader) to six separately declared role receipts,
+capture digests and CPU report identity. Observer-supervisor stdout remains post-only;
+coordinator/observer-supervisor/GPU command/environment binding still requires the
+frozen entry. Six new tests include actual sibling fake-policy transport with role
+plans written before launch, feeding bound records to the lifecycle validator;
+**25 focused/387 reporting tests pass**. Five-second fake telemetry is not full
+content/coverage, policy enforcement or launch provenance. Next: compose the
+same-evidence finalizer with rehash last, then upstream/fresh preparation/frozen
+entry and outstanding live gates. No GPU/Torch/policy/benchmark action occurred.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test
