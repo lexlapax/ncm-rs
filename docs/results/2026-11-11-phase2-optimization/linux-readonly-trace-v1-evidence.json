@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "status": "incomplete_diagnostic_not_acceptance",
+  "measured_commit": "b7f61b5d4a616b80f94b1c0c06d5d1917d7ab14e",
+  "collection_started": true,
+  "attempts": 1,
+  "retries": 0,
+  "gpu_policy_changed": false,
+  "completed_jobs": 2,
+  "failed_job": "03-AT",
+  "unstarted_jobs": 9,
+  "failure": "fixed 1 GiB per-child capture limit exceeded",
+  "cpu_samples": 901,
+  "cpu_actual_elapsed_seconds": 900.0020833460148,
+  "gpu_samples": 900,
+  "reported_codec_outputs_qualified": false,
+  "full_twelve_job_validation_passed": false,
+  "frozen_input_postflight_executed": false,
+  "performance_acceptance_evaluated": false,
+  "phase2_complete": false,
+  "linux_acceptance": "72/78",
+  "apple_extension_gate": "pending",
+  "archive": {
+    "path": "docs/results/2026-11-11-phase2-optimization/raw/linux-readonly-trace-v1-failed.tar.xz",
+    "bytes": 354184,
+    "sha256": "ad6812bb1668c93fd1cf906f44c6180a0b2ffde1110148827521b5ae4ba0e479",
+    "members": [
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/collection.json",
+        "bytes": 1493,
+        "sha256": "91badadf1a93cefe48cb56423a1e898420cfa9e89fa0371cf7d9c26d029b6a83"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/observer-worker.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/01-AP.capture",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/01-AP.process.json",
+        "bytes": 55517,
+        "sha256": "9eea695a737a2bd211b45e40b870ee8e332a93e023c4f9980074d3455c9c254e"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/01-AP.receipt.json",
+        "bytes": 2330,
+        "sha256": "fd9cb5062418a2470ccc150237b4cffd2400014817a705bdd062afda1ba96bca"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/01-AP.report.json",
+        "bytes": 498335,
+        "sha256": "d977905a293877132dbd866d5cdab40d390623bc63c1d49d93e28784036729e1"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/02-CP.capture",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/02-CP.process.json",
+        "bytes": 55790,
+        "sha256": "533907b130603f50855c5fb6949a3a8fb5b3e955715c65f99c2e9f708212fa6a"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/02-CP.receipt.json",
+        "bytes": 2230,
+        "sha256": "9f5d97f3e61d957d81070cdd3464c7918d90255019d5f432a521c50d70446ffe"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/02-CP.report.json",
+        "bytes": 498526,
+        "sha256": "0bd169f9f333789762c1aa3489fc5274e5b4bd7becad5aba054dd061978a3131"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/03-AT.process.json",
+        "bytes": 71568,
+        "sha256": "fc88face6533a382be1b948cc423f4754b6c5963835547387cd86d6459d43248"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/03-AT.receipt.json",
+        "bytes": 2243,
+        "sha256": "8a022ffdefe8c6b714d283132ed0bd53dcdc3a8f0a148859a5997dba7c7e263d"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/sequence-plan.json",
+        "bytes": 9377,
+        "sha256": "7a6a91cd61473efe954ec3648e2922045f7704c168fa7234235ef6696ea7b3aa"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/sequence/sequence-result.json",
+        "bytes": 8807,
+        "sha256": "f33c730673dbcad98d28cd73afda96113edc922685f84f9bddf4e631e7b634e4"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/telemetry/cpu-command.receipt.json",
+        "bytes": 2187,
+        "sha256": "f14d5803fc1a103aa639a6489d7a220b7b0281cb898f701810e63683bc1fa2d0"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/telemetry/cpu-command.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/telemetry/cpu.jsonl",
+        "bytes": 5278513,
+        "sha256": "654d53d949614e7cb4662a8ca7ff55f7eb74cc9d581665d527bb61402c6f4051"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/telemetry/gpu.csv",
+        "bytes": 101595,
+        "sha256": "1d64de19d5ef05e957c8508fdbe9291eb9ec8a6fcd9f942c615b4e8654831d2f"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/telemetry/ready.json",
+        "bytes": 1584,
+        "sha256": "8d5eb600258dc8db4f7792fba6b2c6ec61c9062cdaab893b98f19dffc16fda5a"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1/telemetry/telemetry.json",
+        "bytes": 3740,
+        "sha256": "a5e892d7ff10bed15fc8c4b5cc526b741d4ff05e96e2da17a55a79b90817aa4f"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-entry.log",
+        "bytes": 1918,
+        "sha256": "a088dc78f28ca15e934731d4a8fe469bbd7643517bab243c1c3e60cdc91a03f4"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/entry-plan.json",
+        "bytes": 873,
+        "sha256": "7a491cb4bdfa64e95849baa5f34df6f2b8cddb5eda808544e9665c00dd6b341e"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/preflight/manifest.json",
+        "bytes": 116336,
+        "sha256": "0abc42aaad87902619aaac7db59d7528712ca140093b85ac3305671a3f1ce58b"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/preparation.json",
+        "bytes": 116260,
+        "sha256": "060b736951e123c42f9b56c10acf488155f054be5fbf109f852ef52ae01f1c3e"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/supervision/supervisor.json",
+        "bytes": 3218,
+        "sha256": "db3bc79c9df30c17a26bf803f7e44a373f2096203db666341225d8dddb659464"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/supervision/worker.receipt.json",
+        "bytes": 2072,
+        "sha256": "d9dbca47ffe83530bda1f9dbdebcce08c05f1a6cb3d6bcafce72b4c75f972a9a"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/supervision/worker.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/supervisor.receipt.json",
+        "bytes": 2072,
+        "sha256": "ef9f922bb81b817cfe69698d2f9abe3c3676ce33cbc93004e6efb2e276848221"
+      },
+      {
+        "path": "reports/phase2-linux-readonly-trace-v1-launch/supervisor.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "reports/phase2-readonly-entry-readiness-v1.json",
+        "bytes": 5797,
+        "sha256": "7c38e507595bedf12f7d5592306ddf773324d208f729a0ae65ee76d84b8120a7"
+      },
+      {
+        "path": "reports/phase2-readonly-entry-review-v1/manifest.json",
+        "bytes": 116260,
+        "sha256": "e70c4132c9ea0b194557de44ac9fd079bfdcaf4e92560f19c8884cc2beb28252"
+      },
+      {
+        "path": "reports/phase2-readonly-entry-review-v2/manifest.json",
+        "bytes": 116260,
+        "sha256": "060b736951e123c42f9b56c10acf488155f054be5fbf109f852ef52ae01f1c3e"
+      },
+      {
+        "path": "reports/phase2-readonly-failure-inspect-v1.py",
+        "bytes": 7252,
+        "sha256": "f31fb8906be1af93f890977add86d91899c082b288d88639b9587847dfb2ebd8"
+      },
+      {
+        "path": "reports/phase2-readonly-failure-inspect-v2.py",
+        "bytes": 7297,
+        "sha256": "08358bcca25be8831864a3b81bf941cccd4ef55fa0d8ff93b9fc4f551352bbce"
+      },
+      {
+        "path": "reports/phase2-readonly-failure-inspection-v1.json",
+        "bytes": 30189,
+        "sha256": "862f59c0ff96c0b83966613589790df45776bac591196bfc877c9399a2d27b96"
+      },
+      {
+        "path": "reports/phase2-readonly-failure-inspection-v2.json",
+        "bytes": 136238,
+        "sha256": "8b9a4398cebe22a811914a4e37b068ee5829e735e826027cb95b7a537f5be4bd"
+      }
+    ]
+  },
+  "retained_not_archived": [
+    {
+      "path": "reports/phase2-linux-readonly-trace-v1/sequence/03-AT.capture",
+      "bytes": 1073741824,
+      "sha256": "dfb1043085d792fe992cca63bff18ae94a49103bd7388c81340785cff9c24b5f",
+      "reason": "large truncated raw CUPTI capture retained locally; not needed to verify limit/cleanup receipts, but required to reproduce streamed trace counts"
+    }
+  ],
+  "scope": "Archive contains receipts, two native reports, process observations, full telemetry, preparation summaries and offline inspections. No executables, weights, raw Git status, session names or large trace tensors. Full raw truncated CUPTI capture remains local. Hashes/receipts are consistency evidence, not independent provenance."
+}

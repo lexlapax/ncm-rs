@@ -10,6 +10,13 @@ original-policy, no-controller, supervisor, permission or fresh-window checks.
 Automatic continuation does not establish those prerequisites. The earlier
 “yes. go” applied only to the completed v2 run.
 
+**2026-11-12:** [Read-only v1's single attempt failed](linux-readonly-trace-v1-results.md)
+at the unchanged 1 GiB capture bound, with no traced report or qualified trial joins.
+Its data are documented as insufficient; no retry or larger quota is implied.
+This satisfies the insufficiency-review prerequisite only. Default-policy and
+no-controller confirmation, permission/enforcement checks, fake-tested restoration
+supervision and a new quiet window remain required. No clock command has run.
+
 ## Hypothesis and scope
 
 V2 retained approximately 0.177/0.198ms B1 block clusters in both native runtimes,

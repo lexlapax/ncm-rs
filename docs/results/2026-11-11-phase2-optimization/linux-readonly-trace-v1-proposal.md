@@ -1,4 +1,10 @@
-# Read-only Linux trace investigation — selected, NOT RUN
+# Read-only Linux trace investigation — fixed attempt FAILED
+
+**2026-11-12 update:** [results and retained evidence](linux-readonly-trace-v1-results.md).
+One attempt after fresh confirmation: AP/CP complete, AT exceeded the fixed 1 GiB
+capture limit, nine jobs unstarted. Full telemetry/cleanup completed; no retry,
+quota change, output/trace qualification or acceptance pass. Remaining preparation
+sections below record their historical state, not current permission to rerun.
 
 Alternative to the optional [clock intervention](linux-clock-diagnostic-v3-proposal.md).
 No GPU-clock, power, governor, service, credential or global-tooling changes.
@@ -1322,9 +1328,10 @@ exact bounds, tests, failures and remaining real metadata/availability gates.
 Outer TERM grace protects ordinary supervisor cleanup; supervisor SIGKILL/host
 failure/uninterruptible tasks still have no containment guarantee. Current frozen
 manifest/clean-state preparation and readiness review must pass before execution.
-No new capture exists to qualify. The user has chosen the read-only investigation;
-before collection, obtain a fresh quiet 15-minute window after the tested tooling,
-exact frozen manifest and identity checks are ready.
+These launch prerequisites were subsequently satisfied at `b7f61b5`, followed by
+one failed fixed attempt. Its truncated trace and missing traced report cannot
+qualify the diagnostic. See the results above; do not repeat collection or increase
+quotas. Conditional clock fallback still requires its separate readiness gates.
 No extra profiling permissions, system installation or CUPTI replacement may be
 made implicitly. Stop and ask if existing local tracing cannot be used safely.
 

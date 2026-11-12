@@ -1,15 +1,16 @@
 # Agent context map
 
-Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
+Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
 - **Latest authorization (supersedes earlier pending-choice entries below):** user
   approved read-only investigation option 1, followed by clock-controlled option 2
-  only if option 1 provides insufficient data. Neither has run. A fresh quiet
-  15-minute window is still needed after readiness; clock fallback additionally
-  requires confirmed default-policy/no-controller state, permissions and tested
-  restoration. No automatic continuation establishes those facts.
+  only if option 1 provides insufficient data. Read-only v1 ran once after explicit
+  fresh quiet-window confirmation and failed at the fixed capture limit; no retry.
+  Clock fallback is still unrun and needs confirmed default-policy/no-controller
+  state, permissions, tested restoration and a new quiet window. No automatic
+  continuation establishes those facts.
   [Selected protocol and durable preparation evidence](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-proposal.md)
   cover fixed sequence/quotas, report receipts, trace joins/output qualification,
   frozen file/environment preflight, loader/Git guards and the worker supervisor.
@@ -83,13 +84,26 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   pass **243 reporting tests**. Initial fixture failures, missing-injection-dependency
   red/green and an error-message regression are retained. No CUDA abort guarantee.
   [Readiness checklist, exact commands and evidence](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-readiness.md)
-  now maps requirements to the implementation. Next: clean-checkout metadata-only
-  preparation/comparison, inspect `reports/phase2-readonly-entry-readiness-v1.json`
-  if it exists, then request a fresh quiet window. No selected diagnostic, GPU/model
-  run or policy change occurred; actual metadata/availability remain pending here.
-  Supervisor SIGKILL/host failure cannot guarantee cleanup. No automatic continuation
-  establishes a quiet window.
-  Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
+  maps requirements to the implementation. Published tooling: `b7f61b5`; two actual
+  metadata preparations and launch-time comparison passed at that clean HEAD.
+  [Read-only v1 failure and evidence](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-results.md):
+  explicit “quiet window now”; 2026-11-12 00:28:13–00:43:14 UTC, one attempt.
+  AP/CP completed; AT exceeded 1 GiB capture, killed/reaped; jobs 4–12 unstarted.
+  All 901 CPU samples/full 900-second collection completed; 900 GPU rows. Existing
+  separate CPU/GPU content validators pass, not the twelve-job gate. Supervisor
+  cleanup complete; eight recorded child PIDs later absent. No retry/quota change.
+  Finalizer correctly failed before frozen postflight; no completion/entry result.
+  Truncated trace: 1,433/2,008 elapsed queries, no traced report/qualified joins;
+  insufficient attribution data, not a clock-cause finding. Initial offline alias
+  counting error retained/corrected using existing ELAPSED names. Compact 36-member
+  archive published; full 1 GiB capture retained locally by hash, not public raw
+  reproduction. Next: clock-restoration fake tests and policy/controller/permission
+  checks, then new availability; no clock intervention is ready or performed.
+  Supervisor SIGKILL/host failure cannot guarantee cleanup. Linux remains 72/78,
+  Apple pending; no GPU-policy/production changes or completion. Post-attempt
+  `CARGO_BUILD_JOBS=4 ./tools/check.sh` passes 243 reporting tests; all 36 archive
+  hashes and telemetry revalidation pass in clean `git archive b7f61b5` scratch.
+  Checks/log hashes and raw-trace reproduction limitation are in the result.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

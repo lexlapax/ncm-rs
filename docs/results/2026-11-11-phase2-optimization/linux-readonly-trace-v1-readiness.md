@@ -1,4 +1,10 @@
-# Read-only trace launch readiness — hardware collection not started
+# Read-only trace launch readiness — historical prelaunch checklist
+
+**2026-11-12 update:** metadata preparation/comparison passed at `b7f61b5` and the
+user confirmed a fresh quiet window. The [single fixed attempt failed](linux-readonly-trace-v1-results.md)
+on AT's 1 GiB capture limit; AP/CP completed, nine later jobs were not started.
+Full telemetry/cleanup finished. No retry, quota increase or acceptance pass.
+The checklist/commands below describe the prelaunch review, not a new launch authorization.
 
 This is a readiness checklist for the selected diagnostic, **not Phase 2
 completion or performance acceptance**. Linux remains 72/78; Apple remains pending.

@@ -40,16 +40,27 @@ No background collection remains running. Do not repeat this diagnostic.
 The native timing distributions show both GPU block timing clusters and CPU-only
 slowdown windows. The cause is not established. The user has now approved
 **read-only option 1 first, with clock-controlled option 2 only if its data are
-insufficient**. Neither has run. Finish/test integrated collection before asking
-for a fresh quiet 15-minute window; the v2 window is spent. One-second GPU samples
-cannot identify per-block clocks, and clock locking is not established as
-necessary/sufficient. The [v3 proposal](linux-clock-diagnostic-v3-proposal.md)
+insufficient**. [Read-only v1 ran once and failed at the fixed capture limit](linux-readonly-trace-v1-results.md)
+after explicit fresh confirmation. AP/CP completed; AT exceeded 1 GiB and was
+killed/reaped; nine later jobs were not started. Full 900-second telemetry and
+supervisor cleanup completed; no retry or quota change. Separate CPU/GPU content
+checks pass, but no twelve-job gate, traced report, qualified joins or frozen
+postflight exists. The 1,433-query truncated trace is insufficient for attribution.
+Clock fallback remains unrun. One-second GPU samples cannot identify per-block
+clocks, and clock locking is not established as necessary/sufficient. The [v3 proposal](linux-clock-diagnostic-v3-proposal.md)
 remains conditional on documented insufficiency of option 1, confirmed default
 policy/no competing controller, supported-clock/permission checks, a tested
 restoration supervisor and a fresh window. Reset-to-default is not restoration
 of an unknown custom policy. No unrelated policy/process changes are authorized.
 
-The alternative [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
+The following preparation chronology predates that failed attempt; old pending
+launch notes are historical, not instructions to repeat it. Tooling was published
+at `b7f61b5`; actual metadata preparation/comparison passed before the attempt.
+The evidence index retains a compact archive and identifies the unpublished local
+1 GiB capture. Next work is fake-command clock-restoration supervision and explicit
+policy/controller/permission checks before requesting another quiet window.
+
+The [read-only trace proposal](linux-readonly-trace-v1-proposal.md)
 defines 12 fixed native processes (plain/traced), unchanged frozen executables,
 strict time/output bounds and B1 trial-attribution checks. Offline inspection of
 three historical B4 traces found the expected 36 two-event/query windows. New
