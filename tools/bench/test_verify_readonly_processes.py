@@ -43,7 +43,7 @@ class ProcessPostflightTests(unittest.TestCase):
                           'targets': {name: self.ids[name] for name in ('accepted', 'candidate', 'injection', 'taskset')},
                           'loader_identity': self.ids['loader'],
                           'libraries': {self.ids['native']['path']: self.ids['native']},
-                          'listings': {name: {'dependencies': copy.deepcopy(dependencies)} for name in ('accepted', 'candidate')}}
+                          'listings': {name: {'dependencies': copy.deepcopy(dependencies)} for name in ('accepted', 'candidate', 'injection')}}
         self.jobs, self.observations = [], []
         for ordinal, condition in enumerate(ORDER, 1):
             runtime = 'accepted' if condition[0] == 'A' else 'candidate'
@@ -107,6 +107,13 @@ class ProcessPostflightTests(unittest.TestCase):
         self.assertFalse(by_path[self.ids['source']['path']]['observed_executable_mapping'])
         self.assertEqual(result['bytes_hashed'], sum(v['bytes'] for v in self.ids.values()))
         json.dumps(result, allow_nan=False)
+
+    def test_traced_injection_dependencies_must_be_observed(self):
+        extra = self.ids['loader']  # Not mapped by the synthetic workloads.
+        self.libraries['libraries'][extra['path']] = extra
+        self.libraries['listings']['injection']['dependencies']['extra'] = {'canonical_path': extra['path']}
+        with self.assertRaisesRegex(ValueError, 'libraries not observed'):
+            self.bind()
 
     def test_pid_order_flags_receipts_and_declared_environment_failures(self):
         for mutate in (lambda j: j.pop(), lambda j: j.reverse(),
@@ -242,7 +249,7 @@ try:
                    taskset=file_identity(case.taskset))
     libraries = dict(static_loader_resolution_verified=True, targets=targets, loader_identity=loader,
                      libraries={libc['path']: libc}, listings={key: {'dependencies': {'libc': {'canonical_path': libc['path']}}}
-                                                              for key in ('accepted', 'candidate')})
+                                                              for key in ('accepted', 'candidate', 'injection')})
     prepared = dict(observer_env=base, workload_cpu=2, observer_cpu=0, jobs=[], declaration_identities=[],
                     file_identities=[case.identity, case.injection_id, targets['taskset']])
     observers = []

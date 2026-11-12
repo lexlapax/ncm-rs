@@ -74,10 +74,21 @@ Last updated: 2026-11-11 UTC. Read first; load linked context lazily.
   hashes do not hide bad logits; incomplete/mismatched evidence blocks frozen rehash.
   This is import-only orchestration, not independent live-reaping proof: the final
   entry must still supply reviewed commands and an actual exclusive-reaper runner.
-  Current frozen preparation, launch entry/readiness and fresh availability remain
-  pending. No selected diagnostic, GPU/model run or policy change occurred.
-  Supervisor SIGKILL/host failure cannot guarantee cleanup. Next: finish bindings, review readiness, then request
-  fresh availability; no automatic continuation establishes a quiet window.
+  `readonly_trace_entry.py` now supplies fixed -S/CPU0 roles, live parent-command/
+  image checks, exact isolated environments, mandatory native/injection dependency
+  observation, actual exclusive-reaper supervision and the composed finalizer.
+  Outer cancellation gives the supervisor up to 10 seconds TERM grace before KILL;
+  native job limits/cleanup remain unchanged. Ten entry tests include real role
+  transport/cancellation with workload/preflight/qualification stubs; full checks
+  pass **243 reporting tests**. Initial fixture failures, missing-injection-dependency
+  red/green and an error-message regression are retained. No CUDA abort guarantee.
+  [Readiness checklist, exact commands and evidence](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-readiness.md)
+  now maps requirements to the implementation. Next: clean-checkout metadata-only
+  preparation/comparison, inspect `reports/phase2-readonly-entry-readiness-v1.json`
+  if it exists, then request a fresh quiet window. No selected diagnostic, GPU/model
+  run or policy change occurred; actual metadata/availability remain pending here.
+  Supervisor SIGKILL/host failure cannot guarantee cleanup. No automatic continuation
+  establishes a quiet window.
   Linux remains 72/78, Apple pending; no GPU/policy/production changes or completion.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.

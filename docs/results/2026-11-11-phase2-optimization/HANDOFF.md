@@ -198,6 +198,18 @@ must still come from the final entry. Do not mistake callback return/receipt fla
 for independently proved live completion. Actual frozen preparation, final entry,
 readiness review and a fresh quiet window remain pending; no real collection ran.
 
+The final `readonly_trace_entry.py` now wires fixed isolated -S/CPU0 internal roles,
+parent command/image/plan checks, mandatory per-job observation and independent
+supervision into the composed validators. Outer interruption allows 10 seconds of
+TERM grace for supervisor cleanup before bounded escalation; default native cleanup
+and 120/600/900-second limits are unchanged. Both observation and offline reading
+require native plus injection dependencies for traced jobs. Ten entry tests include
+actual role transport/cancellation with synthetic callbacks; full checks pass **243
+reporting tests**. Failures/fixes and limitations are retained in the new
+[launch readiness checklist](linux-readonly-trace-v1-readiness.md). Actual clean-state
+metadata preparation/comparison and fresh availability are next; check the named
+local readiness summary before repeating work. No model/GPU diagnostic has run.
+
 New `tools/bench/sample_linux_cpu.py` records CPU activity, driver frequency, SMT
 siblings, pressure and system counters without process names or policy changes.
 CPU **2 and 3 are SMT siblings**. Use observer CPU **0**, not CPU 3, for CPU-2

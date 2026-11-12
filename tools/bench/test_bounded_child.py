@@ -208,7 +208,9 @@ class BoundedChildTests(unittest.TestCase):
         for changed in ({'timeout_seconds': 0}, {'timeout_seconds': float('nan')},
                         {'output_limit_bytes': True}, {'output_limit_bytes': 0},
                         {'sequence_deadline': time.monotonic() - 1},
-                        {'receipt_path': self.capture}, {'env': None}):
+                        {'receipt_path': self.capture}, {'env': None},
+                        {'termination_grace_seconds': -1}, {'termination_grace_seconds': 11},
+                        {'termination_grace_seconds': True}, {'termination_grace_seconds': float('nan')}):
             with self.subTest(changed=changed), patch('bounded_child.subprocess.Popen') as launch:
                 with self.assertRaises(ValueError):
                     run_bounded(['fake'], **(base | changed))

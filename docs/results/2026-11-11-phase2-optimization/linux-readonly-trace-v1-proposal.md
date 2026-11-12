@@ -1315,10 +1315,13 @@ any Phase 2 runtime gate.
 
 This document is **not executable launch readiness**. The coordinator, telemetry
 lifecycle/validator, sampled process observer, postflight verifier and preparation
-CLI are tested prerequisites. Actual frozen manifest/current clean-state checks,
-final launch entry with its reviewed commands and actual exclusive-reaper runner,
-application of the composed validators after that runner, mapping-limitation review
-and remaining launch-level failure tests are pending.
+CLI are tested prerequisites. The final entry now connects fixed isolated roles,
+actual exclusive-reaper supervision, mandatory observations and the composed
+validators. Its [readiness checklist](linux-readonly-trace-v1-readiness.md) records
+exact bounds, tests, failures and remaining real metadata/availability gates.
+Outer TERM grace protects ordinary supervisor cleanup; supervisor SIGKILL/host
+failure/uninterruptible tasks still have no containment guarantee. Current frozen
+manifest/clean-state preparation and readiness review must pass before execution.
 No new capture exists to qualify. The user has chosen the read-only investigation;
 before collection, obtain a fresh quiet 15-minute window after the tested tooling,
 exact frozen manifest and identity checks are ready.

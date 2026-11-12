@@ -148,9 +148,10 @@ def validate_processes(jobs, observations, prepared, libraries):
                 injected |= seen
         require(used == maps.keys() and work_keys, 'unused mapping set or missing workload observations')
         require(not condition.endswith('T') or injected, 'traced injection not observed during workload')
+        required_groups = [runtime] + (['injection'] if condition.endswith('T') else [])
         required = {key(libraries['libraries'][v['canonical_path']])
-                    for v in libraries['listings'][runtime]['dependencies'].values()}
-        require(required <= work_keys, 'required native libraries not observed')
+                    for group in required_groups for v in libraries['listings'][group]['dependencies'].values()}
+        require(required <= work_keys, 'required native libraries not observed (including injection dependencies)')
         bindings.append({'ordinal': ordinal, 'condition': condition, 'pid': pid,
                          'process_start_ticks': observed['process_start_ticks'], 'samples': len(samples),
                          'transient_samples_discarded': transient, 'observation_canonical_sha256': digest(observed),

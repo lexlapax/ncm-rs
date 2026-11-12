@@ -58,7 +58,8 @@ def fingerprint_report(path, limit_bytes):
 
 def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                 output_limit_bytes, sequence_deadline=None, report_path=None,
-                report_limit_bytes=16 * 1024 ** 2, cancel_check=None, observe_child=None):
+                report_limit_bytes=16 * 1024 ** 2, cancel_check=None, observe_child=None,
+                termination_grace_seconds=0):
     """Capture one owned session; return a failure receipt rather than retry.
 
     SIGINT/SIGTERM temporarily belong to this main-thread collector and result in
@@ -72,7 +73,13 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     before spawn and while collecting; true means failure and owned-child cleanup.
     observe_child is an optional trusted bounded callback receiving the owned,
     unreaped live PID during capture; exceptions fail capture and clean the child.
+    Optional termination_grace_seconds (0..10) gives a live supervisor SIGTERM
+    before final group cleanup. Default/native jobs still use immediate cleanup.
+    Grace is additional cleanup time, not an extension of the capture deadline.
     """
+    if type(termination_grace_seconds) not in (int, float) or not math.isfinite(termination_grace_seconds) \
+            or not 0 <= termination_grace_seconds <= 10:
+        raise ValueError('invalid termination grace')
     if observe_child is not None and not callable(observe_child):
         raise ValueError('observe_child must be callable')
     if cancel_check is not None and not callable(cancel_check):
@@ -122,6 +129,8 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
     eof = False
     child_reaped = False
     group_kill = 'not_attempted'
+    termination_signal = 'not_attempted'
+    termination_grace_exhausted = False
     returncode = None
     lifetime = diagnostic_clock.begin()
     started = time.monotonic()
@@ -213,7 +222,21 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                     if child is not None:
                         owned = True
                         try:
-                            os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                            exited = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                            if exited is None and termination_grace_seconds:
+                                try:
+                                    os.killpg(child.pid, signal.SIGTERM)
+                                    termination_signal = 'sent'
+                                except ProcessLookupError:
+                                    termination_signal = 'no_group'
+                                except OSError as error:
+                                    termination_signal = type(error).__name__
+                                    issue('graceful_signal_failed')
+                                grace_end = time.monotonic() + termination_grace_seconds
+                                while exited is None and time.monotonic() < grace_end:
+                                    time.sleep(.02)
+                                    exited = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+                                termination_grace_exhausted = exited is None
                         except OSError:
                             # Never use a numeric group ID if another reaper has
                             # invalidated ownership. This is an unsupported caller.
@@ -281,6 +304,9 @@ def run_bounded(argv, *, cwd, env, capture_path, receipt_path, timeout_seconds,
                         'captured_bytes': captured, 'observed_bytes': observed,
                         'capture_sha256': capture_digest.hexdigest(), 'capture_eof': eof,
                         'group_kill': group_kill, 'direct_child_reaped': child_reaped,
+                        'termination_grace_seconds': termination_grace_seconds,
+                        'termination_signal': termination_signal,
+                        'termination_grace_exhausted': termination_grace_exhausted,
                         'interrupt_signal': interrupted, 'workload_output_qualified': False,
                         'executable_identity_verified': False,
                         'process_observer_enabled': observe_child is not None,
