@@ -223,6 +223,15 @@ v1 is retained before v2's stronger object checks. This is current-only inspecti
 not Python closure, historical library equivalence, atomic snapshot or full preflight.
 Next: fresh complete preparation/entry, incorporating a fresh upstream recheck, and
 all live policy/permission/readiness/availability gates. No GPU/benchmark action.
+[Preparation admission audit](linux-clock-preparation-admission.md) now finds 303
+unique planned paths (a 261-file subset already exceeds the 256-file clock postflight
+cap). Current tool listing plus retained declarations is not a fresh byte inventory.
+Nine existing file-postflight tests pass with the cap unchanged; default checks not
+rerun (prior 391). User approval requested for a **clock-only 512-file count**, keeping
+8 GiB total/2 GiB per-file and all collection, deadline, telemetry and acceptance
+limits unchanged. Do not silently change the cap, trim coverage or split batches.
+Also still need the default-clock/no-custom-lock/no-controller answer. No quiet
+window yet; frozen preparation/entry and live readiness gates remain pending.
 Telemetry tests use shortened fixtures, not real 900-second coverage. A broken warning pipe
 can no longer skip final restoration evidence/role cleanup; reset failure remains
 failed. The proposal retains that red regression and the initial exit120-vs-1 test

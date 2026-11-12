@@ -916,6 +916,14 @@ published. Ten upstream/six native probes complete, 25-member archive reviewed;
 15 focused/391 reporting tests pass. Current-only snapshots must be rechecked in
 fresh complete preparation; Python closure/historical library bytes and full entry/
 live policy/permission/readiness gates remain pending. No GPU/benchmark run.
+[Preparation admission audit](linux-clock-preparation-admission.md) finds 303 unique
+planned file paths (261 in a subset), exceeding the existing clock postflight cap
+of 256. This is not fresh byte verification. Nine file-postflight tests pass with
+that cap unchanged; default suite not rerun (prior 391). Approval requested to raise
+**only the clock postflight file count to 512**, retaining 8 GiB total/2 GiB per-file
+and every collection/deadline/telemetry/acceptance limit. No change or coverage trim
+applied. This decision and the default-clock/no-controller answer remain outstanding;
+no quiet window requested and no GPU/benchmark work.
 
 ## Fixed collection and cleanup contract
 

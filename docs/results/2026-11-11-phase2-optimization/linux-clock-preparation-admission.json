@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "kind": "clock-planned-path-admission-audit",
+  "input_records": {
+    "reports/phase2-clock-python-preparation-v3.json": {
+      "bytes": 22424,
+      "sha256": "b38b01c656cb2848a55cfc56086bd435b6892880b0c4a18af55d3efa0e5dd221"
+    },
+    "reports/phase2-clock-library-contract-v2.json": {
+      "bytes": 35754,
+      "sha256": "24c4faf94477db7fbeabfabc88bc95b7dfece83263e71fc7358298e3f44b1b9e"
+    },
+    "reports/phase2-clock-preload-inventory-v1.json": {
+      "bytes": 16625,
+      "sha256": "63dce3fd03d4af607c50c631bdf7e66703ea95fade7c1770d34fd3672578faa2"
+    },
+    "reports/phase2-clock-upstream-verification-v2/upstream.json": {
+      "bytes": 41436,
+      "sha256": "250c55d07177330441cd85aad6f747a8f1a7ad8e455f3f2bcbdc8eccce3d38ad"
+    },
+    "reports/phase2-readonly-entry-review-v2/manifest.json": {
+      "bytes": 116260,
+      "sha256": "060b736951e123c42f9b56c10acf488155f054be5fbf109f852ef52ae01f1c3e"
+    }
+  },
+  "groups": {
+    "python_tools": 136,
+    "python_metadata_startup_interpreter": 43,
+    "known_libraries": 40,
+    "workload_images_and_taskset": 4,
+    "upstream_tracked_files": 39,
+    "preload_sources": 3,
+    "native_sources_and_fixtures": 26,
+    "codec_payload_and_manifest": 7,
+    "guard_declarations": 4,
+    "utilities_and_timezone": 4
+  },
+  "lower_bound_files": 261,
+  "planned_unique_files": 303,
+  "existing_postflight_file_limit": 256,
+  "lower_bound_fits": false,
+  "planned_inventory_fits": false,
+  "proposed_postflight_file_limit": 512,
+  "limit_change_applied": false,
+  "fresh_file_identities_verified": false,
+  "complete_inventory_proved": false,
+  "launch_ready": false,
+  "scope": "Path-count admission only: current tool listing plus retained declaration paths. Not a fresh simultaneous inventory, target-file hash/size check, complete future role/source closure or collection. Original limits remain unchanged. No omitted tests/assets/known optional candidates to fit.",
+  "stages": [
+    {
+      "group": "python_tools",
+      "declared_paths": 136,
+      "new_paths": 136,
+      "cumulative_files": 136
+    },
+    {
+      "group": "python_metadata_startup_interpreter",
+      "declared_paths": 43,
+      "new_paths": 43,
+      "cumulative_files": 179
+    },
+    {
+      "group": "known_libraries",
+      "declared_paths": 40,
+      "new_paths": 40,
+      "cumulative_files": 219
+    },
+    {
+      "group": "workload_images_and_taskset",
+      "declared_paths": 4,
+      "new_paths": 3,
+      "cumulative_files": 222
+    },
+    {
+      "group": "upstream_tracked_files",
+      "declared_paths": 39,
+      "new_paths": 39,
+      "cumulative_files": 261
+    },
+    {
+      "group": "preload_sources",
+      "declared_paths": 3,
+      "new_paths": 2,
+      "cumulative_files": 263
+    },
+    {
+      "group": "native_sources_and_fixtures",
+      "declared_paths": 26,
+      "new_paths": 26,
+      "cumulative_files": 289
+    },
+    {
+      "group": "codec_payload_and_manifest",
+      "declared_paths": 7,
+      "new_paths": 7,
+      "cumulative_files": 296
+    },
+    {
+      "group": "guard_declarations",
+      "declared_paths": 4,
+      "new_paths": 4,
+      "cumulative_files": 300
+    },
+    {
+      "group": "utilities_and_timezone",
+      "declared_paths": 4,
+      "new_paths": 3,
+      "cumulative_files": 303
+    }
+  ],
+  "retained_evidence": [
+    {
+      "path": "reports/phase2-clock-preparation-inventory-v1.py",
+      "bytes": 3892,
+      "sha256": "40f05f2dbed585ffe1fcb627d8052a9211f78ec044b5a484dcfcc416a88d05de"
+    },
+    {
+      "path": "reports/phase2-clock-preparation-inventory-v1.json",
+      "bytes": 54721,
+      "sha256": "203f9b56400a4802f06de53fa755804c9620f780917450bf5202472da223cfba"
+    },
+    {
+      "path": "reports/phase2-clock-preparation-inventory-v1.log",
+      "bytes": 493,
+      "sha256": "cc3aa34a1209665e957f9e6963fea0b54f5c81b3ef9f0e323346336e459ecd83"
+    },
+    {
+      "path": "reports/phase2-clock-preparation-admission-tests-v1.log",
+      "bytes": 1504,
+      "sha256": "804559bbb2cde037dc9d2355606004f9051e582bf36bdada658d39eb3bf1d6b6"
+    }
+  ]
+}

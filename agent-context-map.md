@@ -349,8 +349,17 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   six native guards completed; 25-member compact archive consistency/privacy checked.
   **15 focused/391 reporting tests pass**. V1 retained before stronger v2 commit/object
   checks; no import-closure/historical-library/atomic-snapshot or launch claim.
-  Next: fresh complete preparation/entry (recheck upstream in that snapshot), then
-  live policy/permission/availability gates. No GPU/benchmark work; Linux 72/78/Apple pending.
+  Next preparation audit found a [file-count admission blocker](docs/results/2026-11-11-phase2-optimization/linux-clock-preparation-admission.md):
+  current tool paths plus retained declarations form 303 unique planned files; even
+  a 261-file subset exceeds the clock postflight's 256-file cap. This is path-count
+  evidence, not fresh target hashes or complete inventory. **9 existing file tests
+  pass**; default suite not rerun (prior 391). Requested approval to raise only the
+  clock postflight count to 512, preserving 8 GiB total/2 GiB per-file and every
+  collection/deadline/telemetry/acceptance limit. No change applied; do not omit files
+  or split batches to evade the cap. Need that decision AND the unanswered default-
+  clock/no-custom-lock/no-controller answer; continuation establishes neither.
+  Then finish fresh preparation/entry and live permission/readiness gates. No quiet
+  window requested, GPU/benchmark work or acceptance closure; Linux 72/78/Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved
