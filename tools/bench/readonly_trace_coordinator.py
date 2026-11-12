@@ -97,16 +97,44 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
     job are propagated to the coordinator instead of accidentally waiting 900s.
     All output is private partial evidence until separate qualification/audit.
     """
-    require(sys.platform == 'linux' and threading.current_thread() is threading.main_thread()
-            and threading.active_count() == 1 and len(list(Path('/proc/self/task').iterdir())) == 1
-            and signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL and not direct_children(),
-            'fresh single-threaded Linux coordinator with exclusive reaping required')
     require(process_observer_factory is None or callable(process_observer_factory),
             'process_observer_factory must be callable')
     jobs = validate_jobs(jobs)
     directory = Path(output_dir).absolute()
-    sequence_dir, telemetry_dir = directory / 'sequence', directory / 'telemetry'
+    sequence_dir = directory / 'sequence'
     validate_report_paths(jobs, sequence_dir)
+
+    def action(monitor):
+        sequence = run_sequence(jobs, sequence_dir, cancel_check=monitor,
+                                process_observer_factory=process_observer_factory)
+        interrupted = None
+        for job in sequence['jobs']:
+            if job['receipt']['interrupt_signal'] is not None:
+                interrupted = job['receipt']['interrupt_signal']
+        return sequence, interrupted
+
+    return _coordinate_action(observer_argv, cwd=cwd, env=env, output_dir=directory,
+                              expected_cpu_source=expected_cpu_source, gpu_uuid=gpu_uuid,
+                              run_action=action, status_key='sequence_status')
+
+
+def _coordinate_action(observer_argv, *, cwd, env, output_dir, expected_cpu_source,
+                       gpu_uuid, run_action, status_key):
+    """Shared lifecycle only: one trusted action after readiness, never a retry.
+
+    The action returns its result dict plus any captured SIGINT/SIGTERM. An ordinary
+    failed action still waits for telemetry; action exceptions/interrupts abort it.
+    Caller-specific preparation, policy safety and whole-tree supervision are not
+    provided by this common lifecycle. Clock restoration must survive parent loss.
+    """
+    require(sys.platform == 'linux' and threading.current_thread() is threading.main_thread()
+            and threading.active_count() == 1 and len(list(Path('/proc/self/task').iterdir())) == 1
+            and signal.getsignal(signal.SIGCHLD) == signal.SIG_DFL and not direct_children(),
+            'fresh single-threaded Linux coordinator with exclusive reaping required')
+    require(callable(run_action) and status_key in ('sequence_status', 'restoration_supervisor_status'),
+            'supported lifecycle action required')
+    directory = Path(output_dir).absolute()
+    telemetry_dir = directory / 'telemetry'
     require(isinstance(observer_argv, (list, tuple)) and observer_argv
             and all(isinstance(arg, str) and arg and '\0' not in arg for arg in observer_argv)
             and str(telemetry_dir) in observer_argv, 'observer must have its exclusive directory argument')
@@ -173,11 +201,13 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
                         if monitor() or time.monotonic() - started >= STARTUP_SECONDS:
                             issue('observer_not_ready_at_launch')
                             break
-                        sequence = run_sequence(jobs, sequence_dir, cancel_check=monitor,
-                                                process_observer_factory=process_observer_factory)
-                        for job in sequence['jobs']:
-                            if job['receipt']['interrupt_signal'] is not None:
-                                interrupted = job['receipt']['interrupt_signal']
+                        sequence, action_interrupt = run_action(monitor)
+                        require(isinstance(sequence, dict) and sequence.get('status') in ('complete', 'failed')
+                                and (action_interrupt is None or (type(action_interrupt) is int
+                                     and action_interrupt in (signal.SIGINT, signal.SIGTERM))),
+                                'invalid action result or interrupt')
+                        if action_interrupt is not None:
+                            interrupted = action_interrupt
                         # A benchmark error is not permission to truncate the sampler.
                         while not monitor():
                             time.sleep(.05)
@@ -204,7 +234,7 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
             issue('telemetry_result_error:' + type(error).__name__)
     if capture.stat().st_size > OUTPUT_BYTES:
         issue('observer_worker_output_limit')
-    success = (sequence is not None and sequence['status'] == 'complete' and ready is not None
+    success = (isinstance(sequence, dict) and sequence.get('status') == 'complete' and ready is not None
                and finished and shutdown is not None and shutdown['verified']
                and shutdown['returncode'] == 0 and not shutdown['kill_escalation']
                and telemetry is not None and not errors and interrupted is None)
@@ -212,13 +242,16 @@ def coordinate(jobs, observer_argv, *, cwd, env, output_dir, expected_cpu_source
               'started_utc': started_utc, 'finished_utc': utc_now(),
               'elapsed_seconds_including_cleanup': time.monotonic() - started,
               'observer_pid': observer.pid if observer else None, 'observer_shutdown': shutdown,
-              'sequence_status': sequence['status'] if sequence is not None else None,
+              status_key: sequence.get('status') if isinstance(sequence, dict) else None,
               'telemetry_status': telemetry.get('status') if isinstance(telemetry, dict) else None,
               'interrupt_signal': interrupted, 'errors': errors,
               'launch_provenance_verified': False, 'telemetry_contents_qualified': False,
               'sequence_coverage_verified': False, 'benchmark_outputs_qualified': False,
-              'scope': 'Lifecycle composition only; caller must independently supervise this worker. '
-                       'Polling output limits can overshoot; these are not filesystem quotas. '
+              'scope': ('Lifecycle composition only; caller must independently supervise this worker. '
+                        if status_key == 'sequence_status' else
+                        'Lifecycle composition only; caller must provide restoration-aware ancestry '
+                        'and independent observer cleanup. ')
+                       + 'Polling output limits can overshoot; these are not filesystem quotas. '
                        'Not full telemetry verification, frozen launch provenance or acceptance.'}
     result['lifetime'] = diagnostic_clock.finish(lifetime)
     result['ready_observed_clock'] = ready_observed_clock

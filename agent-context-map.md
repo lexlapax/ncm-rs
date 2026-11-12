@@ -184,6 +184,19 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
   No GPU/policy/permission/benchmark run. Still need frozen role/budget binding,
   full telemetry/restoration composition, final qualifications and the unanswered
   default-policy/no-controller confirmation before readiness and a new quiet window.
+  Latest offline integration: `clock_diagnostic_coordinator.py` gates the one
+  restoration-aware capture on telemetry readiness; ordinary worker failure keeps
+  the sampler running, observer loss/TERM cancels work without suppressing reset.
+  Six new CPU-only tests use the real restoration/worker/capture with fake policy,
+  workloads and shortened synthetic telemetry. **14 focused tests and default
+  checks with 298 reporting tests pass**; exact logs/hashes are in the clock proposal.
+  Read-only coordinator defaults/results remain compatible; no retry or hardware run.
+  Still not launch-ready: frozen role/deadline bindings, actual per-job observations,
+  full telemetry/output qualification and restoration-aware ancestry remain owed.
+  A generic adoption-and-KILL ancestor must not surround the restorer; the observer
+  branch still needs independent orphan/escape cleanup before parent-loss safety can
+  be claimed. Policy/controller confirmation, permissions and a later fresh window
+  remain missing. Linux stays 72/78; Apple pending.
 
 - Public repository: https://github.com/lexlapax/ncm-rs, `main`, remote `origin`.
 - **Phase 2 is reopened for the additional five-step optimization plan approved

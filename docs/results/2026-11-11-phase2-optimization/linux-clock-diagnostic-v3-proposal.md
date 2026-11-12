@@ -480,6 +480,62 @@ CARGO_BUILD_JOBS=4 ./tools/check.sh
 | `phase2-restoration-grace-tests-v3.log` | Final 22 focused tests pass | `8cd823198d5d79bb61d0e2a7cdd391a90cfe04e35f0a7e9754036618043b2e13` |
 | `phase2-restoration-grace-check-v3.log` | Final default checks pass; 292 reporting tests | `811aeb650c14ac9025c202dc273b57dd0c60f73d6fb27a46cf281c3452a9b5be` |
 
+## Readiness-gated restoration lifecycle — CPU-only integration
+
+`clock_diagnostic_coordinator.py::coordinate` now connects the real telemetry
+readiness/monitor lifecycle to `capture_restorer`: one restoration supervisor,
+660-second capture/60-second TERM grace, no retry. Shared lifecycle extraction in
+`readonly_trace_coordinator.py` preserves the read-only entry's arguments, result
+fields and default limits. Clock results use `restoration_supervisor_status`, not
+`sequence_status`; their provenance/telemetry/coverage/output qualification flags
+remain false. The caller still supplies trusted reviewed argv/environment; requiring
+an absolute executable and the exclusive restoration-directory argument is **not**
+authentication of the role or policy command.
+
+An ordinary failed restorer receipt retains the full sampler lifetime. Observer
+failure cancels the outer capture, whose grace allows reset cleanup before return.
+Captured SIGINT/SIGTERM propagates to coordinator cleanup rather than waiting out
+900 seconds after interruption. An invalid readiness record never invokes the
+restorer; action arguments are validated before spawning the observer. No new
+frozen-file hashing or metadata subprocesses are introduced during collection.
+
+Six new CPU-only tests use fresh interpreters for the actual coordinator, outer
+capture, restoration transaction and bounded codec worker, with fake policy/workload/
+identity observers and synthetic telemetry; invalid argv uses an in-process spawn mock. They verify all 18 jobs then reset; job-two
+failure stops later work but preserves five-second sampling; observer failure
+cancels an in-flight first job and still resets; coordinator TERM still resets;
+malformed readiness prevents all policy/work; invalid restorer argv prevents even
+observer spawn. Fake reset requires recorded workload PIDs absent. Coordinator
+checks retain no direct children and restore affinity. The real 600/590-second
+inner budgets and full 900-second telemetry are **not** exercised by these shortened
+fixtures. Success is lifecycle composition, not codec or clock qualification.
+
+**Ancestry remains a launch blocker.** Do not put the clock coordinator/restorer
+under the read-only generic adoption-and-KILL supervisor: parent disappearance
+must leave the independent restorer alive to reset. Conversely, the observer
+branch still needs separately supervised orphan/session-escape cleanup. These
+new tests exercise ordinary/TERM cleanup, not whole-launch coordinator SIGKILL
+with a surviving observer subtree. Freeze/review the role tree and test these
+failure paths before launch; independent restoration primitive tests alone do
+not close that integration requirement. Final role/deadline binding, actual
+per-job image/library observation, full telemetry/output qualification, policy/
+controller confirmation, permissions/enforcement and a new quiet window remain.
+No GPU command, clock-policy test, hardware sampling or model benchmark ran.
+Linux remains **72/78**, Apple pending; no Phase 2 completion is implied.
+
+Commands (private retained logs created exclusively with `umask 077`):
+
+```sh
+PYTHONPATH=tools/bench python -m unittest test_clock_diagnostic_coordinator test_readonly_trace_coordinator -v
+CARGO_BUILD_JOBS=4 ./tools/check.sh
+```
+
+| Retained log under `reports/` | Result | SHA-256 |
+| --- | --- | --- |
+| `phase2-clock-coordinator-tests-v1.log` | Initial 13 focused tests pass | `5a7ed4dd51b5e19d85d532460f094c5e393f77be0a70bc71d5490200b097dde2` |
+| `phase2-clock-coordinator-tests-v2.log` | Final 14 focused tests pass, including coordinator TERM | `906999749f96bed41f892937d9281ccdaf89d68e0210563140585d92fea2656f` |
+| `phase2-clock-coordinator-check-v1.log` | Default checks pass; 298 reporting tests | `e7e856729d766626d56fafb67175439651e54c1dea05f3d9c1f3ff4771faa9e1` |
+
 ## Fixed collection and cleanup contract
 
 After approval and successful supervisor tests, freeze a machine-readable manifest

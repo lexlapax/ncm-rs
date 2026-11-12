@@ -63,7 +63,12 @@ worker has nine CPU-only tests; four composed tests now exercise actual nested
 restoration/worker ownership, shared-deadline handoff, failure exit status and
 reset after observer loss/deadline abort. Four outer-capture tests include a real
 12-second fake-policy cleanup retry after cancellation and large final output.
-Default checks pass 292 reporting tests.
+The latest import-only `clock_diagnostic_coordinator.py` gates the restoration-aware
+capture on telemetry readiness, waits out the sampler after ordinary worker failure,
+and cancels work on observer loss or interruption without suppressing reset. Six new
+CPU-only tests exercise these paths, all 18 fake jobs, invalid argv/readiness and
+coordinator TERM; fourteen focused tests and default checks with **298 reporting
+tests pass**. Tests use shortened synthetic telemetry, not real 900-second coverage.
 The supervisor arms before set, stops/reaps owned workers/escaped descendants,
 and attempts reset on failure/interrupt/parent loss, with at most one
 cleanup-only retry. Absolute reset/work deadlines are now persisted before set:
@@ -72,8 +77,12 @@ spawn evidence fails even after exit-zero reset; no hard real-time or driver-act
 timestamp guarantee. The clock proposal documents schema-2 restoration reports,
 additive child-receipt spawn time, retained red/green logs and limitations.
 No real GPU commands ran. Command exit is not hardware restoration; integration
-still owes production role/deadline binding, full telemetry, enforcement and
-frozen worker binding. Do not reuse the read-only outer wrapper's 10-second TERM
+still owes production role/deadline binding, full telemetry qualification, enforcement
+and frozen worker binding. Do not wrap the clock coordinator/restorer with a generic
+adoption-and-KILL supervisor: restoration must survive coordinator loss. The observer
+branch still needs separate orphan/escape cleanup; the new lifecycle tests do not
+prove whole-launch parent-loss safety. Review and test that ancestry before launch.
+Do not reuse the read-only outer wrapper's 10-second TERM
 grace for clock restoration: it cannot cover two permitted 10-second reset attempts
 plus cleanup. `clock_restoration_capture.py` now provides a 660-second outer budget
 and explicit 60-second cleanup grace, still requiring production role binding.
