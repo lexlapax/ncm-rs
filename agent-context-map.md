@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Preparation-only snapshot assembler:** `prepare_clock_snapshot.py` composes
+  native, upstream, Python/startup, preload, loader, worktree and tool/utility
+  records, independently validates all 18 fixed codec jobs, and rechecks supplied
+  files before exclusive private output. Sixteen focused tests and default checks
+  with 418 reporting tests pass; focused tests stub the producers and cover invalid
+  commands and failed rechecks. [Scope and commands](docs/results/2026-11-11-phase2-optimization/linux-clock-file-snapshot.md).
+  Actual assembled preparation has not run. No launch entry, GPU identity,
+  permissions, hardware restoration or quiet-window claim; Linux still 72/78.
 - **Precollection declared-file recheck:** `verify_clock_preparation_files.py`
   inventories all admitted file types/identities/sizes before hashing, verifies
   digests and then rechecks visible metadata and exact alias resolution. Five
