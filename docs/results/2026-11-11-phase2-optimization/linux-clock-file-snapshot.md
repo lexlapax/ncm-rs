@@ -57,3 +57,29 @@ The snapshot describes that exact source state, not this later documentation
 commit. Refresh and compare it against the reviewed final entry/HEAD before any
 collection. It is neither proof of an atomic filesystem snapshot nor full launch
 preparation, producer authentication, live role binding or acceptance.
+
+## Comparing a reviewed snapshot with a fresh preparation
+
+`compare_clock_snapshots.compare` validates declaration admission, precollection
+file/alias counts, the fixed 18-job plan and worktree state in each supplied
+snapshot, then compares stable native/Python/preload, tool, utility, inventory,
+loader, upstream and timezone fields. It deliberately excludes bounded probe
+receipts, timestamps and private allowed-session-entry counts, while retaining
+head/cleanliness checks. It is a pure comparison of supplied records, not proof
+that the current record was freshly produced by trusted code or that all relevant
+files were declared. GPU permission, live roles, restoration and readiness remain
+separate requirements.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_compare_clock_snapshots test_prepare_clock_snapshot test_clock_preparation_inventory test_verify_clock_preparation_files -v
+PYTHONPATH=tools/bench python3 -S -c 'import json; from pathlib import Path; from compare_clock_snapshots import compare; x=json.loads(Path("reports/phase2-clock-snapshot-v1/snapshot.json").read_bytes()); print(json.dumps(compare(x,x)))'
+```
+
+Eighteen focused tests pass, including ten changed/overclaimed cases. The actual
+retained v1 record compares to itself with readiness and producer authentication
+false; this is only a parser/consistency check, not a fresh snapshot comparison.
+The future entry must generate the current snapshot itself and bind the reviewed
+snapshot hash and source/role identity before relying on any comparison.
+`umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
+including 426 reporting tests; local log:
+`/tmp/ncm-phase2-compare-clock-snapshots-check.log`.

@@ -98,8 +98,8 @@ cancel and reap the privileged process tree and the final command/environment
 bindings are reviewed and tested. A read-only `sudo -n -l /usr/bin/sleep 1` also
 returned exit zero, suggesting a harmless fake-command path for further cleanup
 research. These were policy listings only; no privileged command was executed,
-no credentials or configuration changed, and no GPU query, clock or benchmark
-action occurred.
+no credentials or configuration changed by the agent, and no GPU query, clock or
+benchmark action occurred during these policy listings.
 
 ### Harmless privileged-child probe
 
@@ -109,8 +109,9 @@ owned-child capture, with a 0.3-second timeout. Sudo exited in 0.0044 seconds wi
 receipt reports a nonzero exit, direct-child reaping and capture EOF, but this is
 **not** a privileged descendant cleanup test. Detailed `sudo -n -ll` listings for
 both NVIDIA commands matched an `ALL` rule; that listing alone does not establish
-password-free execution. No GPU or policy command ran. The user has been asked to
-arrange noninteractive authorization without sending a password or changing clocks.
+password-free execution. No GPU or policy command ran. The user requested a sudo
+prompt and was asked to run `sudo -v` in their own terminal without sending a
+password or changing clocks; cross-process authorization remains to be checked.
 Role planning, authorization and safe privileged cleanup still need integration.
 
 Private evidence: `/tmp/ncm-clock-sudo-owned-cleanup-v1.py` SHA-256
@@ -120,3 +121,20 @@ Private evidence: `/tmp/ncm-clock-sudo-owned-cleanup-v1.py` SHA-256
 `capture.txt` SHA-256 `9b3a3b7a78f239c4473bb193476b1a860c91f1c2b4fab9c7639eceea414a60fb`,
 and `summary.json` SHA-256
 `a2109f6be245d7a2f38273cdbc92318d26f66fce4747789018ea18a6873607a3` in the same directory.
+
+### Read-only GPU identity and supported clocks
+
+A later read-only query outside the sandbox reported the same historical UUID,
+PCI `00000000:01:00.0` and NVIDIA GeForce RTX 3060 Ti. The corresponding
+inside-sandbox identity query failed to communicate with the driver. The
+outside-sandbox supported-graphics-clock query returned 114 rows, including
+`1710 MHz`; retained `/tmp/ncm-phase2-supported-clocks-v1.csv` SHA-256
+`b90cfe2abbb98c11366c42bf2dfaebfdb140444476a1f00a10805cc99658441f`.
+The utility describes this listing as application-clock combinations. It does
+not prove that the proposed GPU lock is permitted, accepted or enforced, and the
+identity must be rebound during the final fresh preflight. No clock was set.
+
+```sh
+/usr/bin/nvidia-smi --query-gpu=uuid,pci.bus_id,name --format=csv,noheader
+/usr/bin/nvidia-smi -i GPU-180283f7-eafd-6501-7e06-eef40d304c41 --query-supported-clocks=graphics --format=csv,noheader > /tmp/ncm-phase2-supported-clocks-v1.csv
+```
