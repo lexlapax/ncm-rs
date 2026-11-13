@@ -90,12 +90,13 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   in their own terminal; the agent's `sudo -n true` and the user's same-terminal
   detached fake test both still required a password. No privileged sleep ran, no
   password was shared and no GPU clocks changed. A reviewed interactive privilege
-  and cleanup design remains necessary. The user was given a checksum-bound,
-  CPU-only root fake-restoration test after its unprivileged self-test passed;
-  the requested user-run result is pending and would not prove coordinator wiring
-  or hardware restoration. A separate prospective same-session process-group fake
-  probe is prepared but unrun in the user's terminal; local no-TTY v0 failed to
-  authenticate and established no privileged cleanup. No real command was changed.
+  and cleanup design remains necessary. The user ran the checksum-bound CPU-only
+  root fake-restoration test: normal and deadline cases each reset the fake state
+  and completed owned-child cleanup. Root-owned summary and hash verified; this
+  does not prove unprivileged-coordinator wiring or hardware restoration. A second
+  same-terminal process-group fake probe was requested; its result is pending.
+  Local no-TTY v0 failed to authenticate and established no privileged cleanup.
+  No real clock command was run.
   [Permission evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#noninteractive-permission-investigation).
   No launch or GPU action occurred.
 - **Clock role declaration plan:** `clock_role_plan.py` constructs fixed role

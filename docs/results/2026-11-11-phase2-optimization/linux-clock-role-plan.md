@@ -165,7 +165,7 @@ workers. Its ordinary-user `--self-test` passed both normal and deadline cases;
 the initial v1 self-test exposed an incorrect parent PID and was corrected before
 v2. The user has been given an `sudo /usr/bin/python3 -I -S -c ...` command that
 reads and verifies those exact script bytes before executing `--privileged-test`.
-No password was requested in chat. Its result is pending.
+No password was requested in chat.
 
 ```sh
 sudo /usr/bin/python3 -I -S -c 'import os,stat,hashlib; p="/tmp/ncm-root-fake-restoration-v2.py"; f=os.fdopen(os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK),"rb"); s=os.fstat(f.fileno()); assert stat.S_ISREG(s.st_mode) and s.st_size<=1048576; b=f.read(1048577); f.close(); assert len(b)==s.st_size and hashlib.sha256(b).hexdigest()=="710a7b0ff4911567054f4d9dbf9ca3d07a528aa61e172a83ed26e11b93d27ccc"; exec(compile(b,p,"exec"))' --privileged-test
@@ -173,15 +173,21 @@ sudo /usr/bin/python3 -I -S -c 'import os,stat,hashlib; p="/tmp/ncm-root-fake-re
 
 The user's first invocation returned `Choose exactly --self-test or
 --privileged-test`; no fake case ran. A corrected checksum-bound command sets
-the script arguments inside the verified Python launcher. Its output is pending.
+the script arguments inside the verified Python launcher. The user ran the
+corrected short-path command below.
 The short-path copy has the same SHA-256 as v2:
 
 ```sh
 sudo python3 -I -S -c 'import os,sys,hashlib;p="/tmp/ncm-root-v2.py";f=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK);b=os.read(f,65536);os.close(f);assert hashlib.sha256(b).hexdigest()=="710a7b0ff4911567054f4d9dbf9ca3d07a528aa61e172a83ed26e11b93d27ccc";sys.argv=[p,"--privileged-test"];exec(compile(b,p,"exec"))'
 ```
 
-Even a successful root fake test would establish only those synthetic owned-child
-transactions. It would not establish safe wiring to the unprivileged coordinator,
+The user-reported output and root-owned (outside-sandbox UID 0, mode 644) retained
+summary agree: the normal case completed, the deadline case failed as expected,
+and both recorded fake set/reset, successful reset submission, absent fake lock,
+and complete owned cleanup. `/tmp/ncm-root-fake-restoration-v2-0.json` SHA-256:
+`7c34e115a6201055e494e33124b5222d3c77eb6427dddedca3ee21f59678b523`.
+No GPU or real policy command ran. This root fake test establishes only those
+synthetic owned-child transactions. It does not establish safe wiring to the unprivileged coordinator,
 real CUDA cleanup, GPU clock enforcement/restoration or readiness. The user should
 not run the real lock/reset directly: the approved protocol requires an armed and
 reviewed restoration supervisor and a fresh quiet window first.
@@ -190,9 +196,10 @@ reviewed restoration supervisor and a fresh quiet window first.
 
 A separate CPU-only exploratory script, `/tmp/ncm-sudo-tty-group-probe-v1.py`
 (SHA-256 `cd00adf46b97c766d40f8d111137f8a5015dff3af3ef673676eb9e2f46c6801c`),
-was prepared but not run in the user's terminal. It would start only `sudo -n
+was prepared and the user was asked to run it in their terminal; that result is
+pending. It starts only `sudo -n
 /usr/bin/sleep 3` in a new process group while retaining the parent session, then
-observe bounded termination. This is a prospective fake test, not a proposed change
+observes bounded termination. This is a prospective fake test, not a proposed change
 to the approved diagnostic or proof that privileged children can be cleaned up.
 A local v0 harness run without a terminal exited immediately with `sudo: a password
 is required`; no privileged sleep ran. Its script and summary SHA-256 values are
@@ -201,6 +208,9 @@ is required`; no privileged sleep ran. Its script and summary SHA-256 values are
 The agent made no GPU access, credential or sudo configuration change in this probe. Any replacement
 for the existing session-based capture requires reviewed design and comprehensive
 fake cleanup tests; it is not authorized for a live clock operation by this probe.
+
+The user was asked to run `sudo -v && python3 -I -S /tmp/ncm-sudo-tty-group-probe-v1.py`
+in the same terminal and return its JSON output. No password is requested in chat.
 
 ## Observer branch role dispatch
 
