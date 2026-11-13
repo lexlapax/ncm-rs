@@ -10,8 +10,12 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   files before exclusive private output. Sixteen focused tests and default checks
   with 418 reporting tests pass; focused tests stub the producers and cover invalid
   commands and failed rechecks. [Scope and commands](docs/results/2026-11-11-phase2-optimization/linux-clock-file-snapshot.md).
-  Actual assembled preparation has not run. No launch entry, GPU identity,
-  permissions, hardware restoration or quiet-window claim; Linux still 72/78.
+  The first real metadata-only assembly at clean `ff8d370` rechecked 317 files /
+  4,020,208,680 bytes and 56 aliases, with 18 planned jobs; the collection path
+  was not created and readiness remains false. Snapshot/hash and limitations are
+  in the linked report. It must be refreshed against a later committed HEAD. No
+  launch entry, GPU identity, permissions, hardware restoration or quiet-window
+  claim; Linux still 72/78.
 - **Precollection declared-file recheck:** `verify_clock_preparation_files.py`
   inventories all admitted file types/identities/sizes before hashing, verifies
   digests and then rechecks visible metadata and exact alias resolution. Five
