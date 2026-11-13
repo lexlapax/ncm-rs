@@ -9,9 +9,10 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   application-clock-list row, and rechecks utility identity. Three new stubbed
   tests and 16 combined focused tests pass; default checks pass 429 reporting
   tests. [Scope and commands](docs/results/2026-11-11-phase2-optimization/linux-clock-gpu-preparation.md).
-  The component has not run on the device; the separate earlier read-only queries
-  are documented below. Lock support/permission, enforcement, policy, quietness,
-  restoration and launch readiness remain false.
+  The committed component also ran outside the sandbox: actual identity matched,
+  114 application-clock rows include 1710 MHz, and readiness remains false.
+  Retained hashes and exact command are in the linked report. Lock support/
+  permission, enforcement, policy, quietness and restoration remain unproved.
 - **Launch-time file-snapshot comparison:** `compare_clock_snapshots.py` checks
   the fixed 18-job plan, declared recheck counts and worktree state, then compares
   stable file/loader/upstream/environment/timezone fields while allowing probe
