@@ -30,6 +30,31 @@ def canonical_spelling(value):
     return path
 
 
+def loader_alias_spelling(value):
+    """Keep loader spellings intact: lexical '..' can cross symlink parents."""
+    require(isinstance(value, str) and 0 < len(value) <= 4096
+            and '\0' not in value and '\\' not in value,
+            'invalid loader alias path')
+    path = Path(value)
+    require(path.is_absolute() and str(path) == value and path != Path('/'),
+            'absolute loader alias required')
+    return path
+
+
+def frozen_signature(value):
+    """Validate a frozen regular-file declaration, including empty source files."""
+    require(isinstance(value, dict) and not {'path_device', 'path_inode'} & value.keys()
+            and type(value.get('device')) is int and value['device'] >= 0
+            and type(value.get('inode')) is int and value['inode'] > 0
+            and type(value.get('bytes')) is int and value['bytes'] >= 0
+            and isinstance(value.get('sha256'), str)
+            and re.fullmatch('[0-9a-f]{64}', value['sha256']) is not None,
+            'complete bounded frozen file identity required')
+    canonical_spelling(value.get('path'))
+    require(value['bytes'] <= FILE_SIZE_LIMIT, 'declared file exceeds per-file bound')
+    return tuple(value[k] for k in ('path', 'device', 'inode', 'bytes', 'sha256'))
+
+
 def declared_inventory(contract, *, frozen_identities, path_bindings, injection):
     """Admit supplied declarations without any file reads/stats/resolution/hashes.
 
@@ -51,29 +76,35 @@ def declared_inventory(contract, *, frozen_identities, path_bindings, injection)
             'incomplete runtime/library contract')
     pinned = {}
     def add(value):
-        current = signature(value)
-        require(value['bytes'] <= FILE_SIZE_LIMIT, 'declared file exceeds per-file bound')
-        canonical_spelling(value['path'])
-        require(value['path'] not in pinned or signature(pinned[value['path']]) == current,
+        current = frozen_signature(value)
+        require(value['path'] not in pinned or frozen_signature(pinned[value['path']]) == current,
                 'conflicting frozen identities')
         pinned[value['path']] = value
     for value in frozen_identities: add(value)
     known = {}
     for value in contract['known_libraries']:
         require(value['path'] not in known, 'duplicate known library path')
+        signature(value)
         add(value); known[value['path']] = value
     for required in contract['libraries'].values():
         require(isinstance(required, list) and required, 'mandatory libraries required')
         for value in required:
             require(value['path'] in known and signature(value) == signature(known[value['path']]),
                     'mandatory/known identities differ')
-    for value in [injection, contract['taskset'], *(w['image'] for w in contract['workloads'].values())]: add(value)
+    for value in [injection, contract['taskset'], *(w['image'] for w in contract['workloads'].values())]:
+        signature(value)
+        add(value)
     aliases = {}
-    for row in [*contract['path_bindings'], *path_bindings,
-                *({'path': w['command_path'], 'canonical_path': w['image']['path']}
-                  for w in contract['workloads'].values())]:
+    contract_rows = contract['path_bindings']
+    other_rows = [*path_bindings, *({'path': w['command_path'], 'canonical_path': w['image']['path']}
+                                    for w in contract['workloads'].values())]
+    for row, from_loader in [*((row, True) for row in contract_rows), *((row, False) for row in other_rows)]:
         path, target = row['path'], row['canonical_path']
-        canonical_spelling(path); canonical_spelling(target)
+        if from_loader:
+            loader_alias_spelling(path)
+        else:
+            canonical_spelling(path)
+        canonical_spelling(target)
         require(target in pinned and (path not in aliases or aliases[path] == target),
                 'unbound/conflicting path binding')
         aliases[path] = target

@@ -96,6 +96,38 @@ class ClockFileTests(unittest.TestCase):
             extra[-1]['bytes']-=1; extra[0]['bytes']+=1
             with self.assertRaisesRegex(ValueError,'per-file bound'): self.declare(frozen_identities=self.frozen+extra)
 
+    def test_empty_frozen_source_is_rehashed_but_empty_executable_is_rejected(self):
+        empty = self.root/'empty-source'; empty.write_bytes(b'')
+        frozen = self.frozen + [file_identity(empty)]
+        pinned, _ = self.declare(frozen_identities=frozen)
+        self.assertEqual(pinned[str(empty)]['bytes'], 0)
+        result = self.verify(frozen_identities=frozen)
+        row = next(v for v in result['files'] if v['identity']['path'] == str(empty))
+        self.assertEqual(row['identity']['sha256'], frozen[-1]['sha256'])
+        empty.write_bytes(b'changed')
+        with self.assertRaisesRegex(ValueError, 'identity changed'): self.verify(frozen_identities=frozen)
+        contract = deepcopy(self.contract)
+        contract['workloads']['previous']['image']['bytes'] = 0
+        with self.assertRaises(ValueError):
+            check.declared_inventory(contract, frozen_identities=self.frozen,
+                                     path_bindings=[], injection=self.ids['injection'])
+
+    def test_loader_alias_dotdot_resolves_through_symlink_parent_without_lexical_collapse(self):
+        (self.lib/'nested').mkdir()
+        link = self.root/'loader-link'; link.symlink_to(self.lib/'nested')
+        spelling = str(link)+'/../required.so'
+        self.contract['path_bindings'].append(dict(path=spelling, canonical_path=self.ids['required.so']['path']))
+        _, aliases = self.declare()
+        self.assertEqual(aliases[spelling], self.ids['required.so']['path'])
+        self.verify()
+        other = self.root/'other'; other.mkdir(); (other/'nested').mkdir()
+        (other/'required.so').write_bytes(b'other')
+        link.unlink(); link.symlink_to(other/'nested')
+        with self.assertRaisesRegex(ValueError, 'path alias target changed'):
+            self.verify()
+        with self.assertRaisesRegex(ValueError, 'absolute normalized path'):
+            self.declare(path_bindings=[dict(path=spelling, canonical_path=self.ids['required.so']['path'])])
+
     def test_pure_admission_alias_boundary_and_conflicts_without_resolution(self):
         self.assertEqual(check.PATH_COUNT_LIMIT,512)
         aliases=[dict(path=str(self.root/f'alias-{i}'),canonical_path=self.ids['source']['path']) for i in range(508)]

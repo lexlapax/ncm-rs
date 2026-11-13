@@ -1,9 +1,22 @@
 # Agent context map
 
-Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
+Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Inventory composition follow-up:** `clock_preparation_inventory.py` combines
+  supplied native/Python/loader/preload declarations and explicit other groups
+  with existing admission checks, without IO or launch-readiness claims. Retained
+  records exposed four valid empty upstream files and twelve loader aliases with
+  `..`; frozen-file declarations now accept empty regular files while executable
+  identities stay nonempty, and loader aliases retain their original spelling
+  and must resolve to their pinned targets. Symlink-sensitive regression, 28
+  focused tests and default checks with 403 reporting tests pass. The retained
+  old-record composition admits 267 files /
+  55 aliases but omits newer tools, so is not fresh or complete preparation.
+  [Details, initial failures and limitations](docs/results/2026-11-11-phase2-optimization/linux-clock-inventory-composition.md).
+  Fresh authenticated preparation, entry/role binding and hardware gates remain;
+  no GPU command, policy action or benchmark. Linux 72/78; Apple pending.
 - **2026-11-13 continuation:** user approved raising only the clock diagnostic
   postflight count from 256 to 512 and confirmed default GPU clocks with no
   custom lock or competing controller. `verify_clock_files.py` now uses 512;
