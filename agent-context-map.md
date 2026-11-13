@@ -101,7 +101,9 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   privileged cleanup. [Evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#unprivileged-tty-topology-observation).
   The local sudo manual notes per-terminal caching by default, unrelayable SIGKILL,
   and policy-gated `sudo -T`; these are not proof of active configuration. A safe
-  privileged-child timeout/cleanup design remains unverified.
+  privileged-child timeout/cleanup design remains unverified. A five-minute
+  default sudo cache would also be shorter than the 600-second lock window; no
+  actual local expiry is inferred. [Topology constraint](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#credential-lifetime-and-supervisor-topology).
   No real clock command was run.
   [Permission evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#noninteractive-permission-investigation).
   No launch or GPU action occurred.

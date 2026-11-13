@@ -325,3 +325,22 @@ capture primitive's final group `SIGKILL` cannot by itself be assumed to termina
 an independently privileged command. The pending same-terminal fake probe and
 additional bounded cleanup/parent-loss tests are necessary before considering any
 privileged integration; no GPU policy command was run.
+
+### Credential lifetime and supervisor topology
+
+Even if the pending terminal/process-group fake test succeeds, it does not by
+itself make two separate `sudo -n nvidia-smi` calls safe for the fixed diagnostic.
+The local sudo manual describes a default five-minute credential cache, while
+the restoration contract allows a lock interval up to 600 seconds. The effective
+local timeout has not been established. A cache that expires between set and
+reset could make the reset require interaction; do not rely on a prior `sudo -v`
+for the full lock lifetime. The user has not authorized the agent to change
+sudoers or timestamp policy, the diagnostic limits or the restoration guarantee.
+
+A privileged supervisor authenticated once and kept alive through reset might
+avoid that particular expiry problem, but its parent/child ownership, monitoring,
+user identity, workload environment, parent-loss cleanup and receipt bindings would
+need a concrete reviewed design and fake tests. The current coordinator and
+finalizer require specific direct-child relationships; inserting a sudo monitor
+or an independently launched root process cannot be assumed to satisfy them.
+Nothing here selects an architecture or authorizes a real clock change.
