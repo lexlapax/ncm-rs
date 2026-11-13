@@ -148,3 +148,37 @@ policy/permission/enforcement/restoration/availability gates remain missing. Do 
 request a new quiet window until readiness is established; continuation is not a
 policy answer. The same-evidence finalizer is implemented, but no actual clock
 collection has run and no acceptance comparison closes.
+
+## Reusable preparation component
+
+`tools/bench/prepare_clock_upstream.py` adapts the v2 read-only inspection into
+an import-only function with an explicit pinned Git configuration hash and fresh
+private output path. The caller must bind the checkout, Git executable, reviewed
+configuration hash and records to the future frozen entry. It retains ten bounded
+probes and pinned commit/blob checks; unlike v2 it rejects any ignored upstream
+entries. It never imports upstream code, touches GPU policy or declares readiness.
+Three temporary-Git tests cover pinned bytes including an empty file, tracked and
+untracked drift, ignored files, wrong pin/configuration and output containment.
+A review caught that passing `None` could otherwise bypass the configuration hash;
+explicit digest validation now rejects it before creating output.
+
+Two actual metadata-only calls produced private `reports/phase2-clock-upstream-verification-v3/`
+and `-v4/` evidence. The second includes the explicit-hash guard; it inspected
+39 tracked files / 877,235 bytes at pinned commit `c70274273f489abc73832b2b98584a8483b6b203`,
+with zero ignored entries and `launch_ready=false`. These are current snapshots,
+not historical Python/library byte equivalence or a launch preflight. The function
+still requires an authenticated caller, later fresh recheck and role binding; it is
+not an atomic or adversary-proof filesystem snapshot. No benchmark, Torch import,
+GPU query, clock action or acceptance result was produced.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_prepare_clock_upstream test_clock_preparation_inventory -v
+```
+
+Seven focused tests pass. The earlier v3 actual call preceded the explicit-hash
+guard; the later v4 used the final implementation with the reviewed config SHA-256
+recorded above. Raw Git captures remain private in the ignored output directories.
+`umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed 406 reporting tests and
+the default checks; that run started before the explicit-hash guard was added,
+which was then exercised by the focused tests above. Its local log is
+`/tmp/ncm-phase2-upstream-preparation-check.log`.

@@ -4,6 +4,18 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Reusable upstream preparation:** `prepare_clock_upstream.py` turns the
+  earlier pinned-tree inspection into an import-only fresh-output component,
+  requiring a reviewed Git configuration hash and rejecting ignored entries.
+  Three temporary-Git tests cover clean/empty files, drift, untracked/ignored,
+  wrong pin/configuration and output containment; seven focused tests pass.
+  Default checks passed 406 reporting tests; started before the added explicit
+  configuration-hash guard, which was then validated separately in focused tests.
+  An actual metadata-only v4 snapshot confirms the pinned commit, 39 files /
+  877,235 bytes, no ignored entries and `launch_ready=false`. A missing-hash
+  review finding was fixed before v4. [Evidence and scope](docs/results/2026-11-11-phase2-optimization/linux-clock-upstream-verification.md#reusable-preparation-component).
+  Fresh full preparation, authenticated role entry, permission/restoration and
+  fresh quiet-window gates remain; no GPU/clock/benchmark action occurred.
 - **Inventory composition follow-up:** `clock_preparation_inventory.py` combines
   supplied native/Python/loader/preload declarations and explicit other groups
   with existing admission checks, without IO or launch-readiness claims. Retained
