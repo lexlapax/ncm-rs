@@ -23,9 +23,10 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   restoration, fresh quiet window and both performance gates remain pending.
 - **Observer role dispatch:** `clock_observer_roles.py` wraps the existing sibling
   observer supervisor/telemetry collector after supplied quiet-window and sampled
-  role binding, snapshot re-read and source-digest checks. Ten focused tests and
-  default checks with 441 reporting tests pass;
-  the three new dispatch tests stub actions and did not run telemetry/GPU commands.
+  role binding, snapshot re-read and source-digest checks. Ten original focused
+  tests and default checks with 441 reporting tests passed. A later nine-test
+  focused run includes real CPU0 parent/observer-role transport through the live
+  binding into a stub dispatch; no telemetry/GPU work occurred.
   [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#observer-branch-role-dispatch).
   Caller authentication, privilege/restoration entry, real telemetry and quiet
   window remain pending; the wrapper is not a launch authorization.

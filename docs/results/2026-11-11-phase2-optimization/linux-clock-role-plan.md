@@ -226,6 +226,12 @@ restoration integration, real telemetry, and both platform gates remain pending.
 `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
 including 441 reporting tests; local log: `/tmp/ncm-phase2-clock-observer-roles-check.log`.
 
+A subsequent test-only follow-up runs a real CPU0 parent and observer-role
+process through the actual snapshot/parent binding into a **stubbed** supervisor
+dispatch, without starting telemetry or creating the collection directory. Nine
+focused observer/binding tests pass. The full default check was not repeated for
+this test-only addition; the preceding full run above remains the recorded check.
+
 ## Worker role dispatch
 
 `clock_worker_role.run` is an import-only wrapper that requires a caller-declared
