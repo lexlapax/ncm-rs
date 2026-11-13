@@ -201,3 +201,27 @@ is required`; no privileged sleep ran. Its script and summary SHA-256 values are
 The agent made no GPU access, credential or sudo configuration change in this probe. Any replacement
 for the existing session-based capture requires reviewed design and comprehensive
 fake cleanup tests; it is not authorized for a live clock operation by this probe.
+
+## Observer branch role dispatch
+
+`clock_observer_roles.run` is an import-only wrapper for the observer-supervisor
+and telemetry roles. It requires a caller-declared fresh quiet window, checks the
+sampled live role binding and private snapshot digest, recomputes the fixed role
+plan, binds the CPU sampler source digest and delegates to the existing separate
+observer supervisor or telemetry collector. It contains no clock set/reset or
+workload command. Its caller-supplied quiet-window and coordinator declarations
+are **not authenticated** by this wrapper; only a future entry may supply them
+after full preflight and user confirmation. It does not prove safe ancestor
+cleanup topology or authorize an actual collection.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_clock_observer_roles test_clock_role_binding test_clock_role_plan -v
+```
+
+Ten focused tests pass. Three new wrapper tests stub both observer actions and
+cover the exact plan, missing quiet declaration, failed role binding and changed
+snapshot; no telemetry or GPU command ran in those tests. Existing tests include
+a real CPU-only role identity transport. The authenticated entry, privileged
+restoration integration, real telemetry, and both platform gates remain pending.
+`umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
+including 441 reporting tests; local log: `/tmp/ncm-phase2-clock-observer-roles-check.log`.

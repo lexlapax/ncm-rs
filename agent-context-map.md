@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Observer role dispatch:** `clock_observer_roles.py` wraps the existing sibling
+  observer supervisor/telemetry collector after supplied quiet-window and sampled
+  role binding, snapshot re-read and source-digest checks. Ten focused tests and
+  default checks with 441 reporting tests pass;
+  the three new dispatch tests stub actions and did not run telemetry/GPU commands.
+  [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#observer-branch-role-dispatch).
+  Caller authentication, privilege/restoration entry, real telemetry and quiet
+  window remain pending; the wrapper is not a launch authorization.
 - **Read-only launch-preparation preflight:** `clock_preflight.py` composes fresh
   file and GPU metadata, compares reviewed hashes/records, repeats Git checks,
   and rehashes declared files after GPU queries. It retains the current GPU record
