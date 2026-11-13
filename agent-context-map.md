@@ -4,6 +4,15 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **GPU metadata comparison:** `compare_clock_gpu.py` checks supplied read-only
+  records' GPU/utility identities, exact query receipts, row counts and capture
+  digests without IO; it also binds the exact utility identity to a supplied file
+  snapshot. Eight focused tests pass; default checks passed 431 reporting tests
+  before the binding addition, which was then exercised in the focused tests.
+  Actual retained file/GPU v1 records bind,
+  but remain explicitly unauthenticated and not launch-ready. [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-gpu-preparation.md#comparing-supplied-gpu-records).
+  No fresh producer authentication, GPU-lock permission, enforcement or
+  restoration follows from comparing records.
 - **Read-only GPU metadata component:** `prepare_clock_gpu.py` declares two
   bounded utility queries, validates expected UUID/PCI/name and a 1710 MHz
   application-clock-list row, and rechecks utility identity. Three new stubbed

@@ -46,3 +46,31 @@ and `supported-graphics.txt` has SHA-256
 `b90cfe2abbb98c11366c42bf2dfaebfdb140444476a1f00a10805cc99658441f`.
 The local command log has SHA-256
 `9eaa34a577ff3b8edad6056b13aedb397faad1d80da080ffbed8e7bd1d7dc2db`.
+
+## Comparing supplied GPU records
+
+`compare_clock_gpu.compare` checks the read-only record scope, exact two query
+commands and bounded-success receipts, device identity, NVIDIA utility identity,
+row count and query-output digests. It compares stable fields while allowing
+receipt process IDs/times to differ. It reads no files and runs no commands.
+Producer authentication, capture-file re-reading, environment binding, hardware
+policy, permission, enforcement and restoration remain entry responsibilities.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_compare_clock_gpu test_prepare_clock_gpu test_clock_role_plan -v
+PYTHONPATH=tools/bench python3 -S -c 'import json; from pathlib import Path; from compare_clock_gpu import compare; r=json.loads(Path("reports/phase2-clock-gpu-preparation-v1/result.json").read_bytes()); print(json.dumps(compare(r,r,root=Path.cwd())))'
+```
+
+Seven focused tests pass, including ten altered-record/receipt cases. The retained
+actual v1 record compares to itself with producer authentication, permission and
+readiness false; this is not a fresh device check or an acceptance result.
+
+`bind_snapshot` additionally verifies that the NVIDIA utility identity in a
+supplied GPU record exactly matches the utility frozen in a supplied validated file
+snapshot. The actual retained file/GPU v1 records bind successfully, with producer
+authentication and readiness still false. Eight focused tests pass after this
+addition, including utility-inode drift and omission from the frozen recheck
+inventory; neither record is refreshed by binding.
+`umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
+including 431 reporting tests, before the binding addition; the updated binding
+then passed the focused tests. Local log: `/tmp/ncm-phase2-compare-clock-gpu-check.log`.
