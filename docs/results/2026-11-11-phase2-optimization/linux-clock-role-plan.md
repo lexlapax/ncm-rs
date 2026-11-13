@@ -297,3 +297,31 @@ The default `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` run passed 445
 reporting tests. It began before the additional actual-mismatch assertion above;
 the two updated focused tests passed during that run. Local full-check log:
 `/tmp/ncm-phase2-command-category-check.log`.
+
+### Unprivileged TTY topology observation
+
+One local CPU-only pseudo-terminal probe, `/tmp/ncm-clock-tty-topology-v1.py`
+(SHA-256 `3f75268d6a6cb8cef47e0f0e03251bcfc161d3790f2a36b28cda04e66f54a827`),
+created an owned coordinator with a controlling PTY and launched two ordinary
+Python children with stdin set to `/dev/null`. The child started in a separate
+process group within the coordinator's session could open `/dev/tty`; the child
+started in a new session could not. Both reported non-TTY stdin. The one probe
+ran as `python3 -I -S /tmp/ncm-clock-tty-topology-v1.py`; its JSON was observed in
+the session, not retained as a raw log. It invoked neither sudo nor GPU commands.
+
+This demonstrates only Linux TTY topology for that test. It does not prove sudo
+cache behavior, root-child cleanup, signal delivery, privilege, a safe live role
+architecture or permission to change the approved session-based capture. The
+user-requested same-terminal sudo/sleep probe remains the separate experiment.
+
+### Local sudo manual review
+
+The installed `sudo(8)` manual (sudo 1.9.17p2) describes credential caching as
+per-terminal by default, and documents that sudo can relay signals to a child
+but cannot relay `SIGKILL`. It also states user-requested `sudo -T` command timeouts
+require explicit policy support. This is a documentation review, not proof of the
+machine's effective timestamp, pty or timeout policy. In particular, the current
+capture primitive's final group `SIGKILL` cannot by itself be assumed to terminate
+an independently privileged command. The pending same-terminal fake probe and
+additional bounded cleanup/parent-loss tests are necessary before considering any
+privileged integration; no GPU policy command was run.

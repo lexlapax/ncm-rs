@@ -96,6 +96,12 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   does not prove unprivileged-coordinator wiring or hardware restoration. A second
   same-terminal process-group fake probe was requested; its result is pending.
   Local no-TTY v0 failed to authenticate and established no privileged cleanup.
+  A separate unprivileged PTY probe found that a new process group retained its
+  controlling TTY while a new session did not; this does not prove sudo cache or
+  privileged cleanup. [Evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#unprivileged-tty-topology-observation).
+  The local sudo manual notes per-terminal caching by default, unrelayable SIGKILL,
+  and policy-gated `sudo -T`; these are not proof of active configuration. A safe
+  privileged-child timeout/cleanup design remains unverified.
   No real clock command was run.
   [Permission evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#noninteractive-permission-investigation).
   No launch or GPU action occurred.
