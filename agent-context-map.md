@@ -4,6 +4,15 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Upstream inventory binding:** the pure clock inventory composer now requires
+  an upstream snapshot record, validates its pinned commit/scope/source inventory,
+  and includes all source plus Git executable/config/index identities. Actual v4
+  record gives 42 identities, four empty sources; old mixed-record compatibility
+  admits 269 files but remains incomplete and not fresh. Nine focused tests and
+  default checks with 408 reporting tests pass;
+  [scope and evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-inventory-composition.md#upstream-producer-binding).
+  This checks supplied records, not producer authenticity or current bytes. Fresh
+  full preparation, roles and hardware gates remain; no GPU/policy/benchmark run.
 - **Reusable upstream preparation:** `prepare_clock_upstream.py` turns the
   earlier pinned-tree inspection into an import-only fresh-output component,
   requiring a reviewed Git configuration hash and rejecting ignored entries.

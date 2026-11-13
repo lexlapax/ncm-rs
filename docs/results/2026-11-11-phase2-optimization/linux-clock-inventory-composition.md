@@ -54,3 +54,28 @@ it is not a standalone reproducibility artifact or launch entry.
 `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed outside the sandbox,
 including 403 reporting tests. The local log is
 `/tmp/ncm-phase2-inventory-composition-check.log`.
+
+## Upstream producer binding
+
+The composer now requires an upstream producer record and explicit tree path.
+`upstream_group` checks the pinned commit, scope flags, zero untracked/ignored
+counts, source path/mode/blob-shape and count/byte consistency, and includes the
+Git executable, checkout config and index identities as well as every source.
+It is a pure check of supplied declarations: it does not authenticate the producer,
+recompute Git blobs or establish current bytes. The future fresh entry must call
+the producer and recheck the resulting inventory. Two tests cover the complete
+source/Git group and ten malformed or overclaimed variants, without file IO.
+
+The v4 actual snapshot yields 42 upstream-group identities (39 sources and three
+Git identities), including four empty sources. The earlier retained-input
+compatibility exercise now admits 269 files / 4,019,707,424 bytes and 55 aliases;
+it still uses the older 96-file tool inventory and is neither a fresh preparation
+nor complete inventory. No workload or GPU operation occurred.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_clock_preparation_inventory test_prepare_clock_upstream -v
+```
+
+Nine focused tests pass. `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh`
+passes all default checks, including 408 reporting tests; local log:
+`/tmp/ncm-phase2-upstream-inventory-check.log`.
