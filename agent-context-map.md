@@ -15,6 +15,10 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   proposed commands for the historical UUID, while the outside-sandbox user has
   no effective capabilities. Actual permission/enforcement and safe cleanup of
   privileged children remain unproved; the current plan invokes nvidia-smi directly.
+  A single harmless `sudo -n /usr/bin/sleep 3` under the bounded-child primitive
+  exited immediately with “a password is required”; no privileged sleep ran and
+  cleanup behavior was not tested. The user has been asked to arrange noninteractive
+  authorization; no credentials or GPU clocks were changed.
   [Permission evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#noninteractive-permission-investigation).
   No launch or GPU action occurred.
 - **Clock role declaration plan:** `clock_role_plan.py` constructs fixed role

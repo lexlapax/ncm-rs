@@ -100,3 +100,23 @@ returned exit zero, suggesting a harmless fake-command path for further cleanup
 research. These were policy listings only; no privileged command was executed,
 no credentials or configuration changed, and no GPU query, clock or benchmark
 action occurred.
+
+### Harmless privileged-child probe
+
+One bounded CPU-only test attempted `sudo -n /usr/bin/sleep 3` under the existing
+owned-child capture, with a 0.3-second timeout. Sudo exited in 0.0044 seconds with
+`sudo: a password is required`; the intended privileged sleep did not start. The
+receipt reports a nonzero exit, direct-child reaping and capture EOF, but this is
+**not** a privileged descendant cleanup test. Detailed `sudo -n -ll` listings for
+both NVIDIA commands matched an `ALL` rule; that listing alone does not establish
+password-free execution. No GPU or policy command ran. The user has been asked to
+arrange noninteractive authorization without sending a password or changing clocks.
+Role planning, authorization and safe privileged cleanup still need integration.
+
+Private evidence: `/tmp/ncm-clock-sudo-owned-cleanup-v1.py` SHA-256
+`bacf4a68efad2de68dc7328bcc5a541694efed94b5762d0966a16c517a9fe1bc`,
+`/tmp/ncm-clock-sudo-owned-cleanup-v1/receipt.json` SHA-256
+`64d072c08b5c65331e06f0ec84dc307999728cde62698c719dce1bfb2bb86841`,
+`capture.txt` SHA-256 `9b3a3b7a78f239c4473bb193476b1a860c91f1c2b4fab9c7639eceea414a60fb`,
+and `summary.json` SHA-256
+`a2109f6be245d7a2f38273cdbc92318d26f66fce4747789018ea18a6873607a3` in the same directory.
