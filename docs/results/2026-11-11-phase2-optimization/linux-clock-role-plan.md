@@ -44,3 +44,59 @@ including 420 reporting tests; its local log is
 `/tmp/ncm-phase2-clock-role-plan-check.log`. That run began before the private
 snapshot path and UUID argument refinement, which then passed the two focused
 `test_clock_role_plan` tests separately.
+
+## Sampled role binding
+
+`clock_role_binding.inspect` reads a private `snapshot.json` under the launch
+folder, verifies its supplied digest, recomputes the fixed plan, and checks the
+current role's command/image/environment/CPU0 affinity. It samples its live
+parent and, for worker/telemetry grandchildren, the declared coordinator's
+command/image/environment/affinity and parent relationship. Parent stat and
+relationship are checked again after observation. The caller still supplies the
+coordinator command and snapshot digest: neither declaration's origin is
+independently authenticated here. The helper does not execute a role, send a
+signal, change clocks or claim launch readiness, safe ancestor cleanup topology,
+continuous liveness or immutable mappings.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_clock_role_binding -v
+```
+
+Four tests pass. Three use a private actual snapshot with controlled procfs stubs;
+the fourth starts a real CPU0 coordinator and a separate taskset-launched `-S`
+Python role, verifies their actual command/image/environment/affinity/parent
+transport, and exits without executing a diagnostic. No GPU or policy action is
+involved. Negative cases cover snapshot digest/privacy, parent command, environment,
+affinity and nested ancestry. The future entry must authenticate the coordinator
+command and snapshot source, recheck current files, bind the role dispatch to this
+check, and independently verify permissions/restoration and safe ancestry before
+any live action. Sampled identity is not a complete lifecycle guarantee.
+
+`umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
+including 424 reporting tests. Local log: `/tmp/ncm-phase2-clock-role-binding-check.log`.
+
+## Noninteractive permission investigation
+
+On 2026-11-13, a read-only `sudo -n -l` check for each exact proposed lock and
+reset command, using the **historical** GPU UUID
+`GPU-180283f7-eafd-6501-7e06-eef40d304c41`, returned exit zero and displayed the
+matching command outside the sandbox. The first lock-policy listing inside the
+sandbox failed because sudo was blocked by `no_new_privs`; it did not execute a
+GPU command. Outside the sandbox, the effective UID was 1000 and the permitted
+and effective capability masks were zero. These observations do not prove the
+current GPU UUID, direct unprivileged lock permission, actual enforcement,
+credential availability at a later launch, or restoration.
+
+```sh
+sudo -n -l /usr/bin/nvidia-smi -i GPU-180283f7-eafd-6501-7e06-eef40d304c41 --lock-gpu-clocks=1710,1710
+sudo -n -l /usr/bin/nvidia-smi -i GPU-180283f7-eafd-6501-7e06-eef40d304c41 --reset-gpu-clocks
+```
+
+The current role plan invokes `nvidia-smi` directly; it does not invoke sudo.
+Do not add sudo or attempt clock changes until the supervisor can safely bound,
+cancel and reap the privileged process tree and the final command/environment
+bindings are reviewed and tested. A read-only `sudo -n -l /usr/bin/sleep 1` also
+returned exit zero, suggesting a harmless fake-command path for further cleanup
+research. These were policy listings only; no privileged command was executed,
+no credentials or configuration changed, and no GPU query, clock or benchmark
+action occurred.

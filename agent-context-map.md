@@ -4,6 +4,19 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Sampled live role binding:** `clock_role_binding.py` checks a private snapshot
+  digest, recomputed command, role/parent/coordinator image, environment, CPU0
+  affinity and sampled ancestry without executing any diagnostic role. Four tests
+  pass, including an actual CPU0 parent/child `-S` Python transport plus negative
+  snapshot, parent, environment and ancestry cases. [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#sampled-role-binding).
+  Caller-supplied coordinator declaration/snapshot origin, safe earlier ancestry,
+  continuous liveness and dispatch remain unauthenticated. Default checks pass 424
+  reporting tests. Read-only noninteractive sudo policy listings permit both exact
+  proposed commands for the historical UUID, while the outside-sandbox user has
+  no effective capabilities. Actual permission/enforcement and safe cleanup of
+  privileged children remain unproved; the current plan invokes nvidia-smi directly.
+  [Permission evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#noninteractive-permission-investigation).
+  No launch or GPU action occurred.
 - **Clock role declaration plan:** `clock_role_plan.py` constructs fixed role
   argv, CPU placement and existing capture/deadline budgets without executing or
   authenticating anything. Nineteen focused tests and 420 default reporting tests
