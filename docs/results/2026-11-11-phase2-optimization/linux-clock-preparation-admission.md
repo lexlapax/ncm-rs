@@ -1,6 +1,31 @@
 # Clock preparation inventory admission blocker
 
-**Status: approval requested, no limit changed. Linux 72/78; Apple pending.**
+## Approved count increase
+
+On 2026-11-13 the user approved the proposed clock-only 512-file count and
+confirmed default GPU clock policy with no custom lock or competing controller.
+The count guard now admits up to 512 declared and combined observed files; byte,
+alias, collection, deadline, telemetry and acceptance limits are unchanged.
+Fresh preparation must use this same guard; it does not yet exist. The policy
+answer does not establish permission, hardware restoration, a quiet window or
+launch readiness.
+
+`umask 077; PYTHONPATH=tools/bench python -m unittest test_verify_clock_files test_finalize_clock_diagnostic -v`
+passes 17 tests. The pure guard admits synthetic 261- and 303-file declarations,
+admits 512 and rejects 513; a post-only file beyond 512 also fails before file IO.
+The finalizer rejects oversized declarations before invoking its runner. The first
+focused run under the inherited broader umask failed three private-directory fixture
+tests; the private-umask run passed without changing the guard. The first default
+check was blocked by sandboxed `sccache`; an outside-sandbox run under the inherited
+umask then failed those same three fixture tests (397 run). An outside-sandbox
+`umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
+including 397 reporting tests; the runs overlapped briefly. Logs are local at
+`/tmp/ncm-phase2-clock-count-check.log` and
+`/tmp/ncm-phase2-clock-count-private-check.log`. No GPU or policy command ran.
+Frozen preparation, entry, permissions, restoration
+and later fresh availability remain pending; Linux remains 72/78.
+
+**Historical audit status: approval was requested and the limit was then 256.**
 Before assembling fresh complete preparation, a path-count audit at `e4ba006`
 found that the planned frozen inventory cannot fit the clock postflight's existing
 **256-file** admission limit. A subset already contains **261** unique paths; the

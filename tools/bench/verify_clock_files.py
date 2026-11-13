@@ -15,7 +15,7 @@ from clock_library_contract import signature
 from readonly_trace_preflight import file_identity, require
 from verify_readonly_processes import key, mapping_key
 
-FILE_COUNT_LIMIT = 256
+FILE_COUNT_LIMIT = 512
 FILE_BYTES_LIMIT = 8 * 1024**3
 FILE_SIZE_LIMIT = 2 * 1024**3
 PATH_COUNT_LIMIT = 512

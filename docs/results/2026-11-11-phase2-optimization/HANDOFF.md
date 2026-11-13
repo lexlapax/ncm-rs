@@ -1,5 +1,14 @@
 # Phase 2 continuation notes
 
+**2026-11-13 update:** the user approved the clock-only 512-file postflight
+limit and confirmed default GPU clocks with no custom lock or competing
+controller. The limit has been updated and its boundaries tested; see the
+[admission follow-up](linux-clock-preparation-admission.md#approved-count-increase).
+Fresh complete preparation and the restoration-aware entry are still required,
+as are hardware permissions, restoration verification and a later quiet window.
+Linux remains 72/78 and Apple work remains pending. Older requests for these
+two answers below are historical.
+
 Work stopped at the user's request after committing/pushing the current checkpoint.
 **The active objective is incomplete; do not mark it complete.** Start with
 `agent-context-map.md`, `git status`, then the [working completion audit](completion-audit.md).

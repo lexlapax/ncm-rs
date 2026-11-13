@@ -215,7 +215,7 @@ class ClockFinalizationTests(unittest.TestCase):
 
     def test_impossible_declared_inventory_never_invokes_runner_or_creates_launch(self):
         fixture=file_fixture.ClockFileTests(); fixture.setUp(); self.addCleanup(fixture.doCleanups)
-        for mode in (257,261,303,'bytes','size','aliases','conflict'):
+        for mode in (513, 514, 'bytes','size','aliases','conflict'):
             frozen=deepcopy(fixture.frozen); aliases=[]
             # Fixture has eight unique pinned paths including contract/injection.
             if isinstance(mode,int):

@@ -56,9 +56,9 @@ class ClockFileTests(unittest.TestCase):
         return check.declared_inventory(self.contract,**args)
 
     def test_pure_admission_count_boundary_deduplication_and_post_only_overflow(self):
-        self.assertEqual(check.FILE_COUNT_LIMIT,256)
+        self.assertEqual(check.FILE_COUNT_LIMIT,512)
         frozen=deepcopy(self.frozen)
-        frozen += [dict(self.ids['source'],path=str(self.root/f'future-{i}')) for i in range(248)]
+        frozen += [dict(self.ids['source'],path=str(self.root/f'future-{i}')) for i in range(504)]
         frozen.append(deepcopy(self.ids['source']))  # Equal repeated declarations count once.
         before=deepcopy((self.contract,frozen))
         with patch('builtins.open',side_effect=AssertionError('no reads')), \
@@ -67,12 +67,15 @@ class ClockFileTests(unittest.TestCase):
              patch.object(Path,'resolve',side_effect=AssertionError('no resolution')), \
              patch.object(check,'file_identity',side_effect=AssertionError('no hashing')):
             pinned,aliases=self.declare(frozen_identities=frozen)
-            self.assertEqual(len(pinned),256); self.assertEqual(len(aliases),4)
-            for count in (257,261,303):
-                oversized=frozen+[dict(self.ids['source'],path=str(self.root/f'extra-{i}')) for i in range(count-256)]
+            self.assertEqual(len(pinned),512); self.assertEqual(len(aliases),4)
+            for count in (261,303):
+                admitted,_=self.declare(frozen_identities=frozen[:count-7])
+                self.assertEqual(len(admitted),count)
+            for count in (513, 514):
+                oversized=frozen+[dict(self.ids['source'],path=str(self.root/f'extra-{i}')) for i in range(count-512)]
                 with self.subTest(count=count), self.assertRaisesRegex(ValueError,'count bound'):
                     self.declare(frozen_identities=oversized)
-            # The post-only lazy mapping is a 257th path: early admission never
+            # The post-only lazy mapping is a 513th path: early admission never
             # replaces the final union limit or reserves room for unknown mappings.
             with self.assertRaisesRegex(ValueError,'count bound'): self.verify(frozen_identities=frozen)
         pinned[self.ids['source']['path']]['sha256']='0'*64; aliases.clear()

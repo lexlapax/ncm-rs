@@ -4,13 +4,26 @@ Last updated: 2026-11-12 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Latest authorization (supersedes earlier pending-choice entries below):** user
+- **2026-11-13 continuation:** user approved raising only the clock diagnostic
+  postflight count from 256 to 512 and confirmed default GPU clocks with no
+  custom lock or competing controller. `verify_clock_files.py` now uses 512;
+  unchanged byte/alias/collection/telemetry/deadline/acceptance limits still apply.
+  Focused file/finalizer tests pass 17 cases with `umask 077`, including 261/303
+  admitted, 512 boundary and 513/post-only overflow rejected. An initial run
+  with the inherited broader umask failed three private-directory fixture tests;
+  no security check was relaxed. `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh`
+  passes all default checks, including 397 reporting tests. Details are in
+  [the admission follow-up](docs/results/2026-11-11-phase2-optimization/linux-clock-preparation-admission.md#approved-count-increase).
+  This confirmation is not a fresh quiet window or proof of permissions/restoration;
+  complete frozen preparation/entry and live gates remain pending. Linux 72/78,
+  Apple pending.
+- **Earlier diagnostic authorization (supersedes historical choices below):** user
   approved read-only investigation option 1, followed by clock-controlled option 2
   only if option 1 provides insufficient data. Read-only v1 ran once after explicit
   fresh quiet-window confirmation and failed at the fixed capture limit; no retry.
-  Clock fallback is still unrun and needs confirmed default-policy/no-controller
-  state, permissions, tested restoration and a new quiet window. No automatic
-  continuation establishes those facts.
+  Clock fallback is still unrun; the user has since confirmed default-policy/
+  no-controller state as above. Permissions, tested hardware restoration and a
+  new quiet window remain needed; continuation establishes none of those facts.
   [Selected protocol and durable preparation evidence](docs/results/2026-11-11-phase2-optimization/linux-readonly-trace-v1-proposal.md)
   cover fixed sequence/quotas, report receipts, trace joins/output qualification,
   frozen file/environment preflight, loader/Git guards and the worker supervisor.
