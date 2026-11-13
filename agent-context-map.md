@@ -9,8 +9,11 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   and rehashes declared files after GPU queries. It retains the current GPU record
   by digest. Nineteen initial focused tests and default checks with 436 reporting
   tests passed before GPU-record publication and output-isolation refinements;
-  ten updated focused tests pass afterward with stubbed producers. No real assembled
-  preflight has run. [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-readonly-preflight.md).
+  ten updated focused tests pass afterward with stubbed producers. An actual
+  read-only preflight at clean `6f118be` compared fresh snapshots and GPU metadata,
+  passed late Git checks and rehashed 329 files / 4,020,276,376 bytes and 56
+  aliases. It started no collection and leaves readiness/permission/restoration
+  false; later HEADs require fresh preparation. [Evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-readonly-preflight.md).
   This is not a launch entry and cannot establish producer authentication, role
   ancestry, privilege, restoration, quietness or acceptance.
 - **GPU metadata comparison:** `compare_clock_gpu.py` checks supplied read-only
