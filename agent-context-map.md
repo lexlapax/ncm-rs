@@ -4,6 +4,15 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Worker role dispatch:** `clock_worker_role.py` binds the supplied quiet/role
+  declaration, private snapshot, live restorer handoff, original absolute deadline
+  and observed 18-job sequence. Eleven focused wrapper/binding tests pass with the
+  new actions stubbed. A separate 16-test combined run failed the recurrent real
+  CPU handoff fixture at job 12 (`live child command mismatch`); fake reset/cleanup
+  succeeded, cause still unknown. A subsequent full check passed 444 reporting
+  tests without explaining that failure. [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#worker-role-dispatch).
+  No observer guard, timing or GPU policy changed. Authenticated entry, privilege,
+  restoration, fresh quiet window and both performance gates remain pending.
 - **Observer role dispatch:** `clock_observer_roles.py` wraps the existing sibling
   observer supervisor/telemetry collector after supplied quiet-window and sampled
   role binding, snapshot re-read and source-digest checks. Ten focused tests and

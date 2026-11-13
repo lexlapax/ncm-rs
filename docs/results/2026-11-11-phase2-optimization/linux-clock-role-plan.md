@@ -225,3 +225,32 @@ a real CPU-only role identity transport. The authenticated entry, privileged
 restoration integration, real telemetry, and both platform gates remain pending.
 `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
 including 441 reporting tests; local log: `/tmp/ncm-phase2-clock-observer-roles-check.log`.
+
+## Worker role dispatch
+
+`clock_worker_role.run` is an import-only wrapper that requires a caller-declared
+quiet window and sampled worker binding, re-reads and validates the private snapshot,
+recomputes the role plan, and validates the live restorer handoff. It passes the
+original armed absolute deadline to the existing bounded codec sequence and binds
+all 18 frozen jobs to the process-observer factory. Parent loss feeds cancellation;
+no clock policy command is executed by this wrapper. A future authenticated entry
+must turn any failure into a nonzero worker exit and establish privilege, role
+ancestry, fresh availability and restoration before collection. Supplied quiet and
+coordinator declarations are not authorization by themselves.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_clock_worker_role test_clock_observer_roles test_clock_role_binding -v
+umask 077; PYTHONPATH=tools/bench python -m unittest test_clock_worker_role test_clock_worker_handoff test_clock_codec_sequence -v > /tmp/ncm-phase2-worker-role-focused.log 2>&1
+```
+
+The first command passed 11 tests; three new wrapper tests stub the handoff,
+observer factory and worker sequence and make no workload or GPU calls. The second
+ran 16 tests and failed the previously intermittent real CPU handoff fixture: job
+12's owned-child observer reported `live child command mismatch`; fake reset and
+cleanup completed. No timing, expectation, observer guard or limit changed. The
+failure is retained in the local log; its cause remains unestablished and the
+handoff is not declared reliable. No CUDA or real policy operation occurred.
+An outside-sandbox `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` subsequently
+passed all default checks including 444 reporting tests; local log:
+`/tmp/ncm-phase2-clock-worker-role-check.log`. That pass does not explain or erase
+the preceding command-mismatch failure.
