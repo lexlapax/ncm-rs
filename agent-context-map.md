@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Clock role declaration plan:** `clock_role_plan.py` constructs fixed role
+  argv, CPU placement and existing capture/deadline budgets without executing or
+  authenticating anything. Nineteen focused tests and 420 default reporting tests
+  pass; the full run began before the private-copy/UUID argument refinement, which
+  passed its focused tests afterward. The future entry must be
+  in a fresh snapshot; v1 predates it. [Plan and limitations](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md).
+  No live role handlers, authenticated ancestry, permissions, hardware restoration
+  or fresh quiet-window confirmation exist; no GPU/policy/benchmark action ran.
 - **Preparation-only snapshot assembler:** `prepare_clock_snapshot.py` composes
   native, upstream, Python/startup, preload, loader, worktree and tool/utility
   records, independently validates all 18 fixed codec jobs, and rechecks supplied
