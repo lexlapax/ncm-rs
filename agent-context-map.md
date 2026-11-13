@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Read-only GPU metadata component:** `prepare_clock_gpu.py` declares two
+  bounded utility queries, validates expected UUID/PCI/name and a 1710 MHz
+  application-clock-list row, and rechecks utility identity. Three new stubbed
+  tests and 16 combined focused tests pass; default checks pass 429 reporting
+  tests. [Scope and commands](docs/results/2026-11-11-phase2-optimization/linux-clock-gpu-preparation.md).
+  The component has not run on the device; the separate earlier read-only queries
+  are documented below. Lock support/permission, enforcement, policy, quietness,
+  restoration and launch readiness remain false.
 - **Launch-time file-snapshot comparison:** `compare_clock_snapshots.py` checks
   the fixed 18-job plan, declared recheck counts and worktree state, then compares
   stable file/loader/upstream/environment/timezone fields while allowing probe
@@ -30,9 +38,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   privileged children remain unproved; the current plan invokes nvidia-smi directly.
   A single harmless `sudo -n /usr/bin/sleep 3` under the bounded-child primitive
   exited immediately with “a password is required”; no privileged sleep ran and
-  cleanup behavior was not tested. User requested a sudo prompt and has been asked
-  to run `sudo -v` in their own terminal; cross-process availability remains to be
-  checked. No password was requested or GPU clocks changed.
+  cleanup behavior was not tested. User requested a sudo prompt and ran `sudo -v`
+  in their own terminal; the agent's `sudo -n true` and the user's same-terminal
+  detached fake test both still required a password. No privileged sleep ran, no
+  password was shared and no GPU clocks changed. A reviewed interactive privilege
+  and cleanup design remains necessary. The user was given a checksum-bound,
+  CPU-only root fake-restoration test after its unprivileged self-test passed;
+  the requested user-run result is pending and would not prove coordinator wiring
+  or hardware restoration.
   [Permission evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#noninteractive-permission-investigation).
   No launch or GPU action occurred.
 - **Clock role declaration plan:** `clock_role_plan.py` constructs fixed role

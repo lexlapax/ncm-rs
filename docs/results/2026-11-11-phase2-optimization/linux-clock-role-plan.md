@@ -110,8 +110,13 @@ receipt reports a nonzero exit, direct-child reaping and capture EOF, but this i
 **not** a privileged descendant cleanup test. Detailed `sudo -n -ll` listings for
 both NVIDIA commands matched an `ALL` rule; that listing alone does not establish
 password-free execution. No GPU or policy command ran. The user requested a sudo
-prompt and was asked to run `sudo -v` in their own terminal without sending a
-password or changing clocks; cross-process authorization remains to be checked.
+prompt and ran `sudo -v` in their own terminal without sending a password or
+changing clocks. The agent's subsequent `sudo -n /usr/bin/true` still required a
+password. At the user's terminal, a second bounded fake test after `sudo -v` also
+failed immediately with `sudo: a password is required`; no privileged sleep ran.
+The detached child therefore did not inherit usable authorization, and neither
+test establishes privileged-child cleanup. A reviewed interactive privilege and
+cleanup design remains necessary; do not silently alter sudo configuration.
 Role planning, authorization and safe privileged cleanup still need integration.
 
 Private evidence: `/tmp/ncm-clock-sudo-owned-cleanup-v1.py` SHA-256
@@ -121,6 +126,14 @@ Private evidence: `/tmp/ncm-clock-sudo-owned-cleanup-v1.py` SHA-256
 `capture.txt` SHA-256 `9b3a3b7a78f239c4473bb193476b1a860c91f1c2b4fab9c7639eceea414a60fb`,
 and `summary.json` SHA-256
 `a2109f6be245d7a2f38273cdbc92318d26f66fce4747789018ea18a6873607a3` in the same directory.
+
+The user-run v2 script `/tmp/ncm-clock-sudo-owned-cleanup-v2.py` SHA-256 is
+`b52b57d54d398b0d9ac18b8832b3a54b58d80270ad8cb6669152fceef641e5fb`;
+its private `receipt.json`, `capture.txt` and `summary.json` under
+`/tmp/ncm-clock-sudo-owned-cleanup-v2/` have SHA-256 values
+`7ed5b3646d307cdadbce7b56c32178d453f5dbf0d2d058811ef26ccb2b61ec95`,
+`9b3a3b7a78f239c4473bb193476b1a860c91f1c2b4fab9c7639eceea414a60fb`, and
+`d0886f652b5046c71863c063c509a0d11c740f45fff650c4efe3fa9a83f54429` respectively.
 
 ### Read-only GPU identity and supported clocks
 
@@ -138,3 +151,26 @@ identity must be rebound during the final fresh preflight. No clock was set.
 /usr/bin/nvidia-smi --query-gpu=uuid,pci.bus_id,name --format=csv,noheader
 /usr/bin/nvidia-smi -i GPU-180283f7-eafd-6501-7e06-eef40d304c41 --query-supported-clocks=graphics --format=csv,noheader > /tmp/ncm-phase2-supported-clocks-v1.csv
 ```
+
+### User-run CPU-only privileged supervisor test
+
+At the user's request for a sudo command, a checksum-bound standalone test was
+prepared at `/tmp/ncm-root-fake-restoration-v2.py` (SHA-256
+`710a7b0ff4911567054f4d9dbf9ca3d07a528aa61e172a83ed26e11b93d27ccc`).
+It copies four hash-pinned reviewed supervisor helpers into a private temporary
+directory before import, then uses only fake local set/reset files and Python sleep
+workers. Its ordinary-user `--self-test` passed both normal and deadline cases;
+the initial v1 self-test exposed an incorrect parent PID and was corrected before
+v2. The user has been given an `sudo /usr/bin/python3 -I -S -c ...` command that
+reads and verifies those exact script bytes before executing `--privileged-test`.
+No password was requested in chat. Its result is pending.
+
+```sh
+sudo /usr/bin/python3 -I -S -c 'import os,stat,hashlib; p="/tmp/ncm-root-fake-restoration-v2.py"; f=os.fdopen(os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK),"rb"); s=os.fstat(f.fileno()); assert stat.S_ISREG(s.st_mode) and s.st_size<=1048576; b=f.read(1048577); f.close(); assert len(b)==s.st_size and hashlib.sha256(b).hexdigest()=="710a7b0ff4911567054f4d9dbf9ca3d07a528aa61e172a83ed26e11b93d27ccc"; exec(compile(b,p,"exec"))' --privileged-test
+```
+
+Even a successful root fake test would establish only those synthetic owned-child
+transactions. It would not establish safe wiring to the unprivileged coordinator,
+real CUDA cleanup, GPU clock enforcement/restoration or readiness. The user should
+not run the real lock/reset directly: the approved protocol requires an armed and
+reviewed restoration supervisor and a fresh quiet window first.
