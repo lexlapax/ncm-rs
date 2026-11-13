@@ -51,7 +51,7 @@ snapshot path and UUID argument refinement, which then passed the two focused
 folder, verifies its supplied digest, recomputes the fixed plan, and checks the
 current role's command/image/environment/CPU0 affinity. It samples its live
 parent and, for worker/telemetry grandchildren, the declared coordinator's
-command/image/environment/affinity and parent relationship. Parent stat and
+command/image/environment/cwd/affinity and parent relationship. Parent stat and
 relationship are checked again after observation. The caller still supplies the
 coordinator command and snapshot digest: neither declaration's origin is
 independently authenticated here. The helper does not execute a role, send a
@@ -62,7 +62,7 @@ continuous liveness or immutable mappings.
 umask 077; PYTHONPATH=tools/bench python -m unittest test_clock_role_binding -v
 ```
 
-Four tests pass. Three use a private actual snapshot with controlled procfs stubs;
+Five tests pass. Four use a private actual snapshot with controlled procfs stubs;
 the fourth starts a real CPU0 coordinator and a separate taskset-launched `-S`
 Python role, verifies their actual command/image/environment/affinity/parent
 transport, and exits without executing a diagnostic. No GPU or policy action is
@@ -73,7 +73,9 @@ check, and independently verify permissions/restoration and safe ancestry before
 any live action. Sampled identity is not a complete lifecycle guarantee.
 
 `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` passed all default checks,
-including 424 reporting tests. Local log: `/tmp/ncm-phase2-clock-role-binding-check.log`.
+including 424 reporting tests initially and 438 after the cwd addition. Local
+logs: `/tmp/ncm-phase2-clock-role-binding-check.log` and
+`/tmp/ncm-phase2-role-cwd-check.log`.
 
 ## Noninteractive permission investigation
 
@@ -169,8 +171,33 @@ No password was requested in chat. Its result is pending.
 sudo /usr/bin/python3 -I -S -c 'import os,stat,hashlib; p="/tmp/ncm-root-fake-restoration-v2.py"; f=os.fdopen(os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK),"rb"); s=os.fstat(f.fileno()); assert stat.S_ISREG(s.st_mode) and s.st_size<=1048576; b=f.read(1048577); f.close(); assert len(b)==s.st_size and hashlib.sha256(b).hexdigest()=="710a7b0ff4911567054f4d9dbf9ca3d07a528aa61e172a83ed26e11b93d27ccc"; exec(compile(b,p,"exec"))' --privileged-test
 ```
 
+The user's first invocation returned `Choose exactly --self-test or
+--privileged-test`; no fake case ran. A corrected checksum-bound command sets
+the script arguments inside the verified Python launcher. Its output is pending.
+The short-path copy has the same SHA-256 as v2:
+
+```sh
+sudo python3 -I -S -c 'import os,sys,hashlib;p="/tmp/ncm-root-v2.py";f=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK);b=os.read(f,65536);os.close(f);assert hashlib.sha256(b).hexdigest()=="710a7b0ff4911567054f4d9dbf9ca3d07a528aa61e172a83ed26e11b93d27ccc";sys.argv=[p,"--privileged-test"];exec(compile(b,p,"exec"))'
+```
+
 Even a successful root fake test would establish only those synthetic owned-child
 transactions. It would not establish safe wiring to the unprivileged coordinator,
 real CUDA cleanup, GPU clock enforcement/restoration or readiness. The user should
 not run the real lock/reset directly: the approved protocol requires an armed and
 reviewed restoration supervisor and a fresh quiet window first.
+
+### Potential terminal-owned process-group probe
+
+A separate CPU-only exploratory script, `/tmp/ncm-sudo-tty-group-probe-v1.py`
+(SHA-256 `cd00adf46b97c766d40f8d111137f8a5015dff3af3ef673676eb9e2f46c6801c`),
+was prepared but not run in the user's terminal. It would start only `sudo -n
+/usr/bin/sleep 3` in a new process group while retaining the parent session, then
+observe bounded termination. This is a prospective fake test, not a proposed change
+to the approved diagnostic or proof that privileged children can be cleaned up.
+A local v0 harness run without a terminal exited immediately with `sudo: a password
+is required`; no privileged sleep ran. Its script and summary SHA-256 values are
+`9e2b6c7bef44966923de21f01a616f4437efc954a39973a038c215b6849231d4` and
+`43a1d55ccc48b0c0a0946de7814aaccbed72725e08f259907ecf187d1803f5af`.
+The agent made no GPU access, credential or sudo configuration change in this probe. Any replacement
+for the existing session-based capture requires reviewed design and comprehensive
+fake cleanup tests; it is not authorized for a live clock operation by this probe.

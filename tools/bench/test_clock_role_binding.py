@@ -95,6 +95,10 @@ class RoleBindingTests(unittest.TestCase):
         self.fakeos.sched_getaffinity=lambda pid:{1}
         with self.assertRaisesRegex(ValueError,'affinity'): self.inspect()
 
+    def test_parent_cwd_drift_fails_closed(self):
+        self.fakeos.stat=lambda path:SimpleNamespace(st_dev=11,st_ino=13 if str(path).endswith('/cwd') else 12)
+        with self.assertRaisesRegex(ValueError,'identity differs'): self.inspect()
+
     def test_snapshot_must_be_private_and_nested_parent_must_belong_to_coordinator(self):
         (self.launch/'snapshot.json').chmod(0o644)
         with self.assertRaisesRegex(ValueError,'private'): self.inspect()

@@ -59,6 +59,8 @@ def inspect(role, *, launch, snapshot_sha256, coordinator_pid, coordinator_argv,
         expected_parent = (roles['restorer']['argv'] if role == 'worker' else plan['observer_argv'])[3:]
     expected_image = snapshot['utilities'][0]
     image_key = expected_image['device'], expected_image['inode']
+    root_identity = os.stat(snapshot['project_root'])
+    root_key = root_identity.st_dev, root_identity.st_ino
     expected_env = {k.encode(): v.encode() for k,v in plan['environment'].items()}
     require(dict(os.environ) == plan['environment'] and os.getcwd() == snapshot['project_root']
             and os.sched_getaffinity(0) == {0}, 'current role environment/cwd/affinity differs')
@@ -70,7 +72,9 @@ def inspect(role, *, launch, snapshot_sha256, coordinator_pid, coordinator_argv,
     def check_process(pid, argv):
         before = process_stat(read_proc(f'/proc/{pid}/stat',65536))
         image = os.stat(f'/proc/{pid}/exe')
+        cwd = os.stat(f'/proc/{pid}/cwd')
         require(before[0] == pid and (image.st_dev,image.st_ino) == image_key
+                and (cwd.st_dev,cwd.st_ino) == root_key
                 and os.sched_getaffinity(pid) == {0}
                 and environment(read_proc(f'/proc/{pid}/environ',65536)) == expected_env
                 and read_proc(f'/proc/{pid}/cmdline',65536) == b'\0'.join(x.encode() for x in argv)+b'\0',
@@ -91,6 +95,6 @@ def inspect(role, *, launch, snapshot_sha256, coordinator_pid, coordinator_argv,
             'sampled_role_identity_verified':True, 'coordinator_declaration_authenticated':False,
             'safe_ancestor_topology_verified':False, 'continuous_liveness_verified':False,
             'launch_ready':False,
-            'scope':'Sampled procfs command/image/environment/affinity and parent bindings only. '
+            'scope':'Sampled procfs command/image/environment/cwd/affinity and parent bindings only. '
                     'Supplied coordinator declaration and snapshot origin are not authenticated; '
                     'not safe ancestor topology, continuous liveness or launch authorization.'}
