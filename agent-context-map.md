@@ -4,6 +4,19 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Precollection declared-file recheck:** `verify_clock_preparation_files.py`
+  inventories all admitted file types/identities/sizes before hashing, verifies
+  digests and then rechecks visible metadata and exact alias resolution. Five
+  temporary-file tests and 25 combined focused tests pass, including replacement
+  and alias mutation. The first fixture's error-text mismatch was corrected; no
+  guard changed. [Scope and commands](docs/results/2026-11-11-phase2-optimization/linux-clock-inventory-composition.md#precollection-file-recheck).
+  The first 413-test full run failed the previously intermittent CPU-only
+  clock-handoff and read-only lifecycle integrations. The former records a live
+  child command mismatch at job 10; fake reset/cleanup succeeded. Both tests pass
+  in a single focused rerun, and a full rerun passes 413 reporting tests; cause
+  remains unestablished and the failed run remains retained.
+  This is not yet wired to a fresh authenticated entry and makes no completeness,
+  atomicity, hardware, policy or launch claim; final postflight remains required.
 - **Upstream inventory binding:** the pure clock inventory composer now requires
   an upstream snapshot record, validates its pinned commit/scope/source inventory,
   and includes all source plus Git executable/config/index identities. Actual v4

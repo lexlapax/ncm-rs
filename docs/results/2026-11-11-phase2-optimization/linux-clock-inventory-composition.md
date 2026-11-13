@@ -79,3 +79,39 @@ umask 077; PYTHONPATH=tools/bench python -m unittest test_clock_preparation_inve
 Nine focused tests pass. `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh`
 passes all default checks, including 408 reporting tests; local log:
 `/tmp/ncm-phase2-upstream-inventory-check.log`.
+
+## Precollection file recheck
+
+`verify_clock_preparation_files.verify` reuses declaration admission, resolves all
+canonical paths and the exact supplied aliases, inventories every declared file's
+regular type/device/inode/size before hashing any file, checks all SHA-256 values,
+then rechecks aliases and visible metadata. Its output explicitly denies complete
+inventory, producer authentication, atomic snapshot and launch readiness. It is
+not an entry and is not yet wired into a real collection. It performs no subprocess,
+GPU or policy action; trusted ancestors and races between sampled checks remain.
+
+Five temporary-file tests cover empty files, changed size, same-size changed bytes,
+same-byte replacement, changed aliases during hashing and impossible declarations
+before path access. The first test run failed on an incorrect expected error-text
+substring; the fixture was corrected and replacement was made deterministic by
+keeping the old inode alive. The focused combined command passes 25 tests:
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_verify_clock_preparation_files test_clock_preparation_inventory test_verify_clock_files -v
+```
+
+The future frozen entry must call this on a freshly assembled and authenticated
+inventory and still enforce the final postflight after all collection validation.
+
+The first default check ran 413 reporting tests and failed two previously
+intermittent CPU-only observer integrations: the clock default-budget handoff
+and read-only lifecycle. The first retains job 10's `live child command mismatch`;
+fake reset and cleanup succeeded. The second records an observation mismatch but
+does not retain a more specific reason in the sequence receipt. Both tests passed
+one direct focused rerun; this does not establish the cause or repair it. Guards,
+timings and test expectations were not relaxed. Logs are local at
+`/tmp/ncm-phase2-precollection-files-check.log` and
+`/tmp/ncm-phase2-observer-focused-rerun.log`. No GPU or real policy action occurred.
+One unchanged full rerun, `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh`, then
+passed all default checks including 413 reporting tests; its local log is
+`/tmp/ncm-phase2-precollection-files-recheck.log`. This does not explain the failure.
