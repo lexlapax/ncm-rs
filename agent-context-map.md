@@ -93,9 +93,10 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   and cleanup design remains necessary. The user ran the checksum-bound CPU-only
   root fake-restoration test: normal and deadline cases each reset the fake state
   and completed owned-child cleanup. Root-owned summary and hash verified; this
-  does not prove unprivileged-coordinator wiring or hardware restoration. A second
-  same-terminal process-group fake probe was requested; its result is pending.
-  Local no-TTY v0 failed to authenticate and established no privileged cleanup.
+  does not prove unprivileged-coordinator wiring or hardware restoration. A
+  same-terminal process-group probe stayed alive until signalled, but did not identify the root child or prove its cleanup. A stronger fake root-child
+  marker probe has been requested; its result is pending. Local no-TTY probes
+  failed to authenticate and established no privileged cleanup.
   A separate unprivileged PTY probe found that a new process group retained its
   controlling TTY while a new session did not; this does not prove sudo cache or
   privileged cleanup. [Evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#unprivileged-tty-topology-observation).

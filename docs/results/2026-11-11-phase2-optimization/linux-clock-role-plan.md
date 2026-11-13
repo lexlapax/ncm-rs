@@ -196,11 +196,15 @@ reviewed restoration supervisor and a fresh quiet window first.
 
 A separate CPU-only exploratory script, `/tmp/ncm-sudo-tty-group-probe-v1.py`
 (SHA-256 `cd00adf46b97c766d40f8d111137f8a5015dff3af3ef673676eb9e2f46c6801c`),
-was prepared and the user was asked to run it in their terminal; that result is
-pending. It starts only `sudo -n
+was run by the user in their terminal. It starts only `sudo -n
 /usr/bin/sleep 3` in a new process group while retaining the parent session, then
-observes bounded termination. This is a prospective fake test, not a proposed change
-to the approved diagnostic or proof that privileged children can be cleaned up.
+observes bounded termination. The sudo process remained alive for 300 ms, received
+a group SIGTERM, and exited with return code -15; the original group was absent
+after the wait. The summary SHA-256 is
+`6e58d0b5ad2be31909cd33ab1077c38789a805eda9e5b36e83fdad6a4fd72645`.
+There was no root-child identity or readiness marker, so this does not establish
+that a privileged child started or that an escaped child was cleaned up. It is not
+a proposed change to the approved diagnostic.
 A local v0 harness run without a terminal exited immediately with `sudo: a password
 is required`; no privileged sleep ran. Its script and summary SHA-256 values are
 `9e2b6c7bef44966923de21f01a616f4437efc954a39973a038c215b6849231d4` and
@@ -209,8 +213,16 @@ The agent made no GPU access, credential or sudo configuration change in this pr
 for the existing session-based capture requires reviewed design and comprehensive
 fake cleanup tests; it is not authorized for a live clock operation by this probe.
 
-The user was asked to run `sudo -v && python3 -I -S /tmp/ncm-sudo-tty-group-probe-v1.py`
-in the same terminal and return its JSON output. No password is requested in chat.
+A stronger CPU-only marker probe was prepared and requested from the user. Script
+`/tmp/ncm-sudo-tty-group-marker-v1.py` has SHA-256
+`6ba33b6ea1384bbff4a8fd12eee4c59a28b0d76cd1d64e9691a6d14ee0444865`.
+It checks root-child readiness and a signal marker after the group terminates;
+its result is pending and would not establish complete privileged cleanup or
+hardware restoration. Its local no-TTY v0 failed authentication before starting
+a root child; script and summary hashes are
+`089e70426381dad55ade550a97436cf159c4437589a9ad8a0790a25c65c16447` and
+`6ba7b26b182a6ba02f45f4ddb60ea7ab2c8c4c84a10e0c303e2f935a615a709e`.
+No password is requested in chat.
 
 ## Observer branch role dispatch
 
@@ -312,7 +324,7 @@ the session, not retained as a raw log. It invoked neither sudo nor GPU commands
 This demonstrates only Linux TTY topology for that test. It does not prove sudo
 cache behavior, root-child cleanup, signal delivery, privilege, a safe live role
 architecture or permission to change the approved session-based capture. The
-user-requested same-terminal sudo/sleep probe remains the separate experiment.
+same-terminal sudo/sleep probe is a separate, limited experiment above.
 
 ### Local sudo manual review
 
@@ -322,7 +334,7 @@ but cannot relay `SIGKILL`. It also states user-requested `sudo -T` command time
 require explicit policy support. This is a documentation review, not proof of the
 machine's effective timestamp, pty or timeout policy. In particular, the current
 capture primitive's final group `SIGKILL` cannot by itself be assumed to terminate
-an independently privileged command. The pending same-terminal fake probe and
+an independently privileged command. The stronger fake marker probe and
 additional bounded cleanup/parent-loss tests are necessary before considering any
 privileged integration; no GPU policy command was run.
 
