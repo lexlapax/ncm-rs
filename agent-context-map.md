@@ -4,6 +4,15 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Read-only launch-preparation preflight:** `clock_preflight.py` composes fresh
+  file and GPU metadata, compares reviewed hashes/records, repeats Git checks,
+  and rehashes declared files after GPU queries. It retains the current GPU record
+  by digest. Nineteen initial focused tests and default checks with 436 reporting
+  tests passed before GPU-record publication and output-isolation refinements;
+  ten updated focused tests pass afterward with stubbed producers. No real assembled
+  preflight has run. [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-readonly-preflight.md).
+  This is not a launch entry and cannot establish producer authentication, role
+  ancestry, privilege, restoration, quietness or acceptance.
 - **GPU metadata comparison:** `compare_clock_gpu.py` checks supplied read-only
   records' GPU/utility identities, exact query receipts, row counts and capture
   digests without IO; it also binds the exact utility identity to a supplied file
