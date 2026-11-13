@@ -1,8 +1,9 @@
-"""Read /proc only for an owned waitable child; no ptrace, signals or GPU calls.
+"""Read /proc for an owned waitable child and, on mismatch, the collector itself.
 
 Samples cannot prove whole-lifetime absence of injection or capture every mapping.
 Prelaunch hashes and post-collection file checks must be bound separately. Never
 serialize environment values or unexpected command lines, including on failure.
+No ptrace, signals or GPU calls.
 """
 import hashlib
 import json
@@ -111,6 +112,15 @@ def mapped_paths(pid, raw):
                 'mapped path identity changed while sampling')
         value.update(path_device=current.st_dev, path_inode=current.st_ino, kernel_map_link_verified=True)
     return files, special
+
+
+def command_mismatch_category(raw_argv, alternate_argv, collector_argv):
+    """Classify a mismatch without recording any command bytes or accepting it."""
+    if alternate_argv is not None and raw_argv == alternate_argv:
+        return 'other_declared_phase'
+    if collector_argv and raw_argv == collector_argv:
+        return 'collector_command'
+    return 'unclassified'
 
 
 class ProcessObservation:
@@ -232,7 +242,16 @@ class ProcessObservation:
                 self.proc_unavailable_count += 1
             return
         require(environment(raw_env) == self.env, 'live child environment mismatch')
-        require(raw_argv == self.argv[phase], 'live child command mismatch')
+        if raw_argv != self.argv[phase]:
+            # Classify but never promote or erase a mismatch. During exec Linux
+            # can expose mixed fields; a sampled equality alone does not prove it.
+            alternate = self.argv.get('launcher' if phase == 'workload' else 'workload')
+            try:
+                collector = read_proc('/proc/self/cmdline', ENV_LIMIT)
+            except (OSError, ValueError):
+                collector = None
+            category = command_mismatch_category(raw_argv, alternate, collector)
+            raise ObservationMismatch('live child command mismatch: ' + category)
         # During exec /proc can expose new cmdline/maps before exe changes. Only
         # stable supported snapshots are accepted; mismatches fail, never guessed.
         require(image_key in {identity_key(value) for value in files}, 'executable not mapped in sample')

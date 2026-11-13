@@ -254,3 +254,30 @@ An outside-sandbox `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` subsequently
 passed all default checks including 444 reporting tests; local log:
 `/tmp/ncm-phase2-clock-worker-role-check.log`. That pass does not explain or erase
 the preceding command-mismatch failure.
+
+## Observer command-mismatch classification
+
+The owned-child observer still aborts on every stable sampled command mismatch; no
+mismatch is reclassified as a successful or transient sample. For diagnosis only,
+it now records one of three fixed categories: the other declared phase's command,
+the collector's own command, or unclassified. It reads the collector's own
+`/proc/self/cmdline` only on mismatch and never serializes command or environment
+bytes. This can distinguish future occurrences but does not retroactively identify
+the already-retained job-10/job-12 failures or establish that either was an exec
+race. The failure remains latched and all prior guards and sample limits remain.
+
+```sh
+umask 077; PYTHONPATH=tools/bench python -m unittest test_observe_readonly_process test_clock_process_observation test_verify_readonly_processes -v > /tmp/ncm-phase2-command-category-focused.log 2>&1
+```
+
+Twenty-nine focused tests pass, including fixed-category and no-secret assertions,
+real CPU-only observation and existing postflight tests. No GPU, workload benchmark,
+policy action or historical diagnostic rerun occurred.
+A further targeted two-test run verified that an actual owned-child command
+mismatch is still cancelled and retains only one of the fixed categories; it
+overlapped briefly with the default check. No captured command bytes were added.
+
+The default `umask 077; CARGO_BUILD_JOBS=4 ./tools/check.sh` run passed 445
+reporting tests. It began before the additional actual-mismatch assertion above;
+the two updated focused tests passed during that run. Local full-check log:
+`/tmp/ncm-phase2-command-category-check.log`.

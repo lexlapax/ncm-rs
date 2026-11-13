@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Observer mismatch diagnostics:** the existing guard still immediately fails
+  every command mismatch, but records a fixed non-sensitive category: other
+  declared phase, collector command, or unclassified. Twenty-nine focused tests
+  and default checks with 445 reporting tests pass; an added actual-mismatch
+  category assertion passed separately. No unexpected argv/environment bytes are
+  serialized. [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#observer-command-mismatch-classification).
+  This cannot explain the retained earlier job-10/job-12 failures and does not
+  relax observation or establish hardware readiness.
 - **Worker role dispatch:** `clock_worker_role.py` binds the supplied quiet/role
   declaration, private snapshot, live restorer handoff, original absolute deadline
   and observed 18-job sequence. Eleven focused wrapper/binding tests pass with the

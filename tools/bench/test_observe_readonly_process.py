@@ -88,6 +88,12 @@ class ProcessObservationTests(unittest.TestCase):
                 self.assertEqual(result['status'], 'failed')
                 self.assertNotIn('do-not-publish-this-value', json.dumps(result))
                 self.assertNotIn('UNEXPECTED_SECRET', json.dumps(result))
+                if mode == 'command':
+                    self.assertEqual(len(result['observation_failures']), 1)
+                    self.assertIn(result['observation_failures'][0], {
+                        'live child command mismatch: other_declared_phase',
+                        'live child command mismatch: collector_command',
+                        'live child command mismatch: unclassified'})
         _, observer = self.spec()
         observer.pid = 123
         with patch.object(observer, '_observe', side_effect=observation.ObservationMismatch('live child environment mismatch')), \
@@ -95,6 +101,13 @@ class ProcessObservationTests(unittest.TestCase):
             with self.assertRaises(observation.ObservationMismatch):
                 observer.observe(123)
         wait.assert_not_called()  # a later exit must not erase a detected mismatch
+
+    def test_command_mismatch_categories_never_expose_command_bytes(self):
+        classify=observation.command_mismatch_category
+        self.assertEqual(classify(b'secret-other\0',b'secret-other\0',None),'other_declared_phase')
+        self.assertEqual(classify(b'secret-parent\0',None,b'secret-parent\0'),'collector_command')
+        self.assertEqual(classify(b'secret-unknown\0',b'other\0',b'parent\0'),'unclassified')
+        self.assertNotIn('secret',classify(b'secret-unknown\0',None,None))
 
     def test_plain_injection_and_missing_traced_injection_fail_without_retry(self):
         argv, observer = self.spec(mapped=True, traced=False)
