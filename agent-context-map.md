@@ -94,9 +94,13 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   root fake-restoration test: normal and deadline cases each reset the fake state
   and completed owned-child cleanup. Root-owned summary and hash verified; this
   does not prove unprivileged-coordinator wiring or hardware restoration. A
-  same-terminal process-group probe stayed alive until signalled, but did not identify the root child or prove its cleanup. A stronger fake root-child
-  marker probe has been requested; its result is pending. Local no-TTY probes
-  failed to authenticate and established no privileged cleanup.
+  same-terminal process-group probe did not identify the root child. A stronger
+  fake marker probe confirmed a root child started and received SIGTERM; it does
+  not prove complete privileged cleanup, parent-loss handling or restoration.
+  Local no-TTY probes failed to authenticate. A fresh CPU-only 18-job handoff
+  test passed once, without resolving prior intermittent mismatches. The handoff
+  requires its restoration directory to be owned by the worker effective user,
+  a constraint on a root-supervisor/unprivileged-worker design. [Probe evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#potential-terminal-owned-process-group-probe).
   A separate unprivileged PTY probe found that a new process group retained its
   controlling TTY while a new session did not; this does not prove sudo cache or
   privileged cleanup. [Evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#unprivileged-tty-topology-observation).

@@ -213,12 +213,16 @@ The agent made no GPU access, credential or sudo configuration change in this pr
 for the existing session-based capture requires reviewed design and comprehensive
 fake cleanup tests; it is not authorized for a live clock operation by this probe.
 
-A stronger CPU-only marker probe was prepared and requested from the user. Script
+The user ran a stronger CPU-only marker probe. Script
 `/tmp/ncm-sudo-tty-group-marker-v1.py` has SHA-256
 `6ba33b6ea1384bbff4a8fd12eee4c59a28b0d76cd1d64e9691a6d14ee0444865`.
-It checks root-child readiness and a signal marker after the group terminates;
-its result is pending and would not establish complete privileged cleanup or
-hardware restoration. Its local no-TTY v0 failed authentication before starting
+It confirmed root-child readiness (`READY_UID_0`) and the fake child recorded
+`signal-15` with effective UID 0 after the group signal; sudo returned 143 and
+the original group was absent after waiting. Retained summary SHA-256 is
+`1d73536b7ff5c79f3f566f918c7afa27d62b70009bedcbae8da88e7fa2c8243e`.
+This establishes signal delivery to that fake child only, not complete privileged
+cleanup, parent-loss behavior, hardware restoration or launch readiness. Its local
+no-TTY v0 failed authentication before starting
 a root child; script and summary hashes are
 `089e70426381dad55ade550a97436cf159c4437589a9ad8a0790a25c65c16447` and
 `6ba7b26b182a6ba02f45f4ddb60ea7ab2c8c4c84a10e0c303e2f935a615a709e`.
@@ -334,14 +338,12 @@ but cannot relay `SIGKILL`. It also states user-requested `sudo -T` command time
 require explicit policy support. This is a documentation review, not proof of the
 machine's effective timestamp, pty or timeout policy. In particular, the current
 capture primitive's final group `SIGKILL` cannot by itself be assumed to terminate
-an independently privileged command. The stronger fake marker probe and
-additional bounded cleanup/parent-loss tests are necessary before considering any
+an independently privileged command. Additional bounded cleanup and parent-loss tests are necessary before considering any
 privileged integration; no GPU policy command was run.
 
 ### Credential lifetime and supervisor topology
 
-Even if the pending terminal/process-group fake test succeeds, it does not by
-itself make two separate `sudo -n nvidia-smi` calls safe for the fixed diagnostic.
+The successful fake root-child signal test does not by itself make two separate `sudo -n nvidia-smi` calls safe for the fixed diagnostic.
 The local sudo manual describes a default five-minute credential cache, while
 the restoration contract allows a lock interval up to 600 seconds. The effective
 local timeout has not been established. A cache that expires between set and
@@ -355,4 +357,13 @@ user identity, workload environment, parent-loss cleanup and receipt bindings wo
 need a concrete reviewed design and fake tests. The current coordinator and
 finalizer require specific direct-child relationships; inserting a sudo monitor
 or an independently launched root process cannot be assumed to satisfy them.
+The current `clock_worker_handoff.validate_handoff` also requires the private
+restoration directory to be owned by the worker effective UID, and reads its
+parent process metadata. A root restorer and a dropped-privilege worker cannot
+be assumed compatible with those checks or Linux process-access rules; any
+change needs explicit identity and provenance guarantees, not a relaxed check.
+A fresh CPU-only run of `umask 077 && python3 -m unittest
+test_clock_worker_handoff.ClockHandoffTests.test_default_budget_handoff_preserves_deadline_and_all_eighteen_real_observations`
+from `tools/bench` passed once in 2.392 seconds. It does not resolve the retained
+intermittent observer mismatches or exercise a root supervisor.
 Nothing here selects an architecture or authorizes a real clock change.
