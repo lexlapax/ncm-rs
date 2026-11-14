@@ -39,3 +39,32 @@ existing CPU 2 workload / CPU 0 observer placement and GPU/process telemetry;
 keep all previous and new results, unchanged thresholds, and no selected reruns.
 Audit the full control and source bindings. Apple work remains gated on a
 passing Linux result.
+
+## Upstream alignment check
+
+The local upstream checkout is clean at the declared `upstream.toml` commit
+`c70274273f489abc73832b2b98584a8483b6b203`. Its `models/vae.py` decoder block
+uses biased `nn.Linear` layers for `attn.c_attn`, `attn.c_proj`, `mlp.c_fc`
+and `mlp.c_proj`, with Q/K normalization, attention, GELU and residuals in the
+same order represented by `crates/ncm-model/src/blocks.rs`. The validated
+configuration restricts the initial codec to the supported architecture and
+requires Q/K normalization; unsupported configurations are rejected. The new
+hook changes how a projection plus bias is dispatched, not the model's layer
+order or weight orientation. In particular, it does not substitute TF32.
+
+The existing trace qualifier contains 24 outputs from those four decoder
+projections across its trained cases; all pass their previously declared
+numerical budgets. All 642 trace comparisons pass, as do all 2,500 recorded
+decisions. The pinned reference capture uses inference mode, math SDPA and
+TF32 disabled. These tests cover the pinned trained fixtures, not every possible
+model or hardware shape, and fused bias need not be bitwise identical to
+separate operations. The historical reference contract documents its known
+CPU/CUDA difference separately; no oracle or tolerance was changed here.
+
+For this inspection, `models/vae.py` SHA-256 is
+`7d393b56813342278def3b053e83ec4ff4e56a492e4ddf2a2441e1c9f78d4317`;
+`tools/reference/codec_trace.py` is
+`f8703f7fed1327afc6dc5a085eff609dc11c6259d0ce14fceec6c9d68525f411`;
+and the integrated CUDA module is
+`0166e89caf3fa557cb8db44bd940314c0be9d0ddd2f5a3a9e1fcfcac45a17309`.
+`git diff 3307dff 928894b -- upstream.toml tests/fixtures` is empty.
