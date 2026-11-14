@@ -1,6 +1,8 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
-**Latest candidate:** MLX projection-bias `a323b16` has a [76/78 Apple control](mlx-addmm-apple-gate-v1.md); TinyStories RSS/HWM remain open. A [finite current-runtime MLX memory observation](mlx-memory-addmm-v1.md) is retained.
+**Latest candidate:** TinyStories borrowing `5200924` passes the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; Apple validation is pending.
+
+**Previous candidate:** MLX projection-bias `a323b16` has a [76/78 Apple control](mlx-addmm-apple-gate-v1.md); TinyStories RSS/HWM remain open. A [finite current-runtime MLX memory observation](mlx-memory-addmm-v1.md) is retained.
 
 **Previous candidate:** MLX affine normalization `2850331` passes Linux and Metal
 correctness, but its [Apple fixed control](mlx-affine-apple-gate-v1.md) is
