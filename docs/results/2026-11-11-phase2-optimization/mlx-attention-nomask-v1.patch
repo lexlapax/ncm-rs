@@ -1,0 +1,82 @@
+--- a/crates/ncm-backend-mlx/src/ops.rs
++++ b/crates/ncm-backend-mlx/src/ops.rs
+@@ -119,0 +120,9 @@
++    attention_optional(q, k, v, Some(mask))
++}
++
++pub(crate) fn attention_optional(
++    q: &Array,
++    k: &Array,
++    v: &Array,
++    mask: Option<&Array>,
++) -> Result<Array> {
+@@ -129 +138 @@
+-        mask,
++        mask.map(mlx_rs::fast::ScaledDotProductAttentionMask::Array),
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -307,2 +307 @@
+-            let zero = Array::from_f32(0.);
+-            ops::attention(&q.0, &k.0, &v.0, mask.map(|m| &m.0).unwrap_or(&zero))
++            ops::attention_optional(&q.0, &k.0, &v.0, mask.map(|m| &m.0))
+--- a/crates/ncm-backend-mlx/tests/codec_components.rs
++++ b/crates/ncm-backend-mlx/tests/codec_components.rs
+@@ -176,0 +177,58 @@
++
++#[test]
++fn unmasked_attention_matches_zero_mask_and_respects_explicit_mask() {
++    let backend = MlxBackend::gpu().unwrap();
++    for (batch, heads, queries, keys, width) in [
++        (1_usize, 1_usize, 7_usize, 9_usize, 8_usize),
++        (1, 4, 89, 89, 64),
++        (2, 4, 89, 89, 64),
++        (4, 4, 89, 89, 64),
++    ] {
++        let q = backend
++            .upload_f32(
++                &vec![0.; batch * heads * queries * width],
++                &[batch, heads, queries, width],
++            )
++            .unwrap();
++        let k = backend
++            .upload_f32(
++                &vec![0.; batch * heads * keys * width],
++                &[batch, heads, keys, width],
++            )
++            .unwrap();
++        let mut values = vec![0.; batch * heads * keys * width];
++        for chunk in values.chunks_mut(keys * width) {
++            chunk[(keys - 1) * width..].fill(1.);
++        }
++        let v = backend
++            .upload_f32(&values, &[batch, heads, keys, width])
++            .unwrap();
++        let zero = backend.upload_f32(&[0.], &[]).unwrap();
++        let mut blocked = vec![0.; queries * keys];
++        for row in blocked.chunks_mut(keys) {
++            row[keys - 1] = -10000.;
++        }
++        let mask = backend.upload_f32(&blocked, &[queries, keys]).unwrap();
++        let no_mask = backend
++            .read_f32(&backend.attention(&q, &k, &v, None).unwrap())
++            .unwrap();
++        let zero_mask = backend
++            .read_f32(&backend.attention(&q, &k, &v, Some(&zero)).unwrap())
++            .unwrap();
++        let masked = backend
++            .read_f32(&backend.attention(&q, &k, &v, Some(&mask)).unwrap())
++            .unwrap();
++        assert_eq!(no_mask.len(), batch * heads * queries * width);
++        assert_eq!(no_mask.len(), zero_mask.len());
++        assert_eq!(no_mask.len(), masked.len());
++        for ((&a, &b), &c) in no_mask.iter().zip(&zero_mask).zip(&masked) {
++            assert!(a.is_finite() && b.is_finite() && c.is_finite());
++            assert!(
++                (a - b).abs() <= 1e-5 + 1e-4 * b.abs(),
++                "no mask vs zero: {a} vs {b}"
++            );
++            assert!((a - 1. / keys as f32).abs() <= 1e-5, "unmasked output {a}");
++            assert!(c.abs() <= 1e-5, "explicit mask output {c}");
++        }
++    }
++}

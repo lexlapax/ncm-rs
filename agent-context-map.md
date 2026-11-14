@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Unmasked attention runtime experiment prepared:** research found the MLX
+  adapter supplies a zero mask for the decoder's unmasked attention; pinned MLX
+  has a distinct no-mask path. An isolated patch and regression test are ready;
+  Linux-first and real-Metal validation are pending. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-plan-v1.md).
+
 - **Apple all-cell sensitivity:** both retained controls' 58 timing cells and
   20 memory cells are checked; post-hoc pooled timing intervals fit the limits,
   but neither failed gate is reclassified. A prospective 3+18-repeat option is
