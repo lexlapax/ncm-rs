@@ -57,3 +57,47 @@ artifacts/canonical/sudoku-easy-qualified reports/phase2-oracle/v1/sudoku-cuda
 /tmp/ncm-finite-scan-trace-v1 cuda`, followed by `.reference/venv/bin/python
 tools/reference/qualify_codec.py reports/phase2-oracle/v1/sudoku-cuda
 /tmp/ncm-finite-scan-trace-v1 /tmp/ncm-finite-scan-qualification-v1.json`.
+
+## Fresh Linux performance gate
+
+Candidate `a6290db` was measured against accepted Rust `3307dff` and pinned
+Python using the existing three-process, five-warmup, thirty-trial matrix.
+All **45 processes** completed. A separate lifecycle capture completed nine
+fresh processes with matching outputs. The unchanged initial audit passed
+**71/78** comparisons; seven comparisons against accepted Rust exceeded the
+process envelope despite passing their point estimates. All Python comparisons
+and all comparable memory cells passed.
+
+One follow-up was declared before execution: nine fresh processes per runtime
+for each of codec, BERT, Qwen and TinyStories, all scopes and checked loads,
+with no retry or changed thresholds. The fixed plan SHA-256 is
+`02b4f60a7b588a0a9d7b1ecbe504e3cb23bf6bcbbf65cfca55dbe0128b6479c4`.
+All **108 processes** completed. The unchanged paired-process audit passes
+**76/78**, with two comparisons still open:
+
+| Comparison versus accepted Rust | Follow-up median ratio | p95 ratio | 95% upper bounds, median / p95 |
+| --- | ---: | ---: | ---: |
+| B1 resident decoder block | 1.01571 | **1.11340** | **1.11863 / 1.12152** |
+| BERT checked load | 0.99984 | 1.00258 | 1.02067 / **1.34396** |
+
+The limits remain 1.05 for median/memory and 1.10 for p95. Nine paired
+processes leave broad intervals; that does not make either cell pass. The old
+tokenizer controls cannot be bound by the existing audit because the runner's
+hash changed after their collection, despite matching tokenizer binaries and
+Python environment. They were not reused or relabeled. The initial and
+controlled results, complete reports, telemetry, qualification, lifecycle,
+plan, commands and logs are retained in the [archive](raw/finite-scan-linux-gate-v1.tar.xz),
+SHA-256 `67d42d1ea4f28497e4771b3118de9f530af4ba212c7fc00ece69cd9653814907`.
+Its controlled audit SHA-256 is
+`668c4d3d656cb89c20c6286152fac751e7a54c06958e9bb37a454daa9ac98634`.
+
+Before collection the GPU reported 0% utilization; a 15-second read-only
+sample found CPU 2 median 9% and maximum 15% non-idle activity, and its SMT
+sibling CPU 3 median 0% / maximum 1.01%. This is not a quiet-window certificate
+or proof of conditions throughout the run. No system policy changed. To
+reproduce the audit, extract the archive into an empty directory and run
+`python3 /PATH/TO/REPO/tools/bench/audit_phase2_performance.py
+reports/phase2-finite-scan-linux-gate-v1/controlled-config.json NEW_OUTPUT`;
+it returns exit 1 for the two failures. This was reproduced byte-for-byte in
+`/tmp/ncm-finite-gate-repro-v1`. The earlier 72/78 audit remains historical;
+neither result is an Apple gate or Phase 2 completion.

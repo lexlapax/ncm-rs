@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Fresh Linux performance gate:** candidate `a6290db` completed the 45-process
+  three-way matrix and one predeclared nine-process-per-runtime follow-up for
+  codec, BERT, Qwen and TinyStories. The initial audit is 71/78; the controlled
+  audit is **76/78**, with B1 resident-block latency and BERT checked load still
+  failing against accepted Rust. No limits changed; the archived audit reproduces
+  byte-for-byte. Apple and the separately documented reporting failure remain
+  pending. [Details](docs/results/2026-11-11-phase2-optimization/finite-scan-v1.md#fresh-linux-performance-gate).
+
 - **Grouped finite scan candidate:** model loading now checks little-endian FP32
   exponent bits in groups, preserving complete preflight before upload. Focused
   edge/unaligned and invalid-weight tests pass. A 30-trial CPU scan diagnostic
@@ -19,17 +27,16 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 - **Streamed artifact hashing rejected:** hashing each artifact during its bounded
   read retained all checks but increased matched CUDA checked-load process median
   from 191.25 to 201.98 ms (three processes each). The patch was reverted; raw
-  evidence is retained. `target/release/examples/codec_bench` reflects this
-  rejected patch and must be rebuilt before use. Linux remains 72/78; the public
+  evidence is retained. The benchmark binary has since been rebuilt for the
+  finite-scan candidate. The earlier Linux audit was 72/78; the public
   raw-upload API decision is pending.
   [Details](docs/results/2026-11-11-phase2-optimization/streamed-hash-v1.md).
 
 - **Performance work resumed:** decoder trace-label elision was prototyped and
   measured on CUDA against the saved pre-change candidate in three matched
   processes each. Output-ID hashes matched but no material speedup was measured;
-  the patch was reverted and negative evidence retained. The release
-  `codec_bench` binary was built from the rejected patch and must be rebuilt
-  before use as a current-source candidate. Linux remains 72/78; the user's
+  the patch was reverted and negative evidence retained. Its benchmark binary
+  has since been rebuilt. The earlier Linux audit was 72/78; the user's
   decision on the proposed public raw-upload API is pending.
   [Details](docs/results/2026-11-11-phase2-optimization/decoder-trace-label-v1.md).
 

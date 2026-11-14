@@ -51,7 +51,7 @@
     },
     {
       "id": "grouped-finite-scan",
-      "status": "provisional Linux CUDA candidate; trained trace and direct CUDA checks pass; reporting failure and platform gates pending",
+      "status": "provisional Linux CUDA candidate; controlled Linux gate 76/78; reporting failure and Apple gate pending",
       "hypothesis": "Scan all FP32 exponent bits in small groups without aligned loads, preserving complete preflight and rejection semantics.",
       "finding": "On the real tensor bytes, one CPU microbenchmark measured 4.359 to 2.995 ms. A three-process matched CUDA diagnostic measured checked-load median of process medians 192.200 to 189.226 ms; all twelve output-ID hashes matched. CUDA trained qualification passed 642 traces and 2500 decisions. Resource and acceptance qualification remain pending.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/finite-scan-v1.md"

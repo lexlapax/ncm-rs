@@ -1,5 +1,11 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+Latest candidate `a6290db` has a fresh Linux 45-process matrix and one bounded
+108-process follow-up: the unchanged controlled audit passes **76/78**, leaving
+B1 resident block and BERT checked load open. The initial audit was 71/78.
+The prior 72/78 controlled result discussed below belongs to the earlier
+candidate. [Evidence and reproduction](finite-scan-v1.md#fresh-linux-performance-gate).
+
 This is a working requirement-to-evidence checklist, **not a completion claim**.
 The objective is to complete the five approved optimization steps within Phase 2:
 freeze the accepted baseline; independently evaluate lower-risk opportunities;
