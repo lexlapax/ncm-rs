@@ -1,0 +1,398 @@
+{
+  "archives_sha256": {
+    "combined": "cb98da607fdd11155b0801ddb376e43516afb9716484f2df38cc54a9fbca0ecb",
+    "isolated": "cfd2de5b6f10989d587d39cfa07eefa3a93e3dbb6cc2735cddb34dc9111c695a"
+  },
+  "comparisons": {
+    "combined": [
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 61577288
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59677184,
+          "used_peak": 61551964
+        },
+        "scope": "encode"
+      },
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 62893984
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59677184,
+          "used_peak": 62686032
+        },
+        "scope": "decode"
+      },
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 62893984
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59677184,
+          "used_peak": 63779664
+        },
+        "scope": "reconstruct"
+      },
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 61799064
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59677184,
+          "used_peak": 61591112
+        },
+        "scope": "resident_decoder_block"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 63542800
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59768320,
+          "used_peak": 63517476
+        },
+        "scope": "encode"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 66176168
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59768320,
+          "used_peak": 65785944
+        },
+        "scope": "decode"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59794000,
+          "used_peak": 66176168
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59768320,
+          "used_peak": 67973208
+        },
+        "scope": "reconstruct"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59794000,
+          "used_peak": 63986328
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59768320,
+          "used_peak": 63596104
+        },
+        "scope": "resident_decoder_block"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 67473824
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59950592,
+          "used_peak": 67448500
+        },
+        "scope": "encode"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 72740536
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59950592,
+          "used_peak": 71985768
+        },
+        "scope": "decode"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 72740536
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59950592,
+          "used_peak": 76360296
+        },
+        "scope": "reconstruct"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 68360856
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59950592,
+          "used_peak": 67606088
+        },
+        "scope": "resident_decoder_block"
+      }
+    ],
+    "isolated": [
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 61577288
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 61577288
+        },
+        "scope": "encode"
+      },
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 62893984
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 62711712
+        },
+        "scope": "decode"
+      },
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 62893984
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 62711712
+        },
+        "scope": "reconstruct"
+      },
+      {
+        "batch": 1,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 61799064
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59702864,
+          "used_peak": 61616792
+        },
+        "scope": "resident_decoder_block"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 63542800
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 63542800
+        },
+        "scope": "encode"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 66176168
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 65811624
+        },
+        "scope": "decode"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59794000,
+          "used_peak": 66176168
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 65811624
+        },
+        "scope": "reconstruct"
+      },
+      {
+        "batch": 2,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59794000,
+          "used_peak": 63986328
+        },
+        "previous": {
+          "reserved_current": 67108864,
+          "reserved_peak": 67108864,
+          "used_current": 59794000,
+          "used_peak": 63621784
+        },
+        "scope": "resident_decoder_block"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 67473824
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 67473824
+        },
+        "scope": "encode"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 72740536
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 72011448
+        },
+        "scope": "decode"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 72740536
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 72011448
+        },
+        "scope": "reconstruct"
+      },
+      {
+        "batch": 4,
+        "candidate": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 68360856
+        },
+        "previous": {
+          "reserved_current": 100663296,
+          "reserved_peak": 100663296,
+          "used_current": 59976272,
+          "used_peak": 67631768
+        },
+        "scope": "resident_decoder_block"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "scope": "Offline CUDA pool counters only; not a new run or acceptance gate."
+}

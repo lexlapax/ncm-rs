@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Packed Q/K/V pool follow-up:** an offline audit of both retained archives
+  shows the isolated B2 reservation first rises in reconstruction, not
+  necessarily in the following block. In the fresh combined matrix, accepted
+  and candidate reserved pool peaks match in every scope; candidate
+  reconstruction used peaks are lower, while decode/block peaks are higher.
+  Counters remain distinct from host RSS; no acceptance result changed.
+  [Details](docs/results/2026-11-11-phase2-optimization/packed-qkv-v1.md#offline-pool-counter-comparison).
+
 - **BERT dispatch isolation rejected:** separating BERT parsing into a
   non-inlined helper did not improve Qwen or BERT load in three matched
   processes per binary; the patch was reverted. Tokenizer tests and real-asset

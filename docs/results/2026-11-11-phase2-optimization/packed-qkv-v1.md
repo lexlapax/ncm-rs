@@ -44,6 +44,30 @@ comparison and does not erase the benchmark's B2 reservation observation.
 The three benchmark process host HWM values overlapped at roughly 604–607 MB;
 this is not a definitive memory comparison.
 
+### Offline pool-counter comparison
+
+The isolated benchmark's B2 reservation first rose from 64 to 96 MiB in the
+**reconstruct** scope and remained at 96 MiB for the following resident-block
+scope. The block counter therefore does not by itself establish a new reservation
+during that block. In the later combined matrix, accepted Rust and the candidate
+had identical reserved pool peaks for every corresponding scope: 64 MiB for B1,
+64 or 96 MiB for B2, and 96 MiB for B4, in all three process pairs.
+
+In that combined matrix, the peak *used* pool bytes for reconstruction were
+63,779,664 / 62,893,984 (B1), 67,973,208 / 66,176,168 (B2), and 76,360,296 /
+72,740,536 (B4), accepted / candidate. Decode and resident-block used peaks
+were higher in the candidate by 207,952 / 390,224 / 754,768 bytes for B1/B2/B4.
+These are aggregate, scope-ordered pool counters for the combined candidate;
+they do not isolate Q/K/V as the sole cause or equate reserved bytes with RSS.
+The candidate-only ten-drop capture above remains the lifecycle evidence.
+
+The [offline audit](raw/packed-qkv-pool-audit-v1.py) verifies both archive hashes,
+the combined candidate binary hash and identical per-role counters across the
+three retained processes before printing [its results](raw/packed-qkv-pool-audit-v1.json).
+Script SHA-256 `93ca8fe75d3192b7d6a3ea886f825854761cdfc1f4b6190749191da7d4c4e8ea`;
+result SHA-256 `b5da908746e51e74c34fc09f3aff5662bd6dd0a0e3af2ccf8783a34b04192362`.
+It performs no GPU work and does not change the acceptance result.
+
 [Raw reports, qualification, focused CUDA log, lifetime capture and binary
 hashes](raw/packed-qkv-v1.tar.xz) SHA-256:
 `cfd2de5b6f10989d587d39cfa07eefa3a93e3dbb6cc2735cddb34dc9111c695a`.
