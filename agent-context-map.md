@@ -4,12 +4,18 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple memory observation:** after reboot, a source-bound diagnostic on the
+  current runtime completed 384 reconstructions across three model lifetimes.
+  Active MLX bytes returned to zero after each drop; cache snapshots stabilized
+  in this finite workload, while host RSS increased. This is not a general
+  bound or a timing gate. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-long-lived-memory-v1.md).
+
 - **Qwen ID-copy experiment deferred:** an isolated accessor avoided the final
   ID-vector copy while preserving the tokenizer pipeline. Tokenizer tests and
   four probes passed, but three paired Linux processes did not show a speedup
   (median ratio 1.016); the noisy diagnostic is not acceptance and the
   dependency change was not integrated. [Evidence](docs/results/2026-11-11-phase2-optimization/qwen-ids-copy-diagnostic-v1.md).
-  The user is rebooting Mac Studio; wait for readiness before reconnecting.
+  The user confirmed Mac Studio is ready after reboot.
 
 - **Latest Apple gate:** the affine candidate `2850331` reached **77/78**
   initially and **75/78** after its fixed all-workload control. Batch-4 block
