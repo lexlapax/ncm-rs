@@ -12,8 +12,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   Three-process diagnostics show decode medians 4.8–5.3% lower and encode
   medians 3.2–3.8% lower, with matching IDs/logits; this is not acceptance.
   Fresh Linux gate: 75/78 initial and **78/78** fixed all-workload control;
-  nine lifecycle runs and clean-export reproduction pass. Apple validation
-  is underway after Linux. [Candidate](docs/results/2026-11-11-phase2-optimization/conv-bias-cuda-v1.md);
+  nine lifecycle runs and clean-export reproduction pass. Apple initial and
+  all-workload control are 75/78 and 74/78, with substantial Chrome activity;
+  user closed Chrome and a new fixed quiet-window run is underway.
+  [Apple gate](docs/results/2026-11-11-phase2-optimization/conv-bias-apple-gate-v1.md). [Candidate](docs/results/2026-11-11-phase2-optimization/conv-bias-cuda-v1.md);
   [Linux gate](docs/results/2026-11-11-phase2-optimization/conv-bias-linux-gate-v1.md).
 
 - **Qwen decoder dependency patch approved:** the user approved the isolated
