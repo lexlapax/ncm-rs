@@ -21,6 +21,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   include host submission/idle and do not identify the cause. Three separate
   instrumented processes found 24 such outliers with at most 0.031 ms thread
   run-queue wait versus at least 0.281 ms excess wall time; other causes remain.
+  A single traced batch-1 decode outlier coincided with a slow CUDA event
+  creation call; profiling perturbs timing and does not prove the cause of
+  gate failures. Event tracking protects cross-stream lifetimes and remains
+  enabled. The diagnostic and its limitations are in the quiet-gate report.
   The earlier
   failures remain retained. Apple cannot advance before Linux passes.
   [Quiet gate](docs/results/2026-11-11-phase2-optimization/decode-quiet-gate-v1.md), [earlier gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md), [quiet diagnostic](docs/results/2026-11-11-phase2-optimization/decode-quiet-diagnostic-v1.md).

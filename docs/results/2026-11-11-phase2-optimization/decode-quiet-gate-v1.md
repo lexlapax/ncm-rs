@@ -67,3 +67,37 @@ scheduling or other causes. CUDA stream spans include host submission and
 possible idle time. The sample does not repair or replace either failed gate.
 [Source, reports, self-check and telemetry](raw/codec-sched-diagnostic-v1.tar.xz)
 have SHA-256 `1218447afccb6ce0250b885a6a37a39c47d5f3d52c6566b0c4ab20c74eb44b2c`.
+
+
+## Targeted batch-1 decode profile
+
+One predeclared, instrumented CUDA process profiled the batch-1 decode scope
+(1 first, 5 warmup and 30 measured calls); it is a diagnostic, not an
+acceptance run. Among measured trials, the median wall time was 1.771808 ms
+and one trial exceeded 1.2 times that median at 3.051365 ms. That trial's
+summed kernel durations were 0.851432 ms, versus a 0.851667 ms median. Its
+681 `cuEventCreate` calls totaled 1.352633 ms, versus a 0.088584 ms median;
+the longest was 1.263400 ms, versus a 0.001367 ms median of trial maxima.
+The uncovered part of the kernel hull was 2.152654 ms, versus 0.873529 ms
+median; this is not proof of device idle or CPU overhead. CUPTI perturbs
+timing and leaves some activity unattributed, so this observation does not
+establish the cause of the uninstrumented gate failures.
+
+The local pinned `cudarc` source creates two events for each tracked slice
+allocation. Its event tracking protects cross-stream allocation, use and
+freeing; disabling it is unsafe without establishing those guarantees for
+the full application. No tracking or synchronization behavior was changed.
+
+The profiled report's input/output identity fields matched the uninstrumented
+candidate in all 12 scopes, and recorded first logits matched exactly. This
+is a limited diagnostic comparison, not full trained parity. There were 36
+profile windows and no capture lines reporting dropped records; that does
+not prove capture completeness. An initial parser retained an unrelated
+block-scope filter and produced no windows; the corrected copy selected the
+decode scope. The [diagnostic archive](raw/codec-b1-cupti-diagnostic-v1.tar.xz)
+contains the plan, diagnostic source, corrected parser, telemetry and per-call
+aggregates. The 41,585,794-byte raw capture remains local at
+`reports/phase2-b1-decode-cupti-v1/capture.txt`, SHA-256
+`080e99a8fd447955616546aa44a2de291dee16de544b0226dee8aaa5ed984e7f`;
+the raw result and full parsed windows also remain local. No GPU policy was
+changed. The Linux gate remains 74/78, with Apple validation pending.
