@@ -4,11 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Exact GELU compilation diagnostic:** three isolated Metal processes show
-  lower warm B4 medians, but the original output check failed to reject
-  non-finite values. A corrected v2 check is prepared; first compilation cost
-  is significant and trained/full-model behavior is untested. No production
-  change. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-compile-poc-v1.md).
+- **Exact GELU compilation diagnostic:** corrected finite checks pass in three
+  isolated Metal processes, with lower warm B4 medians. First compilation cost
+  is significant; full-model timing, trained parity and cache lifetime remain
+  untested. No production change. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-compile-poc-v2.md).
 
 - **System-wide Metal activity diagnostic incomplete:** target finished without
   a slow B4 trial, but the recorder exceeded a post-target deadline and the
