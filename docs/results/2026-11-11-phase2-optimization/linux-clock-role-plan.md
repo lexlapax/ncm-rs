@@ -438,3 +438,36 @@ were added; all seven focused identity tests subsequently passed. The initial
 sandboxed check stopped earlier because sccache returned operation not permitted
 (log `/tmp/ncm-worker-identity-check.log`, SHA-256
 `12867ac490c15de556c59a51d9211b485d426708fe382f10d2af372a28055227`).
+
+
+### Collector-command investigation
+
+A separate CPU-only stress harness `/tmp/ncm-observer-exec-probe-v1.py` (SHA-256
+`e85cb969e6f5d8c507181851bb98e314f866a95f82e933d09cc29c6232fae7fb`)
+ran the actual 18-job fake handoff fixture, adding only failure-time diagnostics.
+Its 28th attempt failed at job 11 with `collector_command`, before any accepted
+sample for that job. The immediate follow-up still matched the collector's
+command and executable; `/proc/<pid>/syscall` reported `running`, not a syscall
+number. Fake reset succeeded and the reaper role was restored. The retained
+private results `/tmp/ncm-observer-exec-probe-v1.json` have SHA-256
+`d2f928af46cb69462dbcda8e740ea0b5075e37328735b0223f7a4882a79ec46e`.
+Instrumentation reads only test-owned fake children; no GPU or policy action ran.
+
+The installed Python 3.14 subprocess source uses a fork/exec error pipe for the
+relevant `start_new_session=True` path. In the inspected [Linux exec source at a
+fixed upstream revision](https://code.googlesource.com/linux/torvalds/linux/+/5d144c294ae21c1bfb275ba06ec73c2d1ab7cf92/fs/exec.c),
+close-on-exec processing precedes installation of the new memory image. This
+makes a transition race a plausible explanation, not proof of this machine's
+specific event or of earlier failures; the inspected upstream revision was not
+verified as the running Arch kernel source. The follow-up syscall result does
+not identify an exec syscall. No acceptance, timing, observation or failure
+rule changed; command mismatches remain immediate failures.
+
+A new focused regression injects the collector command into sampled child
+command reads, verifies an immediate failed receipt, zero accepted samples and
+`workload_not_observed`. `umask 077 && PYTHONPATH=tools/bench python3 -m unittest
+-v test_observe_readonly_process` passed all 13 tests; private log
+`/tmp/ncm-observer-exec-focused-v1.log` SHA-256
+`94a6305bd35700c1d3b6daefb7b77a5908e211a36452a5ab306ea1e5ef599911`.
+This focused pass does not resolve the retained full-check failure, establish a
+safe startup barrier, or make the diagnostic ready to run.

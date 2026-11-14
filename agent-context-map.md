@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Collector-command investigation:** an instrumented CPU-only stress batch
+  reproduced the mismatch on run 28, job 11. Follow-up still saw the collector's
+  command and executable; procfs reported `running`, so the syscall could not be
+  identified. Fake reset and reaper restoration succeeded. Kernel-source and local
+  Python inspection make an exec-transition race plausible, but do not prove it.
+  A new regression keeps collector-command mismatches fail-closed; all 13 focused
+  observer tests pass. No diagnostic acceptance or timing changed. [Evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#collector-command-investigation).
+
 - **Worker credential sampling:** `clock_unprivileged_identity.py` verifies a
   supplied non-root UID/GID and exact supplementary-group multiset against
   `/proc/self/status` and process APIs, including saved/filesystem IDs and zero

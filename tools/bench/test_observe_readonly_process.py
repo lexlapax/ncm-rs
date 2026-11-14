@@ -109,6 +109,23 @@ class ProcessObservationTests(unittest.TestCase):
         self.assertEqual(classify(b'secret-unknown\0',b'other\0',b'parent\0'),'unclassified')
         self.assertNotIn('secret',classify(b'secret-unknown\0',None,None))
 
+    def test_collector_command_match_is_never_accepted_as_startup(self):
+        argv, observer = self.spec()
+        actual = observation.read_proc
+        collector = actual('/proc/self/cmdline', observation.ENV_LIMIT)
+        def inherited_cmdline(path, limit):
+            parts = Path(path).parts
+            if len(parts) == 4 and parts[1] == 'proc' and parts[2].isdigit() and parts[3] == 'cmdline':
+                return collector
+            return actual(path, limit)
+        with patch.object(observation, 'read_proc', side_effect=inherited_cmdline):
+            receipt, result = self.collect(argv, observer, 'collector-command')
+        self.assertEqual(receipt['status'], 'failed')
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['samples'], [])
+        self.assertEqual(result['observation_failures'], ['live child command mismatch: collector_command'])
+        self.assertIn('workload_not_observed', result['issues'])
+
     def test_plain_injection_and_missing_traced_injection_fail_without_retry(self):
         argv, observer = self.spec(mapped=True, traced=False)
         receipt, result = self.collect(argv, observer, 'unexpected')
