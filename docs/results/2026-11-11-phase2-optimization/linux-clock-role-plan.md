@@ -365,5 +365,16 @@ change needs explicit identity and provenance guarantees, not a relaxed check.
 A fresh CPU-only run of `umask 077 && python3 -m unittest
 test_clock_worker_handoff.ClockHandoffTests.test_default_budget_handoff_preserves_deadline_and_all_eighteen_real_observations`
 from `tools/bench` passed once in 2.392 seconds. It does not resolve the retained
-intermittent observer mismatches or exercise a root supervisor.
+intermittent observer mismatches or exercise a root supervisor. Five further
+consecutive executions of the same test passed (2.402–2.419 seconds each);
+private JSON log `/tmp/ncm-clock-handoff-diagnostic-20261113.json` SHA-256
+`840a5a17f728d330754101770bb4376804aa375eea01a5a13233ba3b5319bac8`.
+These passes do not explain or discard the retained failures.
+
+A CPU-only dropped-user access probe has been prepared and requested from the
+user. `/tmp/ncm-root-worker-access-v1.py` SHA-256
+`0413e7a1bb3452fc29bcbfbdffc0eca3a8a2cd1a584fc5ff28795181569c9`
+checks access to a fake root-owned obligation and its parent process metadata;
+its result is pending. An unprivileged invocation rejected itself as intended.
+It performs no GPU or real policy action and does not implement the supervisor.
 Nothing here selects an architecture or authorizes a real clock change.
