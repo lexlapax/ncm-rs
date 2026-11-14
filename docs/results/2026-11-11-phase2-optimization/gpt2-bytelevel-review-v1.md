@@ -35,6 +35,15 @@ sample; exclusive CPU/GPU access is not established. The measured prototype
 uses the same logic as the formatted review patch, which adds comments and
 regression tests.
 
+An independent clean-export check applies the archived measured prototype
+patch to `49a8f16`, verifies every source hash in all 12 native diagnostic
+reports against the corresponding candidate or unchanged export, and
+recomputes the encode medians and ratios above. All three scope output hashes
+match across all six runs on each platform, and each run records five warmups
+and 30 trials. The separately published review patch is byte-identical to the
+archived review patch. This confirms provenance and does not change the
+pending dependency review or either acceptance gate.
+
 [Exact proposed patch](gpt2-bytelevel-review-v1.patch) has SHA-256
 `e4cc90d5d6b657c6dbe1129c0809fafa5e40d24a071f5ae57f2e47f4454e03f5`.
 [Patch, failed and passing regressions, checks, probes and raw diagnostics](raw/gpt2-bytelevel-review-v1.tar.xz)

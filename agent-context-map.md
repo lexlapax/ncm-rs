@@ -6,8 +6,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 - **GPT-2 dependency review pending:** an isolated byte-level identity
   shortcut preserves tested splits/offsets and passes full CUDA/MLX checks;
-  matched GPT-2 encode diagnostics improve 4.5% Linux / 6.5% Mac. The exact
-  additional vendored patch requires user review before integration. [Patch and evidence](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md).
+  matched GPT-2 encode diagnostics improve 4.5% Linux / 6.5% Mac; all 12
+  diagnostic source inventories and output hashes verify from clean exports.
+  The exact additional vendored patch requires user review before integration.
+  [Patch and evidence](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md).
 
 - **Current Apple gate fails:** candidate `884d8f6` passes full MLX checks and
   trained parity, but remains **77/78** after one fixed GPT-2 control: encode
