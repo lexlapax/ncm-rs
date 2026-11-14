@@ -715,8 +715,15 @@ properly failing the transaction and completing fake reset/cleanup. Its summary
 `/tmp/ncm-root-supervised-user-v2-1000.json` SHA-256 is
 `8e0b394c88cec53f1d7fe0be614563b8112d7f86f5ee88a2c0b202094c38fa92`.
 This invocation did not start as root or exercise a privilege drop; its
-`no_new_privs_if_privileged` check is vacuous in self-test mode. The sudo test
-has been requested and its result is pending. These synthetic cases use a
+`no_new_privs_if_privileged` check is vacuous in self-test mode. The user ran the sudo test. Both cases passed their fake checks: root supervisor,
+worker identity and `no_new_privs`, reaping, capture EOF, fake set/reset, cleanup
+and reset-request deadline. The normal transaction completed; the deadline
+transaction correctly failed after cancelling its worker. Root-owned mode-0644
+summary `/tmp/ncm-root-supervised-user-v2-0.json` has SHA-256
+`c797f06873a1a2e09c46609ae60da0b6c811d0c4dd2dbef7867f4a5286ad8c2e`;
+its ownership and digest were verified outside the sandbox. This verifies only
+these fake owned-child transactions, not the full privileged coordinator or real
+GPU restoration. These synthetic cases use a
 four-second lock window and one-second reserve solely for test speed; they do
 not change the approved diagnostic's 600-second lock and ten-second reserve.
 They do not cover coordinator wiring, parent loss, untrusted launch inputs, actual
