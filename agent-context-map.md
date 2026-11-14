@@ -12,8 +12,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   Mac GPT-2 encode varies adversely and sampled HWM is documented. Full gates
   remain necessary. Integrated candidate `211df63` passes Qwen decode in a
   fresh Linux matrix, but the initial audit is 71/78 and its one fixed control
-  is 70/78 due to other timing uncertainties. Diagnose the retained results;
-  Apple cannot advance before Linux passes. [Linux gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md).
+  is 70/78 due to other timing uncertainties. After the user quieted the
+  desktop, a small fixed diagnostic showed fewer spikes but does not replace
+  the failed gate or prove causation. Apple cannot advance before Linux
+  passes. [Linux gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md), [quiet diagnostic](docs/results/2026-11-11-phase2-optimization/decode-quiet-diagnostic-v1.md).
   [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
 
 - **GPT-2 dependency patch approved:** the user approved the tested byte-level
