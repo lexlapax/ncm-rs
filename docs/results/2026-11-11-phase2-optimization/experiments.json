@@ -78,6 +78,13 @@
       "evidence": "docs/results/2026-11-11-phase2-optimization/packed-qkv-v1.md"
     },
     {
+      "id": "qwen-unicode-preprocessing",
+      "status": "rejected; isolated Qwen checked-load regression",
+      "hypothesis": "Normalize safe Unicode escapes in the authenticated Qwen payload in place before pinned BPE deserialization.",
+      "finding": "Three matched processes per binary: median checked load 65.693 to 77.133 ms, ratio 1.17415; real tokenizer goldens and output hashes matched. Patch reverted. Instrumented parsing and BPE construction medians were 26.352 and 32.615 ms in one process; Rust allocation totals matched accepted Rust.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-load-investigation-v1.md"
+    },
+    {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
       "status": "pending Linux gate before Apple implementation/testing",

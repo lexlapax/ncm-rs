@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Qwen load investigation:** accepted/candidate Rust allocation counts were
+  identical in one instrumented capture. A separate phase profile measured
+  parsing and pinned BPE construction at 26.352/32.615 ms. An in-place Unicode
+  preprocessing candidate passed parity but regressed matched checked load
+  65.693 to 77.133 ms; it was reverted and the release binary restored. The
+  unchanged combined candidate remains 77/78 on Linux. No adaptive acceptance
+  retry was run. [Details](docs/results/2026-11-11-phase2-optimization/qwen-load-investigation-v1.md).
+
 - **Combined candidate Linux gate:** `6c95d21` passed `tools/check.sh --cuda`
   and completed a fresh 45-process matrix plus one predeclared 27-process Qwen
   follow-up. Both initial and controlled audits are **77/78**: B1 block and
