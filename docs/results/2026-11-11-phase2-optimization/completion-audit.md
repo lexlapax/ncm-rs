@@ -1,6 +1,6 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
-**Latest candidate:** TinyStories borrowing `5200924` passes the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; Apple validation is pending.
+**Latest candidate:** TinyStories borrowing `5200924` passes the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; its [Apple initial gate](tiny-borrow-apple-gate-v1.md) is 78/78 and fixed control is 76/78. Both batch-4 block p95 comparisons remain open.
 
 **Previous candidate:** MLX projection-bias `a323b16` has a [76/78 Apple control](mlx-addmm-apple-gate-v1.md); TinyStories RSS/HWM remain open. A [finite current-runtime MLX memory observation](mlx-memory-addmm-v1.md) is retained.
 

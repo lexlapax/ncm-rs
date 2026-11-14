@@ -4,15 +4,22 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Latest Apple gate:** loader candidate `3555c67` passed the initial 78/78,
+  but the predeclared all-workload control is 76/78: batch-4 block p95 versus
+  Rust and Python remains open. TinyStories RSS/HWM pass. Wallpaper activity
+  was recorded; it does not establish the outlier's cause. Full MLX checks,
+  tokenizer probes, 642 trained traces and clean audit reproduction pass. Do not
+  retry unchanged. [Gate](docs/results/2026-11-11-phase2-optimization/tiny-borrow-apple-gate-v1.md).
+
 - **TinyStories loader candidate:** unescaped hex strings are borrowed only
   during parsing; escaped JSON retains owned handling and no borrow escapes.
   Full Linux CUDA check and four tokenizer probes pass. A small matched Linux
   diagnostic shows 24,060 fewer load allocation calls, 14% lower median load
   and lower observed HWM, with mixed decode timing. This is not acceptance.
-  Initial and fixed controlled Linux gates both pass 78/78; Apple remains at
-  76/78 for the previous candidate. Recheck Mac activity and run the Apple gate. [Evidence](docs/results/2026-11-11-phase2-optimization/tiny-borrow-candidate-v1.md), [Linux gate](docs/results/2026-11-11-phase2-optimization/tiny-borrow-linux-gate-v1.md).
+  Initial and fixed controlled Linux gates pass 78/78; the Apple initial gate
+  passes 78/78 but the fixed control remains 76/78, as recorded above. [Evidence](docs/results/2026-11-11-phase2-optimization/tiny-borrow-candidate-v1.md), [Linux gate](docs/results/2026-11-11-phase2-optimization/tiny-borrow-linux-gate-v1.md).
 
-- **Latest Apple gate:** projection candidate `a323b16` is **74/78** initially
+- **Previous Apple gate:** projection candidate `a323b16` is **74/78** initially
   and **76/78** after the fixed control. Only TinyStories host RSS/HWM remain
   open (peak ratio 1.12434); the block and Qwen timing cells pass. Do not retry
   unchanged; investigate loader memory without changing byte-BPE semantics.
