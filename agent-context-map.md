@@ -4,10 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Projection evidence provenance recheck:** prototype and main checkout used
-  a shared Cargo target, so exact binary/source binding is not yet established.
-  Rebuild and revalidate in a separate target before relying on its metrics or
-  quality, and update the review; integration remains pending user review.
+- **Projection review revised:** the earlier shared-target prototype evidence
+  remains provisional. Revised v2 adds output-byte overflow and cross-thread
+  context-drop guards, builds in a separate target, passes the full CUDA check,
+  642 trained traces and 144-request/ten-cycle memory diagnostic. Matched block
+  median ratios are 0.762/0.820/0.794 at B1/B2/B4; these are not acceptance.
+  Its [v2 patch and evidence](docs/results/2026-11-11-phase2-optimization/fused-projection-review-v1.md)
+  await user API review; the 32 MiB workspace on newer GPUs is unmeasured.
 - **Strict-FP32 fused projection review:** an isolated CUDA patch adds a
   default backend API hook and a per-backend cuBLASLt workspace; it is not
   integrated. Provisional prior runs reported 642 trained traces, focused concurrency/lifetime tests

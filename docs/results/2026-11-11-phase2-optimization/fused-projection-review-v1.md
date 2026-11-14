@@ -1,12 +1,30 @@
 # Strict-FP32 fused projection: isolated patch for review
 
-**Provenance recheck in progress:** the prototype was built using a Cargo target
-directory shared with the main checkout. Subsequent inspection found that the
-two checkouts can reuse the same artifact paths, so the claimed exact-source
-binding for the prototype binaries and measurements is not yet established.
-A clean build in a separate target directory is underway. Treat the performance
-and qualification results below as provisional until that recheck completes;
-they do not authorize integration or acceptance.
+**Revised patch ready for review:** the original prototype used a Cargo target
+directory shared with the main checkout, so its exact binary/source binding
+remains unproven. A revised patch adds an FP32 output byte-size overflow guard
+and binds the owning CUDA context on cross-thread handle drop. It was rebuilt
+from scratch in a separate target directory; compiler dependency files include
+the new module and backend trait source. The [revised patch](fused-projection-review-v2.patch)
+applies to a clean export and matches all eight tested files; SHA-256
+`a4c851cf8cf2c4b20b5c85a60ec980a0a293f5af2e7691da88d4ff8cd800741e`.
+
+The separate-target build passes the full `tools/check.sh --cuda`, fresh 642
+trained traces / 2,500 decisions with zero ID disagreements and two near
+ties, and the ten-cycle, 144-request memory diagnostic with zero live CUDA pool
+bytes after each model drop. It includes tests for output-byte overflow,
+cross-thread backend drop, retained outputs and concurrent calls. Three matched
+processes per binary show resident-block median ratios **0.76214 / 0.81971 /
+0.79369** at B1/B2/B4, and decode ratios 0.97488 / 0.97116 / 0.96787; output
+IDs match and maximum recorded first-logit absolute difference is 7.63e-6.
+These are diagnostics, not acceptance. Pool-used peak rises by 4,194,232 bytes;
+reserved peak remains 100,663,296 bytes. Baseline host HWM is 604.3–606.4 MB,
+candidate 604.3–606.6 MB. [Independent evidence](raw/fused-projection-review-v2.tar.xz)
+SHA-256 `d4257d10079aa2780dac9ebc29beedd6d8420c63fc787dd3cca20fc835aff702`.
+
+The remainder records the earlier **v1** review and its provisional results;
+the revised v2 patch supersedes v1 for any integration decision. Neither has
+passed a full performance gate. The workspace/API risks described below remain.
 
 **Review requested; not integrated.** The current TinyStories candidate still
 fails Linux acceptance at 75/78, despite its own decode improvement. This
