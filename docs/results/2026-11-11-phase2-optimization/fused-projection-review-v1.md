@@ -1,6 +1,10 @@
 # Strict-FP32 fused projection: isolated patch for review
 
-**Revised patch ready for review:** the original prototype used a Cargo target
+**User approved v2** with a request to preserve upstream Python algorithm
+alignment. Integration and fresh CUDA qualification are recorded in the
+[integration report](fused-integration-v1.md); performance gates remain open.
+
+**Revised v2 provenance:** the original prototype used a Cargo target
 directory shared with the main checkout, so its exact binary/source binding
 remains unproven. A revised patch adds an FP32 output byte-size overflow guard
 and binds the owning CUDA context on cross-thread handle drop. It was rebuilt
@@ -22,11 +26,20 @@ reserved peak remains 100,663,296 bytes. Baseline host HWM is 604.3–606.4 MB,
 candidate 604.3–606.6 MB. [Independent evidence](raw/fused-projection-review-v2.tar.xz)
 SHA-256 `d4257d10079aa2780dac9ebc29beedd6d8420c63fc787dd3cca20fc835aff702`.
 
+A separate real-CUDA diagnostic also exercised input written on a second stream:
+eight rounds queued a foreign-stream zeroing operation, immediately submitted
+the fused read without an explicit foreign-stream synchronization, and verified
+all 131,072 outputs per round. The [diagnostic source, output and v2 source
+fingerprints](raw/fused-cross-stream-v2.tar.xz) have SHA-256
+`937ba4acf4f7ac63c89d1b21205cbeab805d20484ca28f6212f7d0c9716805a4`.
+This covers one foreign-input dependency pattern, not all stream interleavings
+or a proof of race freedom; it does not change acceptance status.
+
 The remainder records the earlier **v1** review and its provisional results;
 the revised v2 patch supersedes v1 for any integration decision. Neither has
 passed a full performance gate. The workspace/API risks described below remain.
 
-**Review requested; not integrated.** The current TinyStories candidate still
+**Historical v1 review; superseded.** The TinyStories candidate at that time still
 fails Linux acceptance at 75/78, despite its own decode improvement. This
 isolated patch targets the remaining CUDA decoder-block overhead by fusing a
 projection and its bias into a cuBLASLt epilogue. The [exact patch](fused-projection-review-v1.patch)

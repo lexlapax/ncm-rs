@@ -4,22 +4,14 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Projection review revised:** the earlier shared-target prototype evidence
-  remains provisional. Revised v2 adds output-byte overflow and cross-thread
-  context-drop guards, builds in a separate target, passes the full CUDA check,
-  642 trained traces and 144-request/ten-cycle memory diagnostic. Matched block
-  median ratios are 0.762/0.820/0.794 at B1/B2/B4; these are not acceptance.
-  Its [v2 patch and evidence](docs/results/2026-11-11-phase2-optimization/fused-projection-review-v1.md)
-  await user API review; the 32 MiB workspace on newer GPUs is unmeasured.
-- **Strict-FP32 fused projection review:** an isolated CUDA patch adds a
-  default backend API hook and a per-backend cuBLASLt workspace; it is not
-  integrated. Provisional prior runs reported 642 trained traces, focused concurrency/lifetime tests
-  and repeated load/drop; their binary binding is under review. A matched diagnostic showed resident-block
-  median ratios 0.839/0.823/0.793 at B1/B2/B4. Workspace adds 4 MiB on this
-  GPU (32 MiB on compute capability 9+ is unmeasured). A prior CUDA check reported a pass
-  before final nonsemantic safety-annotation edits; exact patch passes Clippy
-  and focused tests. User review is required for the backend API change before
-  integration. [Patch and evidence](docs/results/2026-11-11-phase2-optimization/fused-projection-review-v1.md).
+- **Fused projection approved and integrated:** the user approved v2 with a
+  request to stay aligned with upstream Python. Strict FP32, existing pins and
+  tolerances remain; fresh CUDA check, 642 trained traces/2,500 decisions and
+  four tokenizer probes pass. A cross-stream regression passes after the full
+  check. The integrated codec binaries match the independently tested v2;
+  full Linux acceptance is next, then Apple. The 32 MiB workspace on newer
+  GPUs is unmeasured. [Integration evidence](docs/results/2026-11-11-phase2-optimization/fused-integration-v1.md),
+  [review](docs/results/2026-11-11-phase2-optimization/fused-projection-review-v1.md).
 
 - **TinyStories decode candidate:** reserve at most 4 KiB from input ID count
   before byte-BPE decode. Long, skipped, malformed and invalid-ID regression,

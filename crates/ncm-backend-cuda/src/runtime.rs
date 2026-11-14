@@ -4,6 +4,10 @@ use ncm_core::{Error, Result, WeightBackend};
 /// Explicit native device selection. CPU is a diagnostic path, never a fallback.
 pub struct CandleBackend {
     device: Device,
+    #[cfg(feature = "cuda")]
+    pub(crate) fused: std::sync::Mutex<
+        Option<std::sync::Arc<std::sync::Mutex<crate::fused_projection::StrictLt>>>,
+    >,
     resampling: std::sync::Mutex<crate::resample::Cache>,
 }
 impl Clone for CandleBackend {
@@ -16,6 +20,8 @@ impl CandleBackend {
     fn from_device(device: Device) -> Self {
         Self {
             device,
+            #[cfg(feature = "cuda")]
+            fused: Default::default(),
             resampling: Default::default(),
         }
     }

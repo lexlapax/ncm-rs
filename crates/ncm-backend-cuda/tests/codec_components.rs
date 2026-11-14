@@ -44,6 +44,38 @@ fn selection_and_snapshots(b: &CandleBackend) {
     assert!(b.add(&wrong_dtype, &initial).is_err());
     assert!(b.read_indices(&initial).is_err());
 }
+fn fused_projection_regression(b: &CandleBackend) {
+    let x = b
+        .upload_f32(
+            &[1., -2., 3., 4., 5., -6., 7., 8., 9., 10., -11., 12.],
+            &[2, 3, 2],
+        )
+        .unwrap();
+    let w = b
+        .upload_f32(&[0.5, 1., -2., 0.25, 3., -1.], &[3, 2])
+        .unwrap();
+    let empty = candle_core::Tensor::zeros((0, 2), candle_core::DType::F32, b.device()).unwrap();
+    let zero_bias = b.upload_f32(&[0., 0., 0.], &[3]).unwrap();
+    let old_empty = b.project(&empty, &w).and_then(|v| b.add(&v, &zero_bias));
+    let new_empty = b.project_bias(&empty, &w, &zero_bias);
+    assert_eq!(old_empty.is_ok(), new_empty.is_ok());
+    if let (Ok(a), Ok(both)) = (old_empty, new_empty) {
+        assert_eq!(a.dims(), both.dims());
+    }
+    for shape in [&[3][..], &[1, 3][..]] {
+        let bias = b.upload_f32(&[0.2, -0.3, 0.4], shape).unwrap();
+        let expected = b.add(&b.project(&x, &w).unwrap(), &bias).unwrap();
+        let actual = b.project_bias(&x, &w, &bias).unwrap();
+        for (a, e) in b
+            .read_f32(&actual)
+            .unwrap()
+            .iter()
+            .zip(b.read_f32(&expected).unwrap())
+        {
+            assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs());
+        }
+    }
+}
 fn batched_transpose(b: &CandleBackend) {
     let x = b.upload_f32(&[1., 2., 3., 4.], &[2, 1, 2]).unwrap();
     let w = b
@@ -127,6 +159,7 @@ fn decoder_batch_independence(b: CandleBackend) {
 #[test]
 fn batched_transpose_regression() {
     batched_transpose(&CandleBackend::cpu());
+    fused_projection_regression(&CandleBackend::cpu());
 }
 #[test]
 fn cpu_codec_components() {
@@ -145,6 +178,7 @@ fn cuda_codec_components() {
     let b = CandleBackend::cuda(0).expect("real CUDA required, no fallback");
     selection_and_snapshots(&b);
     batched_transpose(&b);
+    fused_projection_regression(&b);
     let foreign = CandleBackend::cpu().upload_f32(&[1.], &[1]).unwrap();
     assert!(b.square(&foreign).is_err());
     let report = support::components(b);
@@ -153,4 +187,83 @@ fn cuda_codec_components() {
     let full = support::full_codec(CandleBackend::cuda(0).unwrap());
     println!("CUDA complete codec {full:?}");
     decoder_batch_independence(CandleBackend::cuda(0).unwrap());
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn fused_projection_concurrent_snapshots() {
+    let backend = std::sync::Arc::new(CandleBackend::cuda(0).unwrap());
+    let threads: Vec<_> = (0..4)
+        .map(|index| {
+            let b = backend.clone();
+            std::thread::spawn(move || {
+                let values = vec![(index + 1) as f32; 64 * 32];
+                let x = b.upload_f32(&values, &[64, 32]).unwrap();
+                let w = b.upload_f32(&vec![0.25; 32 * 16], &[16, 32]).unwrap();
+                let bias = b.upload_f32(&[0.5; 16], &[16]).unwrap();
+                let first = b.project_bias(&x, &w, &bias).unwrap();
+                for _ in 0..8 {
+                    let _ = b.project_bias(&x, &w, &bias).unwrap();
+                }
+                let result = b.read_f32(&first).unwrap();
+                assert!(
+                    result
+                        .iter()
+                        .all(|v| (*v - ((index + 1) as f32 * 8. + 0.5)).abs() < 1e-4)
+                );
+            })
+        })
+        .collect();
+    for thread in threads {
+        thread.join().unwrap();
+    }
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn fused_projection_output_outlives_backend() {
+    let output = {
+        let b = CandleBackend::cuda(0).unwrap();
+        let x = b.upload_f32(&[1., 2., 3., 4.], &[2, 2]).unwrap();
+        let w = b.upload_f32(&[2., 1., -1., 3.], &[2, 2]).unwrap();
+        let bias = b.upload_f32(&[0.5, -0.5], &[2]).unwrap();
+        let result = b.project_bias(&x, &w, &bias).unwrap();
+        std::thread::spawn(move || drop(b)).join().unwrap();
+        result
+    };
+    assert_eq!(
+        output.flatten_all().unwrap().to_vec1::<f32>().unwrap(),
+        [4.5, 4.5, 10.5, 8.5]
+    );
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn fused_projection_reads_foreign_stream_input() {
+    use candle_core::{Storage, Tensor, cuda_backend::CudaStorage, op::BackpropOp};
+
+    let backend = CandleBackend::cuda(0).unwrap();
+    let device = backend.device().as_cuda_device().unwrap().clone();
+    let main_stream = device.cuda_stream();
+    let foreign = main_stream.context().new_stream().unwrap();
+    let (rows, width, outputs) = (8192_usize, 32_usize, 16_usize);
+    let weight = backend
+        .upload_f32(&vec![1.; width * outputs], &[outputs, width])
+        .unwrap();
+    let bias = backend.upload_f32(&[0.5; 16], &[outputs]).unwrap();
+    for _ in 0..8 {
+        let mut buffer = foreign.clone_htod(&vec![1_f32; rows * width]).unwrap();
+        // The write is enqueued on a separate stream; the fused read must use
+        // cudarc's event tracking rather than an explicit foreign-stream wait.
+        foreign.memset_zeros(&mut buffer).unwrap();
+        let storage = CudaStorage::wrap_cuda_slice(buffer, device.clone());
+        let input = Tensor::from_storage(
+            Storage::Cuda(storage),
+            (rows, width),
+            BackpropOp::none(),
+            false,
+        );
+        let output = backend.project_bias(&input, &weight, &bias).unwrap();
+        assert!(backend.read_f32(&output).unwrap().iter().all(|&v| v == 0.5));
+    }
 }

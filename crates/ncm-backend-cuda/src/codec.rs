@@ -80,6 +80,57 @@ impl CodecBackend for CandleBackend {
                 .reshape(shape)
         })
     }
+    fn project_bias(&self, x: &Tensor, weight: &Tensor, bias: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        if self.device().is_cuda()
+            && weight.dims().len() == 2
+            && weight.dims()[0] > 0
+            && x.elem_count() > 0
+            && bias.dims() == [weight.dims()[0]]
+            && !candle_core::cuda_backend::gemm_reduced_precision_f32()
+        {
+            let fused = (|| -> candle_core::Result<Tensor> {
+                self.check_tensor(x, DType::F32)?;
+                self.check_tensor(weight, DType::F32)?;
+                self.check_tensor(bias, DType::F32)?;
+                let (output, input) = weight.dims2()?;
+                if input == 0 || x.dim(D::Minus1)? != input || bias.dims() != [output] {
+                    candle_core::bail!("invalid projection shape")
+                }
+                let mut shape = x.dims().to_vec();
+                *shape
+                    .last_mut()
+                    .ok_or_else(|| candle_core::Error::Msg("scalar projection".into()))? = output;
+                let handle = {
+                    let mut lock = self.fused.lock().map_err(|_| {
+                        candle_core::Error::Msg("projection initialization lock poisoned".into())
+                    })?;
+                    if lock.is_none() {
+                        let stream = self.device().as_cuda_device()?.cuda_stream();
+                        let h = crate::fused_projection::StrictLt::new(stream)?;
+                        *lock = Some(std::sync::Arc::new(std::sync::Mutex::new(h)));
+                    }
+                    lock.as_ref()
+                        .ok_or_else(|| candle_core::Error::Msg("projection handle missing".into()))?
+                        .clone()
+                };
+                x.contiguous()?
+                    .reshape((x.elem_count() / input, input))?
+                    .apply_op3_no_bwd(
+                        &weight.contiguous()?,
+                        &bias.contiguous()?,
+                        &crate::fused_projection::Fused(handle),
+                    )?
+                    .reshape(shape)
+            })();
+            match fused {
+                Ok(value) => return Ok(value),
+                Err(ref error) if crate::fused_projection::unavailable(error) => {}
+                Err(error) => return Err(Error::Backend(error.to_string())),
+            }
+        }
+        self.add(&self.project(x, weight)?, bias)
+    }
     fn embedding(&self, weight: &Tensor, ids: &Tensor) -> Result<Tensor> {
         op!(self, [weight], {
             self.check_tensor(ids, DType::U32)?;

@@ -217,14 +217,13 @@ impl<B: CodecBackend> Codec<B> {
         trace: &mut impl TraceSink<B>,
     ) -> Result<B::Tensor> {
         trace.tensor(&format!("{name}.input"), x)?;
-        let mut y = self
-            .backend
-            .project(x, self.weight(&format!("{name}.weight"))?)?;
-        if bias {
-            y = self
-                .backend
-                .add(&y, self.weight(&format!("{name}.bias"))?)?;
-        }
+        let weight = self.weight(&format!("{name}.weight"))?;
+        let y = if bias {
+            self.backend
+                .project_bias(x, weight, self.weight(&format!("{name}.bias"))?)?
+        } else {
+            self.backend.project(x, weight)?
+        };
         trace.tensor(&format!("{name}.output"), &y)?;
         Ok(y)
     }

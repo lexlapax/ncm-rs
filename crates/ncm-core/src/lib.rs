@@ -56,6 +56,14 @@ pub trait CodecBackend: WeightBackend {
     fn sum_last(&self, x: &Self::Tensor) -> Result<Self::Tensor>;
     /// Last-axis matrix product x @ weight.T; weight is rank two.
     fn project(&self, x: &Self::Tensor, weight: &Self::Tensor) -> Result<Self::Tensor>;
+    fn project_bias(
+        &self,
+        x: &Self::Tensor,
+        weight: &Self::Tensor,
+        bias: &Self::Tensor,
+    ) -> Result<Self::Tensor> {
+        self.add(&self.project(x, weight)?, bias)
+    }
     fn embedding(&self, weight: &Self::Tensor, ids: &Self::Indices) -> Result<Self::Tensor>;
     fn select_last(&self, x: &Self::Tensor, largest: bool) -> Result<Self::Indices>;
     fn reshape_indices(&self, x: &Self::Indices, shape: &[usize]) -> Result<Self::Indices>;
