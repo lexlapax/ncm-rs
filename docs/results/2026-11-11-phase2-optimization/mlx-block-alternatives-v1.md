@@ -23,3 +23,33 @@ not acceptance runs.
 A separate layout investigation is in progress. None of these diagnostic
 results replaces the failing Apple initial audit, changes acceptance limits, or
 establishes why the regression occurred.
+
+## Retained latent layout
+
+A separate instrumented example evaluated all 12 retained encoder snapshots at
+batches 1, 2 and 4 in isolated `3307dff` and `2df27c3` worktrees. All 36
+snapshot shapes and exact float-byte hashes matched. The final resident-block
+input had shape/strides `[1,89,256]` / `[22784,256,1]`, `[2,89,256]` /
+`[22784,256,1]`, and `[4,89,256]` / `[22784,256,1]` in both versions. Ten
+intermediate batch-1 snapshots differed only in the stride of the degenerate
+batch dimension; no batch-2/4 or final snapshot strides differed. These
+observations do not rule out differences in internal graphs, allocation state,
+or subsequent operations, but do not support a changed final latent stride as
+the explanation for the block regression.
+
+[Raw layout reports, diagnostic source and build logs](raw/mlx-latent-layout-v1.tar.xz)
+have SHA-256 `fab07d08dc4bd2d499b43fb611c2179a6ea83c77bb1954de846cbb038d586f9e`.
+A separate Apple-only Q/K/V layout alternative is being evaluated; the existing
+Linux packed path and production code remain unchanged until qualification.
+
+## Apple-only unpacked Q/K/V
+
+An isolated candidate restored the earlier Q/K/V slicing layout only on macOS
+while keeping the Linux packed path. It passed Metal component/operator tests
+and all 642 trained traces / 2,500 decisions. Three fresh matched processes
+per binary showed resident-block median ratios of **1.002/1.218/0.987** at
+batches 1/2/4 relative to the current combined candidate. The batch-4 result
+is still far above the accepted baseline observed in the initial gate, and the
+batch-2 diagnostic regressed. It is not promoted; the small sample also shows
+substantial variation in unrelated scopes. [Raw reports, patch and qualification](raw/mlx-unpacked-poc-v1.tar.xz)
+have SHA-256 `57863d0ead951603741c0c22388802e65192ad07fbd4336caa4e1f2c20f95932`.
