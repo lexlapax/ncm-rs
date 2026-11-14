@@ -53,13 +53,13 @@ checks remain necessary. The BERT failure above must not be erased by retrying
 the unchanged tokenizer candidate.
 
 [Candidate validation and matched codec reports](raw/mlx-gather-candidate-v1.tar.xz)
-have SHA-256 `9fe50f77e9362c15895fa19a1eae97e472b850526168672699e05405f78d3787`.
+have SHA-256 `0df59284aec00bf51a91e95f942e77b0c2a093dfbc712dece5a9455e37fd5932`.
 The exact tested source hashes are `7ecbdb8fd77838bc17e6375c40a48245a26a0b84afef813cdf4eac0b052df190`
 for `ops.rs` and `650cb609bbe8a53f0c8f999d6299cb7652e7ca713d5942391889fbb113d59a92`
 for the expanded operator test.
 
 [Raw Apple gate and prototype evidence](raw/vendored-mlx-gate-and-linear-poc-v1.tar.xz)
-has SHA-256 `29a3624b29a81116f31987480c3e7a0e896aa2392b6d16324c01258a19a14a12`.
+has SHA-256 `7d48133e3f44d02bdb8365a577c9acbf994bbea1b1d422193bd85acafb784364`.
 The archive includes telemetry, plans, logs, qualification, lifecycle, initial
 and controlled audits, and six prototype process reports; trace tensors remain
 outside Git. Extract to the repository root and run the existing audit with

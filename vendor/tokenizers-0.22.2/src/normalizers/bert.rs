@@ -118,6 +118,22 @@ impl BertNormalizer {
 
 impl Normalizer for BertNormalizer {
     fn normalize(&self, normalized: &mut NormalizedString) -> Result<()> {
+        // ASCII has no CJK characters or decomposable accents. Avoid identity
+        // transformations while retaining the existing cleaning and case rules.
+        if normalized.get().is_ascii() {
+            if self.clean_text
+                && normalized
+                    .get()
+                    .chars()
+                    .any(|c| c == '\0' || is_control(c) || (is_whitespace(c) && c != ' '))
+            {
+                self.do_clean_text(normalized);
+            }
+            if self.lowercase && normalized.get().bytes().any(|b| b.is_ascii_uppercase()) {
+                self.do_lowercase(normalized);
+            }
+            return Ok(());
+        }
         if self.clean_text {
             self.do_clean_text(normalized);
         }

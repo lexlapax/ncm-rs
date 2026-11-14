@@ -4,6 +4,24 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **MLX fast normalization deferred:** isolated fast layer/RMS normalization
+  passes Metal tests and trained parity, but matched full-model diagnostics
+  show batch-2/4 encode and batch-4 reconstruction regressions despite faster
+  resident blocks. Production remains unchanged. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-fastnorm-poc-v1.md).
+
+- **BERT dependency patch approved:** an ASCII-only BERT
+  normalizer path skips identity work; pinned version and non-ASCII path remain
+  unchanged. Matched diagnostic encode medians improve 4.7% Linux / 3.9% Mac;
+  exact alignment regression, four profile probes, and full Linux CUDA / Mac
+  MLX checks pass. The user approved this additional vendored source change;
+  neither final performance gate is implied. The completion audit reflects the
+  current Linux and Apple status. [Review and evidence](docs/results/2026-11-11-phase2-optimization/bert-ascii-review-v1.md).
+- **Area resampling experiment:** isolated padded gather improves larger Metal
+  shapes but slows the smallest and increases peak allocations. A bounded
+  hybrid passes trained parity, but full-model timings are confounded and peak
+  allocations rise further; it is deferred. Production area remains unchanged.
+  [Details](docs/results/2026-11-11-phase2-optimization/mlx-area-poc-v1.md).
+
 - **BERT encoding experiment rejected:** a temporary consuming tokenizer-ID
   accessor reduced matched Linux encode median only 0.4%; no dependency change
   was promoted. The earlier Apple BERT p95 interval failure remains open.
