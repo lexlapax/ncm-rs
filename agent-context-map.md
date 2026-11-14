@@ -20,7 +20,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   trained parity and improves sampled block timings, but encode timings vary
   and show regressions. A refined normalization/attention candidate also
   passes trained parity. Production candidate `621c565` now passes the Linux
-  CUDA check, trained parity and 78/78 gate after one fixed follow-up. Next is
+  CUDA check, trained parity and 78/78 gate after one fixed follow-up; its
+  corrected evidence archive reproduces the audit from a clean export. Next is
   the full Apple check, including the new Metal regression, and final gate.
   [Linux gate](docs/results/2026-11-11-phase2-optimization/blocknorm-linux-gate-v1.md), [state diagnostics](docs/results/2026-11-11-phase2-optimization/mlx-block-state-v1.md), [Apple initial gate](docs/results/2026-11-11-phase2-optimization/final-mlx-initial-v1.md), [alternatives](docs/results/2026-11-11-phase2-optimization/mlx-block-alternatives-v1.md).
 

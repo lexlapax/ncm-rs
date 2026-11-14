@@ -18,9 +18,12 @@ follow-up scope are retained. The control plan SHA-256 is
 `9d2ca3f73c264d2a0c53061285f117706ae96918190448e991b1983cd6545ff1`.
 
 [Raw matrices, control plan, telemetry, qualification, lifecycle and audits](raw/blocknorm-linux-gate-v1.tar.xz)
-have SHA-256 `3f7725b7dc651d965d247018b83da80d15f0aaf27ebdf16e047883747e6b0dcf`.
+have SHA-256 `d487482272e7f52230a2d61f2834d57891cc89474c0f331161a1f22b0c05f842`.
 The controlled audit SHA-256 is
 `77cf0a9859ffe0bbe15f3f3d50d7777a52250e721a4b18fee29e277f220a410d`.
+An export of `621c565` with the archive extracted reproduces the audit
+byte-for-byte using the included controlled configuration. The archive was
+corrected to retain inputs at the paths specified by that configuration.
 The live desktop and sampled activity do not establish exclusive GPU access.
 No clock or power policy changed. Fresh Apple validation and its full gate are
 still required.
