@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Fake parent-loss follow-up:** a versioned CPU-only test now kills its own fake
+  controller after a worker starts, then checks that the surviving supervisor
+  cancels the worker and resets fake state while a separate test child survives.
+  The ordinary-user self-test passed; it did not drop privileges. The user-run
+  root-mode test passed all three fake cases, including parent-loss restoration;
+  its root-owned summary and digest were verified. The test-only subreaper is not the proposed
+  live coordinator ancestry. [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#fake-parent-loss-follow-up).
+
 - **Fake root-supervisor/user-worker test:** a checksum-bound CPU-only harness now
   combines the existing restoration supervisor, fake set/reset file and a worker
   that drops to the invoking user. An ordinary-user self-test passed normal and

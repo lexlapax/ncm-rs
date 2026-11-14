@@ -729,3 +729,45 @@ not change the approved diagnostic's 600-second lock and ten-second reserve.
 They do not cover coordinator wiring, parent loss, untrusted launch inputs, actual
 GPU clocks, restoration, complete cleanup of arbitrary descendants or performance
 acceptance. No new quiet window or hardware gate has been established.
+
+
+### Fake parent-loss follow-up
+
+The CPU-only versioned harness
+[`linux-clock-root-supervised-fake-v3.py`](raw/linux-clock-root-supervised-fake-v3.py)
+(SHA-256 `99f1fbbdbe77f125836c130639f3dc0cb62cc44eedbdec6c7249ca6a869fd015`)
+adds a fake parent-loss case to the previous normal/deadline tests. After the
+fake worker starts, the test kills only its own controller, waits for the surviving
+restoration supervisor to cancel/reap the worker and reset its fake lock, and
+checks that a separate test-owned child remains alive. Its outer test-only
+subreaper adopts and reaps the supervisor; it is not the proposed live coordinator
+ancestry. Failure-path cleanup is confined to descendants of this fresh fake-only
+test process. The script executes no GPU, model, real policy or network command.
+
+The ordinary-user self-test `umask 077 && python3 -I -S
+/tmp/ncm-root-supervised-user-v3.py` passed normal, deadline and parent-loss fake
+cases; the latter correctly failed the transaction, detected parent loss, reset
+fake state, reaped the worker and preserved the separate test child. It did not
+start as root or exercise a privilege drop. Its local mode-0644 summary
+`/tmp/ncm-root-supervised-user-v3-1000.json` SHA-256 is
+`c0a3b627255015b861b0b37ee42442f4f2cfac21479de3e2504c58611b38172e`.
+The user ran the following checksum-bound root-mode command:
+
+```sh
+sudo /usr/bin/python3 -I -S -c 'import os,hashlib;p="/tmp/ncm-root-supervised-user-v3.py";f=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK);b=os.read(f,65536);os.close(f);assert hashlib.sha256(b).hexdigest()=="99f1fbbdbe77f125836c130639f3dc0cb62cc44eedbdec6c7249ca6a869fd015";exec(compile(b,p,"exec"))'
+```
+
+The root-mode output reported all normal, deadline and parent-loss checks passing.
+The parent-loss transaction correctly failed, the dropped-user worker was
+cancelled/reaped, the fake reset was requested within its deadline, the surviving
+supervisor and outer test reaper were restored, and the separate test child
+survived. Root-owned mode-0644 summary `/tmp/ncm-root-supervised-user-v3-0.json`
+SHA-256 is `ca21e69df33b6fbfec5476cb3c4cdffc1402a195da20ecd875ea50ead8eba83c`;
+its ownership and digest were verified outside the sandbox. This is evidence for
+the fixed fake processes and test ancestry only, not a real policy restoration.
+
+The fake parent-loss case uses an eight-second lock window and two-second reserve
+for test speed; the approved diagnostic's 600-second lock and ten-second reserve
+remain unchanged. This test does not establish a trusted production entry, safe
+actual coordinator ancestry, GPU policy enforcement/restoration, performance
+acceptance, or containment of supervisor SIGKILL/host failure. No GPU action ran.
