@@ -797,11 +797,21 @@ handoff and receipt consistency but did not start as root or drop privileges;
 the root-obligation denial check is vacuous in that mode. Its mode-0644 summary
 `/tmp/ncm-root-handoff-suite-v2-1000.json` SHA-256 is
 `a972bca08a31aba33a563860df69193ca3e29ad14ba575f083acb5285f068e4e`.
-The root-mode suite has been requested as one grouped command and is pending:
+The user ran the root-mode suite as one grouped command:
 
 ```sh
 sudo /usr/bin/python3 -I -S -c 'import os,hashlib;p="/tmp/ncm-root-handoff-suite-v2.py";f=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK);b=os.read(f,65536);os.close(f);assert hashlib.sha256(b).hexdigest()=="5fe2419a7806224194bc51e71d0a166b34052fa89d13240e12f15e534b411822";exec(compile(b,p,"exec"))'
 ```
+
+The user-run root suite passed both cases. The valid fake handoff retained its
+original deadline, dropped to the user, denied access to the root obligation,
+wrote user-owned private identity evidence and bound it to the worker receipt.
+The deliberately altered handoff was rejected before user evidence was written;
+both fake transactions reset and reaped their worker. The test-only outer
+subreaper reported no orphans and restored its role. Root-owned mode-0644
+summary `/tmp/ncm-root-handoff-suite-v2-0.json` has SHA-256
+`bcd99fecd2533d0e1f27dc548288bcb6df0ffe2889c15caffdafa71adc0e6cc6`;
+its ownership and digest were verified outside the sandbox.
 
 The outer subreaper is test-only and cleans only descendants of this fresh fake
 suite; it is not an approved live coordinator ancestor. The declarations and
