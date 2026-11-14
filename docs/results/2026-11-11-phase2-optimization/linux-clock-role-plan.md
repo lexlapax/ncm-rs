@@ -771,3 +771,41 @@ for test speed; the approved diagnostic's 600-second lock and ten-second reserve
 remain unchanged. This test does not establish a trusted production entry, safe
 actual coordinator ancestry, GPU policy enforcement/restoration, performance
 acceptance, or containment of supervisor SIGKILL/host failure. No GPU action ran.
+
+
+### Grouped fake handoff suite
+
+The versioned CPU-only harness
+[`linux-clock-handoff-fake-v2.py`](raw/linux-clock-handoff-fake-v2.py)
+(SHA-256 `5fe2419a7806224194bc51e71d0a166b34052fa89d13240e12f15e534b411822`)
+groups two tests in one command. It copies 27 explicitly hash-pinned, tracked
+helper files into a private test bundle, then runs the real armed-handoff
+validator and fake restoration supervisor with the production 600-second lock
+and ten-second reserve declarations. The fake work normally finishes in seconds.
+The valid case checks the original deadline, worker identity and a separate
+user-owned private identity record against the worker receipt and a fake sequence
+clock. The negative case changes the declared set command and must fail before
+writing identity evidence; fake reset and cleanup must still succeed. In root
+mode the worker validates the root-owned obligation before dropping privileges,
+then checks that it can no longer read that obligation and can write its own
+identity record. All policy operations are fake files; no GPU, model, network or
+real policy command is executed.
+
+The ordinary-user self-test `umask 077 && python3 -I -S
+/tmp/ncm-root-handoff-suite-v2.py` passed both cases. It exercised real local
+handoff and receipt consistency but did not start as root or drop privileges;
+the root-obligation denial check is vacuous in that mode. Its mode-0644 summary
+`/tmp/ncm-root-handoff-suite-v2-1000.json` SHA-256 is
+`a972bca08a31aba33a563860df69193ca3e29ad14ba575f083acb5285f068e4e`.
+The root-mode suite has been requested as one grouped command and is pending:
+
+```sh
+sudo /usr/bin/python3 -I -S -c 'import os,hashlib;p="/tmp/ncm-root-handoff-suite-v2.py";f=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK);b=os.read(f,65536);os.close(f);assert hashlib.sha256(b).hexdigest()=="5fe2419a7806224194bc51e71d0a166b34052fa89d13240e12f15e534b411822";exec(compile(b,p,"exec"))'
+```
+
+The outer subreaper is test-only and cleans only descendants of this fresh fake
+suite; it is not an approved live coordinator ancestor. The declarations and
+source/identity trust are controlled by this test, not authenticated production
+inputs. It does not exercise the complete worker role, real model or telemetry,
+actual GPU policy, privileged coordinator wiring, or final acceptance. No
+clock/deadline/telemetry/acceptance limit is changed and no hardware gate closes.

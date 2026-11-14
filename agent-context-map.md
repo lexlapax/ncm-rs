@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Grouped fake handoff suite:** a checksum-bound CPU-only suite combines the
+  actual armed-handoff validator, fake restoration supervisor, privilege drop,
+  user-owned identity writer and offline receipt binding. It checks both an
+  accepted handoff and a deliberately altered command. The ordinary-user
+  self-test passed; root-mode was requested as one grouped sudo command and is
+  pending. The test-only outer subreaper and unauthenticated fake declarations
+  are not a production entry or hardware restoration proof. [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#grouped-fake-handoff-suite).
+
 - **Fake parent-loss follow-up:** a versioned CPU-only test now kills its own fake
   controller after a worker starts, then checks that the surviving supervisor
   cancels the worker and resets fake state while a separate test child survives.
