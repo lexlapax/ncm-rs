@@ -9,6 +9,9 @@ use ncm_model::Codec;
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, error::Error, fs, path::Path};
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
+// These identify the existing qualified batch-4 reconstruction workload.
+const INPUT_SHA256: &str = "2063fc70a3255d3cab0ee1d97f2fd6b7a91025042d4cdeba89f7b9aa202ae516";
+const OUTPUT_SHA256: &str = "39d29a7655b58f451f451bb7e020eac9ca6606bb234a3eeb1615fc3fa6c9ef64";
 
 fn observe() -> Result<Value> {
     Ok(
@@ -52,6 +55,16 @@ fn main() -> Result<()> {
                 }
             }
         }
+        let input_hash = sha256(
+            &tokens
+                .iter()
+                .copied()
+                .flat_map(u32::to_le_bytes)
+                .collect::<Vec<_>>(),
+        );
+        if input_hash != INPUT_SHA256 {
+            return Err("unexpected workload input IDs".into());
+        }
         let mut samples = Vec::new();
         for request in 1..=128 {
             let (encoded, decoded) = model.reconstruct(&tokens, batch)?;
@@ -66,6 +79,9 @@ fn main() -> Result<()> {
                     .flat_map(u32::to_le_bytes)
                     .collect::<Vec<_>>(),
             );
+            if hash != OUTPUT_SHA256 {
+                return Err("unexpected workload output IDs".into());
+            }
             match &expected_hash {
                 Some(expected) if expected != &hash => return Err("output IDs changed".into()),
                 None => expected_hash = Some(hash),
@@ -95,7 +111,7 @@ fn main() -> Result<()> {
     .map(|p| Ok((p, sha256(&fs::read(p)?))))
     .collect::<Result<_>>()?;
     let report = json!({"schema_version":1,"scope":"Three loads, 128 batch-4 reconstruction requests per retained model; observed allocation snapshots, not a performance benchmark or proof of an infinite bound.",
-        "manifest_sha256":sha256(&manifest),"before":before,"cycles":cycles,"output_ids_sha256":expected_hash,"source_sha256":sources});
+        "manifest_sha256":sha256(&manifest),"input_ids_sha256":INPUT_SHA256,"before":before,"cycles":cycles,"output_ids_sha256":expected_hash,"source_sha256":sources});
     serde_json::to_writer_pretty(
         fs::OpenOptions::new()
             .write(true)

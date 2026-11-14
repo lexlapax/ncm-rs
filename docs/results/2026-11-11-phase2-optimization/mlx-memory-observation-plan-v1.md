@@ -5,7 +5,8 @@ With the pinned trained artifact, it will load and drop three separate Metal
 models and perform 128 batch-4 reconstructions per model. It records MLX active,
 cache and peak allocation counters and host RSS/HWM after load, after requests
 1, 8, 32, 64 and 128, and after every model drop. Each request's combined code
-and output-ID digest must match. A single initial cache clear precedes all
+and output-ID digest must match the existing nine-process controlled gate;
+the input digest is also checked against that workload. A single initial cache clear precedes all
 cycles; no per-request or per-cycle cache clear obscures observed growth.
 
 This is a fixed finite observation, not a timing benchmark or proof of an
