@@ -4,12 +4,20 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Latest Apple gate:** the affine candidate `2850331` reached **77/78**
+  initially and **75/78** after its fixed all-workload control. Batch-4 block
+  p95 versus Rust/Python and Qwen encode median versus Rust remain open. Chrome
+  was absent from top-process samples; no thermal warning was recorded. Both
+  source inventories and clean-export audit reproduction pass. Do not retry the
+  unchanged candidate; investigate substantive fixes and preserve the pinned
+  upstream semantics. Long-lived MLX cache evidence remains open. [Gate](docs/results/2026-11-11-phase2-optimization/mlx-affine-apple-gate-v1.md).
+
 - **MLX affine candidate:** the accelerated decoder normalization now passes
   matching affine parameters into the pinned fast primitive, with fallback for
   other shapes. Linux CUDA checks pass and five binaries match the 78/78
   candidate. Full MLX checks and 642 trained traces pass. A three-pair Metal
   diagnostic improves batch-4 block medians but has mixed p95/other-scope
-  results; this is not acceptance. Run a fixed complete Apple gate, retain the
+  results; the fixed Apple gate is now 75/78 as recorded above. Retain the
   prior 72/78 and unchanged upstream/tolerance contract. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-affine-candidate-v1.md).
 
 - **Previous Apple gate:** SSH restored and Mac checkout fast-forwarded. That

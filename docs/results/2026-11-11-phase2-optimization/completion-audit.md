@@ -1,6 +1,10 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
-**Latest integrated candidate:** user-approved strict-FP32 projection
+**Latest candidate:** MLX affine normalization `2850331` passes Linux and Metal
+correctness, but its [Apple fixed control](mlx-affine-apple-gate-v1.md) is
+**75/78**; block p95 and Qwen encode remain open.
+
+**Previous integrated candidate:** user-approved strict-FP32 projection
 `928894b` passes the [Linux controlled gate](fused-linux-gate-v1.md) **78/78**,
 full CUDA checks and fresh trained parity. Apple correctness passes, but the [fixed Apple control](fused-apple-gate-v1.md)
 is **72/78**; six performance/memory cells remain open. The previous candidate histories
@@ -96,7 +100,7 @@ Contract: [approved five-step plan](../../PHASE2-OPTIMIZATION-REVIEW.md),
 | Clock coordinator local admission | [Local-subreaper guard](linux-clock-diagnostic-v3-proposal.md#coordinator-local-subreaper-admission-follow-up): real process-local flag test retains red lifecycle-sentinel failure; query failure and unsupported platforms fail closed before outputs/branches. Two new tests; 32 focused/397 reporting tests pass. First full run failed separate handoff fixture: worker exit 1, fake reset/cleanup complete; cause unestablished, bounded diagnostics expanded. A fixed six-fresh-process CPU-only reproduction at `1ec6aaa` retained all 108 jobs/six successful fake resets and passed an independent 566-file audit; all attempts passed, so the historical failure remains unreproduced/unresolved, not repaired | Not ancestor inspection or proof of safe restoration-aware topology, frozen role binding or launch readiness. Full preparation/entry, file-count approval, policy facts and live gates still pending; no changed limits or acceptance closure |
 | Step 3: Apple availability/state, reviewed pushed commits, Linux-first ordering | Linux gate passes first. The Mac checkout was clean, the baseline was separate, SSH was restored, and the reviewed candidate was fast-forwarded | Recheck competing activity before further Apple work |
 | Step 3: Apple `tools/check.sh --mlx`, fresh trained qualification and cleared-environment tokenizer probes | [Current candidate `31ebb2d`](fused-apple-gate-v1.md) passes the full Mac check, 642 trained traces / 2,500 decisions and four tokenizer profiles | Requalify after any execution-affecting changes |
-| Step 3: Apple 78-cell matrix against accepted Rust and qualified Python MLX | Current candidate `31ebb2d` is [72/78 after fixed control](fused-apple-gate-v1.md); earlier outcomes are retained | Investigate failures and reach Apple 78/78 without widening limits |
+| Step 3: Apple 78-cell matrix against accepted Rust and qualified Python MLX | Current candidate `2850331` is [75/78 after fixed control](mlx-affine-apple-gate-v1.md); earlier outcomes are retained | Investigate failures and reach Apple 78/78 without widening limits |
 | Step 3: Apple supplemental source binding | The unchanged `mlx_codec_bench` inventory lists model blocks but omits `crates/ncm-core/src/lib.rs`, which now contains the default projection-bias hook; Linux used a separate binding for its analogous omission | The [current gate](fused-apple-gate-v1.md) binds the compiler dependency, clean source hash and measured binary; repeat for a later candidate |
 | Step 4: median/p95/throughput, comparable host RSS/HWM, first load/execution, all codec batches/scopes and tokenizer profiles | Full raw baseline/lower-risk/prepared-state reports retain these fields | Final summaries on both platforms; allocator counters are not host RSS substitutes |
 | Step 4: CPU/allocation attribution | Baseline and [fresh 45-process retained-candidate diagnostics](../2026-11-11-phase2-linux-controls/README.md); all raw outputs qualified; System/GDB scope distinctions explicit | Apple comparisons pending; CPU totals are not per-request CPU and no broad native CPU improvement is established |
