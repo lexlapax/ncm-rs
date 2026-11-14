@@ -4,10 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Unmasked attention runtime experiment prepared:** research found the MLX
-  adapter supplies a zero mask for the decoder's unmasked attention; pinned MLX
-  has a distinct no-mask path. An isolated patch and regression test are ready;
-  Linux-first and real-Metal validation are pending. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-plan-v1.md).
+- **Unmasked attention runtime experiment:** research found the MLX adapter
+  supplies a zero mask for unmasked attention; pinned MLX has a distinct
+  no-mask path. Linux CUDA checks pass and three codec executables match the
+  qualified build. SSH agent refused the Mac signature; Metal checks and
+  performance remain pending. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-plan-v1.md).
 
 - **Apple all-cell sensitivity:** both retained controls' 58 timing cells and
   20 memory cells are checked; post-hoc pooled timing intervals fit the limits,

@@ -37,3 +37,17 @@ alternating process pairs, recording all batches/scopes, startup, host memory,
 activity and output hashes. This is diagnostic, not acceptance. Integrate
 nothing or run a full gate without a defensible performance and correctness
 result; retain negative results and the previous failed Apple controls.
+
+The isolated Linux checkout passed `tools/check.sh --cuda`, including all 18
+real-GPU operator cases. Its target began as a copy of the earlier target;
+all local workspace packages were cleaned and rebuilt. The codec benchmark,
+trace and lifecycle executables are byte-identical to the qualified Linux
+candidate: respectively
+`925363bce9e04204f27f4035fdc9a305aac40cfd77f5a02d5baffcfb860e20e0`,
+`7dc4cb57ef9a3d0e0eabd496ccdeb35d6fbb1e579cda39278099862ae1701c85`,
+and `be60ca9b10ac0d5a3063b0548a25b8b978ac5775183611986ca923d5d14c80ed`.
+The benchmark depfile names this new worktree, not the earlier one, and omits
+the platform-inactive MLX source. The [check log and depfile](raw/mlx-attention-nomask-linux-v1.tar.xz)
+have SHA-256 `60c12c762b9bec6662e65786cad8361d71845b162041472937b0ba24bece1b7a`.
+The existing Linux trained qualification and 78/78 gate remain bound by those
+identities. Metal correctness and performance are still pending.
