@@ -4,6 +4,15 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Combined candidate Linux gate:** `6c95d21` passed `tools/check.sh --cuda`
+  and completed a fresh 45-process matrix plus one predeclared 27-process Qwen
+  follow-up. Both initial and controlled audits are **77/78**: B1 block and
+  BERT checked load pass, Qwen decode's initial uncertainty resolves, but Qwen
+  checked-load follow-up median ratio **1.05535** exceeds 1.05. All nine paired
+  Qwen process medians favor accepted Rust. The failed audit reproduces exactly;
+  investigate load work without retrying or changing limits. Apple remains pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/combined-linux-gate-v1.md).
+
 - **Packed Q/K/V candidate:** shared decoder packs Q/K/V in one layout before
   slicing; focused CPU/real-CUDA batch-independence checks and trained CUDA
   qualification pass, with unchanged native trace hash. In three matched

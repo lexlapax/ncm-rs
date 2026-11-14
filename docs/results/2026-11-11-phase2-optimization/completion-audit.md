@@ -1,5 +1,10 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+Latest combined candidate `6c95d21` passes the full Linux CUDA check; its fresh
+initial and controlled performance audits are **77/78**, with Qwen checked load
+still failing after a fixed follow-up. B1 block and BERT checked load now pass.
+[Evidence](combined-linux-gate-v1.md). Apple remains pending.
+
 Latest candidate `a6290db` has a fresh Linux 45-process matrix and one bounded
 108-process follow-up: the unchanged controlled audit passes **76/78**, leaving
 B1 resident block and BERT checked load open. The initial audit was 71/78.

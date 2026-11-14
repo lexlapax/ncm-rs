@@ -72,7 +72,7 @@
     },
     {
       "id": "packed-qkv-layout",
-      "status": "provisional Linux CUDA candidate; full Linux and Apple gates pending",
+      "status": "provisional Linux CUDA candidate; combined Linux gate 77/78, Apple pending",
       "hypothesis": "Convert Q/K/V into one packed layout before slicing, reducing repeated CUDA layout materialization without changing attention arithmetic.",
       "finding": "Three matched processes per binary: B1/B2/B4 block median ratios 0.8273/0.8895/0.9093; trained qualification passes 642 traces/2500 decisions, with identical native trace hash. Block peak used CUDA pool grows by 182272/364544/729088 bytes, and benchmark B2 reserved peak rises 64 to 96 MiB. One full-model lifetime capture returns live pool use to zero after all ten drops.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/packed-qkv-v1.md"
