@@ -12,7 +12,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   qualified, 78/78 candidate. Fresh Linux controls are 71/78 and, after user
   quieted desktop, 75/78: three codec p95 intervals remain open despite passing
   TinyStories. Do not rerun unchanged. Apple remains gated; batch-4 Metal block
-  still needs a substantive fix. [Linux gates](docs/results/2026-11-11-phase2-optimization/tinystories-linux-gates-v1.md).
+  still needs a substantive fix. One profiled block run shows two copies, six
+  adds and 55 event creations per call, but no large outlier or proven cause;
+  event tracking remains enabled. [Linux gates](docs/results/2026-11-11-phase2-optimization/tinystories-linux-gates-v1.md).
   [Evidence](docs/results/2026-11-11-phase2-optimization/tinystories-reserve-v1.md).
 
 - **CUDA convolution candidate:** convolution bias addition now reads the

@@ -36,3 +36,27 @@ The quiet controlled audit SHA-256
 reproduces byte-for-byte from a clean `fb6c75e` export. In each gate, all
 120 native inventories and 180 shared Python report copies match clean source
 exports. Each lifecycle capture has nine matching-output processes.
+
+## Targeted decoder-block profile
+
+One separate, bounded CUPTI process profiled only the batch-4 resident block
+(1 first call, 5 warmups, 30 trials). All 36 source-assumed windows parsed;
+activity attribution remains incomplete and no dropped records were reported.
+The final measured trial contained 22 kernels: two copy kernels, six adds, two
+layer norms, two RMS norms, one GELU, one softmax, one scalar affine and the
+matrix-multiply kernels. Its 55 event-creation calls and 27 async allocations
+include safety and library bookkeeping. This is substantially fewer copy
+kernels than the seven seen in an older retained block profile, but profiles
+are instrumented and are not a controlled performance comparison. Median wall
+was 0.30425 ms and none of the 30 wall trials exceeded 1.2 times their median,
+so this sample does not explain the failed p95 intervals. Output identity
+fields in all 12 scopes and recorded first logits match an uninstrumented
+candidate report; this is not a replacement for trained qualification.
+
+[Diagnostic plan, runner, receipt and aggregate](raw/tiny-cuda-block-profile-v1.tar.xz)
+have SHA-256 `f8b834949366f076ecb7a82b189b09f59d70e995110d745c634c3893fb77631e`.
+The 3,946,377-byte raw capture remains local at
+`reports/phase2-tiny-cuda-block-profile-v1/capture.txt`, SHA-256
+`55568200e39d2897c73c74fd1f0c82210a7319613227569b599c0a8ad0b27327`.
+The trace identifies potential fusion work but does not justify disabling
+cross-stream event tracking or changing CUDA precision.
