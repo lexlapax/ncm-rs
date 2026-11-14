@@ -21,7 +21,7 @@ from verify_readonly_processes import key, number
 FILE_LIMIT = 128
 TOTAL_BYTES = 1024**3
 META_BYTES = 16*1024**2
-FIELDS = ('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode')
+FIELDS = ('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid')
 
 
 def parts(name):

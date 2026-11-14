@@ -4,6 +4,16 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Evidence ownership recheck:** bounded evidence metadata comparisons now include
+  UID and GID explicitly, with a focused regression. This strengthens the existing
+  same-owner reader only; mixed root/user evidence, authenticated entry and actual
+  GPU restoration remain unresolved. Three focused tests pass. The default check
+  hit the sandbox's sccache restriction; `RUSTC_WRAPPER= CARGO_BUILD_JOBS=4
+  ./tools/check.sh` failed one of 482 reporting tests on the recurring
+  `collector_command` mismatch at job 6. Fake reset succeeded within deadline and
+  subreaper state was restored. Log: `/tmp/ncm-evidence-owner-check-no-cache.log`,
+  SHA-256 `0f05934a28e213bf80ac917ca42e2ee5cd122eedfce25f166500d81a54469635`.
+
 - **Grouped fake handoff suite:** a checksum-bound CPU-only suite combines the
   actual armed-handoff validator, fake restoration supervisor, privilege drop,
   user-owned identity writer and offline receipt binding. It checks both an

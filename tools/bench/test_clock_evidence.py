@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -62,6 +63,14 @@ class ClockEvidenceTests(unittest.TestCase):
     def save(self):
         record(self.root/'sequence/sequence-plan.json',self.plan)
         record(self.root/'sequence/sequence-result.json',self.sequence)
+
+    def test_metadata_comparison_includes_owner_and_group(self):
+        initial = (self.root/'sequence/sequence-plan.json').stat()
+        for field in ('st_uid', 'st_gid'):
+            values = {name: getattr(initial, name) for name in evidence.FIELDS}
+            values[field] += 1
+            with self.subTest(field=field):
+                self.assertFalse(evidence.same(initial, SimpleNamespace(**values)))
 
     def read(self):
         with evidence.Evidence(self.root) as reader:
