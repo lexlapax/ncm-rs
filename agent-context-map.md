@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Exact GELU compilation diagnostic prepared:** an isolated same-formula
+  MLX experiment targets decoder hidden shapes and records startup/cache costs;
+  no production change. Build, Metal measurements and parity remain pending.
+  [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-compile-plan-v1.md).
+
 - **System-wide Metal activity diagnostic incomplete:** target finished without
   a slow B4 trial, but the recorder exceeded a post-target deadline and the
   terminated trace cannot be exported. The runner no longer imposes that
