@@ -9,8 +9,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   four real tokenizer probes and full CUDA check pass. Three-process Linux
   diagnostics show decode/skip median ratios 0.79144/0.82950 with equal output
   hashes; not acceptance. CUDA codec benchmark is byte-identical to the trained
-  qualified, 78/78 candidate. Next run the predeclared full Linux gate before
-  Apple; batch-4 Metal block still needs a substantive fix.
+  qualified, 78/78 candidate. Fresh Linux controls are 71/78 and, after user
+  quieted desktop, 75/78: three codec p95 intervals remain open despite passing
+  TinyStories. Do not rerun unchanged. Apple remains gated; batch-4 Metal block
+  still needs a substantive fix. [Linux gates](docs/results/2026-11-11-phase2-optimization/tinystories-linux-gates-v1.md).
   [Evidence](docs/results/2026-11-11-phase2-optimization/tinystories-reserve-v1.md).
 
 - **CUDA convolution candidate:** convolution bias addition now reads the

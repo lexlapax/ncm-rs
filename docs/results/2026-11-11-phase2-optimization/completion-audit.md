@@ -1,5 +1,10 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+**Latest TinyStories candidate:** `fb6c75e` improves Linux diagnostic decode,
+but fresh [Linux controls](tinystories-linux-gates-v1.md) remain 71/78 and
+75/78 after a user-confirmed quieter window. Apple testing of this candidate
+is pending; do not rerun unchanged. The previous candidate is described below.
+
 **Latest:** the [CUDA convolution candidate](conv-bias-cuda-v1.md) `b0a0058`
 passes the [Linux controlled gate](conv-bias-linux-gate-v1.md) 78/78. Its first
 [Apple control](conv-bias-apple-gate-v1.md) remains 74/78 despite passing Qwen;
