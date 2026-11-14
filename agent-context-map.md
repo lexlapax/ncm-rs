@@ -7,7 +7,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **Combined candidate Linux gate passes:** `4ab4d3a` passes 78/78 after one
   fixed codec/GPT-2/Qwen follow-up (initial 74/78); full CUDA check and four
   tokenizer probes pass. A clean source export reproduces the audit byte-for-
-  byte, with all 84 native report source inventories verified. Apple final gate
+  byte, with all 84 native report source inventories verified. All 99 vendored
+  crate files match the verified archive except the two approved source patches;
+  the license is unchanged. Apple final gate
   is next, but the 1Password SSH agent again refused to sign; availability and
   competing work must be rechecked after access returns. [Evidence](docs/results/2026-11-11-phase2-optimization/final-linux-gate-v1.md).
 - **MLX compilation deferred:** a pure explicit-input normalization graph saved

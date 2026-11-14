@@ -44,3 +44,12 @@ mismatches. The CUDA package's normal dependency tree contains no tokenizer
 package, supporting reuse of its byte-identical codec binary and trained
 qualification after the tokenizer-only change. This is an offline audit, not
 a new measurement or Apple qualification.
+
+The same clean export's vendored `tokenizers` tree was compared byte-for-byte
+with all 99 regular files in the cached 0.22.2 crate whose SHA-256 is
+`b238e22d44a15349529690fb07bd645cf58149a1b1e44d6cb5bd1641ff1a6223`.
+There are no missing or extra files; only `src/models/bpe/model.rs` and
+`src/normalizers/bert.rs` differ, matching the two approved patches. The
+unchanged license SHA-256 is
+`c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`.
+This verifies the archived source tree, not the remaining Apple gate.
