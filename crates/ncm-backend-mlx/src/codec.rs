@@ -157,6 +157,34 @@ impl CodecBackend for MlxBackend {
                 .reshape(&shape)?)
         })
     }
+    fn project_bias(
+        &self,
+        x: &MlxTensor,
+        weight: &MlxTensor,
+        bias: &MlxTensor,
+    ) -> Result<MlxTensor> {
+        if weight.0.shape().len() != 2 || bias.0.shape() != [weight.0.shape()[0]] {
+            return self.add(&self.project(x, weight)?, bias);
+        }
+        self.array_op(&[x, weight, bias], || {
+            let &[output, input] = weight.0.shape() else {
+                return Err("projection weight must be rank two".into());
+            };
+            if input <= 0 || x.0.shape().last() != Some(&input) {
+                return Err("invalid projection shape".into());
+            }
+            let mut shape = x.0.shape().to_vec();
+            *shape.last_mut().ok_or("scalar projection")? = output;
+            Ok(mlx_rs::ops::addmm(
+                &bias.0,
+                x.0.reshape(&[-1, input])?,
+                weight.0.transpose_axes(&[1, 0])?,
+                None,
+                None,
+            )?
+            .reshape(&shape)?)
+        })
+    }
     fn embedding(&self, weight: &MlxTensor, ids: &MlxTensor) -> Result<MlxTensor> {
         check(ids, Dtype::Uint32)?;
         self.array_op(&[weight], || {

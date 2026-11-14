@@ -4,6 +4,14 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **MLX projection-bias candidate:** pinned MLX addmm preserves the projection
+  plus bias operation, with fallback for other shapes. Linux CUDA checks pass
+  and five executables match the 78/78 candidate. Full Metal checks and 642
+  trained traces pass. A three-pair block diagnostic improves B4 medians in
+  all pairs, but p95 and other scopes are mixed; it is not acceptance. Run the
+  fixed full Apple gate and retain prior 75/78. Reassess memory on this changed
+  runtime. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-addmm-candidate-v1.md).
+
 - **Apple memory observation:** after reboot, a source-bound diagnostic on the
   current runtime completed 384 reconstructions across three model lifetimes.
   Active MLX bytes returned to zero after each drop; cache snapshots stabilized
