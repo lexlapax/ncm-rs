@@ -4,9 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Apple quiet-window gate selected:** the user confirmed a quiet window and
-  chose the separately declared unchanged-candidate measurement. Collection is
-  pending; the previous 76/78 control remains evidence. [Plan](docs/results/2026-11-11-phase2-optimization/tiny-borrow-apple-quiet-plan-v1.md).
+- **Apple quiet-window gate:** the separately declared unchanged-candidate
+  matrix/control both yield 77/78; block p95 versus prior Rust remains open
+  after control. Previous 76/78 remains evidence. User requested rethinking the
+  Mac strategy; investigate slow-process attribution before another full gate.
+  [Evidence](docs/results/2026-11-11-phase2-optimization/tiny-borrow-apple-quiet-gate-v1.md).
 
 - **Dependency scope audit:** the checksum-pinned tokenizers archive and current
   vendored tree have 99 matching paths and only three changed files, each

@@ -1,5 +1,7 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+**Latest additional Apple evidence:** the user-selected [quiet-window matrix and control](tiny-borrow-apple-quiet-gate-v1.md) each pass 77/78. The controlled batch-4 p95 against previous Rust remains open. Earlier controls remain retained; investigate the Mac performance and measurement strategy before another full gate.
+
 **Latest candidate:** TinyStories borrowing `5200924` passes the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; its [Apple initial gate](tiny-borrow-apple-gate-v1.md) is 78/78 and fixed control is 76/78. Both batch-4 block p95 comparisons remain open.
 
 **Previous candidate:** MLX projection-bias `a323b16` has a [76/78 Apple control](mlx-addmm-apple-gate-v1.md); TinyStories RSS/HWM remain open. A [finite current-runtime MLX memory observation](mlx-memory-addmm-v1.md) is retained.
