@@ -11,8 +11,10 @@ the clock fallback.
 input bytes, their separately supplied SHA, a fresh private launch path and one
 **trusted restoration-aware runner**. `clock-finalization-inputs` is diagnostic
 metadata, not a complete preparation manifest or a model/artifact schema change.
-It binds the supplied collection path, eighteen jobs, six receipt-backed role
-commands/budgets, library contract, frozen file/alias inventory, injection identity,
+Schema 2 explicitly adds a worker identity declaration; schema 1 is rejected
+before collection. It binds the supplied collection path, eighteen jobs, six
+receipt-backed role commands/budgets, worker identity, library contract, frozen
+file/alias inventory, injection identity,
 source/reference declarations, CPU source, GPU UUID/timezone and restoration cwd/
 cancellation-hook expectation. Input consistency is not authentication or proof that
 the inventory is complete. The future entry must validate the complete preparation
@@ -20,7 +22,8 @@ before any launch; this helper's structural checks are not that preflight. A lat
 [early-admission follow-up](linux-clock-preparation-admission.md#early-fail-closed-admission-follow-up)
 now rejects already-impossible declared file/byte/alias inventories and conflicts
 before path inspection, output creation or the runner. This pure check does no
-frozen-file IO/hashing and leaves the 256-file bound and rehash-last order unchanged.
+frozen-file IO/hashing and leaves the rehash-last order unchanged. The user later
+approved raising the clock postflight file count to 512; other bounds remain unchanged.
 
 Collection and launch paths must be canonical, fresh and disjoint. The helper creates
 an exclusive 0700 launch directory and 0600 input copy before invoking the callback
@@ -33,17 +36,19 @@ A return dictionary does not independently prove reaping or safe ancestry.
 After the trusted runner returns:
 
 1. Verify the retained input copy, then use the existing bounded private reader for
-   the **same 95 sequence/control files**. Bind returned versus persisted coordinator
+   the **same 96 sequence/control/identity files**. Bind returned versus persisted coordinator
    records and original deadline; no second independent reading of reports/captures.
 2. Validate the full 901-sample CPU/GPU contents and readiness/bracketing, then pass
    samples parsed from those exact CPU bytes to the sibling/restoration lifecycle
    validator. Both gates consume the same sequence/control objects.
-3. Validate all eighteen process observations against the supplied library/command
+3. Bind the private worker identity record to the declared target, worker receipt
+   and sequence lifetime. Its declaration and producer remain unauthenticated.
+   Validate all eighteen process observations against the supplied library/command
    declarations. Qualify all eighteen exact report byte strings with unchanged
    frozen-reference checks, including direct current-Python versus frozen-Python
    output comparisons in fixed halves. No diagnostic timing becomes acceptance.
 4. Require each gate's ordered receipt digests to match the same sequence. Intersect
-   telemetry/lifecycle/process clock-domain bounds. Recheck every read evidence file
+   telemetry/lifecycle/identity/process clock-domain bounds. Recheck every read evidence file
    and the input copy for visible metadata changes.
 5. **Last input-validation/file-access stage:** call the existing current-file gate
    over all supplied frozen files, observed paths and aliases. Only derived-output
@@ -52,8 +57,8 @@ After the trusted runner returns:
    frozen-reference archive checks.
 
 No validation failure reaches final frozen rehash. A frozen-file failure publishes
-no completion. Successful composition writes six derived reports: evidence binding,
-telemetry, lifecycle, processes, reported outputs and postflight. The final result
+no completion. Successful composition writes seven derived reports: evidence binding,
+telemetry, lifecycle, worker identity, processes, reported outputs and postflight. The final result
 binds their exact hashes/lengths, all consumed input identities, original deadline and
 runner-return digest. All outputs are exclusive and private. `completion.pending.json`
 is written/closed first, then exclusively hard-linked as `completion.json`; failed
@@ -69,7 +74,9 @@ rechecks are not atomic snapshots or immutable mapped-byte proof.
 
 ## Verification
 
-Four new test methods cover composition and rejection. The three archive-consuming
+The original checkpoint below predates schema 2; its counts are historical.
+See [schema-2 identity finalization](linux-clock-role-plan.md#identity-aware-finalization-schema-2)
+for current coverage. Four original test methods covered composition and rejection. The three archive-consuming
 methods use fresh subprocesses to avoid perturbing RSS-sensitive tests; input-only
 rejections stay in the parent. The successful case invokes **all actual readers and validators**, including actual
 frozen-file hashing, against temporary files: eighteen hash-verified archived codec

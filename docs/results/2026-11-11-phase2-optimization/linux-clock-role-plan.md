@@ -508,7 +508,14 @@ real policy action ran. An unprivileged invocation rejected itself. A second
 checksum-bound fake harness `/tmp/ncm-root-drop-diagnostic-v2.py`, SHA-256
 `265e207d6a6a6b8573d403014c5d01c7509aa686fb1c9ef1782d313aa2f21a66`,
 adds fixed stage/error-type diagnostics around the same pinned helpers. Its
-user-run result is pending. A separate disposable ordinary-user subprocess set
+user-run output reported exit 125: the `prctl`, `setgroups`, `setresgid`, and
+`setresuid` calls completed; `verify` then raised `ValueError` for an identity or
+capability mismatch. This does not identify which field differed or prove a safe
+transition. A third checksum-bound CPU-only diagnostic
+`/tmp/ncm-root-drop-diagnostic-v3.py`, SHA-256
+`42805b28418164a4bae44de647cb79ef32ee5e1331cdb450fff3876b7b1bfa8c`, reports
+only per-field match/zero booleans; its user-run result is pending. A separate
+disposable ordinary-user subprocess set
 and read back `no_new_privs` using the actual helper FFI successfully; this does
 not exercise the root-to-user transition. Full integration, process
 access between root and user, safe coordinator ancestry, trustworthy input and
@@ -527,7 +534,8 @@ current IDs/groups are checked, then the resulting identity is sampled again
 before building observers or starting any jobs. An ordinary worker also gets the
 sampled non-root/zero-active-capability check. The target remains a declaration:
 this wrapper does not authenticate it. The worker now persists a separate identity
-sample, but postflight does not yet consume it, so it cannot yet support final qualification. No workload,
+sample. The schema-2 postflight now checks its supplied-record consistency, but
+it cannot authenticate the producer or identity declaration. No workload,
 policy command or GPU access is performed by the new wrapper tests.
 
 Twenty-one focused tests across worker, drop and identity modules pass, including
@@ -540,7 +548,7 @@ The prior intermittent observer failure remains unexplained. The wrapper integra
 establish a real root-to-user transition, trusted bootstrap, safe root/user file
 ownership, actual process ancestry, benchmark comparability under `no_new_privs`,
 parent-loss restoration, or launch readiness. The user-run fake root transition
-exited 125; stage diagnostics are pending. The existing entry and both hardware gates
+exited 125 in credential verification; detailed diagnostics are pending. The existing entry and both hardware gates
 remain unfinished; no diagnostic deadlines, telemetry or acceptance thresholds
 were changed.
 
@@ -562,9 +570,8 @@ clock deadlines, collection budgets and acceptance thresholds are unchanged.
 against a separately supplied identity declaration, owned worker receipt and
 sequence lifetime. It verifies PID/parent, ordered clock brackets, the sample's
 scope and the required `no_new_privs` state. It cannot authenticate the target or
-producer, verify uninterrupted credentials, or establish GPU behavior. The
-finalizer does not yet consume this new artifact; its target declaration must be
-bound to a trusted launch before any final qualification claim.
+producer, verify uninterrupted credentials, or establish GPU behavior. The schema-2 finalizer now consumes this artifact, but its target declaration
+must be bound to a trusted launch before any final qualification claim.
 
 Thirty-two focused worker, credential, drop and evidence tests pass, including an
 actual CPU-only child writing evidence that binds to its reaped capture receipt
@@ -572,7 +579,7 @@ and a later fake sequence clock. Tampering, mode/ownership, conflicting output,
 identity mismatch, `no_new_privs`, failed receipt and timing cases reject. An
 initial synthetic validator fixture used fractional nanoseconds and failed the
 existing integer-clock guard; it was corrected to integer clocks and the focused
-suite passed. The user-run real root-to-user fake test exited 125; stage diagnostics
+suite passed. The user-run real root-to-user fake test exited 125 at credential verification; detailed diagnostics
 remain pending. None of these results proves privileged handoff, root/user output ownership, hardware
 restoration or Linux/Apple phase gates.
 
@@ -587,3 +594,47 @@ with 475 reporting tests. Its private log
 The ordinary-user `no_new_privs` FFI regression was added after that run began
 and passed separately. The prior intermittent observer failure and failed real
 root transition remain retained and unexplained.
+
+
+### Identity-aware finalization schema 2
+
+The clock finalizer now explicitly requires `clock-finalization-inputs` schema 2,
+adding a supplied `worker_identity` UID/GID/groups/`require_no_new_privs`
+declaration. Schema 1 is rejected before inventory admission or running the
+collection; no legacy input is silently reinterpreted. The completion result is
+also explicitly schema 2 and includes a separate
+`worker-identity-validation.json` result. Existing worker-identity artifact
+schema 1 and other input/output schemas remain unchanged.
+
+The finalizer reads the bounded private identity artifact through the same
+`Evidence` reader, checks it against the declared target, the restoration worker
+receipt and the sequence lifetime, binds its canonical digest, includes its
+clock offset in the cross-gate intersection, and rechecks all consumed evidence
+before the existing frozen-file rehash. Missing, mutated, wrong-target, wrong
+parent, wrong clock, `no_new_privs` mismatch, overclaim and transplanted digest
+cases fail before completion. The extra file stays within the unchanged 128-file
+and 1 GiB evidence-reader bounds; the existing 512-file postflight admission,
+byte limits, workload/capture, telemetry and timing budgets are unchanged. The
+expected target and artifact producer remain unauthenticated; no continuous
+identity, actual reaping or hardware restoration is claimed.
+
+Fifteen focused tests passed with synthetic collection records and a real CPU-only
+identity writer/reader test. Exact command: `umask 077 && PYTHONPATH=tools/bench
+python3 -m unittest -v test_finalize_clock_diagnostic test_clock_worker_identity_evidence`;
+private log `/tmp/ncm-clock-finalizer-identity-focused-v1.log` SHA-256
+`6dc6015937e1575fd45e0a62e5d5365d0ecb42a27742f233c9e23e0d86aa2107`.
+The same 15-test suite passed after adding the identity clock-domain fault; log
+`/tmp/ncm-clock-finalizer-identity-focused-v2.log` SHA-256
+`9f0a7aa9aed92024a1627d8a54b422e0539812cc98b9d7e01e54a2fdba794a20`.
+A further 15-test focused run also passed after adding failure injection for
+publication of the identity report; log
+`/tmp/ncm-clock-finalizer-identity-focused-v3.log` SHA-256
+`90802f4a2c8f1275536f03c9f02c13c10e2f07fb1db5f215c296244b6f483c30`.
+The full `umask 077 && CARGO_BUILD_JOBS=4 ./tools/check.sh` passed 477 reporting
+tests; `/tmp/ncm-clock-finalizer-identity-check-v1.log` has SHA-256
+`474ae8a2b20fc40103d069302031a8f130d03a2fc3d721a9de73e8546c1cb637`.
+It began before the last focused fault additions, which passed separately. The
+prior intermittent observer failure and failed root drop remain unexplained.
+This composition remains import-only; a trusted entry, real root/user handoff,
+producer authentication, GPU policy restoration and hardware validation remain
+outstanding. The real fake privilege drop has failed and is under diagnosis.

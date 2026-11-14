@@ -90,7 +90,13 @@ def data(root,archive):
             r['argv'].append(str(directory/'telemetry/cpu.jsonl')); r['report_limit_bytes']=REPORT_BYTES
         if name in ('set','worker','reset'): lf.obligation[name+'_argv']=r['argv']
         roles[name]={k:r[k] for k in FIELDS}
-    inputs=dict(schema_version=1,kind='clock-finalization-inputs',collection_root=str(directory),jobs=jobs,roles=roles,
+    identity_target=dict(uid=1000,gid=1000,groups=[1000,1001],require_no_new_privs=True)
+    identity_record=dict(schema_version=1,kind='clock-worker-identity',target=identity_target,
+        no_new_privs=True,lifetime=life.transaction.life(104,105,52,50),
+        sampled_unprivileged_identity_verified=True,identity_declaration_authenticated=False,
+        continuous_identity_verified=False,launch_ready=False)
+    inputs=dict(schema_version=2,kind='clock-finalization-inputs',collection_root=str(directory),jobs=jobs,roles=roles,
+        worker_identity=identity_target,
         library_contract=contract,injection=identities['injection.so'],frozen_identities=list(identities.values()),
         path_bindings=[],library_roots=[str(frozen)],sources=sources,python_metadata=metadata,cpu_source=telemetry.SOURCE,
         gpu_uuid=telemetry.UUID,timezone_name='UTC',cwd=str(root),external_cancel_check_enabled=False)
@@ -104,6 +110,13 @@ def data(root,archive):
     def writer(mode=None):
         if mode=='runner': raise RuntimeError('failed runner')
         directory.mkdir(mode=0o700)
+        identity=deepcopy(identity_record)
+        if mode=='identity_target': identity['target']['uid']=1002
+        if mode=='identity_parent': identity['lifetime']['parent_pid']=49
+        if mode=='identity_nnp': identity['no_new_privs']=False
+        if mode=='identity_clock': identity['lifetime']=life.transaction.life(106,107,52,50)
+        if mode=='identity_claim': identity['continuous_identity_verified']=True
+        if mode!='identity_missing': record(directory/'worker-identity.json',identity)
         if mode=='telemetry': cpu_rows[-1]['actual_elapsed_seconds']=899
         current_cpu=telemetry.cpu_bytes(cpu_rows)
         receipts['cpu']['report_capture']=report_receipt(directory/'telemetry/cpu.jsonl',current_cpu)
@@ -139,7 +152,10 @@ def data(root,archive):
 def exercise(case):
     archive=archived_inputs()
     modes={'success':[None], 'gates':['runner','return','deadline','input_copy','capture','telemetry','lifecycle',
-            'restoration','process','output','frozen','late_evidence','gate_binding','gate_clock','gate_flag'], 'publication':['publish','marker']}[case]
+            'restoration','identity_missing','identity_target','identity_parent','identity_nnp','identity_clock',
+            'identity_claim','identity_mutation','identity_gate','identity_binding','identity_gate_clock',
+            'process','output','frozen','late_evidence',
+            'gate_binding','gate_clock','gate_flag'], 'publication':['publish','identity_publish','marker']}[case]
     for mode in modes:
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp).resolve(); inputs,writer=data(root,archive); raw=json.dumps(inputs).encode()
@@ -149,15 +165,19 @@ def exercise(case):
             def qualification(*a,**kw):
                 value=actual_qualify(*a,**kw)
                 if mode=='late_evidence': write(root/'collection/restorer.capture',b'late mutation')
+                if mode=='identity_mutation': write(root/'collection/worker-identity.json',b'late mutation')
                 return value
             def publication(directory,name,raw):
-                if (mode=='publish' and name=='output-qualification.json') or (mode=='marker' and name=='completion.pending.json'):
+                if ((mode=='publish' and name=='output-qualification.json')
+                        or (mode=='identity_publish' and name=='worker-identity-validation.json')
+                        or (mode=='marker' and name=='completion.pending.json')):
                     # Model a failed/short publication, retaining its partial bytes.
                     write(directory/name,b'partial'); raise OSError('test publication failure')
                 return actual_publish(directory,name,raw)
             from contextlib import ExitStack
             with ExitStack() as stack:
-                for name in ('read_sequence','read_control','validate_telemetry','validate_lifecycle','validate_processes','qualify','verify_files'):
+                for name in ('read_sequence','read_control','validate_telemetry','validate_lifecycle','validate_worker_identity',
+                             'validate_processes','qualify','verify_files'):
                     original=qualification if name=='qualify' else getattr(finalizer,name)
                     def call(*a,_name=name,_original=original,**kw):
                         events.append(_name); value=_original(*a,**kw)
@@ -165,18 +185,26 @@ def exercise(case):
                         if mode=='gate_clock' and _name=='validate_processes':
                             value['clock_domain_offset_ns']={'minimum':0,'maximum':1}
                         if mode=='gate_flag' and _name=='validate_telemetry': value['telemetry_contents_validated']=False
+                        if mode=='identity_gate' and _name=='validate_worker_identity': value['producer_authenticated']=True
+                        if mode=='identity_binding' and _name=='validate_worker_identity': value['record_canonical_sha256']='0'*64
+                        if mode=='identity_gate_clock' and _name=='validate_worker_identity':
+                            value['clock_domain_offset_ns']={'minimum':0,'maximum':1}
                         return value
                     stack.enter_context(patch.object(finalizer,name,side_effect=call))
                 stack.enter_context(patch.object(finalizer,'publish',side_effect=publication))
                 if mode is None:
                     result=finalizer.run_then_finalize(raw,sha,root/'launch',run)
                     assert events==['runner','read_sequence','read_control','validate_telemetry','validate_lifecycle',
-                                    'validate_processes','qualify','verify_files'],events
-                    assert len(result['consumed_raw_files'])==95 and len(result['results'])==6
+                                    'validate_worker_identity','validate_processes','qualify','verify_files'],events
+                    assert result['schema_version']==2 and len(result['consumed_raw_files'])==96 and len(result['results'])==7
+                    assert result['results']['worker-identity-validation.json']
+                    assert 'worker-identity.json' in result['consumed_raw_files']
                     assert result['validation_composition_complete'] and result['frozen_rehash_after_runner_and_validation']
                     assert not any(result[k] for k in ('launch_provenance_verified','runner_reaping_independently_verified',
                         'hardware_policy_restoration_verified','clock_enforcement_verified','performance_acceptance_evaluated',
-                        'complete_preparation_verified','operator_trace_parity_verified'))
+                        'complete_preparation_verified','operator_trace_parity_verified',
+                        'worker_identity_declaration_authenticated','worker_identity_producer_authenticated',
+                        'worker_continuous_identity_verified'))
                     for name,identity in result['results'].items():
                         path=root/'launch/completion'/name
                         assert len(path.read_bytes())==identity['bytes'] and hashlib.sha256(path.read_bytes()).hexdigest()==identity['sha256']
@@ -188,10 +216,12 @@ def exercise(case):
                     else: raise AssertionError('failed gate accepted: '+mode)
                     assert not (root/'launch/completion/completion.json').exists(),mode
                     stages=['runner','read_sequence','read_control','validate_telemetry','validate_lifecycle',
-                            'validate_processes','qualify','verify_files']
+                            'validate_worker_identity','validate_processes','qualify','verify_files']
                     terminal={'runner':0,'input_copy':0,'deadline':1,'return':2,'capture':2,'telemetry':3,
-                        'gate_flag':3,'lifecycle':4,'restoration':4,'process':5,'output':6,'late_evidence':6,
-                        'gate_binding':6,'gate_clock':6,'frozen':7,'publish':7,'marker':7}[mode]
+                        'gate_flag':3,'lifecycle':4,'restoration':4,'identity_missing':2,
+                        'identity_target':5,'identity_parent':5,'identity_nnp':5,'identity_clock':5,
+                        'identity_claim':5,'identity_gate':5,'identity_binding':5,'process':6,'output':7,'late_evidence':7,
+                        'identity_mutation':7,'identity_gate_clock':7,'gate_binding':7,'gate_clock':7,'frozen':8,'publish':8,'identity_publish':8,'marker':8}[mode]
                     assert events==stages[:terminal+1],(mode,events)
                     assert (root/'launch/finalizer-inputs.json').exists()
                 assert events.count('runner')==1
@@ -227,7 +257,8 @@ class ClockFinalizationTests(unittest.TestCase):
                 aliases=[dict(path=str(fixture.root/f'alias-{i}'),canonical_path=frozen[0]['path']) for i in range(513)]
             if mode=='conflict': frozen.append(dict(fixture.ids['optional.so'],sha256='0'*64))
             inputs={name:None for name in finalizer.FIELDS}
-            inputs.update(schema_version=1,kind='clock-finalization-inputs',collection_root=str(fixture.root/'collection'),
+            inputs.update(schema_version=2,kind='clock-finalization-inputs',collection_root=str(fixture.root/'collection'),
+                worker_identity=dict(uid=1000,gid=1000,groups=[],require_no_new_privs=False),
                 external_cancel_check_enabled=False,library_contract=fixture.contract,frozen_identities=frozen,
                 path_bindings=aliases,injection=fixture.ids['injection'])
             raw=json.dumps(inputs).encode(); launch=fixture.root/'launch'
@@ -236,6 +267,23 @@ class ClockFinalizationTests(unittest.TestCase):
                 finalizer.run_then_finalize(raw,hashlib.sha256(raw).hexdigest(),launch,
                     lambda:self.fail('runner invoked for impossible inventory'))
             self.assertFalse(launch.exists()); self.assertFalse((fixture.root/'collection').exists())
+
+    def test_legacy_schema_and_invalid_identity_fail_before_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for version,target in ((1,dict(uid=1000,gid=1000,groups=[],require_no_new_privs=True)),
+                                   (2,dict(uid=True,gid=1000,groups=[],require_no_new_privs=True)),
+                                   (2,dict(uid=1000,gid=1000,groups=[],require_no_new_privs=1)),
+                                   (2,dict(uid=1000,gid=1000,groups=[]))):
+                inputs={name:None for name in finalizer.FIELDS}
+                inputs.update(schema_version=version,kind='clock-finalization-inputs',
+                              external_cancel_check_enabled=False,worker_identity=target)
+                raw=json.dumps(inputs).encode(); launch=Path(tmp)/'launch'
+                with self.subTest(version=version,target=target), \
+                     patch.object(finalizer,'declared_inventory',side_effect=AssertionError('no inventory')), \
+                     self.assertRaises(ValueError):
+                    finalizer.run_then_finalize(raw,hashlib.sha256(raw).hexdigest(),launch,
+                        lambda:self.fail('runner invoked'))
+                self.assertFalse(launch.exists())
 
     def test_bad_inputs_never_invoke_runner(self):
         with tempfile.TemporaryDirectory() as tmp:

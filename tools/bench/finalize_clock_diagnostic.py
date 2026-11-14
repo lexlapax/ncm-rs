@@ -12,19 +12,21 @@ from pathlib import Path
 
 from clock_evidence import Evidence, META_BYTES, private, read_sequence
 from clock_control_evidence import read_control
+from clock_worker_identity_evidence import RECORD_LIMIT as IDENTITY_RECORD_LIMIT, target as identity_target
 from readonly_trace_preflight import require
 from validate_readonly_telemetry import unique_object, reject_constant
 from validate_readonly_lifecycle import digest
 from validate_clock_restoration import finite
 from validate_clock_lifecycle import validate as validate_lifecycle
 from validate_clock_telemetry import validate as validate_telemetry
+from validate_clock_worker_identity import validate as validate_worker_identity
 from verify_clock_processes import validate_processes
 from verify_clock_files import canonical_spelling, declared_inventory, verify_files
 from qualify_clock_codec import qualify
 
 FIELDS = {'schema_version','kind','collection_root','jobs','roles','library_contract','injection',
           'frozen_identities','path_bindings','library_roots','sources','python_metadata','cpu_source',
-          'gpu_uuid','timezone_name','cwd','external_cancel_check_enabled'}
+          'gpu_uuid','timezone_name','cwd','external_cancel_check_enabled','worker_identity'}
 
 
 def parsed(raw):
@@ -56,9 +58,14 @@ def run_then_finalize(inputs_raw,expected_sha256,launch_dir,run_collection):
             and hashlib.sha256(inputs_raw).hexdigest()==expected_sha256,'finalizer input digest/size differs')
     inputs=parsed(inputs_raw)
     require(isinstance(inputs,dict) and set(inputs)==FIELDS and type(inputs['schema_version']) is int
-            and inputs['schema_version']==1 and inputs['kind']=='clock-finalization-inputs'
+            and inputs['schema_version']==2 and inputs['kind']=='clock-finalization-inputs'
             and type(inputs['external_cancel_check_enabled']) is bool and callable(run_collection),
             'explicit finalization inputs and trusted runner required')
+    declared_identity=inputs['worker_identity']
+    require(isinstance(declared_identity,dict)
+            and set(declared_identity)=={'uid','gid','groups','require_no_new_privs'},
+            'explicit worker identity declaration required')
+    identity_target(**declared_identity)  # Pure validation; supplied identity is not authenticated here.
     # Pure declaration admission, not early frozen-file hashing. Never spend a
     # collection on an inventory already known to exceed unchanged postflight caps.
     declared_inventory(inputs['library_contract'],frozen_identities=inputs['frozen_identities'],
@@ -78,6 +85,7 @@ def run_then_finalize(inputs_raw,expected_sha256,launch_dir,run_collection):
         require(launch_evidence.raw('finalizer-inputs.json')==inputs_raw,'finalization inputs changed during runner')
         seq=read_sequence(evidence,jobs=inputs['jobs'],work_deadline=deadline)
         control=read_control(evidence,roles=inputs['roles'])
+        identity_record=evidence.record('worker-identity.json',IDENTITY_RECORD_LIMIT)
         require(digest(control['collection'])==digest(returned['collection']),'returned/persisted coordinator differs')
         sequence=seq['sequence']
         contents=validate_telemetry(control['cpu_raw'],control['gpu_raw'],sequence,control['restorer_receipt'],
@@ -94,6 +102,15 @@ def run_then_finalize(inputs_raw,expected_sha256,launch_dir,run_collection):
         require(lifecycle['sibling_lifecycle_consistency_verified'] is True
                 and lifecycle['restoration_binding']['restoration_record_consistency_verified'] is True,
                 'sibling/restoration validation incomplete')
+        worker_identity=validate_worker_identity(identity_record,declared_identity,
+            control['restoration']['worker'],sequence)
+        require(worker_identity['worker_identity_record_consistent'] is True
+                and worker_identity['record_canonical_sha256']==digest(identity_record)
+                and worker_identity['identity_declaration_authenticated'] is False
+                and worker_identity['producer_authenticated'] is False
+                and worker_identity['continuous_identity_verified'] is False
+                and worker_identity['launch_ready'] is False,
+                'worker identity consistency incomplete or overclaimed')
         processes=validate_processes(inputs['jobs'],sequence,inputs['library_contract'],
             injection=inputs['injection'],work_deadline=deadline)
         require(processes['process_receipt_consistency_verified'] is True,'process validation incomplete')
@@ -104,7 +121,7 @@ def run_then_finalize(inputs_raw,expected_sha256,launch_dir,run_collection):
         expected=[digest(row['receipt']) for row in sequence['jobs']]
         for gate in (contents,lifecycle,processes,outputs):
             require([r['receipt_canonical_sha256'] for r in gate['jobs']]==expected,'validator receipt bindings differ')
-        offsets=[gate['clock_domain_offset_ns'] for gate in (contents,lifecycle,processes)]
+        offsets=[gate['clock_domain_offset_ns'] for gate in (contents,lifecycle,worker_identity,processes)]
         offset={'minimum':max(v['minimum'] for v in offsets),'maximum':min(v['maximum'] for v in offsets)}
         require(offset['minimum']<=offset['maximum'],'composed clock domains disagree')
         evidence.verify_unchanged(); launch_evidence.verify_unchanged()
@@ -122,12 +139,15 @@ def run_then_finalize(inputs_raw,expected_sha256,launch_dir,run_collection):
     results={name:publish(output,name,encoded(value)) for name,value in (
         ('evidence-binding.json',{'sequence':seq['binding'],'control':control['binding']}),
         ('telemetry-validation.json',contents),('lifecycle-validation.json',lifecycle),
+        ('worker-identity-validation.json',worker_identity),
         ('process-validation.json',processes),('output-qualification.json',outputs),('postflight.json',postflight))}
-    result={'schema_version':1,'status':'complete','diagnostic_only':True,'finalizer_inputs_sha256':expected_sha256,
+    result={'schema_version':2,'status':'complete','diagnostic_only':True,'finalizer_inputs_sha256':expected_sha256,
         'runner_return_canonical_sha256':digest(returned),'work_deadline_monotonic_seconds':deadline,
         'consumed_raw_files':consumed,'launch_inputs':launch_inputs,'results':results,'clock_domain_offset_ns':offset,
         'validation_composition_complete':True,'frozen_rehash_after_runner_and_validation':True,
         'launch_provenance_verified':False,'runner_reaping_independently_verified':False,
+        'worker_identity_declaration_authenticated':False,'worker_identity_producer_authenticated':False,
+        'worker_continuous_identity_verified':False,
         'hardware_policy_restoration_verified':False,'clock_enforcement_verified':False,
         'complete_preparation_verified':False,'operator_trace_parity_verified':False,
         'performance_acceptance_evaluated':False,
