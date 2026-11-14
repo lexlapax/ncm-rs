@@ -4,6 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Current Apple gate fails:** combined candidate `2df27c3` has a fresh
+  69/78 initial audit, including batch-4 resident-block ratio 1.35310 versus
+  accepted Rust; fresh trained Metal parity and tokenizer probes pass. The
+  initial failure reproduces from clean export. Isolated RMS-only and fast
+  attention alternatives pass parity but do not resolve the regression;
+  latent-layout investigation is underway. [Gate](docs/results/2026-11-11-phase2-optimization/final-mlx-initial-v1.md), [alternatives](docs/results/2026-11-11-phase2-optimization/mlx-block-alternatives-v1.md).
+
 - **Comparator source audit:** all 42 final-Linux and 24 historical-Apple
   Python comparator report inventories match their clean tested-source exports;
   declared upstream pins and recorded candidate/baseline heads agree. This is
