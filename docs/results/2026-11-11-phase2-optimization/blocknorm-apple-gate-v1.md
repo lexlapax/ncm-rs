@@ -30,3 +30,9 @@ The controlled audit SHA-256 is
 it reproduces byte-for-byte from a clean `884d8f6` export and the archive,
 including the same failure. Activity samples do not establish exclusive GPU
 access.
+
+The independent [source-inventory audit](raw/blocknorm-source-audit-v1.py)
+checks all 48 native reports and 72 Python report copies in this matrix and
+control against clean exports of their recorded heads, with zero mismatches.
+The Python copies represent 24 distinct reports; their bytes match across
+directories. This verifies source provenance and does not change the gate.

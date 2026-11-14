@@ -24,6 +24,12 @@ The controlled audit SHA-256 is
 An export of `621c565` with the archive extracted reproduces the audit
 byte-for-byte using the included controlled configuration. The archive was
 corrected to retain inputs at the paths specified by that configuration.
+An independent source-inventory audit checks all 102 native reports and 153
+Python report copies in this matrix and control against clean exports of their
+recorded source heads, with zero mismatches. The Python copies represent 51
+distinct reports; their bytes match across directories. See the reproducible
+[source-audit script](raw/blocknorm-source-audit-v1.py), SHA-256
+`43b2e4668739a3cfd976278a2f55594d8749996d981994e4ec8aa75b87498db2`.
 The live desktop and sampled activity do not establish exclusive GPU access.
 No clock or power policy changed. Fresh Apple validation and its full gate are
 still required.

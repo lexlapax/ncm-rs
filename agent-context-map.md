@@ -13,7 +13,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   trained parity, but remains **77/78** after one fixed GPT-2 control: encode
   median interval upper 1.06574 exceeds 1.05. The decoder block regression is
   resolved and reconstruction gains are retained. Review the isolated GPT-2
-  candidate; do not repeat the unchanged candidate's gate. [Current Apple gate](docs/results/2026-11-11-phase2-optimization/blocknorm-apple-gate-v1.md).
+  candidate; do not repeat the unchanged candidate's gate. All 150 native
+  report inventories and 225 shared Python report copies across current Linux
+  and Apple matrices/controls match clean source exports. [Current Apple gate](docs/results/2026-11-11-phase2-optimization/blocknorm-apple-gate-v1.md), [source audit](docs/results/2026-11-11-phase2-optimization/raw/blocknorm-source-audit-v1.py).
 
 - **Historical Apple gate:** combined candidate `2df27c3` has a fresh
   69/78 initial audit, including batch-4 resident-block ratio 1.35310 versus
