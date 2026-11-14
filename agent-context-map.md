@@ -4,6 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Dependency scope audit:** the checksum-pinned tokenizers archive and current
+  vendored tree have 99 matching paths and only three changed files, each
+  matching its reviewed integration commit. The 218-package lock inventory is
+  unchanged except the approved local-source metadata; upstream/tokenizer pins
+  and tracked fixtures match the frozen baseline. Static scope is not semantic
+  or performance acceptance. [Audit](docs/results/2026-11-11-phase2-optimization/dependency-scope-audit-v1.md).
+
 - **Upstream alignment review:** the clean pinned Python decoder and current
   Rust/MLX code have corresponding supported block order, with documented FP32
   evaluation differences and qualified traces. A separately built differential
