@@ -1,8 +1,61 @@
 #![cfg(feature = "mlx")]
 mod support;
+use mlx_rs::ops::indexing::TryIndexOp;
 use mlx_rs::{Array, Device, with_device};
 use ncm_backend_mlx::ops;
 use support::{Fixture, Prepared, Result, check_output};
+
+#[test]
+fn linear_gather_matches_scalar_geometry_on_real_metal() -> Result<()> {
+    with_device(Device::gpu(), || {
+        for (batch, source, length) in [
+            (1_usize, 1_usize, 89_usize),
+            (1, 2, 89),
+            (1, 13, 89),
+            (1, 50, 89),
+            (1, 89, 13),
+            (4, 13, 89),
+            (2, 37, 67),
+            (2, 67, 37),
+            (1, 5, 1),
+        ] {
+            let data: Vec<f32> = (0..batch * source * 64)
+                .map(|i| ((i * 73 % 509) as f32 - 254.) / 37.)
+                .collect();
+            let x = Array::from_slice(&data, &[batch as i32, source as i32, 64]);
+            let mut bins = Vec::with_capacity(length);
+            for i in 0..length {
+                let position = ((i as f64 + 0.5) * source as f64 / length as f64 - 0.5).max(0.);
+                let lo = (position.floor() as i32).min(source as i32 - 1);
+                let hi = (lo + 1).min(source as i32 - 1);
+                let weight = position - f64::from(lo);
+                let a = x
+                    .try_index((.., lo..lo + 1, ..))?
+                    .multiply(Array::from_f32((1. - weight) as f32))?;
+                let b = x
+                    .try_index((.., hi..hi + 1, ..))?
+                    .multiply(Array::from_f32(weight as f32))?;
+                bins.push(a.add(b)?);
+            }
+            let old = mlx_rs::ops::concatenate(&bins, 1)?;
+            let new = ops::linear1d(&x, length)?;
+            old.eval()?;
+            new.eval()?;
+            assert_eq!(old.shape(), new.shape());
+            for (&expected, &actual) in old
+                .try_as_slice::<f32>()?
+                .iter()
+                .zip(new.try_as_slice::<f32>()?)
+            {
+                assert!(
+                    (actual - expected).abs() <= 1e-5 + 1e-4 * expected.abs(),
+                    "shape {batch}/{source}/{length}: {actual} != {expected}"
+                );
+            }
+        }
+        Ok(())
+    })
+}
 #[test]
 fn all_fixtures_on_real_metal() -> Result<()> {
     with_device(Device::gpu(), || {

@@ -101,8 +101,10 @@
     {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
-      "status": "pending Linux gate before Apple implementation/testing",
-      "constraints": "Independently qualify current MLX coordinate arithmetic; temporary padding, lazy evaluation and memory ownership require real Metal evidence."
+      "status": "linear gather candidate passes trained parity; final resource and platform gates pending",
+      "finding": "Three matched processes per binary: reconstruction ratios 0.480/0.497/0.585 at batches 1/2/4, with higher MLX peak counters and noisy resident-block timings. Expanded Metal tests and 642 trained traces / 2500 decisions pass; area reductions remain unchanged.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-linear-poc-v1.md",
+      "constraints": "Preserve f64 coordinate arithmetic; full-model memory, lazy evaluation, ownership and both final gates require qualification."
     },
     {
       "id": "tiny-compact-lookup-or-heap",

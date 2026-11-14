@@ -4,22 +4,22 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **MLX linear-resampling prototype:** isolated `mlx_linear_poc` compares the
-  existing scalar graph with gather-based interpolation using the same f64
-  coordinates and f32 weights. It records graph/evaluation timings, MLX memory
-  counters and six-shape parity; production remains unchanged. Formatting and
-  Linux default-feature check pass; this example has not yet been built or run
-  on Mac. Finish the current Apple candidate matrix before running the PoC.
+- **BERT encoding experiment rejected:** a temporary consuming tokenizer-ID
+  accessor reduced matched Linux encode median only 0.4%; no dependency change
+  was promoted. The earlier Apple BERT p95 interval failure remains open.
+  [Details](docs/results/2026-11-11-phase2-optimization/bert-ids-move-poc-v1.md).
 
-- **Apple validation underway:** `macstudio` is reachable; clean `3307dff`
-  was preserved in a separate baseline worktree and main fast-forwarded to
-  `cbdeafd`. An idle `rmlx` server remains untouched. The first full MLX check
-  stopped in Linux-specific report tests (28 failures, 27 errors, 167 skips);
-  direct MLX Clippy, tests, docs and all 18 real-Metal operators pass. The
-  macOS check now explicitly excludes 16 Linux-diagnostic test modules while
-  retaining all other report tests; Linux still runs its complete suite. The
-  selection regression and shell/Python syntax checks pass. Rerun the full
-  Mac check, then collect trained parity and the Apple performance gate.
+- **Apple gate and linear-resampling candidate:** trained Metal parity passes
+  642 traces / 2,500 decisions, and the Mac check passes with Linux-only report
+  modules explicitly excluded. Initial Apple audit 76/78; one predeclared BERT
+  follow-up yields 77/78, with BERT encode p95 interval upper 1.11420 > 1.10.
+  Isolated gather interpolation matched six shapes and reduced representative
+  evaluated time 1.0656 to 0.2966 ms, with higher measured MLX peak memory.
+  The production candidate passes expanded Metal tests, trained parity and the
+  Linux CUDA check. Matched full-model reconstruction improves substantially,
+  with higher MLX allocator peaks and noisy resident-block timings. Both final
+  candidate gates and the open BERT p95 comparison remain.
+  [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-linear-poc-v1.md).
 
 - **Linux Phase 2 gate passes:** candidate `582e8fe`, including the approved
   pinned BPE allocation optimization, passes 78/78 after one predeclared

@@ -96,21 +96,24 @@ pub fn area1d(x: &Array, length: usize) -> Result<Array> {
 }
 pub fn linear1d(x: &Array, length: usize) -> Result<Array> {
     let (length, source) = lengths(x, length)?;
-    let mut bins = Vec::with_capacity(length);
+    let mut low = Vec::with_capacity(length);
+    let mut high = Vec::with_capacity(length);
+    let mut left = Vec::with_capacity(length);
+    let mut right = Vec::with_capacity(length);
     for i in 0..length {
         let position = ((i as f64 + 0.5) * f64::from(source) / length as f64 - 0.5).max(0.);
         let lo = (position.floor() as i32).min(source - 1);
-        let hi = (lo + 1).min(source - 1);
         let weight = position - lo as f64;
-        let a = x
-            .try_index((.., lo..lo + 1, ..))?
-            .multiply(Array::from_f32((1. - weight) as f32))?;
-        let b = x
-            .try_index((.., hi..hi + 1, ..))?
-            .multiply(Array::from_f32(weight as f32))?;
-        bins.push(a.add(b)?);
+        low.push(lo);
+        high.push((lo + 1).min(source - 1));
+        left.push((1. - weight) as f32);
+        right.push(weight as f32);
     }
-    Ok(ops::concatenate(&bins, 1)?)
+    let length = i32::try_from(length)?;
+    let a = x.take_axis(Array::from_slice(&low, &[length]), 1)?;
+    let b = x.take_axis(Array::from_slice(&high, &[length]), 1)?;
+    Ok(a.multiply(Array::from_slice(&left, &[1, length, 1]))?
+        .add(b.multiply(Array::from_slice(&right, &[1, length, 1]))?)?)
 }
 /// Additive mask; caller must reject rows with no allowed keys before dispatch.
 pub fn attention(q: &Array, k: &Array, v: &Array, mask: &Array) -> Result<Array> {
