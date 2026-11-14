@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **RMS fusion deferred:** direct Metal regression, full MLX check and 642
+  trained traces pass, but a three-pair diagnostic shows no target batch-4
+  block improvement (median ratio 1.0055) and mixed other scopes. The
+  experiment was not integrated; its limited results are not acceptance.
+  [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-rms-affine-diagnostic-v1.md).
+
 - **Latest Apple gate:** loader candidate `3555c67` passed the initial 78/78,
   but the predeclared all-workload control is 76/78: batch-4 block p95 versus
   Rust and Python remains open. TinyStories RSS/HWM pass. Wallpaper activity

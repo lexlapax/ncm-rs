@@ -1,0 +1,51 @@
+diff --git a/crates/ncm-backend-mlx/src/codec.rs b/crates/ncm-backend-mlx/src/codec.rs
+index 33f939d..caa9bf3 100644
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -279,6 +279,13 @@ impl CodecBackend for MlxBackend {
+     }
+     fn rms_norm(&self, x: &MlxTensor, weight: &MlxTensor, eps: f64) -> Result<MlxTensor> {
+         self.array_op(&[x, weight], || {
++            let width = x.0.shape().last().copied();
++            if weight.0.shape().len() == 1 && weight.0.shape().first().copied() == width {
++                if !eps.is_finite() || eps <= 0. || eps > f32::MAX as f64 {
++                    return Err("invalid epsilon".into());
++                }
++                return Ok(mlx_rs::fast::rms_norm(&x.0, Some(&weight.0), eps as f32)?);
++            }
+             Ok(ops::rms_norm(&x.0, eps)?.multiply(&weight.0)?)
+         })
+     }
+diff --git a/crates/ncm-backend-mlx/tests/codec_components.rs b/crates/ncm-backend-mlx/tests/codec_components.rs
+index 72ecf63..f58f6a3 100644
+--- a/crates/ncm-backend-mlx/tests/codec_components.rs
++++ b/crates/ncm-backend-mlx/tests/codec_components.rs
+@@ -174,3 +174,28 @@ fn fused_projection_bias_matches_composition() {
+     assert!(b.project_bias(&wrong_width, &w, &bias).is_err());
+     assert!(b.project_bias(&x, &w, &wrong_type).is_err());
+ }
++
++#[test]
++fn weighted_rms_norm_matches_broadcast_fallback() {
++    let b = MlxBackend::gpu().unwrap();
++    let values: Vec<f32> = (0..2 * 3 * 17)
++        .map(|i| ((i * 31 % 127) as f32 - 63.) / 19.)
++        .collect();
++    let weights: Vec<f32> = (0..17).map(|i| 0.5 + i as f32 / 17.).collect();
++    let x = b.upload_f32(&values, &[2, 3, 17]).unwrap();
++    let vector = b.upload_f32(&weights, &[17]).unwrap();
++    let broadcast = b.upload_f32(&weights, &[1, 1, 17]).unwrap();
++    let fused = b.rms_norm(&x, &vector, 1e-6).unwrap();
++    let reference = b.rms_norm(&x, &broadcast, 1e-6).unwrap();
++    for (a, e) in b
++        .read_f32(&fused)
++        .unwrap()
++        .iter()
++        .zip(b.read_f32(&reference).unwrap())
++    {
++        assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs());
++    }
++    assert!(b.rms_norm(&x, &vector, f64::NAN).is_err());
++    let wrong_type = b.upload_indices(&[0; 17], &[17]).unwrap();
++    assert!(b.rms_norm(&x, &wrong_type, 1e-6).is_err());
++}
