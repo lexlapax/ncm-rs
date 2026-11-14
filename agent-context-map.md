@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Block attribution branch:** a diagnostic copy of the existing MLX workload
+  records graph construction and synchronous evaluation per block trial; timers
+  perturb results and evaluation is not device-only. Linux fmt/workspace check
+  pass; Metal compilation and three-process diagnostic are pending. No runtime
+  source changes or acceptance claim. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-block-segments-plan-v1.md).
+
 - **RMS fusion deferred:** direct Metal regression, full MLX check and 642
   trained traces pass, but a three-pair diagnostic shows no target batch-4
   block improvement (median ratio 1.0055) and mixed other scopes. The
