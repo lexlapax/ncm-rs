@@ -13,8 +13,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   medians 3.2–3.8% lower, with matching IDs/logits; this is not acceptance.
   Fresh Linux gate: 75/78 initial and **78/78** fixed all-workload control;
   nine lifecycle runs and clean-export reproduction pass. Apple initial and
-  all-workload control are 75/78 and 74/78, with substantial Chrome activity;
-  user closed Chrome and a new fixed quiet-window run is underway.
+  all-workload control were 75/78 and 74/78 with substantial Chrome activity.
+  After Chrome closed, the fixed quiet-window initial/control are 72/78 and
+  **75/78**: batch-4 block against Rust/Python and TinyStories decode against
+  Rust remain open. Do not rerun unchanged; investigate substantive fixes.
+  [Quiet Apple gate](docs/results/2026-11-11-phase2-optimization/conv-bias-apple-quiet-gate-v1.md);
   [Apple gate](docs/results/2026-11-11-phase2-optimization/conv-bias-apple-gate-v1.md). [Candidate](docs/results/2026-11-11-phase2-optimization/conv-bias-cuda-v1.md);
   [Linux gate](docs/results/2026-11-11-phase2-optimization/conv-bias-linux-gate-v1.md).
 

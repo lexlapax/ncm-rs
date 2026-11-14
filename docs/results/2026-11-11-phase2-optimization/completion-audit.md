@@ -3,9 +3,10 @@
 **Latest:** the [CUDA convolution candidate](conv-bias-cuda-v1.md) `b0a0058`
 passes the [Linux controlled gate](conv-bias-linux-gate-v1.md) 78/78. Its first
 [Apple control](conv-bias-apple-gate-v1.md) remains 74/78 despite passing Qwen;
-Chrome was active during collection. The user confirmed the Mac is now quiet,
-and a separately predeclared full quiet-window gate is underway. Prior failed
-and passing candidate results remain historical evidence.
+Chrome was active during collection. After the user quieted the Mac, a
+separately predeclared [quiet-window control](conv-bias-apple-quiet-gate-v1.md)
+reached 75/78; batch-4 decoder block and TinyStories decode remain open. Prior
+failed and passing candidate results remain historical evidence.
 
 **Previous candidate:** the user approved the [GPT-2 byte-level dependency patch](gpt2-bytelevel-review-v1.md).
 Candidate `1f7d2a8` passes the fresh [Linux 78/78 gate](bytelevel-final-linux-gate-v1.md);
