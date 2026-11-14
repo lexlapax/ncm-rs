@@ -4,7 +4,15 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Current Apple gate:** SSH restored and Mac checkout fast-forwarded. Current
+- **MLX affine candidate:** the accelerated decoder normalization now passes
+  matching affine parameters into the pinned fast primitive, with fallback for
+  other shapes. Linux CUDA checks pass and five binaries match the 78/78
+  candidate. Full MLX checks and 642 trained traces pass. A three-pair Metal
+  diagnostic improves batch-4 block medians but has mixed p95/other-scope
+  results; this is not acceptance. Run a fixed complete Apple gate, retain the
+  prior 72/78 and unchanged upstream/tolerance contract. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-affine-candidate-v1.md).
+
+- **Previous Apple gate:** SSH restored and Mac checkout fast-forwarded. That
   candidate passes the full MLX check, 642 trained traces/2,500 decisions and
   four tokenizer probes; its initial Apple matrix is **69/78** and fixed
   all-workload control **72/78**. Batch-4 block p95 (two comparators),

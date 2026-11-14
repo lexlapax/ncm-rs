@@ -99,3 +99,25 @@ fn metal_batched_transpose() {
         assert_eq!(b.read_f32(&y).unwrap(), expected, "length={length}");
     }
 }
+
+#[test]
+fn weighted_accelerated_norm_matches_existing_composition() {
+    let b = MlxBackend::gpu().unwrap();
+    let values: Vec<f32> = (0..4 * 7 * 33)
+        .map(|i| ((i * 73 % 509) as f32 - 254.) / 37.)
+        .collect();
+    let x = b.upload_f32(&values, &[4, 7, 33]).unwrap();
+    let weights: Vec<f32> = (0..33).map(|i| 0.5 + i as f32 / 33.).collect();
+    let biases: Vec<f32> = (0..33).map(|i| (i as f32 - 16.) / 20.).collect();
+    let w = b.upload_f32(&weights, &[33]).unwrap();
+    let bias = b.upload_f32(&biases, &[33]).unwrap();
+    for affine_bias in [None, Some(&bias)] {
+        let fused = b.layer_norm_accelerated(&x, &w, affine_bias, 1e-6).unwrap();
+        let reference = b.layer_norm(&x, &w, affine_bias, 1e-6).unwrap();
+        let actual = b.read_f32(&fused).unwrap();
+        let expected = b.read_f32(&reference).unwrap();
+        for (&a, &e) in actual.iter().zip(&expected) {
+            assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs());
+        }
+    }
+}

@@ -227,6 +227,21 @@ impl CodecBackend for MlxBackend {
             check(b, Dtype::Float32)?;
         }
         self.array_op(&[x, weight], || {
+            let width = x.0.shape().last().copied();
+            let affine_shape = weight.0.shape().len() == 1
+                && weight.0.shape().first().copied() == width
+                && bias.is_none_or(|b| b.0.shape() == weight.0.shape());
+            if affine_shape {
+                if !eps.is_finite() || eps <= 0. || eps > f32::MAX as f64 {
+                    return Err("invalid epsilon".into());
+                }
+                return Ok(mlx_rs::fast::layer_norm(
+                    &x.0,
+                    Some(&weight.0),
+                    bias.map(|b| &b.0),
+                    eps as f32,
+                )?);
+            }
             let y = ops::layer_norm_accelerated(&x.0, eps)?.multiply(&weight.0)?;
             Ok(match bias {
                 Some(b) => y.add(&b.0)?,
