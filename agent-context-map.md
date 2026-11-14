@@ -4,6 +4,16 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Current Apple gate:** SSH restored and Mac checkout fast-forwarded. Current
+  candidate passes the full MLX check, 642 trained traces/2,500 decisions and
+  four tokenizer probes; its initial Apple matrix is **69/78** and fixed
+  all-workload control **72/78**. Batch-4 block p95 (two comparators),
+  TinyStories encode/load p95 and GPT-2 RSS/HWM remain pending. Chrome appeared
+  during control; activity and limitations are recorded. Source inventories
+  and the separately omitted core trait are bound. Do not rerun unchanged;
+  investigate substantive fixes, with Linux first.
+  [Apple evidence](docs/results/2026-11-11-phase2-optimization/fused-apple-gate-v1.md).
+
 - **Fused projection approved and integrated:** the user approved v2 with a
   request to stay aligned with upstream Python. Strict FP32, existing pins and
   tolerances remain; fresh CUDA check, 642 trained traces/2,500 decisions and
@@ -11,12 +21,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   check. The integrated codec binaries match the independently tested v2;
   Linux is **78/78** after its fixed all-workload control, reproduced from a
   clean export. Pinned upstream decoder layer ordering matches the integrated
-  model; all 24 captured projection-output traces meet existing budgets. Apple
-  is next. The original Mac Tailscale entry is offline, but an online second
-  entry presents the existing trusted Mac SSH host key. The user is currently
-  changing the Mac/Tailscale setup and asked us to wait; do not reconnect until
-  they say it is ready. The Apple benchmark omits the changed core trait file
-  from its source inventory; bind that file separately after the Mac build.
+  model; all 24 captured projection-output traces meet existing budgets. The
+  Mac/Tailscale setup was changed and SSH restored. The Apple benchmark omits
+  the changed core trait file from its source inventory; it has been separately
+  bound to the Mac build as recorded above.
   The completion checklist reflects current Linux evidence; the
   32 MiB workspace on newer GPUs is unmeasured.
   [Linux gate](docs/results/2026-11-11-phase2-optimization/fused-linux-gate-v1.md). [Integration evidence](docs/results/2026-11-11-phase2-optimization/fused-integration-v1.md),
