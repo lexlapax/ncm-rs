@@ -15,3 +15,8 @@ pins, precision, acceptance limits or goldens. The microbenchmark is not
 trained-model parity, full-model performance or an acceptance gate. Integrate
 nothing unless any benefit survives startup/cache, semantic and full-codec
 review on both platforms.
+
+Follow-up: the first diagnostic did not explicitly reject non-finite output.
+Preserve those results and run the same fixed three-process diagnostic with the
+adjacent v2 source, which adds that rejection. Do not interpret v1's reported
+zero maximum alone as proof of elementwise equality.
