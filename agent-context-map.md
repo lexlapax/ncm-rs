@@ -4,6 +4,13 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Concrete dependency review workspace:** `/tmp/ncm-tokenizers-review-v1`
+  now contains the checksum-verified 99-file crate, the one-file patch and the
+  proposed relative Cargo override/lockfile change. An offline locked tokenizer
+  check passes; full offline metadata initially lacked unneeded `r-efi` cache.
+  Production remains unchanged and the user's dependency review is pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md).
+
 - **Packed Q/K/V pool follow-up:** an offline audit of both retained archives
   shows the isolated B2 reservation first rises in reconstruction, not
   necessarily in the following block. In the fresh combined matrix, accepted

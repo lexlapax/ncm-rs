@@ -41,6 +41,20 @@ unchanged `LICENSE` SHA-256 in both directories is
 `c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`.
 This verifies the candidate copy, not a future vendored tree or a final gate.
 
+An exact proposed workspace is prepared at `/tmp/ncm-tokenizers-review-v1`.
+It was populated from the checksum-verified `.crate`, adds the 99-file package
+at `vendor/tokenizers-0.22.2`, applies the one-file patch, and uses a relative
+`[patch.crates-io]` override. Its lockfile changes only the registry source and
+checksum lines shown in the archived lockfile patch. The `REVIEW.md` SHA-256 is
+`87fea598bda8c30b3841d3d18e3c7a6aca2d1daf11b55139380e7f9250eaaa72`;
+`review-verification.json` SHA-256 is
+`40f3a992b7adf29bce53b1da4fdd2e1e698d3abbb23614a0739a2a89182320cf`.
+An offline `cargo check --locked -p ncm-tokenizers` passed in this workspace.
+The first unrestricted offline `cargo metadata` attempt stopped because the
+unneeded `r-efi` package was absent from the cache; `metadata --no-deps` and
+the targeted locked check passed. Neither check is a final performance gate.
+The production checkout and dependency source remain unchanged pending review.
+
 The proposed production path is to vendor that exact package with its license,
 apply only the reviewed patch, and explicitly update Cargo's source binding and
 lockfile. It changes dependency provenance even though the version is unchanged,
