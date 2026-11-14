@@ -13,10 +13,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   clean export. Pinned upstream decoder layer ordering matches the integrated
   model; all 24 captured projection-output traces meet existing budgets. Apple
   is next. The original Mac Tailscale entry is offline, but an online second
-  entry presents the existing trusted Mac SSH host key. Its SSH connection
-  reaches authentication; the 1Password agent refused to sign. The user was
-  asked to unlock or approve the agent. The completion checklist reflects
-  current Linux evidence; the
+  entry presents the existing trusted Mac SSH host key. The user is currently
+  changing the Mac/Tailscale setup and asked us to wait; do not reconnect until
+  they say it is ready. The Apple benchmark omits the changed core trait file
+  from its source inventory; bind that file separately after the Mac build.
+  The completion checklist reflects current Linux evidence; the
   32 MiB workspace on newer GPUs is unmeasured.
   [Linux gate](docs/results/2026-11-11-phase2-optimization/fused-linux-gate-v1.md). [Integration evidence](docs/results/2026-11-11-phase2-optimization/fused-integration-v1.md),
   [review](docs/results/2026-11-11-phase2-optimization/fused-projection-review-v1.md).
