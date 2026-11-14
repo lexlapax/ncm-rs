@@ -43,6 +43,13 @@
       "evidence": "docs/results/2026-11-11-phase2-optimization/decoder-trace-label-v1.md"
     },
     {
+      "id": "streamed-artifact-hash",
+      "status": "rejected; checked-load regression in a targeted Linux CUDA diagnostic",
+      "hypothesis": "Hash the bounded artifact reads as they occur to avoid a separate pass over owned bytes, without changing file or tensor checks.",
+      "finding": "Median of three process medians rose from 191.25 to 201.98 ms (ratio 1.0561); the twelve codec output-ID hashes matched. The patch was reverted. This is not a 78-cell acceptance gate.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/streamed-hash-v1.md"
+    },
+    {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
       "status": "pending Linux gate before Apple implementation/testing",

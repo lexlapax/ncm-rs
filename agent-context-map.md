@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Streamed artifact hashing rejected:** hashing each artifact during its bounded
+  read retained all checks but increased matched CUDA checked-load process median
+  from 191.25 to 201.98 ms (three processes each). The patch was reverted; raw
+  evidence is retained. `target/release/examples/codec_bench` reflects this
+  rejected patch and must be rebuilt before use. Linux remains 72/78; the public
+  raw-upload API decision is pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/streamed-hash-v1.md).
+
 - **Performance work resumed:** decoder trace-label elision was prototyped and
   measured on CUDA against the saved pre-change candidate in three matched
   processes each. Output-ID hashes matched but no material speedup was measured;
