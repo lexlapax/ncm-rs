@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Observer startup evidence:** a CPU-only stress probe reproduced the
+  `collector_command` failure at job 1 on attempt 54; the owned child still had
+  the kernel `PF_FORKNOEXEC` flag during the follow-up. Fake reset and subreaper
+  restoration succeeded. A vfork-based spawn alone is not an observation-ready
+  barrier. The observer remains fail-closed and the approved collection rules
+  are unchanged; launch and hardware gates remain open.
+  [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#follow-up-fork-without-exec-flag).
+
 - **Evidence ownership recheck:** bounded evidence metadata comparisons now include
   UID and GID explicitly, with a focused regression. This strengthens the existing
   same-owner reader only; mixed root/user evidence, authenticated entry and actual

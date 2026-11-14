@@ -472,6 +472,41 @@ command reads, verifies an immediate failed receipt, zero accepted samples and
 This focused pass does not resolve the retained full-check failure, establish a
 safe startup barrier, or make the diagnostic ready to run.
 
+#### Follow-up: fork-without-exec flag
+
+The later cache-disabled default check reproduced `collector_command` at job 6;
+the fake reset succeeded within the deadline and the subreaper was restored.
+The check failed one of 482 reporting tests; its log is
+`/tmp/ncm-evidence-owner-check-no-cache.log`, SHA-256
+`0f05934a28e213bf80ac917ca42e2ee5cd122eedfce25f166500d81a54469635`.
+
+A CPU-only follow-up used [this retained probe](raw/linux-observer-exec-flag-probe-v2.py)
+(SHA-256 `2fcc9085192f36b3ec4c91f8a5f4e78c1e72b6d7b810de3e1fd5073f5b5091d1`),
+which adds a failure-time read of the owned child's `/proc/<pid>/stat` flags to
+the earlier fake handoff stress fixture. Attempts 1–53 passed; attempt 54 failed
+on job 1 with `collector_command`. The follow-up still saw the collector's
+command and image, no accepted samples, and the `PF_FORKNOEXEC` flag set. Fake
+reset succeeded within the deadline and the subreaper was restored. Results:
+`/tmp/ncm-observer-exec-flag-probe-v2.json`, SHA-256
+`786bcde6a4dc8f1aa90127e005c533d03f281970384d1475901244d84b3f5abb`;
+console log `/tmp/ncm-observer-exec-flag-probe-v2.log`, SHA-256
+`7a27b63cf95ec97f387615171fe740c86000257db4cdf584ab7e43d63546d1b4`.
+The flag was sampled after the failing observation, so this corroborates the
+first-exec transition for this occurrence, not earlier failures or all future
+samples. The local kernel header defines the flag as `0x40`; a separate disposable
+fork/exec test observed it set before exec and clear afterward.
+
+The upstream Linux v7.2 [exec implementation](https://github.com/torvalds/linux/blob/v7.2/fs/exec.c)
+releases the old VM and wakes a vfork parent before installing the new address
+space; [fork.c](https://github.com/torvalds/linux/blob/v7.2/kernel/fork.c)
+shows the corresponding wakeup. Thus merely replacing the spawn API with a
+vfork-based implementation does not establish an observation-ready barrier.
+The running kernel is `7.2.14-arch1-1`; the upstream tag is not proof of its
+exact downstream source. This investigation changes no collection, timing,
+acceptance or failure rules. In particular, a proposed flag-aware rule would be
+a behavior change requiring separate design and authorization; no mismatch is
+currently discarded on that basis.
+
 
 ### Dedicated-worker privilege drop
 
