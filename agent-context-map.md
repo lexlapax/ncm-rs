@@ -4,9 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Block trace markers prepared:** a diagnostic-only patch and C signpost shim
-  target the isolated `ddde851` example; patch application and Rust formatting
-  pass locally. Mac compilation and marker alignment remain pending. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-block-signposts-plan-v1.md).
+- **Marked Metal trace:** an isolated `ddde851` diagnostic with block signposts
+  built and aligned 108 calls. One instrumented B4 slow trial had similar graph
+  time, longer synchronous evaluation and higher recorded CPU-to-GPU latency;
+  one trace does not prove the cause or gate outcome. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-block-signposts-v1.md).
 
 - **Metal trace feasibility:** one bounded instrumented run produced 9,171 GPU
   interval records, but no slow B4 block trial; existing durations cannot align
