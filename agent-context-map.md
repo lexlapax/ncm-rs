@@ -1681,6 +1681,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   All 21 offline reference-tool tests and the final default publication check pass.
   Plan, tracker, extension contract, root README, testing/architecture status and
   results index now consistently record completion without a generator/release claim.
-- **Next: await the next task; Phase 3 is unstarted, not blocked by Phase 2.**
-  Preserve historical worktrees, goldens and `.pi/`. No service, unrelated process,
-  clock/power policy or global tooling was changed for the final measurements.
+- **Historical handoff:** the earlier Phase 2 scope was closed at this point;
+  the subsequent approved optimization work and its current open Apple gate are
+  recorded at the top of this map. Preserve historical worktrees, goldens and
+  `.pi/`. No service, unrelated process, clock/power policy or global tooling was
+  changed for those measurements.
