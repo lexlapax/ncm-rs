@@ -2,9 +2,10 @@
 
 **Latest integrated candidate:** user-approved strict-FP32 projection
 `928894b` passes the [Linux controlled gate](fused-linux-gate-v1.md) **78/78**,
-full CUDA checks and fresh trained parity. Apple validation is pending: two SSH
-attempts timed out, and the user has been asked to restore access. The previous
-candidate histories below remain retained.
+full CUDA checks and fresh trained parity. Apple validation is pending: the
+online Mac peer matches the trusted host key, but the local SSH agent refused
+to sign; the user has been asked to unlock it. The previous candidate histories
+below remain retained.
 
 **Latest TinyStories candidate:** `fb6c75e` improves Linux diagnostic decode,
 but fresh [Linux controls](tinystories-linux-gates-v1.md) remain 71/78 and
@@ -94,7 +95,7 @@ Contract: [approved five-step plan](../../PHASE2-OPTIMIZATION-REVIEW.md),
 | Complete clock preparation admission | [Path-count audit and approved increase](linux-clock-preparation-admission.md#approved-count-increase): 303 planned unique paths; clock-only limit raised to 512, with 261/303 admitted and 513 rejected in synthetic declaration tests | Fresh preparation must enforce the same limit and establish complete current identities/inventory; entry and hardware permission/restoration gates remain pending. Byte and all collection/telemetry/deadline/acceptance limits unchanged |
 | Early clock declaration admission | [Shared pure guard](linux-clock-preparation-admission.md#early-fail-closed-admission-follow-up): retained historical red test reached a callback with 257 files; current limit is 512. File/byte/size/alias bounds and identity conflicts reject before filesystem inspection, directories or callback; 17 focused tests pass at the new boundary | Does not authenticate or prove a complete/fresh inventory, reserve capacity for unknown maps or authorize launch. Frozen rehash remains last; complete preparation/entry and hardware gates remain pending |
 | Clock coordinator local admission | [Local-subreaper guard](linux-clock-diagnostic-v3-proposal.md#coordinator-local-subreaper-admission-follow-up): real process-local flag test retains red lifecycle-sentinel failure; query failure and unsupported platforms fail closed before outputs/branches. Two new tests; 32 focused/397 reporting tests pass. First full run failed separate handoff fixture: worker exit 1, fake reset/cleanup complete; cause unestablished, bounded diagnostics expanded. A fixed six-fresh-process CPU-only reproduction at `1ec6aaa` retained all 108 jobs/six successful fake resets and passed an independent 566-file audit; all attempts passed, so the historical failure remains unreproduced/unresolved, not repaired | Not ancestor inspection or proof of safe restoration-aware topology, frozen role binding or launch readiness. Full preparation/entry, file-count approval, policy facts and live gates still pending; no changed limits or acceptance closure |
-| Step 3: Apple availability/state, reviewed pushed commits, Linux-first ordering | Linux gate passes first. The Mac previously had a clean checkout and separate `3307dff` baseline; current SSH attempts time out | Restore SSH, recheck checkout and competing activity, then fast-forward only reviewed pushed commits |
+| Step 3: Apple availability/state, reviewed pushed commits, Linux-first ordering | Linux gate passes first. The Mac previously had a clean checkout and separate `3307dff` baseline; its online peer now matches the trusted host key, but SSH-agent signing is refused | Restore agent signing, recheck checkout and competing activity, then fast-forward only reviewed pushed commits |
 | Step 3: Apple `tools/check.sh --mlx`, fresh trained qualification and cleared-environment tokenizer probes | [Candidate `884d8f6`](blocknorm-apple-gate-v1.md) passes the full Mac check, 18 real-Metal operator cases, 642 trained traces / 2,500 decisions and four tokenizer profiles | Requalify after any reviewed shared tokenizer changes |
 | Step 3: Apple 78-cell matrix against accepted Rust and qualified Python MLX | Prior candidate `b0a0058` remained [75/78 after quiet control](conv-bias-apple-quiet-gate-v1.md); this is not acceptance for `928894b` | Qualify and measure current candidate; final Apple 78/78 without widening limits |
 | Step 4: median/p95/throughput, comparable host RSS/HWM, first load/execution, all codec batches/scopes and tokenizer profiles | Full raw baseline/lower-risk/prepared-state reports retain these fields | Final summaries on both platforms; allocator counters are not host RSS substitutes |

@@ -12,10 +12,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   Linux is **78/78** after its fixed all-workload control, reproduced from a
   clean export. Pinned upstream decoder layer ordering matches the integrated
   model; all 24 captured projection-output traces meet existing budgets. Apple
-  is next; SSH times out and the user was asked to restore access. At
-  2026-11-14 18:27 UTC the local Tailscale backend was running while its Mac
-  peer reported offline; the SSH hostname resolved through Tailscale. The
-  completion checklist now reflects current Linux evidence; the
+  is next. The original Mac Tailscale entry is offline, but an online second
+  entry presents the existing trusted Mac SSH host key. Its SSH connection
+  reaches authentication; the 1Password agent refused to sign. The user was
+  asked to unlock or approve the agent. The completion checklist reflects
+  current Linux evidence; the
   32 MiB workspace on newer GPUs is unmeasured.
   [Linux gate](docs/results/2026-11-11-phase2-optimization/fused-linux-gate-v1.md). [Integration evidence](docs/results/2026-11-11-phase2-optimization/fused-integration-v1.md),
   [review](docs/results/2026-11-11-phase2-optimization/fused-projection-review-v1.md).

@@ -37,9 +37,10 @@ exports. The benchmark's existing inventory omits the new backend module and
 trait file; a separate manifest verifies both against that export, the compiler
 depfile lists both, and the gate binary matches the isolated clean build.
 
-Apple validation is next. SSH attempts timed out. At 2026-11-14 18:27 UTC,
-the local Tailscale backend reported running, its Mac peer reported offline,
-and the SSH hostname resolved through Tailscale. This does not establish why
-the peer is offline. The user has been asked to restore access; Mac availability
-and competing work must be rechecked before pulling reviewed commits and
-running MLX. The Linux pass does not establish an Apple pass or complete Phase 2.
+Apple validation is next. The original Mac Tailscale entry went offline and
+SSH to it timed out. A second online Mac-named entry presents the existing
+trusted Mac SSH host key and reaches SSH authentication, but the local
+1Password agent refused to sign. The user has been asked to unlock or approve
+the agent. Mac checkout state and competing work must be rechecked before
+pulling reviewed commits and running MLX. The Linux pass does not establish an
+Apple pass or complete Phase 2.
