@@ -55,6 +55,20 @@ fn batched_transpose(b: &CandleBackend) {
     assert!(b.conv1d(&x, &w, &bias, 1, usize::MAX, true).is_err());
     let y = b.conv1d(&x, &w, &bias, 2, 0, true).unwrap();
     assert_eq!(b.read_f32(&y).unwrap(), [1., 2., 1., 2., 3., 4., 3., 4.]);
+    // Bias must be added in logical BLC order even when convolution returns
+    // a transposed, noncontiguous view with multiple batches and channels.
+    let x = b
+        .upload_f32(&[1., 2., 3., 4., 5., 6., 7., 8.], &[2, 2, 2])
+        .unwrap();
+    let w = b.upload_f32(&[1., 0., 0., 2.], &[2, 2, 1]).unwrap();
+    let bias = b.upload_f32(&[10., -3.], &[2]).unwrap();
+    for transposed in [false, true] {
+        let y = b.conv1d(&x, &w, &bias, 1, 0, transposed).unwrap();
+        assert_eq!(
+            b.read_f32(&y).unwrap(),
+            [11., 1., 13., 5., 15., 9., 17., 13.]
+        );
+    }
     for length in [1, 4] {
         let values: Vec<f32> = (0..2 * length * 16).map(|x| x as f32).collect();
         let x = b.upload_f32(&values, &[2, length, 16]).unwrap();

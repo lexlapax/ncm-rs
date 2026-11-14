@@ -289,7 +289,7 @@ impl CodecBackend for CandleBackend {
             } else {
                 x.conv1d(weight, padding, stride, 1, 1)?
             };
-            value.transpose(1, 2)?.contiguous()?.broadcast_add(bias)
+            value.transpose(1, 2)?.broadcast_add(bias)
         })
     }
     fn area1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {

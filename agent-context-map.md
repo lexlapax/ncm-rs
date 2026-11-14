@@ -4,6 +4,16 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **CUDA convolution candidate:** convolution bias addition now reads the
+  transposed result directly, eliminating an intermediate contiguous copy.
+  Focused CPU/real-CUDA tests, 642 trained traces and 2,500 decisions pass;
+  full `tools/check.sh --cuda` passes with private umask `077` after a
+  formatting failure and three clock-fixture failures under umask `022`.
+  Three-process diagnostics show decode medians 4.8–5.3% lower and encode
+  medians 3.2–3.8% lower, with matching IDs/logits; this is not acceptance.
+  Run a fresh full Linux gate, then Apple only after Linux passes.
+  [Candidate and evidence](docs/results/2026-11-11-phase2-optimization/conv-bias-cuda-v1.md).
+
 - **Qwen decoder dependency patch approved:** the user approved the isolated
   one-buffer byte-level decoder for integration. It preserves tested token
   fallback/invalid UTF-8 behavior and passes
