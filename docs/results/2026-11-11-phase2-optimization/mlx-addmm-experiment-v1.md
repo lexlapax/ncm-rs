@@ -6,7 +6,8 @@ MLX matrix-multiply-and-add primitive, preserving the upstream matrix
 projection plus bias calculation. Other bias/weight shapes retain the existing
 composition. Floating-point evaluation may differ, and neither correctness on
 Metal nor a reduction in p95 variability has yet been established. A direct
-comparison test is included for real Metal.
+comparison test is included for real Metal, including vector inputs, broadcast
+fallback and invalid width/dtype. None of these Metal cases has run yet.
 
 The isolated candidate passes `tools/check.sh --cuda` with `umask 077`,
 `RUSTC_WRAPPER=` and an isolated target, including 18 real-CUDA operator

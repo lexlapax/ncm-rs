@@ -145,4 +145,32 @@ fn fused_projection_bias_matches_composition() {
     {
         assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs());
     }
+
+    // The fallback accepts the same broadcast shapes as the original add.
+    let broadcast_bias = b.upload_f32(&[1.; 13], &[1, 1, 13]).unwrap();
+    let fallback = b.project_bias(&x, &w, &broadcast_bias).unwrap();
+    let expected = b.add(&b.project(&x, &w).unwrap(), &broadcast_bias).unwrap();
+    assert_eq!(b.shape(&fallback), b.shape(&expected));
+    assert_eq!(
+        b.read_f32(&fallback).unwrap(),
+        b.read_f32(&expected).unwrap()
+    );
+
+    let vector = b.upload_f32(&[0.25; 17], &[17]).unwrap();
+    let vector_fused = b.project_bias(&vector, &w, &bias).unwrap();
+    let vector_expected = b.add(&b.project(&vector, &w).unwrap(), &bias).unwrap();
+    assert_eq!(b.shape(&vector_fused), [13]);
+    for (a, e) in b
+        .read_f32(&vector_fused)
+        .unwrap()
+        .iter()
+        .zip(b.read_f32(&vector_expected).unwrap())
+    {
+        assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs());
+    }
+
+    let wrong_width = b.upload_f32(&[0.; 16], &[16]).unwrap();
+    let wrong_type = b.upload_indices(&[0; 13], &[13]).unwrap();
+    assert!(b.project_bias(&wrong_width, &w, &bias).is_err());
+    assert!(b.project_bias(&x, &w, &wrong_type).is_err());
 }

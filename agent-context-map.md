@@ -8,7 +8,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   passed isolated Linux CUDA checks and five Linux binaries match the qualified
   78/78 candidate. It has not run on Metal and is not accepted for main. The
   user is rebooting the Mac; wait for readiness before reconnecting. Test Metal
-  correctness and a bounded diagnostic after it returns. [Experiment](docs/results/2026-11-11-phase2-optimization/mlx-addmm-experiment-v1.md).
+  correctness and a bounded diagnostic after it returns. The pending direct
+  test now covers vector inputs, broadcast fallback and invalid width/dtype.
+  These Metal cases are not yet run. [Experiment](docs/results/2026-11-11-phase2-optimization/mlx-addmm-experiment-v1.md).
 
 - **Latest Apple gate:** the affine candidate `2850331` reached **77/78**
   initially and **75/78** after its fixed all-workload control. Batch-4 block
