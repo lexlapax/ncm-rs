@@ -28,8 +28,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 - **Completion checklist reconciled:** current Linux and Apple checks, gate
   outcomes, lifecycle evidence, source reproduction, and targeted MLX
-  normalization/attention disposition replace stale historical rows. Earlier
-  current Apple codec reports also show zero active MLX bytes and unchanged
+  normalization/attention disposition replace stale historical rows. Current
+  Apple codec reports also show zero active MLX bytes and unchanged
   cache at the first and post-trial drop across 24 processes; long-lived
   inference cache behavior remains unproven. [Checklist](docs/results/2026-11-11-phase2-optimization/completion-audit.md).
 
