@@ -18,6 +18,16 @@ PR_SET_NO_NEW_PRIVS = 38
 PR_GET_NO_NEW_PRIVS = 39
 DROP_FAILURE_EXIT = 125
 MAX_LINUX_ID = 2 ** 32 - 2
+LINUX_CAPABILITY_VERSION_3 = 0x20080522
+
+
+class _CapabilityHeader(ctypes.Structure):
+    _fields_ = [('version', ctypes.c_uint32), ('pid', ctypes.c_int)]
+
+
+class _CapabilityData(ctypes.Structure):
+    _fields_ = [('effective', ctypes.c_uint32), ('permitted', ctypes.c_uint32),
+                ('inheritable', ctypes.c_uint32)]
 
 
 def _no_extra_fds():
@@ -45,11 +55,28 @@ def _prctl(option, value):
     return result
 
 
+def _clear_capabilities():
+    """Drop all capability sets on this thread; never request an added bit.
+
+    Linux capability ABI v3 uses two 32-bit words for each capability set.
+    Clearing permitted and inheritable also lowers corresponding ambient bits;
+    the later procfs verification independently requires all four sets empty.
+    """
+    header = _CapabilityHeader(LINUX_CAPABILITY_VERSION_3, 0)
+    data = (_CapabilityData * 2)()  # ctypes zero-initializes all six fields.
+    library = ctypes.CDLL(None, use_errno=True)
+    fn = library.capset
+    fn.argtypes = (ctypes.POINTER(_CapabilityHeader), ctypes.POINTER(_CapabilityData))
+    fn.restype = ctypes.c_int
+    if fn(ctypes.byref(header), data) != 0:
+        raise OSError(ctypes.get_errno(), 'capset failed')
+
+
 def drop_and_verify(uid, gid, groups):
     """Permanently drop root in this process; caller must already be trusted.
 
-    Sets no_new_privs, supplementary groups, all GIDs and all UIDs in that order,
-    then verifies the resulting credentials. The no_new_privs bit is inherited
+    Sets no_new_privs, supplementary groups, all GIDs and all UIDs, then clears
+    capability sets and verifies the resulting credentials. The no_new_privs bit is inherited
     by future children. Any failure after the first change is fatal to this
     dedicated process, since privileges may already have changed. The supplied
     identity is not authenticated here and successful sampling does not prove
@@ -73,6 +100,7 @@ def drop_and_verify(uid, gid, groups):
         os.setgroups(target_groups)
         os.setresgid(gid, gid, gid)
         os.setresuid(uid, uid, uid)
+        _clear_capabilities()
         result = verify(uid, gid, target_groups)
         if _prctl(PR_GET_NO_NEW_PRIVS, 0) != 1:
             raise ValueError('no_new_privs not retained')

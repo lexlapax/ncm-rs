@@ -25,6 +25,7 @@ class DropTests(unittest.TestCase):
         self.fake_sys = SimpleNamespace(platform='linux', flags=SimpleNamespace(no_site=1))
         self.patches = [patch.object(drop, 'os', self.fake_os), patch.object(drop, 'sys', self.fake_sys),
                         patch.object(drop, '_no_extra_fds'),
+                        patch.object(drop, '_clear_capabilities',side_effect=lambda:self.calls.append(('capset', ()))),
                         patch.object(drop, 'verify', side_effect=lambda *args: self.calls.append(('verify', args)) or {
                             'sampled_unprivileged_identity_verified':True, 'launch_ready':False}),
                         patch.object(drop, '_prctl', side_effect=self.prctl)]
@@ -36,7 +37,7 @@ class DropTests(unittest.TestCase):
 
     def test_drop_order_and_untrusted_readiness(self):
         result = drop.drop_and_verify(1000, 1001, [1002, 1002, 1003])
-        self.assertEqual([v[0] for v in self.calls], ['prctl', 'groups', 'gid', 'uid', 'verify', 'prctl'])
+        self.assertEqual([v[0] for v in self.calls], ['prctl', 'groups', 'gid', 'uid', 'capset', 'verify', 'prctl'])
         self.assertEqual(self.calls[1][1], ((1002, 1002, 1003),))
         self.assertEqual(self.calls[2][1], (1001, 1001, 1001))
         self.assertEqual(self.calls[3][1], (1000, 1000, 1000))
@@ -51,6 +52,13 @@ class DropTests(unittest.TestCase):
             drop.drop_and_verify(1000, 1000, [])
         self.assertEqual([v[0] for v in self.calls], ['prctl', 'groups', 'exit'])
         self.assertEqual(self.calls[-1][1], (125,))
+        drop.verify.assert_not_called()
+
+    def test_capability_clear_failure_is_fatal_before_verification(self):
+        drop._clear_capabilities.side_effect=OSError('capset failed')
+        with self.assertRaisesRegex(RuntimeError, 'fatal process exit'):
+            drop.drop_and_verify(1000,1000,[])
+        self.assertEqual([row[0] for row in self.calls], ['prctl','groups','gid','uid','exit'])
         drop.verify.assert_not_called()
 
     def test_failed_verification_and_no_new_privs_are_fatal(self):
@@ -90,6 +98,37 @@ class DescriptorTests(unittest.TestCase):
                    "import clock_drop_privileges as d; "
                    "assert d._prctl(d.PR_SET_NO_NEW_PRIVS,1)==0; "
                    "assert d._prctl(d.PR_GET_NO_NEW_PRIVS,0)==1")
+        result = subprocess.run([sys.executable, '-S', '-c', program], capture_output=True,
+                                text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_capability_abi_requests_only_zero_bits(self):
+        seen = []
+        class Capset:
+            def __call__(self, header, data):
+                seen.append((header._obj.version, header._obj.pid,
+                             [(row.effective,row.permitted,row.inheritable) for row in data]))
+                return 0
+        fn = Capset()
+        with patch.object(drop.ctypes, 'CDLL', return_value=SimpleNamespace(capset=fn)):
+            drop._clear_capabilities()
+        self.assertEqual(seen, [(0x20080522,0,[(0,0,0),(0,0,0)])])
+
+    def test_capability_syscall_error_is_not_ignored(self):
+        class Capset:
+            def __call__(self, header, data): return -1
+        with patch.object(drop.ctypes, 'CDLL', return_value=SimpleNamespace(capset=Capset())), \
+             patch.object(drop.ctypes, 'get_errno', return_value=1), self.assertRaises(OSError) as raised:
+            drop._clear_capabilities()
+        self.assertEqual(raised.exception.errno, 1)
+
+    def test_real_capset_clears_disposable_child_capabilities(self):
+        source = str(Path(__file__).resolve().parent)
+        program = (f"import sys; sys.path.insert(0,{source!r}); "
+                   "import clock_drop_privileges as d; "
+                   "import clock_unprivileged_identity as i; "
+                   "d._clear_capabilities(); "
+                   "assert not any(i._credentials(open('/proc/self/status','rb').read())[3])")
         result = subprocess.run([sys.executable, '-S', '-c', program], capture_output=True,
                                 text=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)

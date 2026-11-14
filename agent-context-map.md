@@ -4,6 +4,17 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Inherited capability fix:** the user-run CPU-only root test identified
+  nonzero inheritable capabilities as the only failed identity comparison.
+  `clock_drop_privileges.py` now clears all thread capability sets with Linux
+  `capset` after the UID/GID switch and still independently verifies all four
+  sets empty. Thirty-six focused tests and 481 default reporting tests pass,
+  including ABI/error tests and a real disposable ordinary-user `capset` call.
+  The user-run revised fake root test passed: the normal-user drop and empty capabilities survived fake exec, root
+  ID regain and root-file access were denied, and the child was reaped. This is
+  user-reported CPU-only evidence, not privileged handoff or hardware restoration.
+  [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#clearing-inherited-capabilities).
+
 - **Identity-aware finalizer (schema 2):** the clock finalizer now rejects old
   schema-1 inputs and requires a declared worker identity plus the separate
   identity record. It validates receipt/PID/timing consistency, record digest and
@@ -35,21 +46,23 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   drop and sequence. Default checks passed 464 reporting tests, begun before the
   final focused test additions. Target identity authentication, a root-owned launch snapshot,
   user-owned outputs, authenticated identity declarations, role-entry integration and
-  a real root transition remain pending. The user-run CPU-only sudo test exited
+  an integrated root transition remain pending. The user-run CPU-only sudo test exited
   125 during verification. A stage probe showed the prctl, setgroups, setresgid
-  and setresuid calls succeeded, then identity/capability verification failed;
-  a more detailed CPU-only diagnostic is pending.
+  and setresuid calls succeeded. A field-level probe identified nonzero
+  inheritable capabilities. The revised fake root drop/exec test passed; live
+  handoff and hardware restoration remain unproved.
   [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#worker-privilege-drop-wiring).
 
 - **Dedicated-worker privilege drop:** `clock_drop_privileges.py` provides an
   import-only Linux `-S` child transition: reject unexpected descriptors, set
-  `no_new_privs`, switch supplementary groups and all GIDs/UIDs, and sample
-  credentials. Any post-transition error terminates that child. Thirteen combined
+  `no_new_privs`, switch supplementary groups and all GIDs/UIDs, clear thread
+  capability sets, and sample credentials. Any post-transition error terminates that child. Thirteen combined
   focused tests pass, including mocked failures and a real extra-descriptor check.
   Default checks passed 459 reporting tests (started before the extra-descriptor
   test was added). The checksum-bound CPU-only sudo test exited 125 during the
   transition; stage diagnostics identify the failure at identity/capability
-  verification, with a more detailed probe pending. This changes
+  verification; the field-level probe identified inherited capabilities. The
+  revised fake root drop/exec test passed. This changes
   the candidate worker's inherited security state and is not wired to a launch
   entry; trusted identity/source, restoration, handoff, performance effects and
   hardware gates remain unproved. [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#dedicated-worker-privilege-drop).

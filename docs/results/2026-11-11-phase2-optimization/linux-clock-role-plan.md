@@ -479,7 +479,8 @@ safe startup barrier, or make the diagnostic ready to run.
 an already authenticated, disposable, single-threaded Linux `-S` worker. It
 requires a fully root real/effective/saved UID/GID, a supplied non-root target,
 and no extra open descriptors; sets `no_new_privs`, supplementary groups, all
-GIDs, then all UIDs; verifies the sampled identity and active capabilities; and
+GIDs, then all UIDs; clears thread capability sets; verifies the sampled identity
+and active capabilities; and
 checks `no_new_privs`. Any exception after starting the transition terminates
 that child with exit 125, rather than returning from a partial drop. The target
 identity, trusted source, standard descriptors and process ancestry must be
@@ -514,7 +515,12 @@ capability mismatch. This does not identify which field differed or prove a safe
 transition. A third checksum-bound CPU-only diagnostic
 `/tmp/ncm-root-drop-diagnostic-v3.py`, SHA-256
 `42805b28418164a4bae44de647cb79ef32ee5e1331cdb450fff3876b7b1bfa8c`, reports
-only per-field match/zero booleans; its user-run result is pending. A separate
+only per-field match/zero booleans. The user reported that both procfs and API
+UID/GID/group comparisons matched, effective/permitted/ambient sets were empty,
+and the inheritable set was nonzero; the child exited 125. A transcription of
+the user output `/tmp/ncm-root-drop-diagnostic-v3-user-output.json` has SHA-256
+`e0754424012ee4d8531d3930950b67257120801c0ac41f7a1341974691b01a41`;
+it is user-reported, not a root-signed receipt. A separate
 disposable ordinary-user subprocess set
 and read back `no_new_privs` using the actual helper FFI successfully; this does
 not exercise the root-to-user transition. Full integration, process
@@ -548,7 +554,8 @@ The prior intermittent observer failure remains unexplained. The wrapper integra
 establish a real root-to-user transition, trusted bootstrap, safe root/user file
 ownership, actual process ancestry, benchmark comparability under `no_new_privs`,
 parent-loss restoration, or launch readiness. The user-run fake root transition
-exited 125 in credential verification; detailed diagnostics are pending. The existing entry and both hardware gates
+exited 125 because inheritable capabilities remained nonzero; the revised fake
+root drop/exec test passed. The existing entry and both hardware gates
 remain unfinished; no diagnostic deadlines, telemetry or acceptance thresholds
 were changed.
 
@@ -579,8 +586,8 @@ and a later fake sequence clock. Tampering, mode/ownership, conflicting output,
 identity mismatch, `no_new_privs`, failed receipt and timing cases reject. An
 initial synthetic validator fixture used fractional nanoseconds and failed the
 existing integer-clock guard; it was corrected to integer clocks and the focused
-suite passed. The user-run real root-to-user fake test exited 125 at credential verification; detailed diagnostics
-remain pending. None of these results proves privileged handoff, root/user output ownership, hardware
+suite passed. The user-run real root-to-user fake test exited 125 with nonzero inheritable capabilities; the revised fake root drop/exec
+test passed. None of these results proves privileged handoff, root/user output ownership, hardware
 restoration or Linux/Apple phase gates.
 
 The full-check run `/tmp/ncm-worker-identity-evidence-check-v2.log` was
@@ -638,3 +645,45 @@ prior intermittent observer failure and failed root drop remain unexplained.
 This composition remains import-only; a trusted entry, real root/user handoff,
 producer authentication, GPU policy restoration and hardware validation remain
 outstanding. The real fake privilege drop has failed and is under diagnosis.
+
+
+### Clearing inherited capabilities
+
+The user's field-level fake root test identified the failing check: after the
+UID/GID transition, the inheritable capability set remained nonzero while UID,
+GID, groups, effective, permitted and ambient comparisons all matched. The
+previous helper correctly exited 125 and did not start a workload.
+
+`clock_drop_privileges.py` now calls Linux `capset` ABI version 3 with two
+zero-initialized capability words after switching UID/GID and before its existing
+verification. It requests no capability bits and retains the post-drop check
+that inheritable, permitted, effective and ambient sets are empty. Any syscall or
+verification error still terminates the disposable child. Linux documents that
+capability sets can be reduced with `capset` and that lowering inheritable or
+permitted bits also lowers corresponding ambient bits; see [capabilities(7)](https://man7.org/linux/man-pages/man7/capabilities.7.html) and
+[capget(2)](https://man7.org/linux/man-pages/man2/capset.2.html). The local Linux header
+confirms the version-3 structure and two-word layout. This changes the candidate
+worker process's inherited capability state, not system-wide settings; it is not
+yet wired to a live launch or proven compatible with GPU workloads.
+
+Thirty-six focused worker/drop/identity/evidence tests pass. These include
+zero-bit ABI layout, mocked `capset` failure and fatal exit, ordering, and an
+actual successful `capset` in a disposable ordinary-user child. That child
+started with an empty inheritable set, so it does not prove removal of a nonzero
+set. The full `umask 077 && CARGO_BUILD_JOBS=4 ./tools/check.sh` passed 481
+reporting tests; `/tmp/ncm-worker-capability-clear-check-v1.log` SHA-256 is
+`5e17a0214daabae2e083849e566880a67ee4a90acabae8bd3a98a4ad440f5dd2`.
+The revised CPU-only user-run root test
+`/tmp/ncm-root-drop-diagnostic-v4.py`, SHA-256
+`84264cb42e931ac8f89a4be99c673b7c13eebc941096a558f4c11138d7659e1b`, checks
+exact source hashes and tests a fake fork/drop/exec with stage diagnostics. The
+user reported success: root supervision, target UID/GID 1000, successful capset
+and verification, denial of root UID/GID regain and root-private-file access,
+zero capabilities and `no_new_privs` after fake exec, and the child reaped. A
+transcription of that output is retained at
+`/tmp/ncm-root-drop-diagnostic-v4-user-output.json`, SHA-256
+`e7360c16e2b1a0ccf0c4134b57eb9ee5f1b1e0c9b358edd508d18cb159197ba1`.
+This is user-reported output, not a root-signed receipt. It does not establish
+privileged coordinator wiring, parent-loss cleanup, real GPU policy restoration,
+workload behavior or acceptance. No GPU, real policy command or phase acceptance
+test ran.
