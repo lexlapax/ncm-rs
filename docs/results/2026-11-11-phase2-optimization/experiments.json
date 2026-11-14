@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "status": "in progress; provisional Linux results do not close Phase 2",
+  "status": "in progress; current Linux initial/control 78/78, Apple initial 78/78 and fixed control 76/78; Phase 2 remains open",
   "baseline": "3307dff (production behavior 083c1e5)",
   "evidence": "docs/results/2026-11-11-phase2-low-risk/README.md",
   "experiments": [
     {
       "id": "prepared-state",
       "hypothesis": "Avoid repeated positional gathers, codebook norms, resampling metadata and hot-path name construction with bounded model-owned state.",
-      "status": "Linux correctness and full-model lifetime verified; final performance/Apple pending; further hot-name/trace plumbing deferred",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending; further hot-name/trace plumbing deferred",
       "followup_evidence": "docs/results/2026-11-11-phase2-linux-controls/README.md",
       "followup_finding": "Three native processes each verify ten complete model drops and 144 requests, stable prepared state of 25680 bytes and zero live pool usage after drop. Three GDB captures show 168 direct model formatter calls/7992 requested allocator bytes per reconstruction; no isolated latency gain for replacing them is established. Controlled Linux audit remains 72/78.",
       "evidence": "docs/results/2026-11-11-phase2-prepared-state/README.md",
@@ -17,21 +17,21 @@
     {
       "id": "hf-id-only",
       "hypothesis": "Use pinned encode_fast because the public wrapper returns IDs only.",
-      "status": "provisional Linux candidate; final controls and Apple pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
       "finding": "BERT encode removes 1344 Rust allocation requests per 89-string trial (21333 to 19989). GPT-2/Qwen allocation counts unchanged. Timing differences are small; no established speedup claim.",
       "verification": "New normalization/special/padding/truncation test; real tokenizer goldens/rejections; three-process isolated comparison and allocation captures."
     },
     {
       "id": "tiny-in-place-merges",
       "hypothesis": "Stable in-place compaction removes the new Vec per merge round without changing ranked all-occurrence merging.",
-      "status": "provisional Linux candidate; final controls and Apple pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
       "finding": "TinyStories encode allocations fall 6861 to 6602 and requested allocated bytes 353564 to 349368 per 89-string trial. No material latency gain established.",
       "verification": "2047 exhaustive binary strings and three long overlapping cases versus rebuilding reference; pinned Unicode/special/output/rejection cases; separate before/after allocation and timing evidence."
     },
     {
       "id": "reconstruction-latent-reuse",
       "hypothesis": "Untraced reconstruction can reuse encode's quantized latent and immutable cumulative snapshots instead of rebuilding them from codes.",
-      "status": "provisional Linux candidate; final uncertainty controls and Apple pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
       "finding": "Matched B1/B2/B4 median ms 3.0003/4.0104/5.1257 to 2.2853/2.6712/3.3667; whole-profile kernels 1312 to 918. Arbitrary-code decode and all trace observations remain intact.",
       "verification": "Full CUDA checks; 642 trained traces/2500 decisions; bit-exact untraced logits/IDs and all snapshots versus traced route after subsequent decode; full three-way matrix, fresh lifecycle and CUPTI."
     },
@@ -51,14 +51,14 @@
     },
     {
       "id": "grouped-finite-scan",
-      "status": "provisional Linux CUDA candidate; controlled Linux gate 76/78; reporting failure and Apple gate pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
       "hypothesis": "Scan all FP32 exponent bits in small groups without aligned loads, preserving complete preflight and rejection semantics.",
       "finding": "On the real tensor bytes, one CPU microbenchmark measured 4.359 to 2.995 ms. A three-process matched CUDA diagnostic measured checked-load median of process medians 192.200 to 189.226 ms; all twelve output-ID hashes matched. CUDA trained qualification passed 642 traces and 2500 decisions. Resource and acceptance qualification remain pending.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/finite-scan-v1.md"
     },
     {
       "id": "bert-wordpiece-capacity",
-      "status": "provisional Linux candidate; fresh cross-platform acceptance pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
       "hypothesis": "Reserve the authenticated BERT profile's bounded WordPiece vocabulary capacity while retaining the pinned model and pipeline.",
       "finding": "Three matched processes per binary: median checked load 3.9094 to 2.4690 ms. One allocator capture: requested bytes 7776931 to 5613868; encode/decode hashes and all four real-asset profile probes passed.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/bert-wordpiece-v1.md"
@@ -72,7 +72,7 @@
     },
     {
       "id": "packed-qkv-layout",
-      "status": "provisional Linux CUDA candidate; combined Linux gate 77/78, Apple pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
       "hypothesis": "Convert Q/K/V into one packed layout before slicing, reducing repeated CUDA layout materialization without changing attention arithmetic.",
       "finding": "Three matched processes per binary: B1/B2/B4 block median ratios 0.8273/0.8895/0.9093; trained qualification passes 642 traces/2500 decisions, with identical native trace hash. Block peak used CUDA pool grows by 182272/364544/729088 bytes, and benchmark B2 reserved peak rises 64 to 96 MiB. One full-model lifetime capture returns live pool use to zero after all ten drops.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/packed-qkv-v1.md"
@@ -86,9 +86,9 @@
     },
     {
       "id": "qwen-bpe-builder-reserve-poc",
-      "status": "user-approved vendored integration; Linux gate 78/78; Apple gate pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending; vendored patch user-approved",
       "hypothesis": "Reserve the exact combined merge-token string capacity in the pinned BPE builder, avoiding growth reallocations without changing token semantics.",
-      "finding": "Isolated proof of concept: three matched Qwen processes per binary, median checked load 66.101 to 63.420 ms; one Rust allocator capture, reallocations 60376 to 128. The approved pinned vendored integration passes 19 tokenizer tests and all four real-asset profile probes; Linux controlled audit passes 78/78; Apple gate pending.",
+      "finding": "Isolated proof of concept: three matched Qwen processes per binary, median checked load 66.101 to 63.420 ms; one Rust allocator capture, reallocations 60376 to 128. At that historical checkpoint, the approved vendored integration passed 19 tokenizer tests and four real-asset profile probes; its Linux control was 78/78 and Apple was pending.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md"
     },
     {
@@ -100,7 +100,7 @@
     },
     {
       "id": "bert-ascii-normalizer",
-      "status": "user-approved dependency patch; final gates pending",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending; vendored patch user-approved",
       "hypothesis": "Skip identity BERT normalization transformations when the current normalized text is ASCII.",
       "finding": "Three matched processes per binary: encode median ratio 0.95263 Linux and 0.96094 Mac. Full platform checks, four profile probes and exact ASCII alignment regression pass; these diagnostics do not close the earlier Mac p95 failure.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/bert-ascii-review-v1.md"
@@ -108,7 +108,7 @@
     {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
-      "status": "linear gather candidate passes trained parity; final resource and platform gates pending",
+      "status": "linear gather integrated; trained Metal parity passes; current Apple control 76/78, final acceptance pending; area hybrid deferred",
       "finding": "Three matched processes per binary: reconstruction ratios 0.480/0.497/0.585 at batches 1/2/4, with higher MLX peak counters and noisy resident-block timings. Expanded Metal tests and 642 trained traces / 2500 decisions pass; area reductions remain unchanged.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-linear-poc-v1.md",
       "constraints": "Preserve f64 coordinate arithmetic; full-model memory, lazy evaluation, ownership and both final gates require qualification. The area hybrid passed trained parity but is deferred because its full-model comparison was confounded and allocator peak rose."
@@ -135,15 +135,15 @@
     },
     {
       "id": "cuda-layout-selection-resampling",
-      "status": "re-profiled; defer custom kernels, alternative convolution and persistent duplicate layouts this iteration",
+      "status": "custom selection/layout kernels deferred; CUDA convolution-bias and strict-FP32 projection changes integrated; current final acceptance pending",
       "evidence": "docs/results/2026-11-11-phase2-linux-controls/README.md",
       "finding": "Unchanged candidate profile: 892 kernels, including 94 ucopy, 86 indexed gathers and 26 im2col. Residual selection/layout work exists, but there is no per-weight copy attribution, qualified replacement or measured break-even to justify new persistent layouts/kernel dependencies under unchanged FP32/tie rules.",
       "constraints": "Tie order and FP32 resampling budgets unchanged; permanent layout copies need measured memory/startup justification."
     },
     {
       "id": "mlx-fast-norm-compile-attention",
-      "status": "fast normalization and pure compilation deferred after diagnostics; attention remains conditional",
-      "finding": "Fast layer/RMS normalization passes 642 trained traces but batch-2/4 encode and batch-4 reconstruction regress 8–9% in the three-process diagnostic, despite resident-block improvements. Pure compiled layer norm saves 0.03–0.04 ms warm but first calls reach 509 ms; full-model benefit and bounded caches remain unproven.",
+      "status": "targeted decoder fast normalization and fast attention integrated; global fast norms and pure compilation deferred; current Apple control 76/78",
+      "finding": "Historical global experiment: Fast layer/RMS normalization passes 642 trained traces but batch-2/4 encode and batch-4 reconstruction regress 8–9% in the three-process diagnostic, despite resident-block improvements. Pure compiled layer norm saves 0.03–0.04 ms warm but first calls reach 509 ms; full-model benefit and bounded caches remain unproven.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-fastnorm-poc-v1.md",
       "constraints": "Explicit array inputs for compilation; bounded shapes; first-call cost and numerical parity required."
     },
@@ -160,6 +160,76 @@
       "evidence": "docs/results/2026-11-11-phase2-linux-controls/README.md",
       "finding": "Two level-zero tables add 2916352 logical bytes versus measured prepared state 25680 bytes, without a demonstrated startup/request break-even after reuse. New artifact ownership changes trust/lifetime behavior and is not authorized by the isolated upload PoC.",
       "constraints": "Precomputed tables add persistent memory/setup cost; new ownership/trust APIs cannot silently alter existing artifact behavior."
+    },
+    {
+      "id": "gpt2-bytelevel-identity",
+      "hypothesis": "Skip no-op byte-level string/alignment reconstruction only for identity byte mappings and matching original span.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending; vendored patch user-approved",
+      "finding": "Three-process diagnostics showed GPT-2 encode median ratios 0.95529 Linux and 0.93498 Mac; output/alignment regressions and four probes passed. Diagnostic results are not acceptance.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md"
+    },
+    {
+      "id": "bytelevel-one-buffer-decode",
+      "hypothesis": "Use one byte buffer while preserving byte mapping, fallback and invalid UTF-8 semantics.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending; vendored patch user-approved",
+      "finding": "Three-process diagnostic Qwen decode median ratios 0.71344 Linux and 0.69421 Mac, with matching outputs; other scopes varied.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md"
+    },
+    {
+      "id": "cuda-convolution-bias-copy",
+      "hypothesis": "Eliminate an intermediate contiguous copy before adding convolution bias.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
+      "finding": "Focused tests and 642 trained traces passed; targeted Linux diagnostic decode medians improved 4.8–5.3%; earlier independent gate histories retained.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/conv-bias-cuda-v1.md"
+    },
+    {
+      "id": "cuda-projection-bias-fusion",
+      "hypothesis": "Fuse projection and bias through cuBLASLt strict FP32 with original-path fallback.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending; user-approved",
+      "finding": "Fresh CUDA check, cross-stream regression, 642 traces and 2,500 decisions passed; Linux controlled gate 78/78. The 32 MiB workspace on newer GPUs is unmeasured.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/fused-integration-v1.md"
+    },
+    {
+      "id": "tiny-decode-reservation",
+      "hypothesis": "Reserve a bounded output byte buffer using input ID count before byte-BPE decode.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
+      "finding": "A 4 KiB cap preserves long, skipped, malformed and invalid-ID cases; Linux diagnostic decode median ratio 0.79144 with matching hashes.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/tinystories-reserve-v1.md"
+    },
+    {
+      "id": "tiny-json-hex-borrow",
+      "hypothesis": "Borrow unescaped hex while parsing the authenticated byte-BPE payload, retaining owned escaped-string handling.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
+      "finding": "Linux checked-load median ratio 0.86563 in the full control versus accepted Rust; Apple controlled ratio 0.89802 and RSS/HWM pass. The Apple block p95 control remains open.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/tiny-borrow-candidate-v1.md"
+    },
+    {
+      "id": "mlx-decoder-affine-norm",
+      "hypothesis": "Pass matching affine parameters to the pinned fast layer-normalization primitive.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
+      "finding": "Metal checks and 642 trained traces passed. Three-pair B4 block median ratio 0.9065; p95 and other scopes mixed. Subsequent gate outcomes retained.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-affine-candidate-v1.md"
+    },
+    {
+      "id": "mlx-projection-bias-addmm",
+      "hypothesis": "Use pinned MLX addmm for matching projection bias, retaining fallback.",
+      "status": "integrated in current candidate; Linux gate 78/78; Apple initial 78/78, fixed control 76/78; final acceptance pending",
+      "finding": "Metal tests and 642 trained traces passed; three B4 block median pairs improved, while sampled p95 was mixed. Latest Apple initial passes 78/78 but control is 76/78.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-addmm-candidate-v1.md"
+    },
+    {
+      "id": "mlx-rms-affine-fusion",
+      "hypothesis": "Pass matching RMS weights directly to pinned fast RMS normalization.",
+      "status": "deferred; not integrated, diagnostic does not establish target improvement",
+      "finding": "Metal checks and trained parity passed, but three-pair B4 block median ratio was 1.0055 with mixed other scopes.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-rms-affine-diagnostic-v1.md"
+    },
+    {
+      "id": "qwen-encoding-ids-move",
+      "hypothesis": "Consume the existing tokenizers Encoding ID buffer instead of cloning it.",
+      "status": "deferred; not integrated, diagnostic does not establish benefit",
+      "finding": "Four profile probes passed; three-pair Linux Qwen encode median ratio was 1.01610, a small noisy diagnostic.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-ids-copy-diagnostic-v1.md"
     }
   ]
 }

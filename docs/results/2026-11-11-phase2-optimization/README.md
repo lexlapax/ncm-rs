@@ -1,18 +1,19 @@
 # Additional Phase 2 optimization — baseline checkpoint
 
-**In progress, not final acceptance.** The approved plan is in
-[the five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates).
-This checkpoint freezes and refreshes the Linux baseline before production edits.
-No new optimization is implemented here; no new Apple run has started. The earlier
-accepted implementation remains unchanged. Phase 3 remains out of scope.
+**In progress, not final acceptance.** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
+remains open. The current candidate passes the [Linux initial and fixed control](tiny-borrow-linux-gate-v1.md)
+78/78. Its [Apple initial matrix](tiny-borrow-apple-gate-v1.md) passes 78/78,
+but its predeclared control is 76/78: batch-4 decoder-block p95 remains open
+against both comparators. Full hardware checks and trained qualifications pass;
+no gate or numerical limit is waived. [Completion audit](completion-audit.md),
+[experiment ledger](experiments.json), and [block-tail diagnostic](mlx-block-segments-v1.md)
+track the current state. Phase 3 remains out of scope.
 
-Subsequent provisional work is reported separately: [lower-risk candidates](../2026-11-11-phase2-low-risk/README.md)
-and [prepared state/raw-upload PoC](../2026-11-11-phase2-prepared-state/README.md).
-[Fixed Linux controls/resources](../2026-11-11-phase2-linux-controls/README.md)
-now retain six open comparisons (72/78). These open gates and optional API review
-do not amend this frozen baseline. The subsequent [single quiet-window diagnostic](linux-diagnostic-v2-results.md)
-completed with all outputs/telemetry verified but unresolved B1 block recurrence;
-it does not replace acceptance. See the [working completion audit](completion-audit.md).
+The following sections preserve the historical baseline checkpoint, not the
+status of the current implementation. Subsequent [lower-risk candidates](../2026-11-11-phase2-low-risk/README.md),
+[prepared-state work](../2026-11-11-phase2-prepared-state/README.md), and
+[Linux controls](../2026-11-11-phase2-linux-controls/README.md) retain their own
+historical evidence and limitations.
 
 ## Baseline identity and locked gates
 

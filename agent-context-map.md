@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Evidence reconciliation:** the current 32-entry experiment ledger and
+  completion checklist now distinguish historical runs from current Linux
+  78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
+  open; the user was asked whether to choose a separately predeclared quiet
+  gate or deeper profiling because the prior plan specified no retry. [Ledger](docs/results/2026-11-11-phase2-optimization/experiments.json), [audit](docs/results/2026-11-11-phase2-optimization/completion-audit.md).
+
 - **Block tail diagnostic:** three instrumented Metal processes produced one
   B4 trial above 1.2× its process median; both host graph construction and
   synchronous evaluation rose. Evaluation includes submission/waiting and is
