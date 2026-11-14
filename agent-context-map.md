@@ -4,13 +4,26 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Worker credential sampling:** `clock_unprivileged_identity.py` verifies a
+  supplied non-root UID/GID and exact supplementary-group multiset against
+  `/proc/self/status` and process APIs, including saved/filesystem IDs and zero
+  inheritable/permitted/effective/ambient capabilities. Seven focused tests pass,
+  including this process; duplicate sandbox-mapped group IDs are preserved. It
+  is import-only and not wired to a privileged entry; identity declarations,
+  continuous state, safe privilege drop, handoff and launch remain unproved.
+  Full default check failed 1 of 452 tests on the recurring CPU handoff mismatch;
+  its new classification is `collector_command` at job 15, with fake reset
+  succeeding. The run started before the final seventh focused test was added.
+  [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#sampled-worker-credentials).
+
 - **Observer mismatch diagnostics:** the existing guard still immediately fails
   every command mismatch, but records a fixed non-sensitive category: other
   declared phase, collector command, or unclassified. Twenty-nine focused tests
   and default checks with 445 reporting tests pass; an added actual-mismatch
   category assertion passed separately. No unexpected argv/environment bytes are
   serialized. [Scope](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#observer-command-mismatch-classification).
-  This cannot explain the retained earlier job-10/job-12 failures and does not
+  A later full check reproduced a mismatch at job 15, classified as the
+  collector command; earlier job-10/job-12 categories remain unknown. This does not
   relax observation or establish hardware readiness.
 - **Worker role dispatch:** `clock_worker_role.py` binds the supplied quiet/role
   declaration, private snapshot, live restorer handoff, original absolute deadline

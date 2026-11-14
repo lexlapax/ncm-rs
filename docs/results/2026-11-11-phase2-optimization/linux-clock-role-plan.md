@@ -402,3 +402,39 @@ loss, signal/timeout cleanup and final receipts before any real policy action.
 These are design requirements, not implemented mechanisms or a claim that a
 privileged bootstrap can safely import a user-writable tree.
 Nothing here selects an architecture or authorizes a real clock change.
+
+
+### Sampled worker credentials
+
+`tools/bench/clock_unprivileged_identity.py` supplies an import-only, fail-closed
+credential check for a future unprivileged worker. It requires a single-threaded
+Linux process and explicit non-root UID, primary GID and supplementary-group
+multiset. It checks all four procfs UID/GID values, corroborates real/effective/
+saved IDs and groups with process APIs, and requires zero inheritable, permitted,
+effective and ambient capabilities. The bounding capability set is not active
+and is not required to be empty. No rights are changed. Seven focused tests pass,
+including a live read of the sandbox process, malformed data, active capabilities
+and mismatched identities. The first focused run failed because the sandbox
+exposes repeated mapped group IDs; matching now retains group multiplicity and
+the subsequent seven tests pass.
+
+This does not authenticate the caller's expected identity, drop privileges,
+inspect future descendants, prevent later credential changes, or prove launch
+readiness. It is not yet wired to the worker or a privileged entry. Identity
+sampling cannot replace trusted code provenance, handoff/parent binding,
+restoration and the remaining Linux and Apple hardware gates. No GPU action ran.
+
+The full `umask 077 && CARGO_BUILD_JOBS=4 ./tools/check.sh` run outside the
+sandbox failed one of 452 reporting tests: the real CPU-only handoff fixture in
+`test_validate_clock_restoration` stopped at job 15 with
+`live child command mismatch: collector_command` and zero accepted samples for
+that job; fake reset succeeded. This identifies equality with the collector's
+command in that sample, not why it occurred or whether the earlier mismatches
+were identical. It must not be promoted to a valid observation. The private log
+`/tmp/ncm-worker-identity-check-unsandboxed.log` has SHA-256
+`55932ebdfb38c76645cc5b8117b0544dd6e9fa52be808d33797dbd2d508b6fe2`.
+The check started before the final additional thread test and Linux-only skip
+were added; all seven focused identity tests subsequently passed. The initial
+sandboxed check stopped earlier because sccache returned operation not permitted
+(log `/tmp/ncm-worker-identity-check.log`, SHA-256
+`12867ac490c15de556c59a51d9211b485d426708fe382f10d2af372a28055227`).
