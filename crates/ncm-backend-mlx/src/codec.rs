@@ -216,6 +216,24 @@ impl CodecBackend for MlxBackend {
             })
         })
     }
+    fn layer_norm_accelerated(
+        &self,
+        x: &MlxTensor,
+        weight: &MlxTensor,
+        bias: Option<&MlxTensor>,
+        eps: f64,
+    ) -> Result<MlxTensor> {
+        if let Some(b) = bias {
+            check(b, Dtype::Float32)?;
+        }
+        self.array_op(&[x, weight], || {
+            let y = ops::layer_norm_accelerated(&x.0, eps)?.multiply(&weight.0)?;
+            Ok(match bias {
+                Some(b) => y.add(&b.0)?,
+                None => y,
+            })
+        })
+    }
     fn rms_norm(&self, x: &MlxTensor, weight: &MlxTensor, eps: f64) -> Result<MlxTensor> {
         self.array_op(&[x, weight], || {
             Ok(ops::rms_norm(&x.0, eps)?.multiply(&weight.0)?)

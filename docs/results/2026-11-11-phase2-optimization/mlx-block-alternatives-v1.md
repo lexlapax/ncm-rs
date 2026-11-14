@@ -84,3 +84,32 @@ promotion or acceptance. A refined candidate is being examined separately.
 
 [Patch, tests, qualification and raw reports](raw/mlx-blocknorm-poc-v1.tar.xz)
 have SHA-256 `7585d9cf826af9482287223d689326b2a76bf562e7aaf20aace3d41f006eb837`.
+
+## Decoder fast normalization and attention refinement
+
+The refinement leaves the ordinary encoder normalization call unchanged and
+uses the previously tested fast attention primitive with fast decoder
+normalization. Metal component/operator tests and all 642 trained traces
+passed, with zero ID disagreements. Three paired processes per binary gave
+block median ratios versus the current candidate of **0.771/0.734/0.744**,
+encode ratios **0.989/1.075/1.138**, and reconstruction ratios
+**1.023/1.202/0.947**, at batches 1/2/4. Output IDs matched. For context,
+the candidate's sampled batch-4 block median was 1.245 ms; the earlier
+initial gate's accepted baseline median was 1.206 ms. Those measurements were
+collected at different times and are not an acceptance comparison. The mixed
+results, particularly encode and reconstruction variation, require the complete
+fixed gates. A production candidate based on this experiment is being
+validated; the 69/78 Apple audit above remains the latest acceptance result.
+
+[Patch, tests, qualification and paired reports](raw/mlx-blocknorm-poc-v2.tar.xz)
+have SHA-256 `9976049633f2938085d52b47e65070cddd80553f2db933f2f63d35d5f0e9b760`.
+
+The formatted production implementation passes `tools/check.sh --cuda` with
+`RUSTC_WRAPPER=` and umask 077: 483 report tests and 18 real-CUDA operator
+cases pass. The initial wrapper-enabled check could not start `sccache` in this
+environment. The CUDA codec executables changed, so the prior Linux 78/78 gate
+and trained capture do not establish acceptance for this implementation; new
+Linux quality and performance measurements are required before the final Apple
+checks. The newly added direct Metal normalization regression has not run yet.
+[Linux check, CUDA report and binary identities](raw/mlx-blocknorm-linux-check-v1.tar.xz)
+have SHA-256 `39bf25bce3931ca3cde02f641c850139c7bc4c0b16f0a6477055d2ebf022c80e`.

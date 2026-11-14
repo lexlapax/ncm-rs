@@ -74,6 +74,17 @@ pub trait CodecBackend: WeightBackend {
         bias: Option<&Self::Tensor>,
         eps: f64,
     ) -> Result<Self::Tensor>;
+    /// Equivalent layer normalization with an optional backend-specific implementation.
+    /// The default preserves the ordinary layer normalization behavior.
+    fn layer_norm_accelerated(
+        &self,
+        x: &Self::Tensor,
+        weight: &Self::Tensor,
+        bias: Option<&Self::Tensor>,
+        eps: f64,
+    ) -> Result<Self::Tensor> {
+        self.layer_norm(x, weight, bias, eps)
+    }
     fn rms_norm(&self, x: &Self::Tensor, weight: &Self::Tensor, eps: f64) -> Result<Self::Tensor>;
     fn group_norm(&self, x: &Self::Tensor, groups: usize, eps: f64) -> Result<Self::Tensor>;
     fn gelu(&self, x: &Self::Tensor) -> Result<Self::Tensor>;

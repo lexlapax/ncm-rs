@@ -57,6 +57,31 @@ fn linear_gather_matches_scalar_geometry_on_real_metal() -> Result<()> {
     })
 }
 #[test]
+fn accelerated_layer_norm_matches_composition_on_real_metal() -> Result<()> {
+    with_device(Device::gpu(), || {
+        for (batch, length, width) in [(1, 89, 256), (4, 89, 256), (2, 7, 33)] {
+            let data: Vec<f32> = (0..batch * length * width)
+                .map(|i| ((i * 73 % 509) as f32 - 254.) / 37.)
+                .collect();
+            let x = Array::from_slice(&data, &[batch as i32, length as i32, width as i32]);
+            let reference = ops::layer_norm(&x, 1e-6)?;
+            let accelerated = ops::layer_norm_accelerated(&x, 1e-6)?;
+            reference.eval()?;
+            accelerated.eval()?;
+            for (&expected, &actual) in reference
+                .try_as_slice::<f32>()?
+                .iter()
+                .zip(accelerated.try_as_slice::<f32>()?)
+            {
+                assert!((actual - expected).abs() <= 1e-5 + 1e-4 * expected.abs());
+            }
+        }
+        assert!(ops::layer_norm_accelerated(&Array::from_f32(1.), f64::NAN).is_err());
+        Ok(())
+    })
+}
+
+#[test]
 fn all_fixtures_on_real_metal() -> Result<()> {
     with_device(Device::gpu(), || {
         let fixture = Fixture::parse(include_bytes!("../../../tests/fixtures/operators-v1.json"))?;

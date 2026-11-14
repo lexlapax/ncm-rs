@@ -151,7 +151,7 @@ impl<B: CodecBackend> Codec<B> {
         let shape = self.check_latent(x, self.config.raw().context_length)?;
         let b = &self.backend;
         trace.tensor("decoder.middle_block.input", x)?;
-        let norm = self.norm("decoder.middle_block.ln_1", x, true, trace)?;
+        let norm = self.norm_accelerated("decoder.middle_block.ln_1", x, true, trace)?;
         trace.tensor("decoder.middle_block.attn.input", &norm)?;
         let qkv = self.linear("decoder.middle_block.attn.c_attn", &norm, true, trace)?;
         let (batch, length, width) = (shape[0], shape[1], shape[2]);
@@ -197,7 +197,7 @@ impl<B: CodecBackend> Codec<B> {
         let attention = self.linear("decoder.middle_block.attn.c_proj", &attention, true, trace)?;
         trace.tensor("decoder.middle_block.attn.output", &attention)?;
         let residual = b.add(x, &attention)?;
-        let norm = self.norm("decoder.middle_block.ln_2", &residual, true, trace)?;
+        let norm = self.norm_accelerated("decoder.middle_block.ln_2", &residual, true, trace)?;
         trace.tensor("decoder.middle_block.mlp.input", &norm)?;
         let hidden = self.linear("decoder.middle_block.mlp.c_fc", &norm, true, trace)?;
         trace.tensor("decoder.middle_block.mlp.gelu.input", &hidden)?;
@@ -225,6 +225,28 @@ impl<B: CodecBackend> Codec<B> {
                 .backend
                 .add(&y, self.weight(&format!("{name}.bias"))?)?;
         }
+        trace.tensor(&format!("{name}.output"), &y)?;
+        Ok(y)
+    }
+    fn norm_accelerated(
+        &self,
+        name: &str,
+        x: &B::Tensor,
+        bias: bool,
+        trace: &mut impl TraceSink<B>,
+    ) -> Result<B::Tensor> {
+        trace.tensor(&format!("{name}.input"), x)?;
+        let bias = if bias {
+            Some(self.weight(&format!("{name}.bias"))?)
+        } else {
+            None
+        };
+        let y = self.backend.layer_norm_accelerated(
+            x,
+            self.weight(&format!("{name}.weight"))?,
+            bias,
+            1e-6,
+        )?;
         trace.tensor(&format!("{name}.output"), &y)?;
         Ok(y)
     }

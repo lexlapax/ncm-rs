@@ -23,13 +23,13 @@ pub fn layer_norm(x: &Array, eps: f64) -> Result<Array> {
             .rsqrt()?,
     )?)
 }
+pub fn layer_norm_accelerated(x: &Array, eps: f64) -> Result<Array> {
+    let _ = epsilon(eps)?;
+    Ok(mlx_rs::fast::layer_norm(x, None, None, eps as f32)?)
+}
 pub fn rms_norm(x: &Array, eps: f64) -> Result<Array> {
-    Ok(x.multiply(
-        x.square()?
-            .mean_axis(-1, true)?
-            .add(epsilon(eps)?)?
-            .rsqrt()?,
-    )?)
+    let _ = epsilon(eps)?;
+    Ok(mlx_rs::fast::rms_norm(x, None, eps as f32)?)
 }
 pub fn group_norm(x: &Array, groups: usize, eps: f64) -> Result<Array> {
     let &[b, l, c] = x.shape() else {
@@ -120,11 +120,15 @@ pub fn attention(q: &Array, k: &Array, v: &Array, mask: &Array) -> Result<Array>
     if q.shape().len() != 4 || q.shape()[3] <= 0 {
         return Err("attention requires BHLD".into());
     }
-    let scores = q
-        .matmul(k.swap_axes(-1, -2)?)?
-        .multiply(Array::from_f32(1. / (q.shape()[3] as f32).sqrt()))?
-        .add(mask)?;
-    Ok(ops::softmax_axis(&scores, -1, true)?.matmul(v)?)
+    let scale = 1. / (q.shape()[3] as f32).sqrt();
+    Ok(mlx_rs::fast::scaled_dot_product_attention(
+        q,
+        k,
+        v,
+        scale,
+        mask,
+        None::<&Array>,
+    )?)
 }
 pub fn rope(x: &Array, cos: &Array, sin: &Array) -> Result<Array> {
     let width = *x.shape().last().ok_or("empty RoPE shape")?;
