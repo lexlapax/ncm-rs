@@ -12,9 +12,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   The reviewed patch is integrated as `1f7d2a8`; Linux passes fresh **78/78**
   on the initial matrix, tokenizer probes pass, and byte-identical CUDA codec
   binaries retain trained parity. All six changed code/test files match the
-  reviewed worktree. Final Apple validation is next; a new SSH attempt reached
-  the Mac but 1Password signing failed, and the user was asked to approve the
-  pending prompt. [Review](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md), [Linux gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-linux-gate-v1.md).
+  reviewed worktree. SSH access returned and the Apple initial and fixed
+  control audits both pass **76/78**: GPT-2 now passes, but Qwen decode and
+  skip-special median intervals remain above 1.05. Investigate a substantive
+  Qwen improvement; do not rerun the unchanged candidate. [Review](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md), [Linux gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-linux-gate-v1.md), [Apple gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-apple-gate-v1.md).
 
 - **Completion checklist reconciled:** current Linux and Apple checks, gate
   outcomes, lifecycle evidence, source reproduction, and targeted MLX

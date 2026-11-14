@@ -2,8 +2,9 @@
 
 **Latest:** the user approved the [GPT-2 byte-level dependency patch](gpt2-bytelevel-review-v1.md).
 Candidate `1f7d2a8` passes the fresh [Linux 78/78 gate](bytelevel-final-linux-gate-v1.md);
-the new Apple check and gate remain pending. Historical results belong to the
-prior candidate.
+runtime-equivalent `3a3fa86` passes full MLX checks and quality, but its
+[Apple audit remains 76/78](bytelevel-final-apple-gate-v1.md) after one fixed
+control. Historical results belong to the prior candidate.
 
 **Previous candidate:** `621c565` passes the Linux CUDA check, trained parity and
 78/78 controlled audit. Runtime-equivalent Apple candidate `884d8f6` passes the
