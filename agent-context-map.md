@@ -4,6 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Qwen ID-copy experiment deferred:** an isolated accessor avoided the final
+  ID-vector copy while preserving the tokenizer pipeline. Tokenizer tests and
+  four probes passed, but three paired Linux processes did not show a speedup
+  (median ratio 1.016); the noisy diagnostic is not acceptance and the
+  dependency change was not integrated. [Evidence](docs/results/2026-11-11-phase2-optimization/qwen-ids-copy-diagnostic-v1.md).
+  The user is rebooting Mac Studio; wait for readiness before reconnecting.
+
 - **Latest Apple gate:** the affine candidate `2850331` reached **77/78**
   initially and **75/78** after its fixed all-workload control. Batch-4 block
   p95 versus Rust/Python and Qwen encode median versus Rust remain open. Chrome
