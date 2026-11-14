@@ -1,0 +1,86 @@
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -8,0 +9,11 @@
++use std::{cell::RefCell, rc::Rc};
++
++type CompiledGelu =
++    Box<dyn FnMut(&[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception>>;
++
++fn gelu_graph(inputs: &[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception> {
++    let (x, half, sqrt_two, one) = (&inputs[0], &inputs[1], &inputs[2], &inputs[3]);
++    Ok(vec![x.multiply(half)?.multiply(
++        mlx_rs::ops::erf(x.divide(sqrt_two)?)?.add(one)?,
++    )?])
++}
+@@ -18,0 +30 @@
++    compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+@@ -47 +59,4 @@
+-        let backend = Self { stream };
++        let backend = Self {
++            stream,
++            compiled_gelu: Rc::new(RefCell::new(None)),
++        };
+@@ -289,0 +305,20 @@
++            if matches!(x.0.shape(), [1 | 2 | 4, 89, 1024]) {
++                let mut slot = self
++                    .compiled_gelu
++                    .try_borrow_mut()
++                    .map_err(|_| "GELU compiler reentered")?;
++                let compiled = slot.get_or_insert_with(|| {
++                    Box::new(mlx_rs::transforms::compile::compile(gelu_graph, None))
++                });
++                let inputs = [
++                    x.0.clone(),
++                    Array::from_f32(0.5),
++                    Array::from_f32(std::f32::consts::SQRT_2),
++                    Array::from_f32(1.),
++                ];
++                let mut result = compiled(&inputs)?;
++                if result.len() != 1 {
++                    return Err("invalid compiled GELU result".into());
++                }
++                return Ok(result.remove(0));
++            }
+--- a/crates/ncm-backend-mlx/tests/codec_components.rs
++++ b/crates/ncm-backend-mlx/tests/codec_components.rs
+@@ -176,0 +177,40 @@
++
++#[test]
++fn compiled_gelu_matches_eager_for_supported_and_fallback_shapes() {
++    let backend = MlxBackend::gpu().unwrap();
++    for batch in [1_usize, 2, 3, 4] {
++        let mut values: Vec<f32> = (0..batch * 89 * 1024)
++            .map(|i| ((i * 73 % 1009) as f32 - 504.) / 80.)
++            .collect();
++        values[..5].copy_from_slice(&[0., -0., f32::INFINITY, f32::NEG_INFINITY, f32::NAN]);
++        let input = backend.upload_f32(&values, &[batch, 89, 1024]).unwrap();
++        let actual = backend.read_f32(&backend.gelu(&input).unwrap()).unwrap();
++        let clone = backend.clone();
++        let cloned = clone.read_f32(&clone.gelu(&input).unwrap()).unwrap();
++        assert!(
++            actual
++                .iter()
++                .zip(&cloned)
++                .all(|(a, b)| a.to_bits() == b.to_bits())
++        );
++        let expected = mlx_rs::with_device(mlx_rs::Device::gpu(), || {
++            let x = mlx_rs::Array::from_slice(&values, &[batch as i32, 89, 1024]);
++            let y = x.multiply(mlx_rs::Array::from_f32(0.5))?.multiply(
++                mlx_rs::ops::erf(x.divide(mlx_rs::Array::from_f32(std::f32::consts::SQRT_2))?)?
++                    .add(mlx_rs::Array::from_f32(1.))?,
++            )?;
++            y.eval()?;
++            Ok::<_, mlx_rs::error::Exception>(y.try_as_slice::<f32>()?.to_vec())
++        })
++        .unwrap();
++        assert_eq!(actual.len(), expected.len());
++        for (&a, &e) in actual.iter().zip(&expected) {
++            assert!(
++                (a.is_nan() && e.is_nan())
++                    || a.to_bits() == e.to_bits()
++                    || (a.is_finite() && e.is_finite() && (a - e).abs() <= 1e-5 + 1e-4 * e.abs()),
++                "batch={batch}: {a:?} vs {e:?}"
++            );
++        }
++    }
++}

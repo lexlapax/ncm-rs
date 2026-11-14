@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Full-codec GELU prototype prepared:** an isolated shape-bounded MLX patch
+  preserves the exact expression and adds eager/compiled edge-case checks.
+  Linux-first validation, Metal parity, full-codec timing and cache/startup
+  review are pending; nothing is integrated. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-codec-experiment-v1.md).
+
 - **Exact GELU compilation diagnostic:** corrected finite checks pass in three
   isolated Metal processes, with lower warm B4 medians. First compilation cost
   is significant; full-model timing, trained parity and cache lifetime remain
