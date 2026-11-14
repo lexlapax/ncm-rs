@@ -4,6 +4,15 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **TinyStories decode candidate:** reserve at most 4 KiB from input ID count
+  before byte-BPE decode. Long, skipped, malformed and invalid-ID regression,
+  four real tokenizer probes and full CUDA check pass. Three-process Linux
+  diagnostics show decode/skip median ratios 0.79144/0.82950 with equal output
+  hashes; not acceptance. CUDA codec benchmark is byte-identical to the trained
+  qualified, 78/78 candidate. Next run the predeclared full Linux gate before
+  Apple; batch-4 Metal block still needs a substantive fix.
+  [Evidence](docs/results/2026-11-11-phase2-optimization/tinystories-reserve-v1.md).
+
 - **CUDA convolution candidate:** convolution bias addition now reads the
   transposed result directly, eliminating an intermediate contiguous copy.
   Focused CPU/real-CUDA tests, 642 trained traces and 2,500 decisions pass;

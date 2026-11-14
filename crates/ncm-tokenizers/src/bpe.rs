@@ -195,7 +195,9 @@ impl ByteBpe {
         if ids.len() > 1024 * 1024 {
             return Err(bad("too many input token IDs"));
         }
-        let mut bytes = Vec::new();
+        // Bound the eager reservation for long requests or skipped specials.
+        // Each ordinary vocabulary token contains at least one byte.
+        let mut bytes = Vec::with_capacity(ids.len().min(4096));
         for &id in ids {
             let value = self
                 .vocab
@@ -269,6 +271,19 @@ mod tests {
             "�(�("
         );
         assert!(tokenizer.decode(&[u32::MAX], true).is_err());
+    }
+    #[test]
+    fn decode_long_inputs_and_skipped_specials() {
+        let tokenizer = ByteBpe::from_json(&serde_json::to_vec(&fixture()).unwrap()).unwrap();
+        let mut ids = vec![b'a' as u32 + 2; 5000];
+        ids.extend([0, 1, 0xf0 + 2, 0x28 + 2]);
+        assert_eq!(
+            tokenizer.decode(&ids, true).unwrap(),
+            format!("{}�(", "a".repeat(5000))
+        );
+        assert_eq!(tokenizer.decode(&vec![0; 5000], true).unwrap(), "");
+        ids.push(u32::MAX);
+        assert!(tokenizer.decode(&ids, true).is_err());
     }
     #[test]
     fn in_place_merge_matches_rebuilding_for_overlaps_and_rank_order() {
