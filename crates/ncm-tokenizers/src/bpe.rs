@@ -2,16 +2,21 @@
 use crate::assets::{AssetError, Result};
 use fancy_regex::Regex;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 const PATTERN: &str = r"'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+";
 const SPECIAL: [&str; 2] = ["<|endoftext|>", "<|pad|>"];
 #[derive(Deserialize)]
+struct HexString<'a>(#[serde(borrow)] Cow<'a, str>);
+
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Raw {
+struct Raw<'a> {
     schema_version: u32,
-    vocab_hex: Vec<String>,
-    merges_hex: Vec<[String; 2]>,
+    #[serde(borrow)]
+    vocab_hex: Vec<HexString<'a>>,
+    #[serde(borrow)]
+    merges_hex: Vec<[HexString<'a>; 2]>,
 }
 
 struct Vocabulary {
@@ -69,11 +74,11 @@ impl ByteBpe {
         }
         // One byte arena and a dense offset table instead of one allocation and
         // three machine words per token. The bounded payload fits u32 offsets.
-        let mut bytes = Vec::with_capacity(raw.vocab_hex.iter().map(|v| v.len() / 2).sum());
+        let mut bytes = Vec::with_capacity(raw.vocab_hex.iter().map(|v| v.0.len() / 2).sum());
         let mut offsets = Vec::with_capacity(raw.vocab_hex.len() + 1);
         offsets.push(0);
         for token in &raw.vocab_hex {
-            bytes.extend(hex(token)?);
+            bytes.extend(hex(&token.0)?);
             offsets
                 .push(u32::try_from(bytes.len()).map_err(|_| bad("vocabulary offset overflow"))?);
         }
@@ -95,8 +100,8 @@ impl ByteBpe {
         }
         let mut merges = HashMap::with_capacity(raw.merges_hex.len());
         for (rank, pair) in raw.merges_hex.iter().enumerate() {
-            let left = hex(&pair[0])?;
-            let right = hex(&pair[1])?;
+            let left = hex(&pair[0].0)?;
+            let right = hex(&pair[1].0)?;
             let (Some(&a), Some(&b)) =
                 (reverse.get(left.as_slice()), reverse.get(right.as_slice()))
             else {
@@ -271,6 +276,26 @@ mod tests {
             "�(�("
         );
         assert!(tokenizer.decode(&[u32::MAX], true).is_err());
+    }
+    #[test]
+    fn borrowed_hex_keeps_escaped_json_semantics() {
+        let plain = serde_json::to_string(&fixture()).unwrap();
+        let escaped = plain.replace("\"61\"", "\"\\u00361\"");
+        assert_ne!(plain, escaped);
+        let raw_plain: Raw<'_> = serde_json::from_str(&plain).unwrap();
+        let raw_escaped: Raw<'_> = serde_json::from_str(&escaped).unwrap();
+        assert!(matches!(raw_plain.vocab_hex[99].0, Cow::Borrowed(_)));
+        assert!(matches!(raw_escaped.vocab_hex[99].0, Cow::Owned(_)));
+        let a = ByteBpe::from_json(plain.as_bytes()).unwrap();
+        let b = ByteBpe::from_json(escaped.as_bytes()).unwrap();
+        for text in ["", "aaaa", "ababab", "é a", "<|pad|>a"] {
+            let ids = a.encode(text).unwrap();
+            assert_eq!(ids, b.encode(text).unwrap());
+            assert_eq!(
+                a.decode(&ids, false).unwrap(),
+                b.decode(&ids, false).unwrap()
+            );
+        }
     }
     #[test]
     fn decode_long_inputs_and_skipped_specials() {

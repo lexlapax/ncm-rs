@@ -4,6 +4,14 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **TinyStories loader candidate:** unescaped hex strings are borrowed only
+  during parsing; escaped JSON retains owned handling and no borrow escapes.
+  Full Linux CUDA check and four tokenizer probes pass. A small matched Linux
+  diagnostic shows 24,060 fewer load allocation calls, 14% lower median load
+  and lower observed HWM, with mixed decode timing. This is not acceptance.
+  Run the complete Linux gate first; Apple remains at 76/78 for the previous
+  candidate. [Evidence](docs/results/2026-11-11-phase2-optimization/tiny-borrow-candidate-v1.md).
+
 - **Latest Apple gate:** projection candidate `a323b16` is **74/78** initially
   and **76/78** after the fixed control. Only TinyStories host RSS/HWM remain
   open (peak ratio 1.12434); the block and Qwen timing cells pass. Do not retry
