@@ -2,6 +2,7 @@
 mod assets;
 mod bpe;
 mod hf_bpe;
+mod hf_wordpiece;
 pub use assets::{AssetError, TextTokenizer, TokenizerMetadata};
 pub use bpe::ByteBpe;
 

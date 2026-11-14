@@ -95,10 +95,10 @@ fn parse_hf(payload: &[u8], profile: &str) -> Result<tokenizers::Tokenizer> {
         tokenizers::decoders::DecoderWrapper,
     >;
     match profile {
-        "bert" => Ok(
-            serde_json::from_slice::<Typed<tokenizers::models::wordpiece::WordPiece>>(payload)?
-                .into(),
-        ),
+        "bert" => Ok(serde_json::from_slice::<
+            Typed<crate::hf_wordpiece::CanonicalWordPiece<30522>>,
+        >(payload)?
+        .into()),
         // Pinned base-vocabulary capacities also bound the tuple-merge counts.
         "gpt2" => Ok(
             serde_json::from_slice::<Typed<crate::hf_bpe::CanonicalBpe<50257>>>(payload)?.into(),

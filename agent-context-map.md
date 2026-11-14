@@ -4,6 +4,16 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **BERT checked-load candidate:** authenticated WordPiece vocabulary parsing
+  now reserves the fixed 30,522-entry profile capacity and delegates all model
+  behavior to pinned `tokenizers`. Three matched CPU processes per binary
+  measured median checked load 3.9094 to 2.4690 ms; one allocator capture
+  reduced requested bytes 7,776,931 to 5,613,868. Tokenizer tests, Clippy,
+  real-asset goldens/rejections and benchmark output hashes pass. Source
+  fingerprint inventories include the new parser. Fresh full Linux/Apple gates
+  remain pending; prior 76/78 is for the previous candidate.
+  [Details](docs/results/2026-11-11-phase2-optimization/bert-wordpiece-v1.md).
+
 - **Fresh Linux performance gate:** candidate `a6290db` completed the 45-process
   three-way matrix and one predeclared nine-process-per-runtime follow-up for
   codec, BERT, Qwen and TinyStories. The initial audit is 71/78; the controlled

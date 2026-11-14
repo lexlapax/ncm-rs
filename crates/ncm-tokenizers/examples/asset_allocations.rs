@@ -132,6 +132,7 @@ fn main() -> Result<()> {
         "crates/ncm-tokenizers/src/assets.rs",
         "crates/ncm-tokenizers/src/bpe.rs",
         "crates/ncm-tokenizers/src/hf_bpe.rs",
+        "crates/ncm-tokenizers/src/hf_wordpiece.rs",
         "Cargo.lock",
     ]
     .into_iter()

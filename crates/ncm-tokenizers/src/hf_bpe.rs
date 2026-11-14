@@ -42,7 +42,9 @@ struct Canonical<const CAP: usize> {
 }
 
 // Capacities come from the authenticated profile, not untrusted size hints.
-fn read_vocab<'de, D: Deserializer<'de>, const CAP: usize>(d: D) -> Result<Vocab, D::Error> {
+pub(crate) fn read_vocab<'de, D: Deserializer<'de>, const CAP: usize>(
+    d: D,
+) -> Result<Vocab, D::Error> {
     struct Visitor<const CAP: usize>;
     impl<'de, const CAP: usize> serde::de::Visitor<'de> for Visitor<CAP> {
         type Value = Vocab;

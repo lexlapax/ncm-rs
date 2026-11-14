@@ -57,6 +57,13 @@
       "evidence": "docs/results/2026-11-11-phase2-optimization/finite-scan-v1.md"
     },
     {
+      "id": "bert-wordpiece-capacity",
+      "status": "provisional Linux candidate; fresh cross-platform acceptance pending",
+      "hypothesis": "Reserve the authenticated BERT profile's bounded WordPiece vocabulary capacity while retaining the pinned model and pipeline.",
+      "finding": "Three matched processes per binary: median checked load 3.9094 to 2.4690 ms. One allocator capture: requested bytes 7776931 to 5613868; encode/decode hashes and all four real-asset profile probes passed.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/bert-wordpiece-v1.md"
+    },
+    {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
       "status": "pending Linux gate before Apple implementation/testing",
