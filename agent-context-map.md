@@ -8,7 +8,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   supplies a zero mask for unmasked attention; pinned MLX has a distinct
   no-mask path. Linux CUDA checks pass and three codec executables match the
   qualified build. SSH agent refused the Mac signature; Metal checks and
-  performance remain pending. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-plan-v1.md).
+  performance remain pending; the fixed paired diagnostic runner is prepared.
+  [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-plan-v1.md).
 
 - **Apple all-cell sensitivity:** both retained controls' 58 timing cells and
   20 memory cells are checked; post-hoc pooled timing intervals fit the limits,

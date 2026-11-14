@@ -34,7 +34,8 @@ nonzero masks, different sequence/head dimensions and batches, then run the
 full MLX check and qualify all trained traces with unchanged budgets. Only if
 correctness passes, compare current and experimental full codec in three fresh
 alternating process pairs, recording all batches/scopes, startup, host memory,
-activity and output hashes. This is diagnostic, not acceptance. Integrate
+activity and output hashes. The prepared [runner](mlx-attention-nomask-run-v1.py) records the paired
+processes and activity. This is diagnostic, not acceptance. Integrate
 nothing or run a full gate without a defensible performance and correctness
 result; retain negative results and the previous failed Apple controls.
 
