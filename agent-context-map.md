@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Experimental RMS branch:** matching RMS weights go into the existing pinned
+  MLX primitive; other shapes keep the prior path. Linux CUDA checks pass and
+  five Linux binaries match the 78/78 candidate. Metal tests, trained parity
+  and a matched diagnostic remain pending; no acceptance claim. [Experiment](docs/results/2026-11-11-phase2-optimization/mlx-rms-affine-experiment-v1.md).
+
 - **Latest Apple gate:** loader candidate `3555c67` passed the initial 78/78,
   but the predeclared all-workload control is 76/78: batch-4 block p95 versus
   Rust and Python remains open. TinyStories RSS/HWM pass. Wallpaper activity

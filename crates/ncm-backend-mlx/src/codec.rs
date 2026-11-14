@@ -279,6 +279,13 @@ impl CodecBackend for MlxBackend {
     }
     fn rms_norm(&self, x: &MlxTensor, weight: &MlxTensor, eps: f64) -> Result<MlxTensor> {
         self.array_op(&[x, weight], || {
+            let width = x.0.shape().last().copied();
+            if weight.0.shape().len() == 1 && weight.0.shape().first().copied() == width {
+                if !eps.is_finite() || eps <= 0. || eps > f32::MAX as f64 {
+                    return Err("invalid epsilon".into());
+                }
+                return Ok(mlx_rs::fast::rms_norm(&x.0, Some(&weight.0), eps as f32)?);
+            }
             Ok(ops::rms_norm(&x.0, eps)?.multiply(&weight.0)?)
         })
     }

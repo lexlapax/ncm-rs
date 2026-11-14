@@ -174,3 +174,28 @@ fn fused_projection_bias_matches_composition() {
     assert!(b.project_bias(&wrong_width, &w, &bias).is_err());
     assert!(b.project_bias(&x, &w, &wrong_type).is_err());
 }
+
+#[test]
+fn weighted_rms_norm_matches_broadcast_fallback() {
+    let b = MlxBackend::gpu().unwrap();
+    let values: Vec<f32> = (0..2 * 3 * 17)
+        .map(|i| ((i * 31 % 127) as f32 - 63.) / 19.)
+        .collect();
+    let weights: Vec<f32> = (0..17).map(|i| 0.5 + i as f32 / 17.).collect();
+    let x = b.upload_f32(&values, &[2, 3, 17]).unwrap();
+    let vector = b.upload_f32(&weights, &[17]).unwrap();
+    let broadcast = b.upload_f32(&weights, &[1, 1, 17]).unwrap();
+    let fused = b.rms_norm(&x, &vector, 1e-6).unwrap();
+    let reference = b.rms_norm(&x, &broadcast, 1e-6).unwrap();
+    for (a, e) in b
+        .read_f32(&fused)
+        .unwrap()
+        .iter()
+        .zip(b.read_f32(&reference).unwrap())
+    {
+        assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs());
+    }
+    assert!(b.rms_norm(&x, &vector, f64::NAN).is_err());
+    let wrong_type = b.upload_indices(&[0; 17], &[17]).unwrap();
+    assert!(b.rms_norm(&x, &wrong_type, 1e-6).is_err());
+}
