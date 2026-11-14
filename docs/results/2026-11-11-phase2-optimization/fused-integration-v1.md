@@ -26,8 +26,11 @@ the independently built and qualified review binaries.
 have SHA-256 `dd608c9dba6b941c4f3733bb1fadb49e508a4ee387849e113a2fce7c4b957271`.
 The [separate cross-stream diagnostic](raw/fused-cross-stream-v2.tar.xz) retains
 its source and output. The full trained capture stays local; its hash is in the
-qualification report. These checks and the earlier matched diagnostic do not
-constitute performance acceptance.
+qualification report. The independently measured v2 `codec_memory` executable
+is also byte-identical to the integrated clean build (SHA-256
+`67a41e25e1be9576f0b903f47c4d832af4af9ccf3bb0f685ee843106d0940ae7`),
+binding its ten-cycle, 144-request workspace observations to this build. These
+checks and the earlier matched diagnostic do not constitute performance acceptance.
 
 ## Predeclared Linux gate
 
