@@ -4,11 +4,21 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Packed Q/K/V candidate:** shared decoder packs Q/K/V in one layout before
+  slicing; focused CPU/real-CUDA batch-independence checks and trained CUDA
+  qualification pass, with unchanged native trace hash. In three matched
+  processes per binary B1/B2/B4 resident-block median ratios are
+  0.8273/0.8895/0.9093. Used pool peak rises by 182,272/364,544/729,088 bytes;
+  B2 benchmark reserved peak rises 64 to 96 MiB, while a separate ten-drop
+  lifetime capture matches historical B2/B4 reserved values and returns live
+  use to zero. Both platform gates and full resource acceptance are pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/packed-qkv-v1.md).
+
 - **Fixed decoder paths rejected:** precomputing decoder weight paths with
   compile-time literals showed no material improvement in a three-process CUDA
   comparison; the known B1 timing clusters appeared in both binaries. The patch
   was reverted and evidence retained. The local release `codec_bench` binary
-  contains the rejected patch and requires rebuilding before reuse. The BERT
+  was rebuilt for the packed Q/K/V candidate. The BERT
   candidate and both final performance gates remain pending.
   [Details](docs/results/2026-11-11-phase2-optimization/b1-weight-paths-v1.md).
 

@@ -76,6 +76,40 @@ fn batched_transpose(b: &CandleBackend) {
         assert_eq!(b.read_f32(&y).unwrap(), expected, "length={length}");
     }
 }
+fn decoder_batch_independence(b: CandleBackend) {
+    let fixture = support::Fixture::load();
+    let source = fixture
+        .cases
+        .iter()
+        .map(|case| fixture.array(case, "decode.decoder.middle_block.input"))
+        .find(|array| array.shape[0] == 1)
+        .unwrap();
+    let length = source.shape[1];
+    let width = source.shape[2];
+    let first = source.floats();
+    let inputs: Vec<Vec<f32>> = (0..4)
+        .map(|batch| first.iter().map(|v| v + batch as f32 * 0.125).collect())
+        .collect();
+    let codec = fixture.model(b);
+    let backend = codec.backend();
+    let merged: Vec<f32> = inputs.iter().flatten().copied().collect();
+    let batched = backend.upload_f32(&merged, &[4, length, width]).unwrap();
+    let batched = backend
+        .read_f32(&codec.decoder_block(&batched).unwrap())
+        .unwrap();
+    for (index, input) in inputs.iter().enumerate() {
+        let single = backend.upload_f32(input, &[1, length, width]).unwrap();
+        let expected = backend
+            .read_f32(&codec.decoder_block(&single).unwrap())
+            .unwrap();
+        for (&actual, &expected) in batched[index * length * width..(index + 1) * length * width]
+            .iter()
+            .zip(&expected)
+        {
+            assert!((actual - expected).abs() <= 5e-4 + 2e-4 * expected.abs());
+        }
+    }
+}
 #[test]
 fn batched_transpose_regression() {
     batched_transpose(&CandleBackend::cpu());
@@ -89,6 +123,7 @@ fn cpu_codec_components() {
     println!("CPU {report:?}");
     let full = support::full_codec(CandleBackend::cpu());
     println!("CPU complete codec {full:?}");
+    decoder_batch_independence(CandleBackend::cpu());
 }
 #[cfg(feature = "cuda")]
 #[test]
@@ -103,4 +138,5 @@ fn cuda_codec_components() {
     println!("CUDA {report:?}");
     let full = support::full_codec(CandleBackend::cuda(0).unwrap());
     println!("CUDA complete codec {full:?}");
+    decoder_batch_independence(CandleBackend::cuda(0).unwrap());
 }

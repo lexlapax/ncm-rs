@@ -156,18 +156,26 @@ impl<B: CodecBackend> Codec<B> {
         let qkv = self.linear("decoder.middle_block.attn.c_attn", &norm, true, trace)?;
         let (batch, length, width) = (shape[0], shape[1], shape[2]);
         let heads = self.config.raw().n_layers;
-        let split = |offset| {
-            b.permute(
-                &b.reshape(
-                    &b.narrow(&qkv, 2, offset, width)?,
-                    &[batch, length, heads, width / heads],
-                )?,
-                &[0, 2, 1, 3],
+        // Group Q/K/V in one layout conversion. On eager backends, reshaping
+        // the permuted tensor materializes it once; each subsequent slice is a
+        // contiguous view. Lazy backends may defer that conversion.
+        let packed_shape = [3, batch, heads, length, width / heads];
+        let packed = b.reshape(
+            &b.permute(
+                &b.reshape(&qkv, &[batch, length, 3, heads, width / heads])?,
+                &[2, 0, 3, 1, 4],
+            )?,
+            &packed_shape,
+        )?;
+        let split = |index| {
+            b.reshape(
+                &b.narrow(&packed, 0, index, 1)?,
+                &[batch, heads, length, width / heads],
             )
         };
         let mut q = split(0)?;
-        let mut k = split(width)?;
-        let v = split(2 * width)?;
+        let mut k = split(1)?;
+        let v = split(2)?;
         trace.tensor("decoder.middle_block.attn.q_norm.input", &q)?;
         q = b.rms_norm(
             &q,
