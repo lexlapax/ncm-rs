@@ -32,6 +32,15 @@ The temporary Cargo patch changes that package's lockfile source from registry
 to local path while keeping the version; the exact lockfile difference is also
 in the archive. The upstream package declares Apache-2.0 and includes its license.
 
+An offline provenance check hashed the cached `.crate` and confirmed the exact
+lockfile checksum above. All 99 regular files in that archive match the local
+registry source byte-for-byte; the registry adds only `.cargo-ok`. Comparing
+that 100-file registry directory to the proof-of-concept copy found no missing
+or extra files and exactly one changed file, `src/models/bpe/model.rs`. The
+unchanged `LICENSE` SHA-256 in both directories is
+`c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`.
+This verifies the candidate copy, not a future vendored tree or a final gate.
+
 The proposed production path is to vendor that exact package with its license,
 apply only the reviewed patch, and explicitly update Cargo's source binding and
 lockfile. It changes dependency provenance even though the version is unchanged,

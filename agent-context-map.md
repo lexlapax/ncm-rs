@@ -8,7 +8,9 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   `tokenizers` 0.22.2 reserves exact merge-string capacity. Three matched Qwen
   processes per binary show median load 66.101 to 63.420 ms; one allocator
   capture shows reallocations 60,376 to 128. Tokenizer tests and four real-asset
-  probes pass. Production is unchanged. User review is pending for vendoring
+  probes pass. Offline comparison confirms all 99 pinned crate files match the
+  registry source and only the builder file changes in the PoC; the license is
+  unchanged. Production is unchanged. User review is pending for vendoring
   the exact pinned version, applying the four-line patch and explicitly changing
   Cargo's dependency source; full Linux and Apple gates remain pending.
   [Details](docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md).
