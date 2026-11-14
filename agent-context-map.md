@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Metal trace feasibility:** one bounded instrumented run produced 9,171 GPU
+  interval records, but no slow B4 block trial; existing durations cannot align
+  individual trials to the trace. Add explicit trial markers before attributing
+  a captured outlier. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-tail-metal-feasibility-v1.md).
+
 - **Apple quiet-window gate:** the separately declared unchanged-candidate
   matrix/control both yield 77/78; block p95 versus prior Rust remains open
   after control. Previous 76/78 remains evidence. User requested rethinking the
