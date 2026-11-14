@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Fixed decoder paths rejected:** precomputing decoder weight paths with
+  compile-time literals showed no material improvement in a three-process CUDA
+  comparison; the known B1 timing clusters appeared in both binaries. The patch
+  was reverted and evidence retained. The local release `codec_bench` binary
+  contains the rejected patch and requires rebuilding before reuse. The BERT
+  candidate and both final performance gates remain pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/b1-weight-paths-v1.md).
+
 - **BERT checked-load candidate:** authenticated WordPiece vocabulary parsing
   now reserves the fixed 30,522-entry profile capacity and delegates all model
   behavior to pinned `tokenizers`. Three matched CPU processes per binary

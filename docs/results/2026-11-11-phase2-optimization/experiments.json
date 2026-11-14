@@ -64,6 +64,13 @@
       "evidence": "docs/results/2026-11-11-phase2-optimization/bert-wordpiece-v1.md"
     },
     {
+      "id": "b1-fixed-weight-paths",
+      "status": "rejected; no material gain established and B1 clusters recur",
+      "hypothesis": "Construct fixed decoder weight and bias paths at compile time instead of formatting them for every block call.",
+      "finding": "Three matched CUDA processes per binary produced B1 block medians spanning 0.178–0.199 ms in both binaries; B2 and B4 differences were under 0.25%. Twelve output-ID hashes matched. The patch was reverted without repeat.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/b1-weight-paths-v1.md"
+    },
+    {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
       "status": "pending Linux gate before Apple implementation/testing",
