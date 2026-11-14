@@ -78,3 +78,11 @@ control against the clean candidate export or clean `3307dff` baseline
 worktree; no mismatches were found. This strengthens provenance of the
 historical failure; it does not qualify the later combined candidate or
 replace the pending Apple gate.
+
+The separate linear-gather candidate archive was also extracted into a clean
+`125d88d` source export. All six matched codec report source inventories match
+that export or a clean `cd49989` export. The existing quality validator accepts
+the archived 642-trace / 2,500-decision qualification, all 12 measured scopes
+have matching output-ID hashes across processes, and the three reconstruction
+median ratios reproduce as 0.480/0.497/0.585. This is an offline verification
+of the diagnostic and does not close the final Apple acceptance gate.

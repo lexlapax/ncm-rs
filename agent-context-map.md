@@ -6,8 +6,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 - **Historical Apple audit reproduced:** a clean `cd49989` source export and
   archived reports reproduce the expected 77/78 failure byte-for-byte; all 48
-  native report source inventories match candidate or baseline. This is not
-  a passing gate for the newer combined candidate. [Details](docs/results/2026-11-11-phase2-optimization/mlx-linear-poc-v1.md#historical-apple-audit-clean-export-reproduction).
+  native report source inventories match candidate or baseline. Separately,
+  all six gather diagnostic inventories, output IDs and trained qualification
+  verify from clean exports. Neither is a passing final gate for the newer
+  combined candidate. [Details](docs/results/2026-11-11-phase2-optimization/mlx-linear-poc-v1.md#historical-apple-audit-clean-export-reproduction).
 
 - **Combined candidate Linux gate passes:** `4ab4d3a` passes 78/78 after one
   fixed codec/GPT-2/Qwen follow-up (initial 74/78); full CUDA check and four
