@@ -11,6 +11,27 @@ use safetensors::{Dtype, SafeTensors};
 use serde::{Deserialize, de::IgnoredAny};
 use std::{collections::BTreeMap, sync::OnceLock};
 
+// IEEE-754 infinities and NaNs are exactly the values with an all-one exponent.
+// Check fixed-size groups before branching so finite weight buffers can be
+// scanned efficiently without allocating or requiring aligned input.
+fn has_nonfinite_f32_le(data: &[u8]) -> bool {
+    debug_assert_eq!(data.len() % 4, 0);
+    let (groups, tail) = data.as_chunks::<64>();
+    for group in groups {
+        let mut bad = false;
+        for bytes in group.as_chunks::<4>().0 {
+            bad |= u32::from_le_bytes(*bytes) & 0x7f80_0000 == 0x7f80_0000;
+        }
+        if bad {
+            return true;
+        }
+    }
+    tail.as_chunks::<4>()
+        .0
+        .iter()
+        .any(|bytes| u32::from_le_bytes(*bytes) & 0x7f80_0000 == 0x7f80_0000)
+}
+
 /// Immutable parameters plus backend and lazily prepared parameter-only norms.
 /// Activations and inference state belong to each request.
 pub struct Codec<B: WeightBackend> {
@@ -58,11 +79,7 @@ impl<B: WeightBackend> Codec<B> {
                 return Err(Error::Weights(format!("wrong dtype/shape for {name}")));
             }
             if t.data().len() != shape.iter().product::<usize>() * 4
-                || t.data()
-                    .as_chunks::<4>()
-                    .0
-                    .iter()
-                    .any(|b| !f32::from_le_bytes(*b).is_finite())
+                || has_nonfinite_f32_le(t.data())
             {
                 return Err(Error::Weights(format!("invalid/nonfinite data for {name}")));
             }
@@ -152,8 +169,34 @@ struct PreTokenizer {
 
 #[cfg(test)]
 mod tests {
-    use super::artifact_config;
+    use super::{artifact_config, has_nonfinite_f32_le};
     use serde_json::{Value, json};
+
+    #[test]
+    fn finite_scan_covers_groups_tails_and_ieee_edge_cases() {
+        let finite = [0, 0x8000_0000, 1, 0x007f_ffff, 0x7f7f_ffff, 0xff7f_ffff];
+        let nonfinite = [
+            0x7f80_0000,
+            0xff80_0000,
+            0x7f80_0001,
+            0x7fc0_0000,
+            0xffff_ffff,
+        ];
+        for count in 0..=35 {
+            let words: Vec<u32> = (0..count).map(|i| finite[i % finite.len()]).collect();
+            let mut data = vec![0]; // Deliberately unaligned buffer start.
+            data.extend(words.iter().flat_map(|word| word.to_le_bytes()));
+            assert!(!has_nonfinite_f32_le(&data[1..]));
+            for index in 0..count {
+                for bits in nonfinite {
+                    let mut changed = data.clone();
+                    changed[1 + 4 * index..1 + 4 * (index + 1)]
+                        .copy_from_slice(&u32::to_le_bytes(bits));
+                    assert!(has_nonfinite_f32_le(&changed[1..]));
+                }
+            }
+        }
+    }
 
     #[test]
     fn artifact_envelope_is_bounded_and_strict() {

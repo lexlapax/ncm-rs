@@ -1,0 +1,3 @@
+    Finished `release` profile [optimized] target(s) in 0.08s
+642 traces captured on cuda; parity must be checked separately
+642 traces; passed=True; ID disagreements=0; near ties=2

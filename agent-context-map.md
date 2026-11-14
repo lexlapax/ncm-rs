@@ -4,6 +4,18 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Grouped finite scan candidate:** model loading now checks little-endian FP32
+  exponent bits in groups, preserving complete preflight before upload. Focused
+  edge/unaligned and invalid-weight tests pass. A 30-trial CPU scan diagnostic
+  improved 4.359 to 2.995 ms; three matched CUDA processes per binary measured
+  checked-load medians 192.200 to 189.226 ms, with twelve matching output-ID
+  hashes. The combined `tools/check.sh --cuda` stopped before CUDA after one of
+  482 reporting tests failed in a CPU-only lifecycle child observation; the CUDA
+  portion passed separately, including 18 operators. CUDA trained qualification
+  passes 642 traces/2,500 decisions, zero ID disagreement, two near ties; resource
+  and both 78-cell gates remain pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/finite-scan-v1.md).
+
 - **Streamed artifact hashing rejected:** hashing each artifact during its bounded
   read retained all checks but increased matched CUDA checked-load process median
   from 191.25 to 201.98 ms (three processes each). The patch was reverted; raw
