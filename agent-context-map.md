@@ -4,6 +4,15 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Qwen BPE builder proof of concept:** an isolated temporary copy of pinned
+  `tokenizers` 0.22.2 reserves exact merge-string capacity. Three matched Qwen
+  processes per binary show median load 66.101 to 63.420 ms; one allocator
+  capture shows reallocations 60,376 to 128. Tokenizer tests and four real-asset
+  probes pass. Production is unchanged. User review is pending for vendoring
+  the exact pinned version, applying the four-line patch and explicitly changing
+  Cargo's dependency source; full Linux and Apple gates remain pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md).
+
 - **Qwen load investigation:** accepted/candidate Rust allocation counts were
   identical in one instrumented capture. A separate phase profile measured
   parsing and pinned BPE construction at 26.352/32.615 ms. An in-place Unicode

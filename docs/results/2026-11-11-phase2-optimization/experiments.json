@@ -85,6 +85,13 @@
       "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-load-investigation-v1.md"
     },
     {
+      "id": "qwen-bpe-builder-reserve-poc",
+      "status": "isolated proof of concept; dependency provenance change awaiting user review",
+      "hypothesis": "Reserve the exact combined merge-token string capacity in the pinned BPE builder, avoiding growth reallocations without changing token semantics.",
+      "finding": "Three matched Qwen processes per binary: median checked load 66.101 to 63.420 ms. One Rust allocator capture: reallocations 60376 to 128. Four real-asset profile probes and 18 tokenizer tests pass. Production dependency remains unchanged.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md"
+    },
+    {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
       "status": "pending Linux gate before Apple implementation/testing",
