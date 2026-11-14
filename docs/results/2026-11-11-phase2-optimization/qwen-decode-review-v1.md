@@ -1,6 +1,6 @@
 # Byte-level decode allocation — dependency change for review
 
-**User review pending.** The current [Apple gate](bytelevel-final-apple-gate-v1.md)
+**User approved; final gates pending.** The prior [Apple gate](bytelevel-final-apple-gate-v1.md)
 remains 76/78 because Qwen decode and skip-special decode miss the
 process-level median interval limit. This isolated proposal changes the pinned,
 vendored `tokenizers` 0.22.2 byte-level decoder to use one byte buffer instead
@@ -48,5 +48,5 @@ which adds an explanatory comment and the regression test. [Exact patch](qwen-de
 SHA-256 is `0e9bc5ab1b9a3ec72f30048a4be8776131010162f30edc2e6fc28e73aeba7f71`.
 [Raw diagnostics, activity, tests, probes and full checks](raw/qwen-decode-review-v1.tar.xz)
 have SHA-256 `1f91437f41f0e717b2c711a389d35e1c302eb1be490014be9ab9871d891d89ea`.
-If approved, integrate the patch and repeat the Linux-first and Apple gates;
+Integrate the approved patch and repeat the Linux-first and Apple gates;
 the current gate results do not transfer automatically.

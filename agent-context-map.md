@@ -4,12 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Qwen decoder dependency review pending:** an isolated one-buffer byte-level
+- **Qwen decoder dependency patch approved:** the user approved the isolated
+  one-buffer byte-level decoder for integration. It
   decoder preserves tested token fallback/invalid UTF-8 behavior and passes
   full CUDA/MLX checks and four tokenizer probes. Qwen decode diagnostics
   improve 26–31% across aggregate results and improve in every paired process;
   Mac GPT-2 encode varies adversely and sampled HWM is documented. Full gates
-  remain necessary. The additional vendored change requires user review.
+  remain necessary. Fresh Linux-first and Apple gates are next.
   [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
 
 - **GPT-2 dependency patch approved:** the user approved the tested byte-level
@@ -23,8 +24,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   reviewed worktree. SSH access returned and the Apple initial and fixed
   control audits both pass **76/78**: GPT-2 now passes, but Qwen decode and
   skip-special median intervals remain above 1.05. Investigate a substantive
-  Qwen improvement; do not rerun the unchanged candidate. A decoder prototype
-  is ready for review above. [Review](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md), [Linux gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-linux-gate-v1.md), [Apple gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-apple-gate-v1.md).
+  Qwen improvement; do not rerun the unchanged candidate. The decoder change
+  above is approved and being integrated. [Review](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md), [Linux gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-linux-gate-v1.md), [Apple gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-apple-gate-v1.md).
 
 - **Completion checklist reconciled:** current Linux and Apple checks, gate
   outcomes, lifecycle evidence, source reproduction, and targeted MLX
