@@ -1,0 +1,212 @@
+diff --git a/crates/ncm-tokenizers/examples/asset_allocations.rs b/crates/ncm-tokenizers/examples/asset_allocations.rs
+index 307dc17..b9bee4b 100644
+--- a/crates/ncm-tokenizers/examples/asset_allocations.rs
++++ b/crates/ncm-tokenizers/examples/asset_allocations.rs
+@@ -135,6 +135,7 @@ fn main() -> Result<()> {
+         "crates/ncm-tokenizers/src/hf_wordpiece.rs",
+         "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
+         "vendor/tokenizers-0.22.2/src/normalizers/bert.rs",
++        "vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs",
+         "Cargo.lock",
+     ]
+     .into_iter()
+diff --git a/crates/ncm-tokenizers/examples/asset_bench.rs b/crates/ncm-tokenizers/examples/asset_bench.rs
+index 73ca2c5..ad69f48 100644
+--- a/crates/ncm-tokenizers/examples/asset_bench.rs
++++ b/crates/ncm-tokenizers/examples/asset_bench.rs
+@@ -127,6 +127,7 @@ fn main() -> Result<()> {
+         "crates/ncm-tokenizers/src/hf_wordpiece.rs",
+         "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
+         "vendor/tokenizers-0.22.2/src/normalizers/bert.rs",
++        "vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs",
+         "Cargo.lock",
+     ];
+     let sources: BTreeMap<_, _> = paths
+diff --git a/crates/ncm-tokenizers/examples/asset_probe.rs b/crates/ncm-tokenizers/examples/asset_probe.rs
+index e227a6c..2652036 100644
+--- a/crates/ncm-tokenizers/examples/asset_probe.rs
++++ b/crates/ncm-tokenizers/examples/asset_probe.rs
+@@ -125,6 +125,7 @@ fn main() -> Result<(), Box<dyn Error>> {
+         "crates/ncm-tokenizers/src/hf_wordpiece.rs",
+         "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
+         "vendor/tokenizers-0.22.2/src/normalizers/bert.rs",
++        "vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs",
+         "crates/ncm-tokenizers/examples/asset_probe.rs",
+         "Cargo.lock",
+         "tools/reference/tokenizers-v1.lock.json",
+diff --git a/crates/ncm-tokenizers/tests/bytelevel_identity_differential.rs b/crates/ncm-tokenizers/tests/bytelevel_identity_differential.rs
+new file mode 100644
+index 0000000..5389b5a
+--- /dev/null
++++ b/crates/ncm-tokenizers/tests/bytelevel_identity_differential.rs
+@@ -0,0 +1,34 @@
++use tokenizers::{NormalizedString, tokenizer::normalizer::Range};
++
++#[test]
++fn printable_identity_preserves_preexisting_alignments() {
++    let mut samples = vec![String::new(), "Hello!".into(), "abc123".into()];
++    for byte in b'!'..=b'~' {
++        samples.push(char::from(byte).to_string());
++        samples.push(format!("a{}Z", char::from(byte)));
++    }
++    for text in samples {
++        for variant in 0..4 {
++            let mut value = NormalizedString::from(text.as_str());
++            match variant {
++                1 => {
++                    value.prepend("X");
++                }
++                2 => {
++                    value.append("Y");
++                }
++                3 => {
++                    value.filter(|c| c != 'a');
++                }
++                _ => {}
++            }
++            let mut expected = value.clone();
++            let replacement = expected.get().chars().map(|c| (c, 0)).collect::<Vec<_>>();
++            expected.transform(replacement, 0);
++            if value.convert_offsets(Range::Original(..)) != Some(0..value.get().len()) {
++                value.transform(value.get().chars().map(|c| (c, 0)).collect::<Vec<_>>(), 0);
++            }
++            assert_eq!(value, expected, "{text:?}, variant {variant}");
++        }
++    }
++}
+diff --git a/crates/ncm-tokenizers/tests/bytelevel_pipeline_differential.rs b/crates/ncm-tokenizers/tests/bytelevel_pipeline_differential.rs
+new file mode 100644
+index 0000000..41b2093
+--- /dev/null
++++ b/crates/ncm-tokenizers/tests/bytelevel_pipeline_differential.rs
+@@ -0,0 +1,110 @@
++use std::collections::HashMap;
++use tokenizers::{
++    pre_tokenizers::byte_level::ByteLevel,
++    tokenizer::{
++        OffsetReferential, OffsetType, PreTokenizedString, PreTokenizer, Result,
++        SplitDelimiterBehavior,
++    },
++    utils::SysRegex,
++};
++fn reference(input: &mut PreTokenizedString, prefix: bool, regex: bool) -> Result<()> {
++    let pattern = SysRegex::new(
++        r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+",
++    )?;
++    input.split(|_, mut normalized| {
++        if prefix && !normalized.get().starts_with(' ') {
++            normalized.prepend(" ");
++        }
++        if regex {
++            normalized.split(&pattern, SplitDelimiterBehavior::Isolated)
++        } else {
++            Ok(vec![normalized])
++        }
++    })?;
++    let mut bytes: Vec<u8> = (b'!'..=b'~')
++        .chain(0xA1..=0xAC)
++        .chain(0xAE..=0xFF)
++        .collect();
++    let mut chars: Vec<u32> = bytes.iter().map(|b| u32::from(*b)).collect();
++    let mut n = 0;
++    for b in 0..=255_u8 {
++        if !bytes.contains(&b) {
++            bytes.push(b);
++            chars.push(256 + n);
++            n += 1;
++        }
++    }
++    let map: HashMap<u8, char> = bytes
++        .into_iter()
++        .zip(chars.into_iter().map(|v| char::from_u32(v).unwrap()))
++        .collect();
++    input.normalize(|normalized| {
++        let s = normalized.get();
++        let mut transforms = Vec::with_capacity(s.len());
++        for (i, c) in s.char_indices() {
++            transforms.extend(
++                s.as_bytes()[i..i + c.len_utf8()]
++                    .iter()
++                    .enumerate()
++                    .map(|(j, b)| (map[b], isize::from(j > 0))),
++            );
++        }
++        normalized.transform(transforms, 0);
++        Ok(())
++    })
++}
++#[test]
++fn bytelevel_matches_unoptimized_splits_and_offsets() -> Result<()> {
++    let mut samples = vec![
++        String::new(),
++        "Hello world!".into(),
++        "猫 café\n 😀".into(),
++        "a   b\t!".into(),
++    ];
++    for byte in 0_u8..=127 {
++        samples.push(format!("a{}Z", char::from(byte)));
++    }
++    for text in samples {
++        for prefix in [false, true] {
++            for regex in [false, true] {
++                for pre in 0..4 {
++                    let mut actual = PreTokenizedString::from(text.as_str());
++                    if pre != 0 {
++                        actual.normalize(|n| {
++                            match pre {
++                                1 => {
++                                    n.prepend("X");
++                                }
++                                2 => {
++                                    n.append("Y");
++                                }
++                                _ => {
++                                    n.filter(|c| c != 'a');
++                                }
++                            }
++                            Ok(())
++                        })?;
++                    }
++                    let mut expected = actual.clone();
++                    ByteLevel::new(prefix, true, regex).pre_tokenize(&mut actual)?;
++                    reference(&mut expected, prefix, regex)?;
++                    for referential in [OffsetReferential::Original, OffsetReferential::Normalized]
++                    {
++                        let a: Vec<_> = actual
++                            .get_splits(referential, OffsetType::Byte)
++                            .into_iter()
++                            .map(|(s, o, _)| (s.to_owned(), o))
++                            .collect();
++                        let b: Vec<_> = expected
++                            .get_splits(referential, OffsetType::Byte)
++                            .into_iter()
++                            .map(|(s, o, _)| (s.to_owned(), o))
++                            .collect();
++                        assert_eq!(a, b, "{text:?} {prefix} {regex} {pre}");
++                    }
++                }
++            }
++        }
++    }
++    Ok(())
++}
+diff --git a/vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs b/vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs
+index 8bc0f30..5aa6f46 100644
+--- a/vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs
++++ b/vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs
+@@ -131,6 +131,15 @@ impl PreTokenizer for ByteLevel {
+         })?;
+         pretokenized.normalize(|normalized| {
+             let s = normalized.get();
++            // These bytes map to themselves. Only skip the transform when its
++            // original-coordinate range covers the entire normalized string;
++            // prior normalizers can insert characters outside that range.
++            if s.bytes().all(|b| (b'!'..=b'~').contains(&b))
++                && normalized.convert_offsets(crate::tokenizer::normalizer::Range::Original(..))
++                    == Some(0..s.len())
++            {
++                return Ok(());
++            }
+             let mut transformations: Vec<(char, isize)> = Vec::with_capacity(s.len());
+             for (i, cur_char) in s.char_indices() {
+                 let size = cur_char.len_utf8();
