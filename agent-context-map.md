@@ -4,12 +4,16 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Projection evidence provenance recheck:** prototype and main checkout used
+  a shared Cargo target, so exact binary/source binding is not yet established.
+  Rebuild and revalidate in a separate target before relying on its metrics or
+  quality, and update the review; integration remains pending user review.
 - **Strict-FP32 fused projection review:** an isolated CUDA patch adds a
   default backend API hook and a per-backend cuBLASLt workspace; it is not
-  integrated. It passes 642 trained traces, focused concurrency/lifetime tests
-  and repeated load/drop, and its latest matched diagnostic shows resident-block
+  integrated. Provisional prior runs reported 642 trained traces, focused concurrency/lifetime tests
+  and repeated load/drop; their binary binding is under review. A matched diagnostic showed resident-block
   median ratios 0.839/0.823/0.793 at B1/B2/B4. Workspace adds 4 MiB on this
-  GPU (32 MiB on compute capability 9+ is unmeasured). Full CUDA check passed
+  GPU (32 MiB on compute capability 9+ is unmeasured). A prior CUDA check reported a pass
   before final nonsemantic safety-annotation edits; exact patch passes Clippy
   and focused tests. User review is required for the backend API change before
   integration. [Patch and evidence](docs/results/2026-11-11-phase2-optimization/fused-projection-review-v1.md).

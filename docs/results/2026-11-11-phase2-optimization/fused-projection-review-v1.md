@@ -1,5 +1,13 @@
 # Strict-FP32 fused projection: isolated patch for review
 
+**Provenance recheck in progress:** the prototype was built using a Cargo target
+directory shared with the main checkout. Subsequent inspection found that the
+two checkouts can reuse the same artifact paths, so the claimed exact-source
+binding for the prototype binaries and measurements is not yet established.
+A clean build in a separate target directory is underway. Treat the performance
+and qualification results below as provisional until that recheck completes;
+they do not authorize integration or acceptance.
+
 **Review requested; not integrated.** The current TinyStories candidate still
 fails Linux acceptance at 75/78, despite its own decode improvement. This
 isolated patch targets the remaining CUDA decoder-block overhead by fusing a
