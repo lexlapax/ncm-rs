@@ -127,6 +127,7 @@ fn main() -> Result<()> {
         "crates/ncm-tokenizers/src/hf_wordpiece.rs",
         "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
         "vendor/tokenizers-0.22.2/src/normalizers/bert.rs",
+        "vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs",
         "Cargo.lock",
     ];
     let sources: BTreeMap<_, _> = paths

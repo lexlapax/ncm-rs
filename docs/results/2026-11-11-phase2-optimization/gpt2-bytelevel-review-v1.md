@@ -1,6 +1,6 @@
 # GPT-2 byte-level preprocessing — dependency change for review
 
-**User review pending.** The remaining Apple gate cell is GPT-2 encode's
+**User approved; final gates pending.** The remaining Apple gate cell is GPT-2 encode's
 process-level uncertainty; [the current candidate remains 77/78](blocknorm-apple-gate-v1.md).
 This isolated proposal modifies the vendored, pinned `tokenizers` 0.22.2
 byte-level pre-tokenizer. It skips a string/alignment reconstruction only
@@ -42,11 +42,11 @@ recomputes the encode medians and ratios above. All three scope output hashes
 match across all six runs on each platform, and each run records five warmups
 and 30 trials. The separately published review patch is byte-identical to the
 archived review patch. This confirms provenance and does not change the
-pending dependency review or either acceptance gate.
+historical acceptance results or establish either new candidate gate.
 
 [Exact proposed patch](gpt2-bytelevel-review-v1.patch) has SHA-256
 `e4cc90d5d6b657c6dbe1129c0809fafa5e40d24a071f5ae57f2e47f4454e03f5`.
 [Patch, failed and passing regressions, checks, probes and raw diagnostics](raw/gpt2-bytelevel-review-v1.tar.xz)
 have SHA-256 `f7e9254ae166747aa3484b80034d996499b16c6481ad847e4f29a9ee09017e20`.
-If approved, integrate the patch and repeat the required Linux-first quality,
+Integrate the approved patch and repeat the required Linux-first quality,
 performance and Apple gates; neither historical gate automatically transfers.

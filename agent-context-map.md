@@ -4,12 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **GPT-2 dependency review pending:** an isolated byte-level identity
+- **GPT-2 dependency patch approved:** the user approved the tested byte-level
+  identity shortcut for integration. An isolated prototype
   shortcut preserves tested splits/offsets and passes full CUDA/MLX checks;
   matched GPT-2 encode diagnostics improve 4.5% Linux / 6.5% Mac; all 12
   diagnostic source inventories and output hashes verify from clean exports.
-  The exact additional vendored patch requires user review before integration.
-  [Patch and evidence](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md).
+  The exact reviewed patch is being integrated; fresh Linux then Apple quality
+  and performance gates remain required. [Patch and evidence](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md).
 
 - **Completion checklist reconciled:** current Linux and Apple checks, gate
   outcomes, lifecycle evidence, source reproduction, and targeted MLX
@@ -20,8 +21,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **Current Apple gate fails:** candidate `884d8f6` passes full MLX checks and
   trained parity, but remains **77/78** after one fixed GPT-2 control: encode
   median interval upper 1.06574 exceeds 1.05. The decoder block regression is
-  resolved and reconstruction gains are retained. Review the isolated GPT-2
-  candidate; do not repeat the unchanged candidate's gate. All 150 native
+  resolved and reconstruction gains are retained. The approved GPT-2 patch
+  changes the candidate; do not repeat the prior unchanged gate. All 150 native
   report inventories and 225 shared Python report copies across current Linux
   and Apple matrices/controls match clean source exports. [Current Apple gate](docs/results/2026-11-11-phase2-optimization/blocknorm-apple-gate-v1.md), [source audit](docs/results/2026-11-11-phase2-optimization/raw/blocknorm-source-audit-v1.py).
 

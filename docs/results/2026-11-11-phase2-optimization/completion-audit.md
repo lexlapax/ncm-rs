@@ -1,5 +1,10 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+**Approved follow-up:** the user approved the [GPT-2 byte-level dependency
+patch](gpt2-bytelevel-review-v1.md). The changed tokenizer requires fresh
+Linux-first performance and quality gates and a new Apple gate; historical
+78/78 and 77/78 results remain evidence for the prior candidate.
+
 **Latest:** candidate `621c565` passes the Linux CUDA check, trained parity and
 78/78 controlled audit. Runtime-equivalent Apple candidate `884d8f6` passes the
 full MLX check and trained parity but remains 77/78 after one fixed GPT-2

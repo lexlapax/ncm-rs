@@ -131,6 +131,15 @@ impl PreTokenizer for ByteLevel {
         })?;
         pretokenized.normalize(|normalized| {
             let s = normalized.get();
+            // These bytes map to themselves. Only skip the transform when its
+            // original-coordinate range covers the entire normalized string;
+            // prior normalizers can insert characters outside that range.
+            if s.bytes().all(|b| (b'!'..=b'~').contains(&b))
+                && normalized.convert_offsets(crate::tokenizer::normalizer::Range::Original(..))
+                    == Some(0..s.len())
+            {
+                return Ok(());
+            }
             let mut transformations: Vec<(char, isize)> = Vec::with_capacity(s.len());
             for (i, cur_char) in s.char_indices() {
                 let size = cur_char.len_utf8();
