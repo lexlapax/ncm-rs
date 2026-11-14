@@ -67,3 +67,20 @@ replace the failed Apple gate.
 
 [Raw reports, patch, source and qualification](raw/mlx-interleaved-poc-v1.tar.xz)
 have SHA-256 `0720b9d8d6a9743465f2f34b6838c607fb40234b0b05a29ae020c402deca198b`.
+
+## Decoder-specific fast normalization
+
+An isolated candidate used the pinned fast normalization primitives in the
+decoder middle block while keeping the encoder normalization implementation.
+Metal component and operator tests passed, as did all 642 trained traces with
+zero ID disagreements against the pinned CUDA reference. Three matched fresh
+processes showed block median ratios of **0.814/0.684/0.790** versus the
+current candidate at batches 1/2/4, with reconstruction ratios of
+**0.976/0.820/0.827**. Encode ratios were **1.079/1.088/1.061** even though
+the encoder's normalization path did not change. Process medians varied
+substantially (for example, candidate batch-4 encode ranged 5.57–10.05 ms).
+Output IDs matched, but this small mixed diagnostic is insufficient for
+promotion or acceptance. A refined candidate is being examined separately.
+
+[Patch, tests, qualification and raw reports](raw/mlx-blocknorm-poc-v1.tar.xz)
+have SHA-256 `7585d9cf826af9482287223d689326b2a76bf562e7aaf20aace3d41f006eb837`.

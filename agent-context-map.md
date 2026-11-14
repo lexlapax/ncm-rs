@@ -16,8 +16,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   A single-gather alternative passed trained parity but did not consistently
   improve the workload and was not promoted. Synchronized boundary profiles
   implicate Q/K materialization but perturb execution; unpacking alone did not
-  resolve the unsynchronized gap. An isolated decoder-normalization candidate
-  is under evaluation. [State diagnostics](docs/results/2026-11-11-phase2-optimization/mlx-block-state-v1.md), [gate](docs/results/2026-11-11-phase2-optimization/final-mlx-initial-v1.md), [alternatives](docs/results/2026-11-11-phase2-optimization/mlx-block-alternatives-v1.md).
+  resolve the unsynchronized gap. Isolated decoder normalization passes
+  trained parity and improves sampled block timings, but encode timings vary
+  and show regressions; a refined candidate is under evaluation. [State diagnostics](docs/results/2026-11-11-phase2-optimization/mlx-block-state-v1.md), [gate](docs/results/2026-11-11-phase2-optimization/final-mlx-initial-v1.md), [alternatives](docs/results/2026-11-11-phase2-optimization/mlx-block-alternatives-v1.md).
 
 - **Comparator source audit:** all 42 final-Linux and 24 historical-Apple
   Python comparator report inventories match their clean tested-source exports;
