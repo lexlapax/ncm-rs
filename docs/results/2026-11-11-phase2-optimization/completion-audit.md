@@ -1,5 +1,11 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+**Latest integrated candidate:** user-approved strict-FP32 projection
+`928894b` passes the [Linux controlled gate](fused-linux-gate-v1.md) **78/78**,
+full CUDA checks and fresh trained parity. Apple validation is pending: two SSH
+attempts timed out, and the user has been asked to restore access. The previous
+candidate histories below remain retained.
+
 **Latest TinyStories candidate:** `fb6c75e` improves Linux diagnostic decode,
 but fresh [Linux controls](tinystories-linux-gates-v1.md) remain 71/78 and
 75/78 after a user-confirmed quieter window. Apple testing of this candidate
