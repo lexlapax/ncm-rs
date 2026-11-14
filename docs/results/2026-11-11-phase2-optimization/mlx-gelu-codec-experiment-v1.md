@@ -39,6 +39,33 @@ The large trace remains local and on the Mac. The
 [Linux check and failed Metal build logs](raw/mlx-gelu-codec-checks-v1.tar.xz)
 have SHA-256 `dfc03a3a99dc44c45e29a841c2d366b66035462455dae5aecc8b02d187d82e8b`.
 
+## Full-codec diagnostic: mixed, deferred
+
+The fixed three alternating process pairs completed with matching input/output
+hashes in all codec scopes. All six source inventories are internally stable
+and differ only in the intended MLX codec source. Against the current runtime,
+B4 resident-block median ratios were **0.9157, 0.9919 and 0.9442** across the
+three pairs. B2 block ratios were **1.1651, 1.1442 and 0.9617**, and B2
+reconstruction ratios were **1.3278, 1.1469 and 0.9785**. Other scopes were
+mixed. These three-process observations do not establish that compilation
+caused those regressions or that B4 tail acceptance would pass.
+
+Fresh-process first execution was **28.43–29.47 ms** current and **29.14–29.46
+ms** compiled; the framework/system compilation cache had been warmed by
+earlier experiments, so this is not a cold-compile bound. Final host HWM was
+277.95–278.20 MB current and 278.51–278.87 MB compiled. Activity sampling
+recorded 37 samples, no Chrome, one wallpaper appearance, and WindowServer
+median/peak CPU 3.75%/4.6%; no thermal warning was recorded. These samples do
+not establish exclusive GPU access.
+
+The B4 microbenchmark improvement did not translate into a consistently useful
+whole-codec result, while B2 and cache/startup tradeoffs remain unresolved.
+Defer this prototype; do not integrate it or run an acceptance gate for it.
+Do not infer that restricting an optimization to a benchmark-specific shape
+would solve the underlying variability. The [raw paired reports, runner and
+activity](raw/mlx-gelu-codec-diagnostic-v1.tar.xz) have SHA-256
+`41b27693dc394e1abda6f7b88e51824ce9a0c7b762fddfc10905052bb5c72bf4`.
+
 Validate Linux/CUDA first, including a build/source binding showing whether
 the Apple-only change affects Linux binaries. On real Metal, first compare
 supported and fallback shapes with the eager expression, including non-finite
