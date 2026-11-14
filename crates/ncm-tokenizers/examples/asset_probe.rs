@@ -123,6 +123,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "crates/ncm-tokenizers/src/assets.rs",
         "crates/ncm-tokenizers/src/hf_bpe.rs",
         "crates/ncm-tokenizers/src/hf_wordpiece.rs",
+        "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
         "crates/ncm-tokenizers/examples/asset_probe.rs",
         "Cargo.lock",
         "tools/reference/tokenizers-v1.lock.json",

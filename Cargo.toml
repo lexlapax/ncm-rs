@@ -26,3 +26,6 @@ all = "warn"
 [profile.release]
 lto = "thin"
 codegen-units = 1
+
+[patch.crates-io]
+tokenizers = { path = "vendor/tokenizers-0.22.2" }

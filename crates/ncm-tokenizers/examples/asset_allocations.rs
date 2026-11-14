@@ -133,6 +133,7 @@ fn main() -> Result<()> {
         "crates/ncm-tokenizers/src/bpe.rs",
         "crates/ncm-tokenizers/src/hf_bpe.rs",
         "crates/ncm-tokenizers/src/hf_wordpiece.rs",
+        "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
         "Cargo.lock",
     ]
     .into_iter()

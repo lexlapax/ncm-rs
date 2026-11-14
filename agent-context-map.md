@@ -1,14 +1,18 @@
 # Agent context map
 
-Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
+Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Concrete dependency review workspace:** `/tmp/ncm-tokenizers-review-v1`
-  now contains the checksum-verified 99-file crate, the one-file patch and the
-  proposed relative Cargo override/lockfile change. An offline locked tokenizer
-  check passes; full offline metadata initially lacked unneeded `r-efi` cache.
-  Production remains unchanged and the user's dependency review is pending.
+- **Approved Qwen BPE optimization:** vendored the checksum-verified pinned
+  `tokenizers` 0.22.2 crate with its Apache-2.0 license, changing only merge
+  string allocation and Cargo's source binding. The 19 tokenizer tests and
+  all four real-asset probes pass; benchmark source inventories include the
+  patched file. `tools/check.sh --cuda` passes under umask 077, including 482
+  reporting tests and 18 CUDA operator cases; a default-umask run failed three
+  clock-fixture tests. A fresh performance gate is next; Apple remains pending
+  until Linux passes. The previous 77/78 result is historical, not a pass for
+  this candidate.
   [Details](docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md).
 
 - **Packed Q/K/V pool follow-up:** an offline audit of both retained archives
@@ -23,7 +27,7 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   non-inlined helper did not improve Qwen or BERT load in three matched
   processes per binary; the patch was reverted. Tokenizer tests and real-asset
   probes passed. The combined candidate remains at 77/78 on Linux; the reviewed
-  dependency-patch question remains pending.
+  dependency patch is now approved and integrated as described above.
   [Details](docs/results/2026-11-11-phase2-optimization/bert-dispatch-v1.md).
 
 - **Qwen BPE builder proof of concept:** an isolated temporary copy of pinned

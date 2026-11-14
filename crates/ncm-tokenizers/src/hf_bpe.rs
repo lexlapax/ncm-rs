@@ -162,6 +162,32 @@ impl<const CAP: usize> Model for CanonicalBpe<CAP> {
 mod tests {
     use super::*;
     #[test]
+    fn bpe_builder_preserves_unicode_prefix_merges_and_missing_tokens() {
+        let vocab: Vocab = [("é", 0), ("##猫", 1), ("é猫", 2)]
+            .into_iter()
+            .map(|(token, id)| (token.to_owned(), id))
+            .collect();
+        let merges = vec![("é".to_owned(), "##猫".to_owned())];
+        let model = BPE::builder()
+            .vocab_and_merges(vocab.clone(), merges.clone())
+            .continuing_subword_prefix("##".to_owned())
+            .build()
+            .unwrap();
+        let tokens = model.tokenize("é猫").unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!((tokens[0].id, tokens[0].value.as_str()), (2, "é猫"));
+
+        let mut missing = vocab;
+        missing.remove("é猫");
+        assert!(
+            BPE::builder()
+                .vocab_and_merges(missing, merges)
+                .continuing_subword_prefix("##".to_owned())
+                .build()
+                .is_err()
+        );
+    }
+    #[test]
     fn profile_capacities_bound_and_preserve_collections() {
         let mut d = serde_json::Deserializer::from_str(r#"{"a":0,"b":1}"#);
         assert_eq!(read_vocab::<_, 2>(&mut d).unwrap().len(), 2);
