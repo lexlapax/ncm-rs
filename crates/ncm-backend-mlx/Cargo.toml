@@ -48,6 +48,10 @@ required-features = ["mlx"]
 name = "mlx_codec_lifecycle"
 required-features = ["mlx"]
 
+[[example]]
+name = "mlx_linear_poc"
+required-features = ["mlx"]
+
 [target.'cfg(target_os = "macos")'.dev-dependencies]
 libc = "0.2"
 

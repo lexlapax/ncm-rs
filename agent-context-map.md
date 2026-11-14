@@ -4,6 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **MLX linear-resampling prototype:** isolated `mlx_linear_poc` compares the
+  existing scalar graph with gather-based interpolation using the same f64
+  coordinates and f32 weights. It records graph/evaluation timings, MLX memory
+  counters and six-shape parity; production remains unchanged. Formatting and
+  Linux default-feature check pass; this example has not yet been built or run
+  on Mac. Finish the current Apple candidate matrix before running the PoC.
+
 - **Apple validation underway:** `macstudio` is reachable; clean `3307dff`
   was preserved in a separate baseline worktree and main fast-forwarded to
   `cbdeafd`. An idle `rmlx` server remains untouched. The first full MLX check
