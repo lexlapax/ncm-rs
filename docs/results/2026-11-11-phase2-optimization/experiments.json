@@ -36,6 +36,13 @@
       "verification": "Full CUDA checks; 642 trained traces/2500 decisions; bit-exact untraced logits/IDs and all snapshots versus traced route after subsequent decode; full three-way matrix, fresh lifecycle and CUPTI."
     },
     {
+      "id": "decoder-trace-label-elision",
+      "status": "rejected; no material benefit in a targeted Linux CUDA diagnostic",
+      "hypothesis": "Avoid formatting decoder linear and normalization trace names on untraced calls while preserving all traced names and math.",
+      "finding": "Three matched processes per binary gave B1 resident block median 0.17933 to 0.17913 ms and reconstruction 1.97773 to 1.97609 ms; all twelve output-ID hashes matched. No material speedup established; patch reverted. Results are diagnostic, not a 78-cell acceptance gate.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/decoder-trace-label-v1.md"
+    },
+    {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
       "status": "pending Linux gate before Apple implementation/testing",

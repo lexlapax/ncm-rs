@@ -4,6 +4,15 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Performance work resumed:** decoder trace-label elision was prototyped and
+  measured on CUDA against the saved pre-change candidate in three matched
+  processes each. Output-ID hashes matched but no material speedup was measured;
+  the patch was reverted and negative evidence retained. The release
+  `codec_bench` binary was built from the rejected patch and must be rebuilt
+  before use as a current-source candidate. Linux remains 72/78; the user's
+  decision on the proposed public raw-upload API is pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/decoder-trace-label-v1.md).
+
 - **Observer startup evidence:** a CPU-only stress probe reproduced the
   `collector_command` failure at job 1 on attempt 54; the owned child still had
   the kernel `PF_FORKNOEXEC` flag during the follow-up. Fake reset and subreaper
