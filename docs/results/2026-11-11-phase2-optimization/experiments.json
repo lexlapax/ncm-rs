@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "in progress; current Linux initial/control 78/78, Apple initial 78/78 and fixed control 76/78; Phase 2 remains open",
+  "status": "in progress; Linux initial/control 78/78; Apple prior initial/control 78/78 and 76/78, quiet initial/control 77/78 and 77/78; Phase 2 remains open",
   "baseline": "3307dff (production behavior 083c1e5)",
   "evidence": "docs/results/2026-11-11-phase2-low-risk/README.md",
   "experiments": [
@@ -230,6 +230,13 @@
       "status": "deferred; not integrated, diagnostic does not establish benefit",
       "finding": "Four profile probes passed; three-pair Linux Qwen encode median ratio was 1.01610, a small noisy diagnostic.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-ids-copy-diagnostic-v1.md"
+    },
+    {
+      "id": "mlx-exact-gelu-compilation",
+      "hypothesis": "Compile the existing exact-erf GELU with explicit array inputs and bounded shape specialization.",
+      "status": "deferred; not integrated; full-codec diagnostic mixed and first-use/cache costs remain unresolved",
+      "finding": "Metal edge cases and 642 trained traces pass; B4 block median improves across three pairs, while B2 block and reconstruction regress in two pairs.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-codec-experiment-v1.md"
     }
   ]
 }
