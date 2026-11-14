@@ -62,7 +62,11 @@ cargo clippy --workspace --all-targets --features ncm-backend-cuda/cpu --locked 
 cargo test --workspace --features ncm-backend-cuda/cpu --locked
 RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -D warnings" \
     cargo doc --workspace --features ncm-backend-cuda/cpu --no-deps --locked
-python3 -m unittest discover -s tools/bench -p 'test_*.py' -v
+if [[ "$(uname -s)" == Darwin ]]; then
+    python3 tools/bench/run_macos_report_tests.py
+else
+    python3 -m unittest discover -s tools/bench -p 'test_*.py' -v
+fi
 python3 -m py_compile tools/reference/*.py tools/bench/compare.py
 
 if "$cuda"; then

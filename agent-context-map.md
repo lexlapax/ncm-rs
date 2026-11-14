@@ -4,6 +4,16 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple validation underway:** `macstudio` is reachable; clean `3307dff`
+  was preserved in a separate baseline worktree and main fast-forwarded to
+  `cbdeafd`. An idle `rmlx` server remains untouched. The first full MLX check
+  stopped in Linux-specific report tests (28 failures, 27 errors, 167 skips);
+  direct MLX Clippy, tests, docs and all 18 real-Metal operators pass. The
+  macOS check now explicitly excludes 16 Linux-diagnostic test modules while
+  retaining all other report tests; Linux still runs its complete suite. The
+  selection regression and shell/Python syntax checks pass. Rerun the full
+  Mac check, then collect trained parity and the Apple performance gate.
+
 - **Linux Phase 2 gate passes:** candidate `582e8fe`, including the approved
   pinned BPE allocation optimization, passes 78/78 after one predeclared
   codec/Qwen follow-up; the initial audit was 75/78. The Qwen checked-load
