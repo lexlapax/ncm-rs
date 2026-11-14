@@ -19,10 +19,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   resolve the unsynchronized gap. Isolated decoder normalization passes
   trained parity and improves sampled block timings, but encode timings vary
   and show regressions. A refined normalization/attention candidate also
-  passes trained parity. Its production implementation passes the Linux CUDA
-  check, but changes the CUDA executable; fresh Linux quality and performance
-  gates are required before the final Apple check and gate. The new Metal
-  regression test has not yet run. [State diagnostics](docs/results/2026-11-11-phase2-optimization/mlx-block-state-v1.md), [gate](docs/results/2026-11-11-phase2-optimization/final-mlx-initial-v1.md), [alternatives](docs/results/2026-11-11-phase2-optimization/mlx-block-alternatives-v1.md).
+  passes trained parity. Production candidate `621c565` now passes the Linux
+  CUDA check, trained parity and 78/78 gate after one fixed follow-up. Next is
+  the full Apple check, including the new Metal regression, and final gate.
+  [Linux gate](docs/results/2026-11-11-phase2-optimization/blocknorm-linux-gate-v1.md), [state diagnostics](docs/results/2026-11-11-phase2-optimization/mlx-block-state-v1.md), [Apple initial gate](docs/results/2026-11-11-phase2-optimization/final-mlx-initial-v1.md), [alternatives](docs/results/2026-11-11-phase2-optimization/mlx-block-alternatives-v1.md).
 
 - **Comparator source audit:** all 42 final-Linux and 24 historical-Apple
   Python comparator report inventories match their clean tested-source exports;

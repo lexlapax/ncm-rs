@@ -107,9 +107,9 @@ have SHA-256 `9976049633f2938085d52b47e65070cddd80553f2db933f2f63d35d5f0e9b760`.
 The formatted production implementation passes `tools/check.sh --cuda` with
 `RUSTC_WRAPPER=` and umask 077: 483 report tests and 18 real-CUDA operator
 cases pass. The initial wrapper-enabled check could not start `sccache` in this
-environment. The CUDA codec executables changed, so the prior Linux 78/78 gate
-and trained capture do not establish acceptance for this implementation; new
-Linux quality and performance measurements are required before the final Apple
-checks. The newly added direct Metal normalization regression has not run yet.
+environment. The CUDA codec executables changed, so fresh trained parity and
+the Linux performance gate were run; both now pass for `621c565` as recorded
+in the [Linux gate report](blocknorm-linux-gate-v1.md). The newly added direct
+Metal normalization regression and final Apple gate have not run yet.
 [Linux check, CUDA report and binary identities](raw/mlx-blocknorm-linux-check-v1.tar.xz)
 have SHA-256 `39bf25bce3931ca3cde02f641c850139c7bc4c0b16f0a6477055d2ebf022c80e`.
