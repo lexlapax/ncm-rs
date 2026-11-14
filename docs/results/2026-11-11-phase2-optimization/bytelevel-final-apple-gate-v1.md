@@ -37,3 +37,17 @@ reproduces byte-for-byte, including the two failures, from a clean `3a3fa86`
 export and the archive. All 66 native report inventories and 99 Python report
 copies match clean baseline or candidate exports. Python reports are shared
 copies, not independent samples. Phase 2 remains open.
+
+## Repeated load/drop observations
+
+The retained Rust codec reports separately record allocator state after the
+first model drop and after 35 additional load/drop trials per process (five
+warmups and 30 measured loads). Across all 24 candidate and baseline codec
+processes in the initial matrix and control, MLX active bytes were **zero**
+and retained cache was **59,593,224 bytes** at both observation points.
+Candidate post-trial process RSS ranged **266,944,512–267,190,272 bytes** in
+the initial matrix and **266,960,896–267,141,120 bytes** in the control.
+These snapshots support bounded observed repeated loading for this candidate;
+they do not sample every intermediate drop, prove absence of leaks, or measure
+long-lived inference cache growth. MLX cache and process RSS are distinct
+unified-memory observations, not separate VRAM measurements.
