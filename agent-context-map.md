@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Block tail diagnostic:** three instrumented Metal processes produced one
+  B4 trial above 1.2× its process median; both host graph construction and
+  synchronous evaluation rose. Evaluation includes submission/waiting and is
+  not kernel-only, so the cause is unresolved. This perturbed diagnostic does
+  not replace the 76/78 control. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-block-segments-v1.md).
+
 - **RMS fusion deferred:** direct Metal regression, full MLX check and 642
   trained traces pass, but a three-pair diagnostic shows no target batch-4
   block improvement (median ratio 1.0055) and mixed other scopes. The
