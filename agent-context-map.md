@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Experimental branch only:** the MLX matrix-multiply-plus-bias proposal
+  passed isolated Linux CUDA checks and five Linux binaries match the qualified
+  78/78 candidate. It has not run on Metal and is not accepted for main. The
+  user is rebooting the Mac; wait for readiness before reconnecting. Test Metal
+  correctness and a bounded diagnostic after it returns. [Experiment](docs/results/2026-11-11-phase2-optimization/mlx-addmm-experiment-v1.md).
+
 - **Latest Apple gate:** the affine candidate `2850331` reached **77/78**
   initially and **75/78** after its fixed all-workload control. Batch-4 block
   p95 versus Rust/Python and Qwen encode median versus Rust remain open. Chrome

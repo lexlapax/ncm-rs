@@ -121,3 +121,28 @@ fn weighted_accelerated_norm_matches_existing_composition() {
         }
     }
 }
+
+#[test]
+fn fused_projection_bias_matches_composition() {
+    let b = MlxBackend::gpu().unwrap();
+    let x: Vec<f32> = (0..4 * 7 * 17)
+        .map(|i| ((i * 37 % 113) as f32 - 56.) / 19.)
+        .collect();
+    let weights: Vec<f32> = (0..13 * 17)
+        .map(|i| ((i * 13 % 61) as f32 - 30.) / 23.)
+        .collect();
+    let bias: Vec<f32> = (0..13).map(|i| (i as f32 - 6.) / 7.).collect();
+    let x = b.upload_f32(&x, &[4, 7, 17]).unwrap();
+    let w = b.upload_f32(&weights, &[13, 17]).unwrap();
+    let bias = b.upload_f32(&bias, &[13]).unwrap();
+    let fused = b.project_bias(&x, &w, &bias).unwrap();
+    let separate = b.add(&b.project(&x, &w).unwrap(), &bias).unwrap();
+    for (a, e) in b
+        .read_f32(&fused)
+        .unwrap()
+        .iter()
+        .zip(b.read_f32(&separate).unwrap())
+    {
+        assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs());
+    }
+}
