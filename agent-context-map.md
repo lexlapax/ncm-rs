@@ -13,9 +13,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   remain necessary. Integrated candidate `211df63` passes Qwen decode in a
   fresh Linux matrix, but the initial audit is 71/78 and its one fixed control
   is 70/78 due to other timing uncertainties. After the user quieted the
-  desktop, a small fixed diagnostic showed fewer spikes but does not replace
-  the failed gate or prove causation. Apple cannot advance before Linux
-  passes. [Linux gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md), [quiet diagnostic](docs/results/2026-11-11-phase2-optimization/decode-quiet-diagnostic-v1.md).
+  desktop, a small fixed diagnostic showed fewer spikes. A separately
+  predeclared quiet-window full gate and all-workload control then yielded
+  77/78 initial and **74/78** controlled; four codec p95 intervals remain
+  above the unchanged limit. The earlier failures remain retained. Apple
+  cannot advance before Linux passes. [Quiet gate](docs/results/2026-11-11-phase2-optimization/decode-quiet-gate-v1.md), [earlier gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md), [quiet diagnostic](docs/results/2026-11-11-phase2-optimization/decode-quiet-diagnostic-v1.md).
   [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
 
 - **GPT-2 dependency patch approved:** the user approved the tested byte-level
