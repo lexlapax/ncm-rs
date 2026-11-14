@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Comparator source audit:** all 42 final-Linux and 24 historical-Apple
+  Python comparator report inventories match their clean tested-source exports;
+  declared upstream pins and recorded candidate/baseline heads agree. This is
+  offline source/metadata evidence, not the pending final Apple measurement.
+
 - **Historical Apple audit reproduced:** a clean `cd49989` source export and
   archived reports reproduce the expected 77/78 failure byte-for-byte; all 48
   native report source inventories match candidate or baseline. Separately,

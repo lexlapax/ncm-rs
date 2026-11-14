@@ -86,3 +86,11 @@ the archived 642-trace / 2,500-decision qualification, all 12 measured scopes
 have matching output-ID hashes across processes, and the three reconstruction
 median ratios reproduce as 0.480/0.497/0.585. This is an offline verification
 of the diagnostic and does not close the final Apple acceptance gate.
+
+The **24 Python comparator reports** from the historical Apple matrix and
+BERT control also match their source inventories in the clean `cd49989` export.
+Tokenizer reports declare the pinned upstream commit
+`c70274273f489abc73832b2b98584a8483b6b203`; both recorded environments bind
+the accepted and candidate source heads to `3307dff` and `cd49989`, respectively.
+This verifies archived metadata and source hashes, not the current Mac runtime
+or the pending final Apple gate.

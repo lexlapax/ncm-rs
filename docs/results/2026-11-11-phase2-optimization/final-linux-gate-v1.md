@@ -53,3 +53,12 @@ There are no missing or extra files; only `src/models/bpe/model.rs` and
 unchanged license SHA-256 is
 `c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`.
 This verifies the archived source tree, not the remaining Apple gate.
+
+All **42 Python comparator reports** in the Linux matrix and control were
+independently checked against the clean `4ab4d3a` source export. Their source
+inventories match, including the codec benchmark's named helper aliases. Every
+report that declares an upstream commit records the pinned
+`c70274273f489abc73832b2b98584a8483b6b203`. Matrix and control environment
+records both bind accepted Rust to `3307dff` and candidate to `4ab4d3a`.
+This is source/metadata verification, not a remeasurement or independent
+reconstruction of the Python runtime environment.
