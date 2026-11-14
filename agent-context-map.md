@@ -24,7 +24,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **BERT dispatch isolation rejected:** separating BERT parsing into a
   non-inlined helper did not improve Qwen or BERT load in three matched
   processes per binary; the patch was reverted. Tokenizer tests and real-asset
-  probes passed. The combined candidate remains at 77/78 on Linux; the reviewed
+  probes passed. The earlier combined candidate was 77/78 on Linux; the reviewed
   dependency patch is now approved and integrated as described above.
   [Details](docs/results/2026-11-11-phase2-optimization/bert-dispatch-v1.md).
 
@@ -34,9 +34,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   capture shows reallocations 60,376 to 128. Tokenizer tests and four real-asset
   probes pass. Offline comparison confirms all 99 pinned crate files match the
   registry source and only the builder file changes in the PoC; the license is
-  unchanged. Production is unchanged. User review is pending for vendoring
-  the exact pinned version, applying the four-line patch and explicitly changing
-  Cargo's dependency source; full Linux and Apple gates remain pending.
+  unchanged. The user approved and the production integration now passes the
+  Linux gate as described above; Apple validation remains pending.
   [Details](docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md).
 
 - **Qwen load investigation:** accepted/candidate Rust allocation counts were
@@ -44,8 +43,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   parsing and pinned BPE construction at 26.352/32.615 ms. An in-place Unicode
   preprocessing candidate passed parity but regressed matched checked load
   65.693 to 77.133 ms; it was reverted and the release binary restored. The
-  unchanged combined candidate remains 77/78 on Linux. No adaptive acceptance
-  retry was run. [Details](docs/results/2026-11-11-phase2-optimization/qwen-load-investigation-v1.md).
+  earlier combined candidate was 77/78 on Linux. No adaptive acceptance retry
+  was run. [Details](docs/results/2026-11-11-phase2-optimization/qwen-load-investigation-v1.md).
 
 - **Combined candidate Linux gate:** `6c95d21` passed `tools/check.sh --cuda`
   and completed a fresh 45-process matrix plus one predeclared 27-process Qwen
@@ -53,7 +52,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   BERT checked load pass, Qwen decode's initial uncertainty resolves, but Qwen
   checked-load follow-up median ratio **1.05535** exceeds 1.05. All nine paired
   Qwen process medians favor accepted Rust. The failed audit reproduces exactly;
-  investigate load work without retrying or changing limits. Apple remains pending.
+  this is a historical failure; the newer candidate passed as described above.
   [Details](docs/results/2026-11-11-phase2-optimization/combined-linux-gate-v1.md).
 
 - **Packed Q/K/V candidate:** shared decoder packs Q/K/V in one layout before

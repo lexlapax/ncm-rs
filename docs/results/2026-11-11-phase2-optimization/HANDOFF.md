@@ -1,5 +1,11 @@
 # Phase 2 continuation notes
 
+**2026-11-14 update:** the approved vendored BPE optimization is pushed, and
+the [fresh Linux gate](vendored-linux-gate-v1.md) passes 78/78. Apple/MLX work
+is next. A noninteractive SSH attempt reached `macstudio` but the 1Password
+agent refused to sign; remote availability and checkout state are unverified.
+The earlier Linux and clock-diagnostic statuses below are historical.
+
 **2026-11-13 update:** the user approved the clock-only 512-file postflight
 limit and confirmed default GPU clocks with no custom lock or competing
 controller. The limit has been updated and its boundaries tested; see the
@@ -516,7 +522,7 @@ ownership/trust boundary. No dependency, tolerance, schema, goldens or pin chang
 
 ## Completion boundary
 
-Still required: resolve Linux acceptance, qualify Apple shared changes and vectorized
+Still required: qualify Apple shared changes and vectorized
 MLX resampling, complete Apple resource/correctness/performance evidence and both
 final gates, finalize MLX opportunity dispositions and inspect every row of the
 completion audit against the retained final candidate. Earlier Phase 2 acceptance
