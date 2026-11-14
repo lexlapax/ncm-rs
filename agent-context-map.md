@@ -4,7 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Current Apple gate fails:** combined candidate `2df27c3` has a fresh
+- **Current Apple gate fails:** candidate `884d8f6` passes full MLX checks and
+  trained parity, but remains **77/78** after one fixed GPT-2 control: encode
+  median interval upper 1.06574 exceeds 1.05. The decoder block regression is
+  resolved and reconstruction gains are retained. Investigate a substantive
+  GPT-2 improvement; do not repeat the unchanged candidate's gate. [Current Apple gate](docs/results/2026-11-11-phase2-optimization/blocknorm-apple-gate-v1.md).
+
+- **Historical Apple gate:** combined candidate `2df27c3` has a fresh
   69/78 initial audit, including batch-4 resident-block ratio 1.35310 versus
   accepted Rust; fresh trained Metal parity and tokenizer probes pass. The
   initial failure reproduces from clean export. Isolated RMS-only and fast
@@ -21,10 +27,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   and show regressions. A refined normalization/attention candidate also
   passes trained parity. Production candidate `621c565` now passes the Linux
   CUDA check, trained parity and 78/78 gate after one fixed follow-up; its
-  corrected evidence archive reproduces the audit from a clean export. Next is
-  the full Apple check and final gate. Its first check failed Clippy on test-only
-  integer casts; the correction passes targeted Metal tests and Clippy and must
-  be rerun through the full check. [Check evidence](docs/results/2026-11-11-phase2-optimization/raw/blocknorm-mlx-test-fix-v1.tar.xz).
+  corrected evidence archive reproduces the audit from a clean export. Its
+  first Apple check failed Clippy on test-only integer casts; after correction,
+  the full Apple check passes. [Check evidence](docs/results/2026-11-11-phase2-optimization/raw/blocknorm-mlx-test-fix-v1.tar.xz).
   [Linux gate](docs/results/2026-11-11-phase2-optimization/blocknorm-linux-gate-v1.md), [state diagnostics](docs/results/2026-11-11-phase2-optimization/mlx-block-state-v1.md), [Apple initial gate](docs/results/2026-11-11-phase2-optimization/final-mlx-initial-v1.md), [alternatives](docs/results/2026-11-11-phase2-optimization/mlx-block-alternatives-v1.md).
 
 - **Comparator source audit:** all 42 final-Linux and 24 historical-Apple

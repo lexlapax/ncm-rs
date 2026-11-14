@@ -1,8 +1,9 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
 **Latest:** candidate `621c565` passes the Linux CUDA check, trained parity and
-78/78 controlled audit. The prior 69/78 Apple audit predates this code change;
-the final Apple check and gate remain pending. [Linux evidence](blocknorm-linux-gate-v1.md).
+78/78 controlled audit. Runtime-equivalent Apple candidate `884d8f6` passes the
+full MLX check and trained parity but remains 77/78 after one fixed GPT-2
+control. [Linux evidence](blocknorm-linux-gate-v1.md), [Apple evidence](blocknorm-apple-gate-v1.md).
 
 **Historical update:** combined Linux candidate `4ab4d3a` passed 78/78; the newer combined Apple candidate `2df27c3` has a fresh 69/78 initial audit, including resident-block regressions. The committed MLX linear gather at `125d88d` passes trained parity and both hardware checks, but has not completed final acceptance. The additional BERT dependency change has been approved; final gates remain pending. Historical status paragraphs and diagnostic rows below do not supersede these results. [Linux evidence](final-linux-gate-v1.md); [Apple initial gate](final-mlx-initial-v1.md); [MLX evidence](mlx-linear-poc-v1.md); [BERT review](bert-ascii-review-v1.md).
 
