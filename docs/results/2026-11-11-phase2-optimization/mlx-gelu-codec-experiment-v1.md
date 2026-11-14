@@ -15,6 +15,21 @@ after verifying the original codec SHA-256
 and component-test SHA-256
 `886d1ecf2fba7aedd2c5c04334590db0fd2fbf3186eeafab39913fb1e934aef9`.
 
+The isolated Linux checkout passed `tools/check.sh --cuda`, including all 18
+real CUDA operator cases, with a private umask and fresh target. Its codec
+benchmark, trace and lifecycle executables are byte-identical to the previously
+qualified Linux candidate, respectively SHA-256 `925363bce9e04204f27f4035fdc9a305aac40cfd77f5a02d5baffcfb860e20e0`,
+`7dc4cb57ef9a3d0e0eabd496ccdeb35d6fbb1e579cda39278099862ae1701c85` and
+`be60ca9b10ac0d5a3063b0548a25b8b978ac5775183611986ca923d5d14c80ed`.
+Existing Linux quality and 78/78 gate evidence are retained on that binding.
+
+The first Metal focused test failed to compile before running: the test's eager
+reference annotated an `AsSliceError` as an MLX `Exception`. The separate
+[v2 patch](mlx-gelu-codec-experiment-v2.patch) changes only that test error
+type; the runtime patch is identical and the Metal check is pending. The
+[Linux check and failed Metal build logs](raw/mlx-gelu-codec-checks-v1.tar.xz)
+have SHA-256 `dfc03a3a99dc44c45e29a841c2d366b66035462455dae5aecc8b02d187d82e8b`.
+
 Validate Linux/CUDA first, including a build/source binding showing whether
 the Apple-only change affects Linux binaries. On real Metal, first compare
 supported and fallback shapes with the eager expression, including non-finite
