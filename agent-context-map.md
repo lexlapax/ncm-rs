@@ -4,6 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Upstream alignment review:** the clean pinned Python decoder and current
+  Rust/MLX code have corresponding supported block order, with documented FP32
+  evaluation differences and qualified traces. A separately built differential
+  probe compared the prior/current TinyStories parsers on 57 synthetic payloads;
+  outcomes match, but this is not a Python oracle or exhaustive proof. An initial
+  shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
+
 - **Evidence reconciliation:** the current 32-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
