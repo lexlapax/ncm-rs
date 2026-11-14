@@ -369,12 +369,36 @@ intermittent observer mismatches or exercise a root supervisor. Five further
 consecutive executions of the same test passed (2.402–2.419 seconds each);
 private JSON log `/tmp/ncm-clock-handoff-diagnostic-20261113.json` SHA-256
 `840a5a17f728d330754101770bb4376804aa375eea01a5a13233ba3b5319bac8`.
+A further bounded batch of twenty consecutive runs passed; its private log
+`/tmp/ncm-clock-handoff-diagnostic-20261113-v2.json` has SHA-256
+`fd00ca4429f16d30f3ad5186a4a43b491cdff551d4ca7402119b80840ea309b7`.
 These passes do not explain or discard the retained failures.
 
 A CPU-only dropped-user access probe has been prepared and requested from the
 user. `/tmp/ncm-root-worker-access-v1.py` SHA-256
 `0413e7a1bb3452fc29bcbfbdffc0eca3a8a2cd1a584fc5ff28795181569c9`
-checks access to a fake root-owned obligation and its parent process metadata;
-its result is pending. An unprivileged invocation rejected itself as intended.
-It performs no GPU or real policy action and does not implement the supervisor.
+checks access to a fake root-owned obligation and its parent process metadata.
+The user reported root UID 0 and dropped worker UID/GID 1000: the parent cmdline
+and children were readable, while its environment and executable stat failed
+with `PermissionError:13`; the root-owned obligation also failed with that error
+and its directory owner did not match the worker. A transcription of the user
+output is retained at `/tmp/ncm-root-worker-access-v1-user-output.json` (SHA-256
+`fb1946c41f4a87bba3069d7f443cc55db95b5438f0b8420caff48b96a2df35c8`);
+it is user-reported output, not a root-signed receipt. An unprivileged invocation
+rejected itself as intended. The probe performed no GPU or real policy action
+and does not implement the supervisor.
+
+The role binder also reads private launch evidence through `Evidence`, which
+requires files and directories owned by the inspecting real UID. A privileged
+reader cannot simply consume the ordinary user's private launch snapshot under
+that contract. The coordinator captures a direct restorer child and finalization
+uses matching lifecycle and receipt identities; an intervening sudo monitor
+therefore needs explicit treatment, not an assumed PID substitution. An eventual
+design must bind trusted reviewed bytes before executing as root, ensure fake
+set/reset remains owned by the surviving privileged restorer, preserve a
+normal-user benchmark identity (including groups, capabilities and output
+ownership), and authenticate every cross-boundary handoff. It must test parent
+loss, signal/timeout cleanup and final receipts before any real policy action.
+These are design requirements, not implemented mechanisms or a claim that a
+privileged bootstrap can safely import a user-writable tree.
 Nothing here selects an architecture or authorizes a real clock change.

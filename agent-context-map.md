@@ -98,11 +98,12 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   fake marker probe confirmed a root child started and received SIGTERM; it does
   not prove complete privileged cleanup, parent-loss handling or restoration.
   Local no-TTY probes failed to authenticate. A fresh CPU-only 18-job handoff
-  test passed once, followed by five consecutive passing CPU-only runs; these do
-  not resolve prior intermittent mismatches. A root/ordinary-user process-access
-  probe was prepared and requested; its result is pending. The handoff
-  requires its restoration directory to be owned by the worker effective user,
-  a constraint on a root-supervisor/unprivileged-worker design. [Probe evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#potential-terminal-owned-process-group-probe).
+  test passed once, followed by five and then twenty consecutive passing CPU-only
+  runs; these do not resolve prior intermittent mismatches. The user-run root/ordinary-user
+  access probe found the fake root obligation, parent environment and parent
+  executable inaccessible to UID 1000; parent command and children remained
+  readable. Root/user handoff, evidence ownership and direct-child bindings
+  therefore need a redesigned and tested privilege boundary. [Probe evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#potential-terminal-owned-process-group-probe).
   A separate unprivileged PTY probe found that a new process group retained its
   controlling TTY while a new session did not; this does not prove sudo cache or
   privileged cleanup. [Evidence](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#unprivileged-tty-topology-observation).
