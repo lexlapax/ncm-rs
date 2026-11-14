@@ -4,6 +4,17 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Dedicated-worker privilege drop:** `clock_drop_privileges.py` provides an
+  import-only Linux `-S` child transition: reject unexpected descriptors, set
+  `no_new_privs`, switch supplementary groups and all GIDs/UIDs, and sample
+  credentials. Any post-transition error terminates that child. Thirteen combined
+  focused tests pass, including mocked failures and a real extra-descriptor check.
+  Default checks passed 459 reporting tests (started before the extra-descriptor
+  test was added). A checksum-bound CPU-only sudo test was requested and is pending. This changes
+  the candidate worker's inherited security state and is not wired to the role
+  entry; trusted identity/source, restoration, handoff, performance effects and
+  hardware gates remain unproved. [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#dedicated-worker-privilege-drop).
+
 - **Collector-command investigation:** an instrumented CPU-only stress batch
   reproduced the mismatch on run 28, job 11. Follow-up still saw the collector's
   command and executable; procfs reported `running`, so the syscall could not be

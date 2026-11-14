@@ -9,10 +9,13 @@ import sys
 import threading
 from pathlib import Path
 
-from readonly_trace_preflight import require
-
 STATUS_LIMIT = 65536
 CAPABILITY_FIELDS = ('CapInh', 'CapPrm', 'CapEff', 'CapAmb')
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
 
 
 def _credentials(raw):

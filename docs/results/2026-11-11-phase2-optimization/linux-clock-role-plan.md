@@ -471,3 +471,38 @@ command reads, verifies an immediate failed receipt, zero accepted samples and
 `94a6305bd35700c1d3b6daefb7b77a5908e211a36452a5ab306ea1e5ef599911`.
 This focused pass does not resolve the retained full-check failure, establish a
 safe startup barrier, or make the diagnostic ready to run.
+
+
+### Dedicated-worker privilege drop
+
+`clock_drop_privileges.drop_and_verify` is an import-only component intended for
+an already authenticated, disposable, single-threaded Linux `-S` worker. It
+requires a fully root real/effective/saved UID/GID, a supplied non-root target,
+and no extra open descriptors; sets `no_new_privs`, supplementary groups, all
+GIDs, then all UIDs; verifies the sampled identity and active capabilities; and
+checks `no_new_privs`. Any exception after starting the transition terminates
+that child with exit 125, rather than returning from a partial drop. The target
+identity, trusted source, standard descriptors and process ancestry must be
+validated by its caller. `no_new_privs` is inherited by descendants and is a
+candidate change to the worker security environment; its compatibility with
+actual workloads and performance measurements is not established. It is not
+wired to a live role or a GPU policy command.
+
+`clock_unprivileged_identity` now uses its own small validation function rather
+than importing the larger preparation dependency tree into a potential root
+process. Thirteen focused CPU-only tests passed for the combined modules; these
+include simulated success and failure ordering, fatal partial failures, a real
+open-descriptor rejection, and a read of this unprivileged process's credentials.
+The full `umask 077 && CARGO_BUILD_JOBS=4 ./tools/check.sh` run passed 459
+reporting tests; its private log `/tmp/ncm-worker-drop-check-v1.log` has SHA-256
+`c487ac109162ce6c5d91eb136b7df2399d9557652006236c99457c65ddd2dfc3`. It
+started before the real-descriptor regression was added, which passed separately
+in the focused run. The earlier full-check mismatch remains unexplained.
+These tests do not execute a real root-to-user transition. A separate checksum-bound
+CPU-only user-run test has been requested; `/tmp/ncm-root-drop-fake-v1.py` has
+SHA-256 `027796e4beeb79fdaed0223bcc08f31c77cb6ef28767626d06149d741c642902`
+and verifies exact helper hashes before a fake fork/drop/exec. Its result is
+pending. An unprivileged invocation rejected itself. Full integration, process
+access between root and user, safe coordinator ancestry, trustworthy input and
+output ownership, parent-loss cleanup, GPU restoration and both target gates
+remain outstanding; this is not launch authorization.
