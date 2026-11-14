@@ -4,16 +4,14 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Approved Qwen BPE optimization:** vendored the checksum-verified pinned
-  `tokenizers` 0.22.2 crate with its Apache-2.0 license, changing only merge
-  string allocation and Cargo's source binding. The 19 tokenizer tests and
-  all four real-asset probes pass; benchmark source inventories include the
-  patched file. `tools/check.sh --cuda` passes under umask 077, including 482
-  reporting tests and 18 CUDA operator cases; a default-umask run failed three
-  clock-fixture tests. A fresh performance gate is next; Apple remains pending
-  until Linux passes. The previous 77/78 result is historical, not a pass for
-  this candidate.
-  [Details](docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md).
+- **Linux Phase 2 gate passes:** candidate `582e8fe`, including the approved
+  pinned BPE allocation optimization, passes 78/78 after one predeclared
+  codec/Qwen follow-up; the initial audit was 75/78. The Qwen checked-load
+  follow-up median ratio versus accepted Rust is 0.95573. CUDA check passes
+  under umask 077; an earlier umask 022 fixture failure is retained. Next is
+  Apple/MLX: `macstudio` accepted the public key but the 1Password SSH agent
+  refused signing, so availability and remote state remain unverified.
+  [Details](docs/results/2026-11-11-phase2-optimization/vendored-linux-gate-v1.md).
 
 - **Packed Q/K/V pool follow-up:** an offline audit of both retained archives
   shows the isolated B2 reservation first rises in reconstruction, not

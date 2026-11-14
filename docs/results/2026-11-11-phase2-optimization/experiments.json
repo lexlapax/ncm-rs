@@ -86,9 +86,9 @@
     },
     {
       "id": "qwen-bpe-builder-reserve-poc",
-      "status": "user-approved vendored integration; fresh Linux and Apple gates pending",
+      "status": "user-approved vendored integration; Linux gate 78/78; Apple gate pending",
       "hypothesis": "Reserve the exact combined merge-token string capacity in the pinned BPE builder, avoiding growth reallocations without changing token semantics.",
-      "finding": "Isolated proof of concept: three matched Qwen processes per binary, median checked load 66.101 to 63.420 ms; one Rust allocator capture, reallocations 60376 to 128. The approved pinned vendored integration passes 19 tokenizer tests and all four real-asset profile probes; performance gates remain pending.",
+      "finding": "Isolated proof of concept: three matched Qwen processes per binary, median checked load 66.101 to 63.420 ms; one Rust allocator capture, reallocations 60376 to 128. The approved pinned vendored integration passes 19 tokenizer tests and all four real-asset profile probes; Linux controlled audit passes 78/78; Apple gate pending.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md"
     },
     {
