@@ -29,3 +29,18 @@ The controlled audit SHA-256 is
 reproduced byte-for-byte with the archived controlled configuration. A 15-second
 CPU sample and continuous GPU telemetry are retained; they do not certify a
 quiet workstation. Apple final acceptance remains required.
+
+## Clean-export reproduction and source binding
+
+Exported the exact tested commit `4ab4d3a` using `git archive` into an empty
+temporary directory, extracted the published raw archive there, and ran
+`python3 tools/bench/audit_phase2_performance.py
+reports/phase2-final-linux-gate-v1/controlled-config.json NEW_OUTPUT`. The
+result passes 78/78 and matches the archived audit byte-for-byte (SHA-256
+above). Independently checked each path and SHA-256 in all **84 native Rust
+report source inventories** in the matrix and follow-up against the clean
+candidate export or clean `3307dff` baseline worktree; there were no
+mismatches. The CUDA package's normal dependency tree contains no tokenizer
+package, supporting reuse of its byte-identical codec binary and trained
+qualification after the tokenizer-only change. This is an offline audit, not
+a new measurement or Apple qualification.
