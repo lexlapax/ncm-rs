@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Memory branch for new projection:** the existing fixed 384-request MLX
+  probe is prepared against `a323b16`; Linux formatting and workspace checks
+  pass, but it has not run on Metal for this runtime. Run after the Apple
+  timing gate and report finite results with host memory separately. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-memory-addmm-plan-v1.md).
+
 - **MLX projection-bias candidate:** pinned MLX addmm preserves the projection
   plus bias operation, with fallback for other shapes. Linux CUDA checks pass
   and five executables match the 78/78 candidate. Full Metal checks and 642
