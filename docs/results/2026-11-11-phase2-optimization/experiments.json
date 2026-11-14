@@ -142,8 +142,8 @@
     },
     {
       "id": "mlx-fast-norm-compile-attention",
-      "status": "fast normalization deferred after mixed full-model diagnostics; compile and attention remain conditional",
-      "finding": "Fast layer/RMS normalization passes 642 trained traces but batch-2/4 encode and batch-4 reconstruction regress 8–9% in the three-process diagnostic, despite resident-block improvements.",
+      "status": "fast normalization and pure compilation deferred after diagnostics; attention remains conditional",
+      "finding": "Fast layer/RMS normalization passes 642 trained traces but batch-2/4 encode and batch-4 reconstruction regress 8–9% in the three-process diagnostic, despite resident-block improvements. Pure compiled layer norm saves 0.03–0.04 ms warm but first calls reach 509 ms; full-model benefit and bounded caches remain unproven.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-fastnorm-poc-v1.md",
       "constraints": "Explicit array inputs for compilation; bounded shapes; first-call cost and numerical parity required."
     },

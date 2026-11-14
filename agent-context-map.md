@@ -4,6 +4,15 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Combined candidate Linux gate passes:** `4ab4d3a` passes 78/78 after one
+  fixed codec/GPT-2/Qwen follow-up (initial 74/78); full CUDA check and four
+  tokenizer probes pass. The audit reproduces byte-for-byte. Apple final gate
+  is next, but the 1Password SSH agent again refused to sign; availability and
+  competing work must be rechecked after access returns. [Evidence](docs/results/2026-11-11-phase2-optimization/final-linux-gate-v1.md).
+- **MLX compilation deferred:** a pure explicit-input normalization graph saved
+  roughly 0.03–0.04 ms warm but first calls reached 509 ms; full-model benefit,
+  bounded cache and trained parity remain unproven. [Details](docs/results/2026-11-11-phase2-optimization/mlx-compile-poc-v1.md).
+
 - **MLX fast normalization deferred:** isolated fast layer/RMS normalization
   passes Metal tests and trained parity, but matched full-model diagnostics
   show batch-2/4 encode and batch-4 reconstruction regressions despite faster
