@@ -9,8 +9,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   shortcut preserves tested splits/offsets and passes full CUDA/MLX checks;
   matched GPT-2 encode diagnostics improve 4.5% Linux / 6.5% Mac; all 12
   diagnostic source inventories and output hashes verify from clean exports.
-  The exact reviewed patch is being integrated; fresh Linux then Apple quality
-  and performance gates remain required. [Patch and evidence](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md).
+  The reviewed patch is integrated as `1f7d2a8`; Linux passes fresh **78/78**
+  on the initial matrix, tokenizer probes pass, and byte-identical CUDA codec
+  binaries retain trained parity. Next is final Apple validation. [Review](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md), [Linux gate](docs/results/2026-11-11-phase2-optimization/bytelevel-final-linux-gate-v1.md).
 
 - **Completion checklist reconciled:** current Linux and Apple checks, gate
   outcomes, lifecycle evidence, source reproduction, and targeted MLX
@@ -18,7 +19,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   Apple 36-load/drop memory diagnostics are now linked with their older-source
   limitation; current long-lived cache behavior remains unproven. [Checklist](docs/results/2026-11-11-phase2-optimization/completion-audit.md).
 
-- **Current Apple gate fails:** candidate `884d8f6` passes full MLX checks and
+- **Prior Apple gate fails:** candidate `884d8f6` passes full MLX checks and
   trained parity, but remains **77/78** after one fixed GPT-2 control: encode
   median interval upper 1.06574 exceeds 1.05. The decoder block regression is
   resolved and reconstruction gains are retained. The approved GPT-2 patch

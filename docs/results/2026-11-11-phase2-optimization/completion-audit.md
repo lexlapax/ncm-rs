@@ -1,9 +1,9 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
-**Approved follow-up:** the user approved the [GPT-2 byte-level dependency
-patch](gpt2-bytelevel-review-v1.md). The changed tokenizer requires fresh
-Linux-first performance and quality gates and a new Apple gate; historical
-78/78 and 77/78 results remain evidence for the prior candidate.
+**Latest:** the user approved the [GPT-2 byte-level dependency patch](gpt2-bytelevel-review-v1.md).
+Candidate `1f7d2a8` passes the fresh [Linux 78/78 gate](bytelevel-final-linux-gate-v1.md);
+the new Apple check and gate remain pending. Historical results belong to the
+prior candidate.
 
 **Latest:** candidate `621c565` passes the Linux CUDA check, trained parity and
 78/78 controlled audit. Runtime-equivalent Apple candidate `884d8f6` passes the
