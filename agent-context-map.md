@@ -4,6 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Experimental branch only:** an MLX decoder affine-normalization proposal
+  has passed isolated Linux CUDA checks; five Linux executables match the
+  qualified candidate byte-for-byte. It has not been run or qualified on Metal
+  and is not accepted for main. Preserve upstream-equivalent semantics and
+  existing tolerances; evaluate the targeted Metal path and a matched diagnostic
+  before promotion. [Experiment](docs/results/2026-11-11-phase2-optimization/mlx-affine-experiment-v1.md).
+
 - **Current Apple gate:** SSH restored and Mac checkout fast-forwarded. Current
   candidate passes the full MLX check, 642 trained traces/2,500 decisions and
   four tokenizer probes; its initial Apple matrix is **69/78** and fixed
