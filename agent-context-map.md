@@ -4,6 +4,18 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Worker identity evidence:** the worker writes a new private, bounded version-1
+  `worker-identity.json` record before sequence setup, and a separate offline
+  validator binds its declared identity and clock/PID to supplied worker and
+  sequence receipts. Thirty-two focused tests pass, including a real CPU-only child
+  writer/reader transport. Default checks passed 475 reporting tests; the later
+  real `no_new_privs` FFI test passed separately. The initial fixture used fractional timestamps and
+  failed strict integer validation; corrected fixture passes. This is a new
+  artifact, not a change to existing schemas; the finalizer does not yet consume
+  it and neither target nor producer is authenticated. Root/user output ownership,
+  real privilege drop, launch entry, policy restoration and hardware gates remain.
+  [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#worker-identity-evidence).
+
 - **Worker privilege-drop wiring:** the import-only worker wrapper refuses mixed
   or root credentials without an explicit target, checks its armed handoff, then
   drops root and verifies the resulting IDs/groups/capabilities before building
@@ -11,8 +23,9 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   Twenty-one combined focused tests pass; the new wrapper tests stub the actual
   drop and sequence. Default checks passed 464 reporting tests, begun before the
   final focused test additions. Target identity authentication, a root-owned launch snapshot,
-  user-owned outputs, persisted credential evidence, role-entry integration and
-  a real root transition remain pending. The existing checksum-bound CPU-only sudo test is still pending.
+  user-owned outputs, postflight identity evidence integration, role-entry integration and
+  a real root transition remain pending. The user-run CPU-only sudo test exited
+  125 during the drop; no step was identified and a stage diagnostic is pending.
   [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#worker-privilege-drop-wiring).
 
 - **Dedicated-worker privilege drop:** `clock_drop_privileges.py` provides an
@@ -21,7 +34,8 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   credentials. Any post-transition error terminates that child. Thirteen combined
   focused tests pass, including mocked failures and a real extra-descriptor check.
   Default checks passed 459 reporting tests (started before the extra-descriptor
-  test was added). A checksum-bound CPU-only sudo test was requested and is pending. This changes
+  test was added). The checksum-bound CPU-only sudo test exited 125 during the
+  transition; stage diagnostics are pending. This changes
   the candidate worker's inherited security state and is not wired to a launch
   entry; trusted identity/source, restoration, handoff, performance effects and
   hardware gates remain unproved. [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#dedicated-worker-privilege-drop).

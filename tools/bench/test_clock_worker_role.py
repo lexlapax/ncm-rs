@@ -35,6 +35,7 @@ class WorkerRoleTests(unittest.TestCase):
             patch.object(worker,'validate_snapshot',side_effect=lambda x:x),
             patch.object(worker,'validate_handoff',return_value=1234.5),
             patch.object(worker,'drop_and_verify'),
+            patch.object(worker,'write_identity_evidence'),
             patch.object(worker,'verify_unprivileged',return_value={
                 'sampled_unprivileged_identity_verified':True,'launch_ready':False}),
             patch.object(worker,'process_factory',return_value=self.factory),
@@ -52,6 +53,8 @@ class WorkerRoleTests(unittest.TestCase):
         self.assertEqual(self.run_role()['status'],'complete')
         worker.verify_unprivileged.assert_called_once_with(1000,1000,(1000,))
         worker.drop_and_verify.assert_not_called()
+        worker.write_identity_evidence.assert_called_once_with(self.collection,1000,1000,(1000,),
+                                                              require_no_new_privs=False)
         handoff=worker.validate_handoff.call_args
         self.assertEqual(handoff.kwargs['parent_pid'],200)
         self.assertEqual(handoff.args[0],self.collection/'restoration/obligation.json')
@@ -95,6 +98,8 @@ class WorkerRoleTests(unittest.TestCase):
         self.assertEqual(self.run_role(privilege_target=target)['status'],'complete')
         worker.drop_and_verify.assert_called_once()
         worker.verify_unprivileged.assert_called_once_with(1000,1000,(1000,1001))
+        worker.write_identity_evidence.assert_called_once_with(self.collection,1000,1000,(1000,1001),
+                                                              require_no_new_privs=True)
         worker.run_sequence.assert_called_once()
 
     def test_drop_failure_and_mixed_credentials_never_start_work(self):
@@ -128,6 +133,12 @@ class WorkerRoleTests(unittest.TestCase):
         worker.verify_unprivileged.side_effect=ValueError('active capability')
         with self.assertRaisesRegex(ValueError, 'active capability'): self.run_role()
         worker.drop_and_verify.assert_not_called()
+        worker.process_factory.assert_not_called(); worker.run_sequence.assert_not_called()
+
+    def test_identity_evidence_failure_stops_before_work(self):
+        worker.write_identity_evidence.side_effect=OSError('identity write failed')
+        with self.assertRaisesRegex(OSError, 'identity write failed'): self.run_role()
+        worker.verify_unprivileged.assert_called_once()
         worker.process_factory.assert_not_called(); worker.run_sequence.assert_not_called()
 
     def test_parent_loss_callback_is_not_overridden(self):

@@ -501,8 +501,16 @@ in the focused run. The earlier full-check mismatch remains unexplained.
 These tests do not execute a real root-to-user transition. A separate checksum-bound
 CPU-only user-run test has been requested; `/tmp/ncm-root-drop-fake-v1.py` has
 SHA-256 `027796e4beeb79fdaed0223bcc08f31c77cb6ef28767626d06149d741c642902`
-and verifies exact helper hashes before a fake fork/drop/exec. Its result is
-pending. An unprivileged invocation rejected itself. Full integration, process
+and verifies exact helper hashes before a fake fork/drop/exec. The user ran it;
+the fake child exited with raw wait status 32000 (exit 125), so the helper
+terminated during its transition and the failing step is unknown. No GPU or
+real policy action ran. An unprivileged invocation rejected itself. A second
+checksum-bound fake harness `/tmp/ncm-root-drop-diagnostic-v2.py`, SHA-256
+`265e207d6a6a6b8573d403014c5d01c7509aa686fb1c9ef1782d313aa2f21a66`,
+adds fixed stage/error-type diagnostics around the same pinned helpers. Its
+user-run result is pending. A separate disposable ordinary-user subprocess set
+and read back `no_new_privs` using the actual helper FFI successfully; this does
+not exercise the root-to-user transition. Full integration, process
 access between root and user, safe coordinator ancestry, trustworthy input and
 output ownership, parent-loss cleanup, GPU restoration and both target gates
 remain outstanding; this is not launch authorization.
@@ -518,8 +526,8 @@ handoff checks, a root worker invokes `drop_and_verify`; its returned flags and
 current IDs/groups are checked, then the resulting identity is sampled again
 before building observers or starting any jobs. An ordinary worker also gets the
 sampled non-root/zero-active-capability check. The target remains a declaration:
-this wrapper does not authenticate it. The sampled identity is not persisted or
-checked by postflight, so it cannot yet support final qualification. No workload,
+this wrapper does not authenticate it. The worker now persists a separate identity
+sample, but postflight does not yet consume it, so it cannot yet support final qualification. No workload,
 policy command or GPU access is performed by the new wrapper tests.
 
 Twenty-one focused tests across worker, drop and identity modules pass, including
@@ -531,7 +539,51 @@ It started before the last focused test additions, which passed separately.
 The prior intermittent observer failure remains unexplained. The wrapper integration tests stub the drop and sequence: they do not
 establish a real root-to-user transition, trusted bootstrap, safe root/user file
 ownership, actual process ancestry, benchmark comparability under `no_new_privs`,
-parent-loss restoration, or launch readiness. The checksum-bound user-run fake
-root transition is still pending. The existing entry and both hardware gates
+parent-loss restoration, or launch readiness. The user-run fake root transition
+exited 125; stage diagnostics are pending. The existing entry and both hardware gates
 remain unfinished; no diagnostic deadlines, telemetry or acceptance thresholds
 were changed.
+
+
+### Worker identity evidence
+
+The import-only worker wrapper now writes one new, exclusive, private and bounded
+`worker-identity.json` artifact in the already-existing user-owned collection
+root before building observers or starting jobs. The explicit new schema version
+1 records the supplied UID/GID/supplementary groups, whether `no_new_privs` was
+required and sampled, process/parent IDs and bracketed sample clocks. It asserts
+only sampled unprivileged identity; target authentication, continuous identity
+and launch readiness remain false. The writer requires a canonical 0700 directory
+owned by the current real UID, 0600 exclusive output, at most 1,024 groups and a
+16 KiB record. A failed write stops work. Existing artifact schemas, telemetry,
+clock deadlines, collection budgets and acceptance thresholds are unchanged.
+
+`validate_clock_worker_identity.validate` is an offline, no-IO consistency check
+against a separately supplied identity declaration, owned worker receipt and
+sequence lifetime. It verifies PID/parent, ordered clock brackets, the sample's
+scope and the required `no_new_privs` state. It cannot authenticate the target or
+producer, verify uninterrupted credentials, or establish GPU behavior. The
+finalizer does not yet consume this new artifact; its target declaration must be
+bound to a trusted launch before any final qualification claim.
+
+Thirty-two focused worker, credential, drop and evidence tests pass, including an
+actual CPU-only child writing evidence that binds to its reaped capture receipt
+and a later fake sequence clock. Tampering, mode/ownership, conflicting output,
+identity mismatch, `no_new_privs`, failed receipt and timing cases reject. An
+initial synthetic validator fixture used fractional nanoseconds and failed the
+existing integer-clock guard; it was corrected to integer clocks and the focused
+suite passed. The user-run real root-to-user fake test exited 125; stage diagnostics
+remain pending. None of these results proves privileged handoff, root/user output ownership, hardware
+restoration or Linux/Apple phase gates.
+
+The full-check run `/tmp/ncm-worker-identity-evidence-check-v2.log` was
+interrupted deliberately when the user paused the goal; it is not a passing
+check. The earlier full run passed 472 reporting tests before the writer/
+validator split and subsequent focused refinements. After resumption, the final
+writer/validator layout passed `umask 077 && CARGO_BUILD_JOBS=4 ./tools/check.sh`
+with 475 reporting tests. Its private log
+`/tmp/ncm-worker-identity-evidence-check-v3.log` has SHA-256
+`b527fc9114f6c170d13f5dffb0b36a5166f949013f5d3624b3e764ece2cbe62f`.
+The ordinary-user `no_new_privs` FFI regression was added after that run began
+and passed separately. The prior intermittent observer failure and failed real
+root transition remain retained and unexplained.

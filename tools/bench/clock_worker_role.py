@@ -14,6 +14,7 @@ from clock_process_observation import process_factory
 from clock_role_binding import inspect as inspect_binding
 from clock_role_plan import role_plan
 from clock_worker_handoff import validate_handoff
+from clock_worker_identity_evidence import write as write_identity_evidence
 from clock_unprivileged_identity import verify as verify_unprivileged
 from compare_clock_snapshots import validate as validate_snapshot
 from readonly_trace_preflight import require
@@ -71,6 +72,7 @@ def run(*, launch, snapshot_sha256, coordinator_pid, coordinator_argv, gpu_uuid,
     identity = verify_unprivileged(uid, gid, groups)
     require(isinstance(identity, dict) and identity.get('sampled_unprivileged_identity_verified') is True
             and identity.get('launch_ready') is False, 'worker identity unverified')
+    write_identity_evidence(collection,uid,gid,groups,require_no_new_privs=privileged)
     injection_path=str(root/'.reference/phase2-cupti/libcupti_trace_injection.so')
     injection=[v for v in snapshot['native']['file_identities'] if v['path']==injection_path]
     require(len(injection)==1, 'one frozen injection identity required')

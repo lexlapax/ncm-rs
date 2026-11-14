@@ -1,6 +1,8 @@
 """Synthetic tests for the dedicated worker drop; no GPU or real privilege change."""
 from types import SimpleNamespace
 import os
+from pathlib import Path
+import subprocess
 import sys
 import unittest
 from unittest.mock import patch
@@ -82,6 +84,16 @@ class DropTests(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == 'linux', 'Linux proc descriptors required')
 class DescriptorTests(unittest.TestCase):
+    def test_real_prctl_in_disposable_unprivileged_child(self):
+        source = str(Path(__file__).resolve().parent)
+        program = (f"import sys; sys.path.insert(0,{source!r}); "
+                   "import clock_drop_privileges as d; "
+                   "assert d._prctl(d.PR_SET_NO_NEW_PRIVS,1)==0; "
+                   "assert d._prctl(d.PR_GET_NO_NEW_PRIVS,0)==1")
+        result = subprocess.run([sys.executable, '-S', '-c', program], capture_output=True,
+                                text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_real_open_descriptor_is_rejected(self):
         read_fd, write_fd = os.pipe()
         try:
