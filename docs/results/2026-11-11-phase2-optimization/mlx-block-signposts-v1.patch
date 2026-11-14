@@ -1,0 +1,65 @@
+--- a/crates/ncm-backend-mlx/examples/mlx_block_segments.rs
++++ b/crates/ncm-backend-mlx/examples/mlx_block_segments.rs
+@@ -9,7 +9,32 @@
+ use serde_json::{Value, json};
+ use std::{collections::BTreeMap, error::Error, fs, path::Path, time::Instant};
+ type Result<T> = std::result::Result<T, Box<dyn Error>>;
++// Diagnostic-only C shim: all calls occur on the main benchmark thread after
++// initialization; interval begin/end pairs do not overlap.
++#[allow(unsafe_code)]
++mod trace_marker {
++    unsafe extern "C" {
++        fn ncm_marker_init();
++        fn ncm_marker_begin(batch: u32, sequence: u32);
++        fn ncm_marker_graph_end(batch: u32, sequence: u32);
++        fn ncm_marker_end(batch: u32, sequence: u32);
++    }
++    pub fn init() {
++        unsafe { ncm_marker_init() }
++    }
++    pub fn begin(batch: u32, sequence: u32) {
++        unsafe { ncm_marker_begin(batch, sequence) }
++    }
++    pub fn graph_end(batch: u32, sequence: u32) {
++        unsafe { ncm_marker_graph_end(batch, sequence) }
++    }
++    pub fn end(batch: u32, sequence: u32) {
++        unsafe { ncm_marker_end(batch, sequence) }
++    }
++}
++
+ thread_local! {
++    static BLOCK_SEQUENCE: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+     static BLOCK_SEGMENTS: std::cell::RefCell<Vec<(f64, f64)>> = std::cell::RefCell::new(Vec::with_capacity(36));
+ }
+ fn memory() -> Result<Value> {
+@@ -94,12 +119,21 @@
+             })
+         }
+         "resident_decoder_block" => {
++            let sequence = BLOCK_SEQUENCE.with(|value| {
++                let sequence = value.get();
++                value.set(sequence + 1);
++                sequence
++            });
++            let batch = u32::try_from(batch)?;
++            trace_marker::begin(batch, sequence);
+             let start = Instant::now();
+             let value = model.decoder_block(latent)?;
+             let graph_ms = start.elapsed().as_secs_f64() * 1000.;
++            trace_marker::graph_end(batch, sequence);
+             let start = Instant::now();
+             b.evaluate(std::slice::from_ref(&value))?;
+             let eval_ms = start.elapsed().as_secs_f64() * 1000.;
++            trace_marker::end(batch, sequence);
+             BLOCK_SEGMENTS.with(|v| v.borrow_mut().push((graph_ms, eval_ms)));
+             Ok(Output {
+                 floats: vec![value],
+@@ -234,6 +268,7 @@
+     {
+         return Err("unpinned artifact".into());
+     }
++    trace_marker::init();
+     let b = MlxBackend::gpu()?;
+     memory::clear_cache()?;
+     memory::reset_peak_memory()?;
