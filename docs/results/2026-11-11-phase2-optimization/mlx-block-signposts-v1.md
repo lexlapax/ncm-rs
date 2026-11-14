@@ -30,10 +30,21 @@ instrumented process, not an explanation for all gate failures. In particular,
 the trace does not establish whether the additional delay came from CPU
 submission, scheduling, queueing, contention or another cause.
 
-The [report, target-process marker and GPU tables, analysis and output](raw/mlx-block-signposts-v1.tar.xz)
-have SHA-256 `8aab10b509a4212c786dea50b766f38bd1c1051ff9e4e3487c454a9db2166641`.
-Extract the archive in a temporary directory and run `python3 analyze.py` to
-reproduce the checks and figures. The full system trace, which includes other
+An additional offline inspection joined the overlapping GPU intervals to the
+Metal submission table by command-buffer ID. The matching submission records
+begin **before** the respective block markers: 0.6904 ms before the slow marker
+and 0.7406/0.7314 ms before the two near-median markers. Another submission
+record overlaps each marker, so simply attributing all overlap to the current
+block would be misleading. Two nested target-process driver intervals also
+overlap each marker; their approximately 0.06–0.07 ms durations are similar
+across these three trials, but their identity was not bound to the GPU command
+buffer. These observations narrow the question; they do not prove where the
+additional wait originated.
+
+The [report, target-process marker, GPU, submission and driver tables, analyses and outputs](raw/mlx-block-signposts-v1.tar.xz)
+have SHA-256 `e6d2ef7dd48a7c9cb1ec8f3d4b335dab8a290b4ad6e60ce822b1ee1a2261be96`.
+Extract the archive in a temporary directory and run `python3 analyze.py` and
+`python3 analyze-submissions.py` to reproduce the figures. The full system trace, which includes other
 process metadata, remains on the Mac at `.reference/phase2-mlx-signposts-trace-v1.trace`.
 The exported GPU table contains only the target process; the retained marker
 table contains the target's diagnostic markers. No clocks or power settings

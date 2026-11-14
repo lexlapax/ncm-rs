@@ -7,7 +7,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **Marked Metal trace:** an isolated `ddde851` diagnostic with block signposts
   built and aligned 108 calls. One instrumented B4 slow trial had similar graph
   time, longer synchronous evaluation and higher recorded CPU-to-GPU latency;
-  one trace does not prove the cause or gate outcome. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-block-signposts-v1.md).
+  its GPU command-buffer submission record begins before the block marker.
+  One trace does not prove the cause or gate outcome. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-block-signposts-v1.md).
 
 - **Metal trace feasibility:** one bounded instrumented run produced 9,171 GPU
   interval records, but no slow B4 block trial; existing durations cannot align
