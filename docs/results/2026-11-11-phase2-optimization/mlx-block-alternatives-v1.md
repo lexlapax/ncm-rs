@@ -110,6 +110,10 @@ cases pass. The initial wrapper-enabled check could not start `sccache` in this
 environment. The CUDA codec executables changed, so fresh trained parity and
 the Linux performance gate were run; both now pass for `621c565` as recorded
 in the [Linux gate report](blocknorm-linux-gate-v1.md). The newly added direct
-Metal normalization regression and final Apple gate have not run yet.
+Metal normalization regression now passes in the isolated worktree. The first
+full Mac check failed Clippy on test-only integer casts; the correction passes
+targeted Clippy and all four Metal operator tests. The full Mac check and final
+Apple gate must be rerun. [Check logs](raw/blocknorm-mlx-test-fix-v1.tar.xz)
+have SHA-256 `0e5d11156893bfebef05a9c599511e0a306cf5b0b698eb7a404c5ca2b697dc25`.
 [Linux check, CUDA report and binary identities](raw/mlx-blocknorm-linux-check-v1.tar.xz)
 have SHA-256 `39bf25bce3931ca3cde02f641c850139c7bc4c0b16f0a6477055d2ebf022c80e`.

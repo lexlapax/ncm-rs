@@ -59,7 +59,7 @@ fn linear_gather_matches_scalar_geometry_on_real_metal() -> Result<()> {
 #[test]
 fn accelerated_layer_norm_matches_composition_on_real_metal() -> Result<()> {
     with_device(Device::gpu(), || {
-        for (batch, length, width) in [(1, 89, 256), (4, 89, 256), (2, 7, 33)] {
+        for (batch, length, width) in [(1_usize, 89_usize, 256_usize), (4, 89, 256), (2, 7, 33)] {
             let data: Vec<f32> = (0..batch * length * width)
                 .map(|i| ((i * 73 % 509) as f32 - 254.) / 37.)
                 .collect();
