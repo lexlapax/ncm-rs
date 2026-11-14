@@ -41,10 +41,20 @@ across these three trials, but their identity was not bound to the GPU command
 buffer. These observations narrow the question; they do not prove where the
 additional wait originated.
 
-The [report, target-process marker, GPU, submission and driver tables, analyses and outputs](raw/mlx-block-signposts-v1.tar.xz)
-have SHA-256 `e6d2ef7dd48a7c9cb1ec8f3d4b335dab8a290b4ad6e60ce822b1ee1a2261be96`.
+The matched Metal application encoding interval ended approximately 0.144 ms
+after the block marker in all three examples. GPU activity began at 0.562 ms
+in the slow trial versus 0.346/0.341 ms in the two near-median trials. The
+elapsed time between these recorded boundaries therefore accounts for much of
+the observed difference in this one trace. This is an interval between trace
+events, not proof of a particular queue, scheduler or competing workload. The
+matched command-buffer completion records occur after the block markers end;
+their timestamps must not be used to redefine the measured wall time.
+
+The [report, target-process marker, GPU, application, submission and driver tables, selected completion events, analyses and outputs](raw/mlx-block-signposts-v1.tar.xz)
+have SHA-256 `d741b06579e3f5d35097bbc619b1f5b6a333429690800207ae5bcda38c2c5246`.
 Extract the archive in a temporary directory and run `python3 analyze.py` and
-`python3 analyze-submissions.py` to reproduce the figures. The full system trace, which includes other
+`python3 analyze-submissions.py` and `python3 analyze-app.py` to reproduce the
+figures. The full system trace, which includes other
 process metadata, remains on the Mac at `.reference/phase2-mlx-signposts-trace-v1.trace`.
 The exported GPU table contains only the target process; the retained marker
 table contains the target's diagnostic markers. No clocks or power settings
