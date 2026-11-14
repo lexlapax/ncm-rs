@@ -4,6 +4,13 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **BERT dispatch isolation rejected:** separating BERT parsing into a
+  non-inlined helper did not improve Qwen or BERT load in three matched
+  processes per binary; the patch was reverted. Tokenizer tests and real-asset
+  probes passed. The combined candidate remains at 77/78 on Linux; the reviewed
+  dependency-patch question remains pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/bert-dispatch-v1.md).
+
 - **Qwen BPE builder proof of concept:** an isolated temporary copy of pinned
   `tokenizers` 0.22.2 reserves exact merge-string capacity. Three matched Qwen
   processes per binary show median load 66.101 to 63.420 ms; one allocator

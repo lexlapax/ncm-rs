@@ -92,6 +92,13 @@
       "evidence": "docs/results/2026-11-11-phase2-optimization/qwen-bpe-builder-poc-v1.md"
     },
     {
+      "id": "bert-dispatch-isolation",
+      "status": "rejected; no material Qwen or BERT load benefit",
+      "hypothesis": "Keep the BERT parser out of the shared compiled dispatch to test whether it affects Qwen load behavior.",
+      "finding": "Three matched processes per binary: Qwen checked load 66.5763 to 66.9538 ms; BERT 2.4541 to 2.4720 ms. Output hashes and real-asset probes matched. The patch was reverted.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/bert-dispatch-v1.md"
+    },
+    {
       "id": "mlx-vectorized-resampling",
       "hypothesis": "Replace per-position graph construction with bounded vectorized geometry and reductions.",
       "status": "pending Linux gate before Apple implementation/testing",
