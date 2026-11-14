@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple gate sensitivity:** post-hoc, window-stratified resampling of both
+  retained B4 controls yields a Rust-comparison p95 interval upper of 1.098714;
+  it was not predeclared and cannot close either failed gate. [Analysis](docs/results/2026-11-11-phase2-optimization/mlx-block-windows-exploratory-v1.md).
+
 - **Marked Metal trace:** an isolated `ddde851` diagnostic with block signposts
   built and aligned 108 calls. One instrumented B4 slow trial had similar graph
   time, longer synchronous evaluation and higher recorded CPU-to-GPU latency;
