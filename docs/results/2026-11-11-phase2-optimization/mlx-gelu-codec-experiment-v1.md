@@ -50,6 +50,13 @@ reconstruction ratios were **1.3278, 1.1469 and 0.9785**. Other scopes were
 mixed. These three-process observations do not establish that compilation
 caused those regressions or that B4 tail acceptance would pass.
 
+An offline follow-up found B2 **encode** median ratios of **0.7062, 1.3671
+and 0.7667** across the same pairs. The shared encoder path does not directly
+call the patched GELU, so this wide swing cautions against attributing the
+observed B2 slowdown solely to the patched operation. Prior scopes and MLX
+cache state can still affect subsequent measurements; the data do not isolate
+the cause or establish that the prototype is safe to integrate.
+
 Fresh-process first execution was **28.43–29.47 ms** current and **29.14–29.46
 ms** compiled; the framework/system compilation cache had been warmed by
 earlier experiments, so this is not a cold-compile bound. Final host HWM was

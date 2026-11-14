@@ -11,7 +11,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 - **Full-codec GELU prototype deferred:** Linux CUDA and full Metal checks and
   trained qualification pass, but three full-codec pairs are mixed: B4 block
-  improves while B2 block/reconstruction regress in two pairs. Startup/cache
+  improves while B2 block/reconstruction regress in two pairs. B2 encoder
+  timings also swing widely despite no direct GELU call, so causation is open.
+  Startup/cache
   risks remain; no integration or acceptance gate. The experiment ledger and
   completion checklist reflect the current control. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-codec-experiment-v1.md).
 
