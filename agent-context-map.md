@@ -11,6 +11,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   The exact additional vendored patch requires user review before integration.
   [Patch and evidence](docs/results/2026-11-11-phase2-optimization/gpt2-bytelevel-review-v1.md).
 
+- **Completion checklist reconciled:** current Linux and Apple checks, gate
+  outcomes, lifecycle evidence, source reproduction, and targeted MLX
+  normalization/attention disposition replace stale historical rows. [Checklist](docs/results/2026-11-11-phase2-optimization/completion-audit.md).
+
 - **Current Apple gate fails:** candidate `884d8f6` passes full MLX checks and
   trained parity, but remains **77/78** after one fixed GPT-2 control: encode
   median interval upper 1.06574 exceeds 1.05. The decoder block regression is
