@@ -26,7 +26,16 @@ Existing Linux quality and 78/78 gate evidence are retained on that binding.
 The first Metal focused test failed to compile before running: the test's eager
 reference annotated an `AsSliceError` as an MLX `Exception`. The separate
 [v2 patch](mlx-gelu-codec-experiment-v2.patch) changes only that test error
-type; the runtime patch is identical and the Metal check is pending. The
+type; the runtime patch is identical. The corrected focused test and full
+`tools/check.sh --mlx` pass, including 18 real Metal operator cases. The trained
+capture qualifies against the pinned CUDA reference: **642 traces, 2,500
+decisions, zero ID disagreements, two near ties**. Its patched codec source
+SHA-256 is `8e78d05b2edbe11815b14ad949fa0eb6cc0bfd479a71526f6f708634836dc9c4`;
+the captured trace SHA-256 is
+`27cce6ff04a079f7c4fb23bebc44906a4057dbb76cb4da78377f2c20662a4dcb`.
+The [Metal checks, trace report and qualification](raw/mlx-gelu-codec-metal-check-v2.tar.xz)
+have SHA-256 `37de7bb8019c0130fdee978955868c0da94d1c7416ed1e2cf3916fa77f02bc45`.
+The large trace remains local and on the Mac. The
 [Linux check and failed Metal build logs](raw/mlx-gelu-codec-checks-v1.tar.xz)
 have SHA-256 `dfc03a3a99dc44c45e29a841c2d366b66035462455dae5aecc8b02d187d82e8b`.
 

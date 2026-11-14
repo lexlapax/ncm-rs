@@ -4,11 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Full-codec GELU prototype:** Linux CUDA checks pass and three codec binaries
-  match the qualified candidate. The first Metal test failed to compile due to
-  a test-only error type; a corrected v2 patch is prepared. Metal parity,
-  full-codec timing and cache/startup review remain pending; nothing is
-  integrated. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-codec-experiment-v1.md).
+- **Full-codec GELU prototype:** Linux CUDA and full Metal checks pass; Linux
+  codec binaries match the qualified candidate and Metal trained qualification
+  passes 642 traces/2,500 decisions. A three-pair full-codec diagnostic is
+  prepared; timing and cache/startup review remain pending, with no integration.
+  [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-codec-experiment-v1.md).
 
 - **Exact GELU compilation diagnostic:** corrected finite checks pass in three
   isolated Metal processes, with lower warm B4 medians. First compilation cost
