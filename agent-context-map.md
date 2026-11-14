@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple quiet-window gate selected:** the user confirmed a quiet window and
+  chose the separately declared unchanged-candidate measurement. Collection is
+  pending; the previous 76/78 control remains evidence. [Plan](docs/results/2026-11-11-phase2-optimization/tiny-borrow-apple-quiet-plan-v1.md).
+
 - **Dependency scope audit:** the checksum-pinned tokenizers archive and current
   vendored tree have 99 matching paths and only three changed files, each
   matching its reviewed integration commit. The 218-package lock inventory is
