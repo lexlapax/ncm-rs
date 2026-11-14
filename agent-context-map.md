@@ -4,16 +4,24 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Latest Apple gate:** projection candidate `a323b16` is **74/78** initially
+  and **76/78** after the fixed control. Only TinyStories host RSS/HWM remain
+  open (peak ratio 1.12434); the block and Qwen timing cells pass. Do not retry
+  unchanged; investigate loader memory without changing byte-BPE semantics.
+  Source binding and clean audit reproduction pass. [Gate](docs/results/2026-11-11-phase2-optimization/mlx-addmm-apple-gate-v1.md).
+  A fresh finite 384-request MLX memory observation returns active bytes to zero
+  after all drops, with stable cache and rising host RSS. [Memory](docs/results/2026-11-11-phase2-optimization/mlx-memory-addmm-v1.md).
+
 - **MLX projection-bias candidate:** pinned MLX addmm preserves the projection
   plus bias operation, with fallback for other shapes. Linux CUDA checks pass
   and five executables match the 78/78 candidate. Full Metal checks and 642
   trained traces pass. A three-pair block diagnostic improves B4 medians in
-  all pairs, but p95 and other scopes are mixed; it is not acceptance. Run the
-  fixed full Apple gate and retain prior 75/78. Reassess memory on this changed
-  runtime. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-addmm-candidate-v1.md).
+  all pairs, but p95 and other scopes were mixed; this was not acceptance. The
+  fixed full Apple gate yielded 76/78 and memory was reassessed as above.
+  Retain prior 75/78. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-addmm-candidate-v1.md).
 
-- **Apple memory observation:** after reboot, a source-bound diagnostic on the
-  current runtime completed 384 reconstructions across three model lifetimes.
+- **Prior Apple memory observation:** after reboot, a source-bound diagnostic on the
+  previous runtime completed 384 reconstructions across three model lifetimes.
   Active MLX bytes returned to zero after each drop; cache snapshots stabilized
   in this finite workload, while host RSS increased. This is not a general
   bound or a timing gate. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-long-lived-memory-v1.md).
