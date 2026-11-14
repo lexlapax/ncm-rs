@@ -16,8 +16,14 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   desktop, a small fixed diagnostic showed fewer spikes. A separately
   predeclared quiet-window full gate and all-workload control then yielded
   77/78 initial and **74/78** controlled; four codec p95 intervals remain
-  above the unchanged limit. The earlier failures remain retained. Apple
-  cannot advance before Linux passes. [Quiet gate](docs/results/2026-11-11-phase2-optimization/decode-quiet-gate-v1.md), [earlier gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md), [quiet diagnostic](docs/results/2026-11-11-phase2-optimization/decode-quiet-diagnostic-v1.md).
+  above the unchanged limit. Offline inspection found matching stream-span
+  spikes in all 65 >1.2× wall outliers across those cells, but the spans also
+  include host submission/idle and do not identify the cause. Three separate
+  instrumented processes found 24 such outliers with at most 0.031 ms thread
+  run-queue wait versus at least 0.281 ms excess wall time; other causes remain.
+  The earlier
+  failures remain retained. Apple cannot advance before Linux passes.
+  [Quiet gate](docs/results/2026-11-11-phase2-optimization/decode-quiet-gate-v1.md), [earlier gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md), [quiet diagnostic](docs/results/2026-11-11-phase2-optimization/decode-quiet-diagnostic-v1.md).
   [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
 
 - **GPT-2 dependency patch approved:** the user approved the tested byte-level
