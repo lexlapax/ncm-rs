@@ -486,7 +486,7 @@ identity, trusted source, standard descriptors and process ancestry must be
 validated by its caller. `no_new_privs` is inherited by descendants and is a
 candidate change to the worker security environment; its compatibility with
 actual workloads and performance measurements is not established. It is not
-wired to a live role or a GPU policy command.
+wired to a live launch entry or a GPU policy command.
 
 `clock_unprivileged_identity` now uses its own small validation function rather
 than importing the larger preparation dependency tree into a potential root
@@ -506,3 +506,32 @@ pending. An unprivileged invocation rejected itself. Full integration, process
 access between root and user, safe coordinator ancestry, trustworthy input and
 output ownership, parent-loss cleanup, GPU restoration and both target gates
 remain outstanding; this is not launch authorization.
+
+
+### Worker privilege-drop wiring
+
+The import-only `clock_worker_role.run` now accepts an optional caller-supplied
+privilege target. It rejects mixed real/effective/saved UID/GID, requires an
+explicit target when started fully as root, and refuses a target for an ordinary
+worker. After the existing sampled role binding, frozen snapshot and armed
+handoff checks, a root worker invokes `drop_and_verify`; its returned flags and
+current IDs/groups are checked, then the resulting identity is sampled again
+before building observers or starting any jobs. An ordinary worker also gets the
+sampled non-root/zero-active-capability check. The target remains a declaration:
+this wrapper does not authenticate it. The sampled identity is not persisted or
+checked by postflight, so it cannot yet support final qualification. No workload,
+policy command or GPU access is performed by the new wrapper tests.
+
+Twenty-one focused tests across worker, drop and identity modules pass, including
+stubbed ordering, failed drop, mixed credentials, unverified drop and rejected
+identity. The full `umask 077 && CARGO_BUILD_JOBS=4 ./tools/check.sh` passed 464
+reporting tests; its private log `/tmp/ncm-worker-role-drop-check-v1.log` has
+SHA-256 `a46cfa5958aa5fbf2b6606611c91091d015df62a3d92c0a9f0c1a6720b1662bc`.
+It started before the last focused test additions, which passed separately.
+The prior intermittent observer failure remains unexplained. The wrapper integration tests stub the drop and sequence: they do not
+establish a real root-to-user transition, trusted bootstrap, safe root/user file
+ownership, actual process ancestry, benchmark comparability under `no_new_privs`,
+parent-loss restoration, or launch readiness. The checksum-bound user-run fake
+root transition is still pending. The existing entry and both hardware gates
+remain unfinished; no diagnostic deadlines, telemetry or acceptance thresholds
+were changed.

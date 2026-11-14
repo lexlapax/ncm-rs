@@ -4,6 +4,17 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Worker privilege-drop wiring:** the import-only worker wrapper refuses mixed
+  or root credentials without an explicit target, checks its armed handoff, then
+  drops root and verifies the resulting IDs/groups/capabilities before building
+  observers or starting jobs. Ordinary workers are also sampled before work.
+  Twenty-one combined focused tests pass; the new wrapper tests stub the actual
+  drop and sequence. Default checks passed 464 reporting tests, begun before the
+  final focused test additions. Target identity authentication, a root-owned launch snapshot,
+  user-owned outputs, persisted credential evidence, role-entry integration and
+  a real root transition remain pending. The existing checksum-bound CPU-only sudo test is still pending.
+  [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#worker-privilege-drop-wiring).
+
 - **Dedicated-worker privilege drop:** `clock_drop_privileges.py` provides an
   import-only Linux `-S` child transition: reject unexpected descriptors, set
   `no_new_privs`, switch supplementary groups and all GIDs/UIDs, and sample
@@ -11,7 +22,7 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
   focused tests pass, including mocked failures and a real extra-descriptor check.
   Default checks passed 459 reporting tests (started before the extra-descriptor
   test was added). A checksum-bound CPU-only sudo test was requested and is pending. This changes
-  the candidate worker's inherited security state and is not wired to the role
+  the candidate worker's inherited security state and is not wired to a launch
   entry; trusted identity/source, restoration, handoff, performance effects and
   hardware gates remain unproved. [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#dedicated-worker-privilege-drop).
 
