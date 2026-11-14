@@ -20,7 +20,8 @@ not acceptance runs.
   result does not establish a sufficient, non-regressing fix. [Raw attention evidence](raw/mlx-fastattention-poc-v1.tar.xz)
   SHA-256 `08f7bf7765c498b6d0de072db94c707d2e506cd93f94f3cb7ee4bcddb14ef9cd`.
 
-A separate layout investigation is in progress. None of these diagnostic
+The separate layout and process-state investigations are recorded below and in
+[state diagnostics](mlx-block-state-v1.md). None of these diagnostic
 results replaces the failing Apple initial audit, changes acceptance limits, or
 establishes why the regression occurred.
 
@@ -39,8 +40,7 @@ the explanation for the block regression.
 
 [Raw layout reports, diagnostic source and build logs](raw/mlx-latent-layout-v1.tar.xz)
 have SHA-256 `fab07d08dc4bd2d499b43fb611c2179a6ea83c77bb1954de846cbb038d586f9e`.
-A separate Apple-only Q/K/V layout alternative is being evaluated; the existing
-Linux packed path and production code remain unchanged until qualification.
+The Apple-only Q/K/V alternative below did not justify a production change.
 
 ## Apple-only unpacked Q/K/V
 
@@ -53,3 +53,17 @@ is still far above the accepted baseline observed in the initial gate, and the
 batch-2 diagnostic regressed. It is not promoted; the small sample also shows
 substantial variation in unrelated scopes. [Raw reports, patch and qualification](raw/mlx-unpacked-poc-v1.tar.xz)
 have SHA-256 `57863d0ead951603741c0c22388802e65192ad07fbd4336caa4e1f2c20f95932`.
+
+## Single-gather interpolation
+
+An isolated interleaved single-gather implementation passed component tests
+and all 642 trained traces / 2,500 decisions. Three matched processes per
+binary showed block median ratios versus the current candidate of
+**1.011/1.120/1.038** at batches 1/2/4; reconstruction ratios were
+**1.011/1.215/0.971**. Output ID hashes matched. The small diagnostic showed
+variation across other scopes, so it does not establish a sufficient,
+non-regressing improvement and the candidate was not promoted. It does not
+replace the failed Apple gate.
+
+[Raw reports, patch, source and qualification](raw/mlx-interleaved-poc-v1.tar.xz)
+have SHA-256 `0720b9d8d6a9743465f2f34b6838c607fb40234b0b05a29ae020c402deca198b`.
