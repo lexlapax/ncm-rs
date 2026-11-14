@@ -4,10 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **System-wide Metal activity diagnostic prepared:** a single bounded trace
-  will inspect GPU overlap and thread activity around the marked process; raw
-  system metadata stays on the Mac. Collection and validation are pending.
-  [Plan](docs/results/2026-11-11-phase2-optimization/mlx-system-activity-plan-v1.md).
+- **System-wide Metal activity diagnostic incomplete:** target finished without
+  a slow B4 trial, but the recorder exceeded a post-target deadline and the
+  terminated trace cannot be exported. The runner no longer imposes that
+  finalization deadline; the focused mocked regression passes. No repeat or
+  GPU-overlap claim. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-system-activity-failed-v1.md).
 
 - **Apple gate sensitivity:** post-hoc, window-stratified resampling of both
   retained B4 controls yields a Rust-comparison p95 interval upper of 1.098714;

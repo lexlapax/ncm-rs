@@ -54,7 +54,12 @@ def main():
                                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                        stderr=stream, timeout=25, check=False)
             metadata["target_returncode"] = completed.returncode
-            metadata["recorder_returncode"] = recorder.wait(timeout=40)
+            # The recording itself has a fixed 35-second limit. Saving a
+            # system-wide trace can take longer; do not destroy a live save
+            # merely because an arbitrary post-target wait expired.
+            metadata["status"] = "saving"
+            save()
+            metadata["recorder_returncode"] = recorder.wait()
             metadata["status"] = "complete" if completed.returncode == 0 and recorder.returncode == 0 else "failed"
             save()
             if metadata["status"] != "complete":
