@@ -4,6 +4,14 @@ Last updated: 2026-11-13 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Fake root-supervisor/user-worker test:** a checksum-bound CPU-only harness now
+  combines the existing restoration supervisor, fake set/reset file and a worker
+  that drops to the invoking user. An ordinary-user self-test passed normal and
+  deadline cases without a privilege drop; the separate sudo run is requested and
+  pending. The versioned script is retained in the results tree. Neither run
+  establishes a real clock operation, coordinator wiring, parent-loss handling,
+  GPU restoration or readiness. [Details](docs/results/2026-11-11-phase2-optimization/linux-clock-role-plan.md#fake-root-supervisor-and-user-worker).
+
 - **Inherited capability fix:** the user-run CPU-only root test identified
   nonzero inheritable capabilities as the only failed identity comparison.
   `clock_drop_privileges.py` now clears all thread capability sets with Linux

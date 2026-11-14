@@ -687,3 +687,38 @@ This is user-reported output, not a root-signed receipt. It does not establish
 privileged coordinator wiring, parent-loss cleanup, real GPU policy restoration,
 workload behavior or acceptance. No GPU, real policy command or phase acceptance
 test ran.
+
+
+### Fake root supervisor and user worker
+
+The versioned CPU-only harness
+[`linux-clock-root-supervised-fake-v2.py`](raw/linux-clock-root-supervised-fake-v2.py)
+(SHA-256 `e614534e52db7f137d2de879c600517a633495a8532434f6060bbb52cb8bcaf1`)
+combines the actual restoration primitive and the capability-drop helper with
+fake file-only set/reset actions. The root invocation verifies six fixed helper
+hashes before copying their bytes into a private root directory; it then executes
+one normal worker and one deadline-cancelled worker. The worker starts as root,
+drops to the invoking user and prints only identity/capability booleans before a
+bounded sleep. The script records fake reset, cleanup, reaping and deadline
+results; it invokes no GPU, real policy, network or model command. The script is
+bound to the local project path and frozen helper hashes, not a general privileged
+launcher. Root execution requires the checksum-bound command below; inspect the
+script and source pins before using it.
+
+```sh
+sudo /usr/bin/python3 -I -S -c 'import os,hashlib;p="/tmp/ncm-root-supervised-user-v2.py";f=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK);b=os.read(f,65536);os.close(f);assert hashlib.sha256(b).hexdigest()=="e614534e52db7f137d2de879c600517a633495a8532434f6060bbb52cb8bcaf1";exec(compile(b,p,"exec"))'
+```
+
+The ordinary-user self-test `umask 077 && python3 -I -S
+/tmp/ncm-root-supervised-user-v2.py` passed both fake cases, with deadline case
+properly failing the transaction and completing fake reset/cleanup. Its summary
+`/tmp/ncm-root-supervised-user-v2-1000.json` SHA-256 is
+`8e0b394c88cec53f1d7fe0be614563b8112d7f86f5ee88a2c0b202094c38fa92`.
+This invocation did not start as root or exercise a privilege drop; its
+`no_new_privs_if_privileged` check is vacuous in self-test mode. The sudo test
+has been requested and its result is pending. These synthetic cases use a
+four-second lock window and one-second reserve solely for test speed; they do
+not change the approved diagnostic's 600-second lock and ten-second reserve.
+They do not cover coordinator wiring, parent loss, untrusted launch inputs, actual
+GPU clocks, restoration, complete cleanup of arbitrary descendants or performance
+acceptance. No new quiet window or hardware gate has been established.
