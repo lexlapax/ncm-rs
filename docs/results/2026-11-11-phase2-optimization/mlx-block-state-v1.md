@@ -36,3 +36,19 @@ remain unchanged.
 have SHA-256 `533a4bfdcce17aa01fe2acaee05b31e3cbce55242d03e7a0fc539fdbd979ab9b`.
 The raw fixture-derived latent arrays remain outside Git; their hashes are
 retained in the reports.
+
+## Synchronized block boundaries
+
+Three paired processes per implementation repeated the codec workload and then
+measured 24 block trace boundaries with synchronization at each tensor. The
+uninstrumented batch-4 block medians in this diagnostic were 1.221 ms accepted
+and 1.625 ms candidate. At batches 2 and 4, the candidate's Q and K input
+boundaries each took roughly 0.31–0.33 ms versus 0.04 ms accepted. Several
+other boundaries also rose modestly. These callbacks change evaluation and
+materialization, so their times cannot be added to or substituted for the
+headline timing. In particular, the separate unsynchronized Apple-only
+unpacked-Q/K/V experiment did not resolve the block regression. The boundaries
+identify a place to investigate, not a proven root cause.
+
+[Raw profiles, diagnostic source and build logs](raw/mlx-block-stages-v1.tar.xz)
+have SHA-256 `ccd4c297dfeadbedb7bded012bcf2366d9cebd8f668629a9fc1cff29c7318438`.
