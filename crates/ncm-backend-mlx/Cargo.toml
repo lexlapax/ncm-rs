@@ -57,3 +57,7 @@ libc = "0.2"
 
 [lints]
 workspace = true
+
+[[example]]
+name = "mlx_long_lived_memory"
+required-features = ["mlx"]

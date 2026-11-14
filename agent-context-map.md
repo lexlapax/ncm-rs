@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Memory-observation branch only:** a finite MLX resource probe is prepared
+  for three model load/drop cycles and 128 repeated batch-4 reconstructions per
+  cycle. Linux formatting and workspace checks pass, but the Metal example is
+  uncompiled and unrun. It is not proof of a bound. Wait for Mac readiness,
+  then compile, run and retain source-bound results. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-memory-observation-plan-v1.md).
+
 - **Qwen ID-copy experiment deferred:** an isolated accessor avoided the final
   ID-vector copy while preserving the tokenizer pipeline. Tokenizer tests and
   four probes passed, but three paired Linux processes did not show a speedup
