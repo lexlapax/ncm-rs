@@ -5,12 +5,15 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 ## Current state and user decisions
 
 - **Qwen decoder dependency patch approved:** the user approved the isolated
-  one-buffer byte-level decoder for integration. It
-  decoder preserves tested token fallback/invalid UTF-8 behavior and passes
+  one-buffer byte-level decoder for integration. It preserves tested token
+  fallback/invalid UTF-8 behavior and passes
   full CUDA/MLX checks and four tokenizer probes. Qwen decode diagnostics
   improve 26–31% across aggregate results and improve in every paired process;
   Mac GPT-2 encode varies adversely and sampled HWM is documented. Full gates
-  remain necessary. Fresh Linux-first and Apple gates are next.
+  remain necessary. Integrated candidate `211df63` passes Qwen decode in a
+  fresh Linux matrix, but the initial audit is 71/78 and its one fixed control
+  is 70/78 due to other timing uncertainties. Diagnose the retained results;
+  Apple cannot advance before Linux passes. [Linux gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md).
   [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
 
 - **GPT-2 dependency patch approved:** the user approved the tested byte-level

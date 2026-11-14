@@ -1,10 +1,11 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
-**Approved follow-up:** the user approved the [byte-level decoder patch](qwen-decode-review-v1.md).
-The changed tokenizer requires fresh Linux-first and Apple gates; the prior
-78/78 Linux and 76/78 Apple results remain historical evidence.
+**Latest:** the user approved the [byte-level decoder patch](qwen-decode-review-v1.md).
+Candidate `211df63` passes Qwen decode, but its fresh [Linux controlled audit](decode-final-linux-gate-v1.md)
+is 70/78; Apple validation for this candidate cannot begin until Linux passes.
+The prior 78/78 Linux and 76/78 Apple results remain historical evidence.
 
-**Latest:** the user approved the [GPT-2 byte-level dependency patch](gpt2-bytelevel-review-v1.md).
+**Previous candidate:** the user approved the [GPT-2 byte-level dependency patch](gpt2-bytelevel-review-v1.md).
 Candidate `1f7d2a8` passes the fresh [Linux 78/78 gate](bytelevel-final-linux-gate-v1.md);
 runtime-equivalent `3a3fa86` passes full MLX checks and quality, but its
 [Apple audit remains 76/78](bytelevel-final-apple-gate-v1.md) after one fixed
