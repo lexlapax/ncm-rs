@@ -32,6 +32,16 @@ These are diagnostic samples, not acceptance results. The Mac sample retained
 process activity and thermal observations; WindowServer was visible in ten
 samples, median reported CPU 9.35% and peak 12.4%, with no thermal warning.
 
+Each of the three matched process pairs showed a decode improvement: Qwen
+decode candidate/previous ratios were **0.732/0.659/0.739 on Linux** and
+**0.711/0.741/0.655 on Mac**. Mac GPT-2 encode process medians were
+**1.149/1.272/1.143 ms** previous and **1.162/1.285/1.261 ms** candidate;
+the third pair accounts for most of the median-of-process difference, but
+three pairs cannot establish why. For Qwen, the maximum final process HWM
+was **76,619,776 / 76,464,128 bytes** previous/candidate on Linux and
+**67,485,696 / 69,844,992 bytes** on Mac. These are observed process HWM
+values in a small diagnostic, not a memory acceptance result.
+
 Clean exports reproduce all 24 diagnostic source inventories and matching
 output hashes. The measured prototype has the same logic as the review patch,
 which adds an explanatory comment and the regression test. [Exact patch](qwen-decode-review-v1.patch)

@@ -7,8 +7,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **Qwen decoder dependency review pending:** an isolated one-buffer byte-level
   decoder preserves tested token fallback/invalid UTF-8 behavior and passes
   full CUDA/MLX checks and four tokenizer probes. Qwen decode diagnostics
-  improve 26–31%, but Mac GPT-2 encode varies adversely; full gates remain
-  necessary. The additional vendored change requires user review. [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
+  improve 26–31% across aggregate results and improve in every paired process;
+  Mac GPT-2 encode varies adversely and sampled HWM is documented. Full gates
+  remain necessary. The additional vendored change requires user review.
+  [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
 
 - **GPT-2 dependency patch approved:** the user approved the tested byte-level
   identity shortcut for integration. An isolated prototype
