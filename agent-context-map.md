@@ -11,8 +11,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   formatting failure and three clock-fixture failures under umask `022`.
   Three-process diagnostics show decode medians 4.8–5.3% lower and encode
   medians 3.2–3.8% lower, with matching IDs/logits; this is not acceptance.
-  Run a fresh full Linux gate, then Apple only after Linux passes.
-  [Candidate and evidence](docs/results/2026-11-11-phase2-optimization/conv-bias-cuda-v1.md).
+  Fresh Linux gate: 75/78 initial and **78/78** fixed all-workload control;
+  nine lifecycle runs and clean-export reproduction pass. Apple validation
+  is underway after Linux. [Candidate](docs/results/2026-11-11-phase2-optimization/conv-bias-cuda-v1.md);
+  [Linux gate](docs/results/2026-11-11-phase2-optimization/conv-bias-linux-gate-v1.md).
 
 - **Qwen decoder dependency patch approved:** the user approved the isolated
   one-buffer byte-level decoder for integration. It preserves tested token
@@ -36,7 +38,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   gate failures. Event tracking protects cross-stream lifetimes and remains
   enabled. The diagnostic and its limitations are in the quiet-gate report.
   The earlier
-  failures remain retained. Apple cannot advance before Linux passes.
+  failures remain retained. The later convolution candidate passes Linux as
+  recorded above; Apple validation is next.
   [Quiet gate](docs/results/2026-11-11-phase2-optimization/decode-quiet-gate-v1.md), [earlier gate](docs/results/2026-11-11-phase2-optimization/decode-final-linux-gate-v1.md), [quiet diagnostic](docs/results/2026-11-11-phase2-optimization/decode-quiet-diagnostic-v1.md).
   [Review and evidence](docs/results/2026-11-11-phase2-optimization/qwen-decode-review-v1.md).
 
