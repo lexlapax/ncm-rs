@@ -65,3 +65,16 @@ and controlled audits, and six prototype process reports; trace tensors remain
 outside Git. Extract to the repository root and run the existing audit with
 `reports/phase2-vendored-mlx-gate-v1/controlled-config.json` to reproduce the
 expected failing result.
+
+## Historical Apple audit: clean-export reproduction
+
+Exported tested commit `cd49989` with `git archive` into an empty temporary
+directory, extracted the published Apple gate archive there, and ran the
+existing audit with its archived controlled configuration. It returned the
+expected failure and reproduced the **77/78** audit byte-for-byte, with the
+SHA-256 above. Independently verified every path and SHA-256 in all **48
+native Rust report source inventories** across the Apple matrix and BERT
+control against the clean candidate export or clean `3307dff` baseline
+worktree; no mismatches were found. This strengthens provenance of the
+historical failure; it does not qualify the later combined candidate or
+replace the pending Apple gate.
