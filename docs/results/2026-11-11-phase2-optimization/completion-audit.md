@@ -5,7 +5,7 @@ Candidate `1f7d2a8` passes the fresh [Linux 78/78 gate](bytelevel-final-linux-ga
 the new Apple check and gate remain pending. Historical results belong to the
 prior candidate.
 
-**Latest:** candidate `621c565` passes the Linux CUDA check, trained parity and
+**Previous candidate:** `621c565` passes the Linux CUDA check, trained parity and
 78/78 controlled audit. Runtime-equivalent Apple candidate `884d8f6` passes the
 full MLX check and trained parity but remains 77/78 after one fixed GPT-2
 control. [Linux evidence](blocknorm-linux-gate-v1.md), [Apple evidence](blocknorm-apple-gate-v1.md).

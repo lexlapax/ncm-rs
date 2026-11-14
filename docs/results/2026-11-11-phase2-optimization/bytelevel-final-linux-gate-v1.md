@@ -9,7 +9,8 @@ versus accepted Rust is **0.93736** and p95 ratio is **0.92678**.
 
 All four pinned tokenizer asset probes pass. The exact source passed the full
 CUDA check in the isolated review worktree; main-workspace tokenizer tests and
-formatting also pass. The codec benchmark, trace and lifecycle binaries are
+formatting also pass. All six changed code/test files match the reviewed
+worktree byte-for-byte. The codec benchmark, trace and lifecycle binaries are
 byte-identical to the previously qualified `621c565` binaries, so the 642
 trained CUDA trace / 2,500 decision qualification is retained. This reuse is
 limited to those unchanged codec executables; the tokenizer matrix and probes
