@@ -10,6 +10,7 @@ use serde_json::json;
 use std::{error::Error, fs, path::Path, time::Instant};
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+#[allow(unsafe_code)]
 fn fused(kernel: &MetalKernel, x: &Array, length: usize) -> Result<Array> {
     let &[batch, source, channels] = x.shape() else {
         return Err("expected BLC".into());

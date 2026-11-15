@@ -6,6 +6,10 @@ asks whether a single Metal operation can preserve its host-computed f64
 coordinates and separately rounded f32 weights while avoiding the two gathered
 intermediate tensors. It is exploratory and does not change production code.
 
+The first isolated Mac build stopped at the workspace unsafe-code lint; no GPU
+code ran. The narrowly scoped allowance on the audited kernel call follows the
+existing project pattern. Preserve the failed build log alongside the follow-up.
+
 Copy the [diagnostic source](mlx-linear-fused-poc-v1.rs) verbatim into an
 isolated checkout as `crates/ncm-backend-mlx/examples/mlx_linear_fused_poc.rs`.
 Build a locked, offline release example against the existing pinned native MLX
