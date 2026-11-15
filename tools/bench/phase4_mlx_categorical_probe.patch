@@ -1,0 +1,10 @@
+--- a/crates/ncm-backend-mlx/src/categorical.rs
++++ b/crates/ncm-backend-mlx/src/categorical.rs
+@@ -98,3 +98,7 @@
+     }
+     Ok(output.remove(0))
+ }
++
++#[cfg(test)]
++#[path = "../../../tools/bench/phase4_mlx_categorical_probe.rs"]
++mod phase4_probe;
