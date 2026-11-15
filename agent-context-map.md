@@ -44,7 +44,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **Apple all-cell sensitivity:** both retained controls' 58 timing cells and
   20 memory cells are checked; post-hoc pooled timing intervals fit the limits,
   but neither failed gate is reclassified. A prospective 3+18-repeat option is
-  documented for review, not authorized. [Analysis](docs/results/2026-11-11-phase2-optimization/mlx-all-windows-exploratory-v1.md).
+  documented for review, not authorized; an offline replay verifies 18-process
+  summaries and the full audit reject a missing report. [Analysis](docs/results/2026-11-11-phase2-optimization/mlx-all-windows-exploratory-v1.md).
 
 - **Full-codec GELU prototype deferred:** Linux CUDA and full Metal checks and
   trained qualification pass, but three full-codec pairs are mixed: B4 block

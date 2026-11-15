@@ -27,6 +27,29 @@ percentile intervals are descriptive, not simultaneous guarantees across the
 matrix. The B4 endpoint is close enough to the limit that a future independent
 run could still fail.
 
+## Existing tooling: offline 18-process replay
+
+An [offline probe](mlx-gate18-offline-probe-v1.py) reconstructs a synthetic
+18-process control from all nine processes in each retained window, without
+changing their report bytes. It verifies each report against its original audit,
+checks matching environment identities, and exercises the existing codec and
+all four tokenizer summarizers. They retain 18 reports per runtime across all
+29 scopes. The existing final audit then constructs all 78 cells and accepts
+the synthetic control structure; deleting one declared codec report causes it
+to reject the run. The command completed successfully on Linux using the pinned
+reference environment:
+
+```sh
+.reference/venv/bin/python docs/results/2026-11-11-phase2-optimization/mlx-gate18-offline-probe-v1.py
+```
+
+This checks tooling compatibility and rejection behavior only. It combines
+historical windows and synthetic metadata; it is not a fresh independent gate,
+a prediction of the next result, or authorization to run one. The two original
+failed controls remain unchanged. The two source archives have SHA-256
+`3448f9bd9510bce353970802b57fbd42023855e4779798d4f58d08de4a3031d9` and
+`411f5555a7949003be115239dc03f5b3e4060c5c75350b52b5cf46a19c30ac88`.
+
 ## Prospective option for review
 
 If a new unchanged-candidate measurement is explicitly chosen, a more stable
