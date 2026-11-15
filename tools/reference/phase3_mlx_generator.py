@@ -112,6 +112,9 @@ def main():
     rows = json.loads(raw)
     if not isinstance(rows, list) or not 1 <= len(rows) <= 128 or any(not isinstance(r, list) or len(r) != 91 or any(type(v) is not int or not 0 <= v < 12 for v in r) for r in rows):
         raise ValueError('invalid input rows')
+    # Match the native harness: parse/flatten host inputs before timed calls;
+    # each timed call still uploads them to the explicitly selected GPU.
+    rows = np.asarray(rows, dtype=np.uint32)
     prepare_device()
     generator = Generator(args.artifact)
     expected = None
@@ -127,6 +130,7 @@ def main():
         if expected is not None and fingerprint != expected: raise ValueError('outputs changed across trials')
         expected = fingerprint
         if trial >= 5: trials.append(elapsed)
+        del codes, ids
     report = {'batch': len(rows), 'inputs_sha256': digest(raw), 'outputs_sha256_i64le': expected,
               'codes': codes_list, 'ids': ids_list, 'runtime': 'python-mlx-adapted',
               'scope': 'generation, codec decode and synchronized code/ID readback; excludes model load',

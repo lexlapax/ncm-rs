@@ -41,6 +41,10 @@ name = "mlx_codec_bench"
 required-features = ["mlx"]
 
 [[example]]
+name = "mlx_generator_bench"
+required-features = ["mlx"]
+
+[[example]]
 name = "mlx_memory_probe"
 required-features = ["mlx"]
 
