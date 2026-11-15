@@ -33,6 +33,25 @@ The smaller slow trial had no other-process GPU interval overlapping its marker.
 The comparison is selected after observing this one trace; it does not explain
 all tails or establish why either prior Apple gate failed.
 
+## All measured B4 trials
+
+A follow-up joined all 30 marked trial intervals to the system-wide GPU table.
+Only the largest, 1.617167 ms trial overlapped recorded other-process GPU
+intervals; all four overlapping records belong to macOS WindowServer, on vertex
+and fragment channels. None of the other 29 trials had a recorded interval from
+another process overlapping its marker. These facts include the 0.987292 ms
+slow trial. WindowServer is the system compositor, so stopping application work
+alone cannot guarantee no compositor GPU activity. The trace does not identify
+what caused its rendering or prove that it delayed the compute work; Apple
+[documents that GPU workloads may overlap](https://developer.apple.com/documentation/xcode/optimizing-gpu-performance).
+
+For these 30 trials, nearest-rank p95 is 0.987292 ms: the 1.617167 ms maximum
+is above that rank. This descriptive within-process calculation is not the
+pooled, process-bootstrap acceptance statistic and cannot decide the gate. A
+[per-trial aggregate and reproduction script](raw/mlx-system-activity-v2-all-trials.tar.xz)
+have SHA-256 `4a7daeea2bea4d8fba1b3f149e27eaf5784e524ab5295eea9cc08dfda7867d4a`; the script uses the private tables and the
+previously archived private analysis script. No samples were excluded.
+
 The private system-wide trace and exported tables remain on the Mac at
 `.reference/phase2-mlx-system-activity-v2/`; they contain other process metadata.
 The [reviewed aggregate, target-only report, runner metadata and analysis scripts](raw/mlx-system-activity-v2-aggregate.tar.xz)
