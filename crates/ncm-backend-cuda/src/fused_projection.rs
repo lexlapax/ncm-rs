@@ -1,64 +1,10 @@
 //! FP32 projection with a fused bias epilogue on the backend-owned stream.
-use candle_core::cuda_backend::{
-    CudaStorage,
-    cudarc::{
-        cublaslt::{Matmul, MatmulConfig, MatmulShared, Workspace, result, sys},
-        driver::CudaStream,
-    },
-};
+use candle_core::cuda_backend::{CudaStorage, cudarc::cublaslt::sys};
 use candle_core::{CpuStorage, CustomOp3, Layout, Shape};
 use std::sync::{Arc, Mutex};
-pub(crate) struct StrictLt {
-    handle: sys::cublasLtHandle_t,
-    workspace: Workspace,
-    stream: Arc<CudaStream>,
-}
-// SAFETY: the handle is used only while its mutex is held. Its workspace and
-// all queued operations use the retained stream, and the CUDA context is bound
-// on each submitting thread before use.
-#[allow(unsafe_code)]
-unsafe impl Send for StrictLt {}
-impl StrictLt {
-    pub(crate) fn new(stream: Arc<CudaStream>) -> candle_core::Result<Self> {
-        let workspace = Workspace::new(stream.clone()).map_err(candle_core::Error::wrap)?;
-        let handle = result::create_handle().map_err(candle_core::Error::wrap)?;
-        Ok(Self {
-            handle,
-            workspace,
-            stream,
-        })
-    }
-}
-impl Drop for StrictLt {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        // A backend can be dropped on a different thread from the last call.
-        // Retain and bind the owning context before releasing its handle.
-        let _ = self.stream.context().bind_to_thread();
-        // SAFETY: this is the sole owner of the handle and no callers can hold
-        // the mutex once its final Arc is dropped. Its stream is still retained.
-        let _ = unsafe { result::destroy_handle(self.handle) };
-    }
-}
-impl MatmulShared for StrictLt {
-    fn handle(&self) -> &sys::cublasLtHandle_t {
-        &self.handle
-    }
-    fn workspace(&self) -> &Workspace {
-        &self.workspace
-    }
-    fn stream(&self) -> &Arc<CudaStream> {
-        &self.stream
-    }
-}
-impl Matmul<f32> for StrictLt {
-    fn matrix_type() -> sys::cudaDataType {
-        sys::cudaDataType_t::CUDA_R_32F
-    }
-    fn compute_type() -> sys::cublasComputeType_t {
-        sys::cublasComputeType_t::CUBLAS_COMPUTE_32F
-    }
-}
+mod bounded;
+use bounded::BoundedLt;
+pub(crate) type StrictLt = BoundedLt;
 #[derive(Debug)]
 pub(crate) struct NoFusedAlgorithm;
 impl std::fmt::Display for NoFusedAlgorithm {
@@ -147,24 +93,6 @@ impl CustomOp3 for Fused {
         let bv = bs.slice(lb.start_offset()..bend);
         let lda = i64::try_from(*k).map_err(candle_core::Error::wrap)?;
         let ldc = i64::try_from(*m).map_err(candle_core::Error::wrap)?;
-        let cfg = MatmulConfig {
-            transa: true,
-            transb: false,
-            transc: false,
-            m: *m as u64,
-            n: *n as u64,
-            k: *k as u64,
-            alpha: 1.,
-            lda,
-            ldb: lda,
-            beta: 0.,
-            ldc,
-            stride_a: None,
-            stride_b: None,
-            stride_c: None,
-            stride_bias: None,
-            batch_size: None,
-        };
         let stream = x.device.cuda_stream();
         // SAFETY: checked dimensions give the exact output length; cuBLAS uses
         // beta=0 and writes all output elements before they can be observed.
@@ -182,7 +110,11 @@ impl CustomOp3 for Fused {
             .map_err(|_| candle_core::Error::Msg("projection lock poisoned".into()))?;
         // SAFETY: contiguous FP32 views and bounds, matrix dimensions, leading
         // dimensions and bias length were checked above; all use one stream.
-        if let Err(error) = unsafe { handle.matmul(cfg, &wv, &xv, &mut out, Some(&bv), None) } {
+        if let Err(error) = unsafe {
+            handle.matmul(
+                *m as u64, *n as u64, *k as u64, lda, ldc, &wv, &xv, &mut out, &bv,
+            )
+        } {
             if error.0 == sys::cublasStatus_t::CUBLAS_STATUS_NOT_SUPPORTED {
                 return Err(candle_core::Error::WrappedContext {
                     wrapped: Box::new(NoFusedAlgorithm),

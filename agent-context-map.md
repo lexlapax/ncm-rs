@@ -4,6 +4,15 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Bounded CUDA workspace candidate:** the 8.x backend now tries its original
+  heuristic with a 2.5 MiB buffer, retrying with that cap if needed. Three
+  exploratory full-codec processes show synchronized native pool ratios
+  1.044155–1.044357 against prior Rust; all 642 trained traces and 2,500
+  decisions pass. Batch-one reconstruction is 1.111× an earlier candidate
+  in an unpaired timing comparison. Isolated full CUDA check passes; earlier
+  failed check attempts are retained. Controlled Linux performance and Apple
+  validation remain pending. [Review](docs/results/2026-11-11-phase2-optimization/cuda-bounded-runtime-review-v1.md), [Linux gate plan](docs/results/2026-11-11-phase2-optimization/cuda-bounded-linux-gate-plan-v1.md).
+
 - **CUDA workspace feasibility:** zero workspace and a 2.5 MiB heuristic cap
   produced mixed isolated timings. Retaining the 4 MiB algorithm preference but
   supplying 2.5 MiB gave numerically identical outputs and near-parity isolated
