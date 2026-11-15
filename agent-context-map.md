@@ -4,10 +4,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **GELU scalar reuse diagnostic prepared:** isolate reuse of the three
-  immutable scalar arrays created per call in exact GELU; no production change.
-  Check Linux-first binding, then real Metal equivalence and timings before any
-  integration. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-scalars-plan-v1.md).
+- **GELU scalar reuse deferred:** finite outputs matched bitwise, but three
+  isolated Metal processes showed no consistent material speedup; no backend
+  state or runtime change was added. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-scalars-result-v1.md).
 
 - **System-wide Metal trace captured an outlier:** one 1.617 ms B4 block
   overlaps 0.848 ms of other-process GPU intervals; the target main thread was
@@ -83,7 +82,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   outcomes match, but this is not a Python oracle or exhaustive proof. An initial
   shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
 
-- **Evidence reconciliation:** the current 35-entry experiment ledger and
+- **Evidence reconciliation:** the current 36-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
   open; the user was asked whether to choose a separately predeclared quiet

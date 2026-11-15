@@ -251,6 +251,13 @@
       "status": "diagnostic completed; runtime cause and Apple gate remain open",
       "finding": "One 1.617 ms block overlapped 0.848 ms of other-process GPU intervals and its main thread was blocked 1.450 ms; three near-median blocks had no recorded other-GPU overlap. One trace cannot prove causation or generalize to prior failures.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-system-activity-v2.md"
+    },
+    {
+      "id": "mlx-gelu-scalar-reuse",
+      "hypothesis": "Reuse three immutable FP32 scalar arrays used by exact-erf GELU instead of constructing them each invocation.",
+      "status": "isolated Metal diagnostic deferred; not integrated",
+      "finding": "Finite outputs bit-identical; three B4 process median ratios 0.9994/0.9994/0.9745 and p95 ratios 1.0140/1.0129/0.9504; no consistent material gain established.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-scalars-result-v1.md"
     }
   ]
 }
