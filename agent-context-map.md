@@ -13,6 +13,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   run the fresh matrix and unconditional full control with unchanged criteria.
   A separate post-pass [CPU/resource comparison](docs/results/2026-11-11-phase2-optimization/apple-resources-plan-v1.md) is prepared.
   [Plan](docs/results/2026-11-11-phase2-optimization/apple-gate18-plan-v1.md).
+  The controlled 78-cell audit passed on the Mac; resource and live-memory
+  evidence remain pending. The matched memory runner validates gate inputs
+  and records source, binaries and activity before measuring.
 
 - **Same-process unmasked attention deferred:** output comparisons pass but
   B4 block medians are mixed (0.985/0.977/1.007); no runtime change or gate
