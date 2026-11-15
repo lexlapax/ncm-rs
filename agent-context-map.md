@@ -4,12 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Unmasked attention runtime experiment:** research found the MLX adapter
-  supplies a zero mask for unmasked attention; pinned MLX has a distinct
-  no-mask path. Linux CUDA checks pass and three codec executables match the
-  qualified build. SSH agent refused the Mac signature; Metal checks and
-  performance remain pending; the fixed paired diagnostic runner is prepared.
-  [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-plan-v1.md).
+- **Unmasked attention deferred:** Linux/CUDA and full Metal checks pass;
+  trained qualification passes 642 traces and 2,500 decisions. Three paired
+  Metal processes show mixed timings and sampled desktop activity, so no runtime
+  change or gate pass is claimed. The `macstudio` SSH host entry works; do not
+  override its identity agent. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-metal-v1.md).
 
 - **Apple all-cell sensitivity:** both retained controls' 58 timing cells and
   20 memory cells are checked; post-hoc pooled timing intervals fit the limits,
