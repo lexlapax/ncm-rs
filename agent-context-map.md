@@ -4,7 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Full-codec fused interpolation experiment:** an isolated [patch and plan](docs/results/2026-11-11-phase2-optimization/mlx-linear-fused-codec-plan-v1.md) preserve the gather fallback and add view/nonfinite checks; Linux/CUDA validation passed, including 484 report tests and 18 real CUDA operator cases. Production remains unchanged.
+- **Fused interpolation deferred after full-codec test:** Linux/CUDA and Metal
+  checks and 642-trace / 2,500-decision qualification pass. B4 encode peak
+  drops 5.7% versus the current runtime but remains above old Rust; paired
+  model timings are mixed. No production change or acceptance claim. The
+  1.05 live-memory criterion remains open. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-linear-fused-codec-result-v1.md).
 
 - **Fused interpolation diagnostic promising:** six isolated Metal processes
   matched finite outputs bit-for-bit across ten shapes. B4 13→89 peak active
