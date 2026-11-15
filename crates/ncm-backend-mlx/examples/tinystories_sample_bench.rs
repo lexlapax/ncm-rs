@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("batch must be in 1..=128".into());
     }
     let backend = MlxBackend::gpu()?;
-    let artifact = Artifact::load(&args[1])?;
+    let artifact = Artifact::load_inference(&args[1])?;
     let model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
     drop(artifact);
     let prefix = vec![0; batch];

@@ -83,6 +83,17 @@ fn valid_copied_load_and_undeclared_access() {
 }
 
 #[test]
+fn inference_view_validates_then_releases_training_state() {
+    let (dir, _) = fixture();
+    let artifact = Artifact::load_inference(dir.path()).unwrap();
+    assert!(artifact.file("training.safetensors").is_err());
+    assert!(!artifact.file("codec.safetensors").unwrap().is_empty());
+    assert_eq!(artifact.manifest().tensors.len(), 3);
+    fs::write(dir.path().join("training.safetensors"), b"tampered").unwrap();
+    assert!(Artifact::load_inference(dir.path()).is_err());
+}
+
+#[test]
 fn rejects_corruption_truncation_and_extra_file_entries() {
     for data in [b"[]".as_slice(), b"".as_slice()] {
         let (dir, _) = fixture();

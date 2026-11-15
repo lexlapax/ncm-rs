@@ -13,7 +13,7 @@ fn cuda_tinystories_seeded_generation_smoke() {
     let backend = CandleBackend::cuda_cudnn(0).unwrap();
     #[cfg(not(feature = "cuda-cudnn"))]
     let backend = CandleBackend::cuda(0).unwrap();
-    let artifact = Artifact::load(root).unwrap();
+    let artifact = Artifact::load_inference(root).unwrap();
     let model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact).unwrap();
     assert!(model.sample_seeded(&[1], 1, 42).is_err());
     let first = model.sample_seeded(&[0, 0], 2, 42).unwrap();

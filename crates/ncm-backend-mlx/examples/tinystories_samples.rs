@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !(1..=256).contains(&count) || !(1..=128).contains(&batch) {
         return Err("invalid sample count or batch".into());
     }
-    let artifact = Artifact::load(&args[1])?;
+    let artifact = Artifact::load_inference(&args[1])?;
     let tokenizer = TextTokenizer::from_asset_bytes(
         artifact.file("tokenizer-manifest.json")?,
         artifact.file("tokenizer.json")?,

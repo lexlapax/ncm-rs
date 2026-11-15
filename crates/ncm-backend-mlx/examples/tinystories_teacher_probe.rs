@@ -141,7 +141,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|x| u32::try_from(i64::from_le_bytes(*x)))
         .collect::<Result<_, _>>()?;
     let backend = MlxBackend::gpu()?;
-    let artifact = Artifact::load(&args[1])?;
+    let artifact = Artifact::load_inference(&args[1])?;
     let teacher = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
     let mut capture = Capture {
         backend,

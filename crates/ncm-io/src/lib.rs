@@ -193,6 +193,17 @@ pub struct Artifact {
 }
 
 impl Artifact {
+    /// Validate the complete artifact, then release the training-only bundle.
+    /// Inference payloads remain owned and immutable; `file("training.safetensors")`
+    /// explicitly fails on this reduced view. `load` retains the full artifact.
+    pub fn load_inference(root: impl AsRef<Path>) -> Result<Self> {
+        let mut artifact = Self::load(root)?;
+        if artifact.payloads.remove("training.safetensors").is_none() {
+            return Err(invalid("missing validated training bundle"));
+        }
+        Ok(artifact)
+    }
+
     pub fn load(root: impl AsRef<Path>) -> Result<Self> {
         // Strip trailing separators/dot components before the no-symlink leaf check.
         let root = root.as_ref().components().collect::<std::path::PathBuf>();

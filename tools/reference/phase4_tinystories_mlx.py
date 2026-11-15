@@ -10,7 +10,7 @@ import mlx.core as mx
 import numpy as np
 
 from mlx_codec import Codec, prepare_device
-from mlx_codec_assets import digest, tensors
+from mlx_codec_assets import digest, save_tensors, tensors
 from mlx_operators import execute
 from phase3_mlx_generator import Generator
 
@@ -119,20 +119,25 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact', type=Path, required=True)
     parser.add_argument('--reference', type=Path)
+    parser.add_argument('--adapted-trace', type=Path, help='write a merged trace for native MLX comparison')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--batch', type=int, default=1)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--bench', action='store_true')
     args = parser.parse_args()
-    if args.output.exists() or not 1 <= args.batch <= 128:
+    if (args.output.exists() or not 1 <= args.batch <= 128
+            or (args.adapted_trace is not None and (args.reference is None or args.adapted_trace.exists()))):
         raise ValueError('output must be new and batch in 1..128')
     prepare_device()
     model = TinyGenerator(args.artifact)
     reference = tensors(args.reference.read_bytes()) if args.reference else None
     stats = {}
+    adapted = {}
     def observe(name, value):
         actual = np.asarray(value)
         expected = reference[name]
+        if args.adapted_trace is not None:
+            adapted[name] = actual.copy()
         if actual.shape != expected.shape:
             raise ValueError(f'{name} shape mismatch')
         if np.issubdtype(expected.dtype, np.integer):
@@ -161,6 +166,9 @@ def main():
               'stats': stats, 'codes': codes_list, 'ids': ids_list, 'warmups': 5 if args.bench else 0,
               'trials_seconds': trials, 'mlx_memory': {'active': mx.get_active_memory(),
               'peak': mx.get_peak_memory(), 'cache': mx.get_cache_memory()}}
+    if args.adapted_trace is not None:
+        reference.update(adapted)
+        save_tensors(args.adapted_trace, reference)
     args.output.write_text(json.dumps(report, sort_keys=True) + '\n')
 
 
