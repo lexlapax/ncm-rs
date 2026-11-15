@@ -154,7 +154,7 @@ fn rejects_tensor_shape_dtype_hash_duplicates_and_budget() {
 
 #[test]
 fn rejects_malformed_payload_even_with_matching_file_hash() {
-    for name in ["codec.safetensors", "config.json"] {
+    for name in ["codec.safetensors", "training.safetensors", "config.json"] {
         let (dir, mut manifest) = fixture();
         let bytes = b"invalid";
         fs::write(dir.path().join(name), bytes).unwrap();
@@ -167,6 +167,7 @@ fn rejects_malformed_payload_even_with_matching_file_hash() {
         );
         save(dir.path(), &manifest);
         assert!(Artifact::load(dir.path()).is_err());
+        assert!(Artifact::load_inference(dir.path()).is_err());
     }
 }
 
