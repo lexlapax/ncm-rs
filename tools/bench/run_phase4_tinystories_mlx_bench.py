@@ -24,11 +24,15 @@ def main():
                         help='native Metal comparison against the adapted fixed-code trace')
     parser.add_argument('--qualification-sha256', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--rust-lifecycle-policy', action='store_true',
+                        help='include output cleanup/barrier; use a process-local 512 MiB cache at batches 1 and 4')
     args = parser.parse_args()
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise SystemExit('Apple Silicon required')
     if any(os.environ.get(k) for k in ('DYLD_INSERT_LIBRARIES', 'MallocStackLogging', 'MallocStackLoggingNoCompact')):
         raise SystemExit('instrumented environment is not permitted')
+    binary = (ROOT / 'target/release/examples/tinystories_lifecycle_bench'
+              if args.rust_lifecycle_policy else BINARY)
     qualification = args.qualification.resolve()
     if digest(qualification) != args.qualification_sha256:
         raise ValueError('qualification digest differs')
@@ -57,7 +61,7 @@ def main():
                ROOT / 'tools/reference/phase3_mlx_generator.py', ROOT / 'tools/reference/mlx_codec.py',
                ROOT / 'tools/reference/mlx_codec_assets.py', ROOT / 'tools/reference/mlx_operators.py',
                ROOT / '.reference/mlx-native/lib/libmlx.dylib', ROOT / '.reference/mlx-native/lib/mlx.metallib',
-               BINARY, qualification, core, core.parent / 'lib/libmlx.dylib', core.parent / 'lib/mlx.metallib',
+               binary, qualification, core, core.parent / 'lib/libmlx.dylib', core.parent / 'lib/mlx.metallib',
                Path(packages['python']), ROOT / 'Cargo.toml', ROOT / 'Cargo.lock']
     watched += list((ROOT / 'crates').rglob('*.rs')) + list((ROOT / 'crates').rglob('Cargo.toml'))
     watched += [p for p in ARTIFACT.rglob('*') if p.is_file()]
@@ -70,6 +74,9 @@ def main():
                 'warmups': 5, 'trials': 30, 'repetitions': 3, 'batches': BATCHES,
                 'scope': 'generation plus synchronized code/ID host readback; excludes load',
                 'sampling': 'different Rust SplitMix64 and Python MLX random streams',
+                'rust_policy': ('drop unused logits and evaluate GPU barrier within timing; '
+                                'process-local 512 MiB cache for batch 1/4, default cache for batch 32/128'
+                                if args.rust_lifecycle_policy else 'default cache and output lifetime'),
                 'limitations': ['CPU activity sampled every two seconds; GPU activity is not measured.',
                                 'No exclusive reservation, CPU affinity or GPU clock/power changes.',
                                 'RSS includes process startup and model loading.'], 'runs': []}
@@ -85,7 +92,9 @@ def main():
                     stem = f'{runtime}-b{batch}-r{rep}'
                     report = out / f'{stem}.json'
                     if runtime == 'rust':
-                        command = [str(BINARY), str(ARTIFACT), str(batch)]
+                        command = [str(binary), str(ARTIFACT), str(batch)]
+                        if args.rust_lifecycle_policy:
+                            command.append('512' if batch in (1, 4) else 'default')
                     else:
                         command = [str(PYTHON), str(ROOT / 'tools/reference/phase4_tinystories_mlx.py'),
                                    '--artifact', str(ARTIFACT), '--batch', str(batch), '--bench', '--output', str(report)]
