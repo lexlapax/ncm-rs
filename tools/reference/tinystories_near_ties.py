@@ -11,12 +11,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('run', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--comparison-dir', type=Path, help='directory holding comparison summaries')
+    parser.add_argument('--comparison-prefix', default='rust')
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError('output must not exist')
     result = {}
     for seed in (100, 101, 102, 103, 104):
-        stats = json.loads((args.run / f'rust-{seed}.json').read_text())
+        comparison_dir = args.comparison_dir or args.run
+        stats = json.loads((comparison_dir / f'{args.comparison_prefix}-{seed}.json').read_text())
         rows = {}
         with safe_open(str(args.run / f'python-{seed}' / 'trace.safetensors'), framework='np') as trace:
             names = [name for name in trace.keys()
