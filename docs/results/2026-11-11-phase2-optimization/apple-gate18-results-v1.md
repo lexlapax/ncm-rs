@@ -11,6 +11,13 @@ these raw reports on Linux: outcomes and decision fields agree; nine controlled
 standard deviations differ only at their last floating-point digit, so the
 controlled audit JSON is not byte-identical across the Python environments.
 
+A separate [source-inventory review](apple-gate18-source-review-v1.py) checks
+all 315 original reports against their recorded audit hashes and Git source
+blobs for accepted Rust `3307dff`, candidate `5200924` or the pinned Python
+comparison. It also verifies all 210 duplicated Python report copies. All 40
+revision/path pairs match. This is source/report provenance, not proof of native
+compiler output or a new hardware measurement.
+
 The 45-process post-gate CPU follow-up passed its workload and source checks.
 Median whole-process CPU time candidate/prior Rust was 0.592 for codec, 0.892
 for BERT, 0.932 for GPT-2, 0.938 for Qwen3 and 0.914 for TinyStories. These
