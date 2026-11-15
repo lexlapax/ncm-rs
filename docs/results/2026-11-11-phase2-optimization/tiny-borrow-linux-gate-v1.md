@@ -26,6 +26,7 @@ exports. The benchmark inventory omits the CUDA fused module and core trait;
 a supplemental manifest verifies both source hashes and the compiler depfile
 includes them. Earlier failed gates remain retained.
 
-Apple is next: recheck checkout and activity, pull the reviewed pushed commit,
-run the full MLX check and four tokenizer probes, and execute the fixed full
-Apple gate with unchanged limits. Linux success does not imply Apple success.
+Subsequent Apple work passed the full MLX check and four tokenizer probes. A
+later user-directed [18-process control](apple-gate18-results-v1.md) passed
+78/78; the distinct comparable live-memory criterion remains unresolved.
+Linux success alone does not imply Apple success.

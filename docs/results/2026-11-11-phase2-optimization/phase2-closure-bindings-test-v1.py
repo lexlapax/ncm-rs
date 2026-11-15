@@ -66,5 +66,25 @@ class QualityTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     bindings.verify_quality(value, 'rust-mlx')
 
+class TokenizerProbeTests(unittest.TestCase):
+    def setUp(self):
+        archive = root / 'raw/tiny-borrow-apple-gate-v1.tar.xz'
+        with tarfile.open(archive, 'r:xz') as tar:
+            self.probe = json.load(tar.extractfile('reports/tokenizer-probe.json'))
+
+    def test_incomplete_or_altered_probe_rejected(self):
+        bindings.verify_tokenizer_probe(self.probe)
+        for mutation in ('fixture', 'profile', 'failure', 'rejections', 'manifest', 'source'):
+            with self.subTest(mutation=mutation):
+                value = copy.deepcopy(self.probe)
+                if mutation == 'fixture': value['fixture_sha256'] = '0' * 64
+                elif mutation == 'profile': del value['profiles']['qwen3']
+                elif mutation == 'failure': value['profiles']['bert']['all_passed'] = False
+                elif mutation == 'rejections': value['profiles']['bert']['rejection_cases'] = 0
+                elif mutation == 'manifest': value['profiles']['bert']['manifest_sha256'] = '0' * 64
+                else: value['source_sha256']['Cargo.lock'] = '0' * 64
+                with self.assertRaises(ValueError):
+                    bindings.verify_tokenizer_probe(value)
+
 if __name__ == '__main__':
     unittest.main()

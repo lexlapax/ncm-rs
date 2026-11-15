@@ -6,8 +6,9 @@ matrix, but its predeclared unconditional all-workload control passed
 previous Rust and Python: paired-process interval uppers are **1.13695** and
 **1.11834**, respectively, above 1.10. The controlled block median ratios are
 0.92901 and 0.91851. The initial pass and controlled failure are both retained;
-Phase 2 is incomplete, and the unchanged candidate must not be retried as a
-substitute for a substantive fix.
+At this checkpoint Phase 2 was incomplete; this failed control remains historical
+evidence. A later user-directed 18-process control [passed 78/78](apple-gate18-results-v1.md),
+while the separate live-memory criterion remains under review.
 
 TinyStories host RSS and HWM now pass, each at peak ratio **0.97674** versus
 previous Rust. Its controlled checked-load median ratio is **0.89802** with p95

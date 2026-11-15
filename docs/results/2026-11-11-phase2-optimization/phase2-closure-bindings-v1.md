@@ -23,7 +23,7 @@ Git history and the retained archives, without running a benchmark:
   both references; 20 host-memory comparisons cover RSS and HWM for all five
   workloads. Every stored controlled median/p95 and upper confidence bound is
   checked against its original limit, as is each host-memory ratio. Controls
-  contain nine Linux and 18 Apple processes per runtime and workload. Three
+  contain nine Linux and 18 Apple processes per runtime and workload. Four
   [focused negative tests](phase2-closure-bindings-test-v1.py) also reject
   duplicate/missing cells, wrong control counts, nonfinite values and altered
   timing or memory bounds, trace inventory corruption, oracle changes and
@@ -32,6 +32,12 @@ Git history and the retained archives, without running a benchmark:
   contain 642 uniquely named traces with zero element mismatches and 2,500
   selection decisions with no disagreements; both disclose two near ties. The
   pinned oracle hash and unchanged numerical policy are checked explicitly.
+- The archived Linux and Apple tokenizer probe reports each cover BERT, GPT-2,
+  Qwen3 and TinyStories, with 89 encode cases, both skip modes and four
+  rejection cases per profile. Fixtures, manifests, pinned package versions
+  and the recorded source inventory match the gated candidate. The reports are
+  byte-identical, so their contents alone do not prove independent execution or
+  the environment used; the platform gate records retain that provenance.
 
 Run from this checkout with `python3 docs/results/2026-11-11-phase2-optimization/phase2-closure-bindings-v1.py`.
 The checks rely on the existing Git history and archives; they do not re-run

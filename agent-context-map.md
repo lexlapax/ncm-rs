@@ -10,10 +10,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   The Apple source review also matches all 315 reports and 210 Python copies.
   All 58 timing and 20 host-memory cells per platform are uniquely inventoried
   and their stored controlled bounds independently checked; qualification
-  inventories, oracle policy and 2,500 decisions also match. Focused negative
-  cases pass. [Platform summaries](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v1.md)
+  inventories, oracle policy, 2,500 decisions and four-profile tokenizer probe
+  contents also match. Focused negative cases pass. [Platform summaries](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v1.md)
   report per-scope timing, candidate throughput, host-memory ratios and
   observed first-load/first-execution ranges.
+  The earlier Linux and Apple gate pages now link to the subsequent control
+  without erasing their historical results.
   A clean Linux replay is byte-identical; Apple replay differs only in nine
   last-digit standard deviations. This does not resolve live memory or close
   Phase 2. Public README, plan, architecture and

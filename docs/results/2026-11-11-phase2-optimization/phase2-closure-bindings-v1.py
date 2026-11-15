@@ -60,6 +60,32 @@ def verify_quality(quality, runtime):
                    or row['candidate_selection_mismatches'] != 0 for row in quality['selections'].values())):
         raise ValueError('selection scope or decisions differ')
 
+def verify_tokenizer_probe(probe):
+    profiles = ('bert', 'gpt2', 'qwen3', 'tinystories')
+    fixture = ROOT / 'tests/fixtures/tokenizers-v1.json'
+    lock = json.loads((ROOT / 'tools/reference/tokenizers-v1.lock.json').read_bytes())
+    if (probe['schema_version'] != 1 or probe['runtime'] != 'rust-tokenizers'
+            or probe['fixture_sha256'] != sha(fixture.read_bytes())
+            or probe['reference_versions'] != {'regex': '2025.9.18', 'tokenizers': '0.22.2', 'transformers': '4.57.6'}
+            or set(probe['profiles']) != set(profiles)):
+        raise ValueError('tokenizer fixture, version or inventory differs')
+    for name in profiles:
+        row = probe['profiles'][name]
+        if (row['all_passed'] is not True or row['both_skip_modes'] is not True
+                or row['cleanup'] is not False or row['encode_cases'] != 89
+                or row['decode_cases_including_encoded'] < 89 or row['rejection_cases'] != 4
+                or row['manifest_sha256'] != lock['profiles'][name]['manifest_sha256']):
+            raise ValueError('tokenizer profile incomplete or differs: ' + name)
+    sources = probe['source_sha256']
+    if not isinstance(sources, dict) or not sources:
+        raise ValueError('tokenizer source inventory missing')
+    for path, digest in sources.items():
+        if path.startswith('/') or '..' in Path(path).parts:
+            raise ValueError('invalid tokenizer source path')
+        source = subprocess.check_output(['git', 'show', f'{CANDIDATE}:{path}'], cwd=ROOT)
+        if sha(source) != digest:
+            raise ValueError('tokenizer source differs: ' + path)
+
 def verify_coverage(audit, name):
     workloads = ('codec', 'bert', 'gpt2', 'qwen3', 'tinystories')
     codec = {f'codec/{batch}/{scope}' for batch in (1, 2, 4)
@@ -133,6 +159,24 @@ def main():
                          'host_memory_cells': 20, 'control_processes_per_runtime': expected_repeats,
                          'quality_passed': True, 'qualified_traces': 642,
                          'selection_decisions': 2500, 'near_ties': 2}
+    probes = {
+        'linux': ('tiny-borrow-linux-gate-v1.tar.xz',
+                  'b16be8834fa12e30b5c70d9ac4073461d9caf1f7ab5f2fb0673b3ce2fe1aa87e',
+                  'reports/phase2-tiny-borrow-tokenizer-probe-v1.json'),
+        'apple': ('tiny-borrow-apple-gate-v1.tar.xz',
+                  '3448f9bd9510bce353970802b57fbd42023855e4779798d4f58d08de4a3031d9',
+                  'reports/tokenizer-probe.json'),
+    }
+    for name, (archive, digest, member) in probes.items():
+        path = EVIDENCE / archive
+        if sha(path.read_bytes()) != digest:
+            raise ValueError('tokenizer probe archive differs: ' + name)
+        with tarfile.open(path, 'r:xz') as stream:
+            raw = stream.extractfile(member).read()
+        if sha(raw) != '6124d2dbd456dce9375e5d6bb17472875ae75674114eb51cd4f279046b08bee9':
+            raise ValueError('tokenizer probe differs: ' + name)
+        verify_tokenizer_probe(json.loads(raw))
+        results[name]['tokenizer_profiles'] = 4
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     print(json.dumps({'schema_version': 1, 'scope': 'current source and historical audit binding; not Phase 2 acceptance',
                       'head': head, 'gated_candidate': CANDIDATE, 'baseline': BASELINE,
