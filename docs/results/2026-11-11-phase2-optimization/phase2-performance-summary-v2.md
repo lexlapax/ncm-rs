@@ -1,6 +1,6 @@
 # Controlled Phase 2 performance summary
 
-These tables describe the retained controlled audits, not a new run. The [current source and evidence binding](phase2-current-bindings-v2.md) checks all 78 cells per platform. The current Linux native CUDA pool is below 1.05× prior Rust; Apple immediate live-memory comparability remains unresolved.
+These tables describe the retained controlled audits, not a new run. The [current source and evidence binding](phase2-current-bindings-v2.md) checks all 78 cells per platform. The current Linux native CUDA pool is below 1.05× prior Rust. The user accepted the specific Apple immediate B4 live-memory exception; the [final audit](phase2-final-audit-v1.md) separately discloses the higher encode active-memory peak.
 
 Timings are pooled controlled process trials in milliseconds; each cell has 30 trials per process (nine processes per runtime on Linux, 18 on Apple). Rate is calculated from the candidate median: codec batch items/s or tokenizer fixture strings/s. Checked-load rows have no rate. This is not generated-token throughput. Confidence bounds and every original result remain in the linked audit JSON.
 
@@ -138,4 +138,4 @@ Host memory is the maximum observed process HWM/RSS ratio from the three-process
 | qwen3 | 1.0005 | 0.2324 | 1.0005 | 0.2324 |
 | tinystories | 0.9798 | 0.1214 | 0.9798 | 0.1214 |
 
-Reproduce with `python3 docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v1.py`. The two controlled audit files and referenced archives are inputs; the script neither collects new measurements nor adjudicates live memory.
+Reproduce with `python3 docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v2.py`. The two controlled audit files and referenced archives are inputs; the script neither collects new measurements nor adjudicates live memory.

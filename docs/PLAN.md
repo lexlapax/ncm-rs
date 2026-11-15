@@ -63,7 +63,7 @@ match; tiny operator fixtures execute on CPU, CUDA and MLX. Publish capability a
 baseline report, including unsupported operations. MLX needs Apple hardware access;
 a Linux-only result does not pass this gate. No broad framework written in advance.
 
-## Phase 2 — shared primitives, codec and further optimization (reopened)
+## Phase 2 — shared primitives, codec and further optimization (complete with exception)
 
 The [Phase 2 contract](PHASE2.md) fixes the initial model scope, tensor inventory,
 new numerical budgets and fixture semantics. Tiny CPU and trained CUDA reference
@@ -162,8 +162,8 @@ brought to the user. The broader full-model optimization/release remains Phase 5
 
 ## Phase 3 — end-to-end Sudoku vertical slice
 
-**Not started. Blocked on the additional Phase 2 five-step plan and both runtime
-gates; generator/CLI implementation still requires separate authorization.**
+**Not started. Phase 2 is complete with the documented immediate-memory exception;
+generator/CLI implementation still requires separate authorization.**
 
 Implement shared generator, raw prefix path, learned level-zero queries, level
 embeddings/RoPE, untied heads, eager level loop, greedy selection and final codec
