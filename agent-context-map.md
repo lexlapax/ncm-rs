@@ -4,6 +4,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Full-codec fused interpolation experiment:** an isolated [patch and plan](docs/results/2026-11-11-phase2-optimization/mlx-linear-fused-codec-plan-v1.md) preserve the gather fallback and add view/nonfinite checks; Linux/CUDA validation passed, including 484 report tests and 18 real CUDA operator cases. Production remains unchanged.
+
 - **Fused interpolation diagnostic promising:** six isolated Metal processes
   matched finite outputs bit-for-bit across ten shapes. B4 13→89 peak active
   allocation fell from 3,083,040 to 822,048 bytes and median time ratio was
