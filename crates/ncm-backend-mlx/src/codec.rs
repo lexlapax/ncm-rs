@@ -400,7 +400,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             return Err(Error::Input("sampled codebook must have 4096 rows".into()));
         }
         with_stream(&self.stream, || -> ops::Result<Array> {
-            let safe = mlx_rs::ops::minimum(&indices.0, &Array::from_slice(&[4095u32], &[1]))?;
+            let safe = mlx_rs::ops::minimum(&indices.0, Array::from_slice(&[4095u32], &[1]))?;
             Ok(weight.0.take_axis(&safe, 0)?)
         })
         .map(MlxTensor)
