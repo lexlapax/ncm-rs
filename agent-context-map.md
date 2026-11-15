@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple completion ordering reviewed:** pinned MLX event waits and Metal
+  completion handlers are distinct; explicit stream synchronization waits for
+  a command buffer but does not by itself prove prior-handler ordering. This
+  supports a cleanup hypothesis, not allocation attribution or acceptance.
+  [Source review](docs/results/2026-11-11-phase2-optimization/mlx-event-completion-review-v1.md).
+
 - **Apple unconditional synchronization deferred:** three paired full-codec
   runs reduce immediate B4 block active bytes to 59,970,828, but B4 block
   medians regress 10–16% in every pair. No production change, float parity or
