@@ -1,0 +1,7 @@
+# MLX Q/K/V memory toggle result
+
+Three fresh processes per version compared the existing packed Q/K/V layout with the earlier separate-slice layout. At batch-four resident-block, immediate active bytes were 69,702,948 for packed and 69,326,116 for separate slices in every run: a 376,832-byte reduction, or a 0.994594 ratio. Both versions reported 59,970,832 bytes after the extra barrier and 59,970,828 bytes at both 10 and 100 ms. In batch two the immediate reduction was 196,608 bytes; batch one was unchanged.
+
+The earlier matched previous-Rust immediate observation was 65,835,532 bytes. The separate-slice result is 1.053020× that historical observation, still above 1.05; it is not a newly paired baseline gate. Available token/code/output ID and retained-latent hashes match; no block float-output parity or timing was measured, and all six runs return active bytes to zero after model drop. All 12 scopes and four stages are retained. The isolated change alone does not clear the target; CUDA's earlier packed-layout diagnostic showed a speed benefit, so this is not sufficient evidence to change the shared runtime.
+
+[Plan](mlx-qkv-memory-toggle-plan-v1.md), [patch](mlx-qkv-memory-toggle-v1.patch), and [review script](mlx-qkv-memory-toggle-review-v1.py). [Raw reports, runner, activity and thermal observations](raw/mlx-qkv-memory-toggle-v1.tar.xz) SHA-256 `836209a36b1762ba06bbbcbe64ad1d51ea018051bc3f41b7d0b6c0b61b69d10c`. The experiment used a separate worktree; no production implementation or acceptance limit changed.
