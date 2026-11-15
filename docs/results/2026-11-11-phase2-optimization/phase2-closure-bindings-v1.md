@@ -11,8 +11,9 @@ Git history and the retained archives, without running a benchmark:
   manifest match accepted baseline `3307dff`. The local qualified Sudoku
   manifest matches the committed anchor, SHA-256
   `ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d9832`.
-- Both raw archive hashes and the embedded controlled-audit hashes match their
-  recorded values. Each audit has 78 passing cells, passing quality, the same
+- Both raw archive hashes, embedded controlled-audit hashes and the published
+  [Linux](linux-acceptance.json) and [Apple](mlx-acceptance.json) audit files
+  match their recorded values. Each audit has 78 passing cells, passing quality, the same
   audit-source hash as the checkout, and unchanged 1.05 median/host-memory and
   1.10 p95 limits. Linux audit SHA-256 is
   `50960a48e6e026b377b547fcc3df39096a5408ed27c576114d3d79a9b52500e3`;
@@ -23,5 +24,5 @@ The checks rely on the existing Git history and archives; they do not re-run
 the underlying audits, verify untracked executable bytes, qualify hardware, or
 establish the separate comparable steady-state live-memory criterion. The
 [Apple result](apple-gate18-results-v1.md) preserves the immediate snapshot and
-its unsettled-versus-retained ambiguity. Phase 2 remains open, and the named
-final platform acceptance reports have not been published.
+its unsettled-versus-retained ambiguity. The named platform files are exact copies of the 78-cell audits; they do not
+include the separate live-memory criterion. Phase 2 remains open.

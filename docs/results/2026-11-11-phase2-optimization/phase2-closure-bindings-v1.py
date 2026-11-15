@@ -61,6 +61,9 @@ def main():
             raw = stream.extractfile(member).read()
         if sha(raw) != audit_sha:
             raise ValueError('audit hash mismatch: ' + name)
+        published = ROOT / 'docs/results/2026-11-11-phase2-optimization' / ('linux-acceptance.json' if name == 'linux' else 'mlx-acceptance.json')
+        if sha(published.read_bytes()) != audit_sha:
+            raise ValueError('published matrix audit differs: ' + name)
         audit = json.loads(raw)
         if (audit['all_passed'] is not True or audit['quality_passed'] is not True
                 or len(audit['cells']) != 78 or not all(c['passed'] is True for c in audit['cells'])
