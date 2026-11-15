@@ -37,6 +37,22 @@ by Rust yet. Do not use this inspection loader as a complete inference importer.
 See [reproduction commands](../tools/reference/README.md) and the
 [qualification report](results/2026-11-10-sudoku-artifacts/README.md).
 
+## Phase 3 Sudoku profile extensions
+
+The Phase 3 converter explicitly adds `sudoku-medium-inspection-v1` and
+`sudoku-hard-inspection-v1`, with distinct config and checkpoint SHA-256 values
+in `tools/reference/sudoku_artifact.py`. The easy profile, upstream revision,
+file layout and tensor schema remain unchanged. Runtime loading rejects a task
+that does not match the manifest profile; as before, manifests establish integrity,
+not authenticity. Conversion uses `torch.load(weights_only=True)`, verifies each
+pinned source before loading and requires bit-exact tensor roundtrips.
+
+Evaluation boards are newly pinned to dataset revision
+`6580ba41a4b0a976dde876fbe84d25327617b0e6`; file sizes and SHA-256 values are
+in `tools/reference/sudoku_phase3_data.py`. Conversion restricts pickle opcodes,
+rejects global/persistent references and validates all 2,000 board shapes and
+clues before writing JSON. Weights and datasets remain outside Git.
+
 ## Proposed general runtime layout
 
 ```text

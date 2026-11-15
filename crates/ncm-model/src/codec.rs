@@ -94,7 +94,7 @@ impl<B: CodecBackend> Codec<B> {
         trace.indices("encode.codes", &codes)?;
         Ok(Encoded { codes, snapshots })
     }
-    fn upsample(&self, values: &B::Tensor, level: usize) -> Result<B::Tensor> {
+    pub(crate) fn upsample(&self, values: &B::Tensor, level: usize) -> Result<B::Tensor> {
         if level == 0 {
             self.cascade(values, true)
         } else if level + 1 == self.config.levels().len() {
@@ -121,7 +121,7 @@ impl<B: CodecBackend> Codec<B> {
             .upload_indices(codes, &[batch, self.config.code_length()])?;
         self.decode_device(&ids, label, trace)
     }
-    fn decode_device(
+    pub(crate) fn decode_device(
         &self,
         codes: &B::Indices,
         label: &str,
@@ -162,6 +162,18 @@ impl<B: CodecBackend> Codec<B> {
         snapshots: Vec<B::Tensor>,
         trace: &mut impl TraceSink<B>,
     ) -> Result<Decoded<B>> {
+        let (logits, ids) = self.decode_latent_outputs(latent, trace)?;
+        Ok(Decoded {
+            logits,
+            ids,
+            snapshots,
+        })
+    }
+    pub(crate) fn decode_latent_outputs(
+        &self,
+        latent: &B::Tensor,
+        trace: &mut impl TraceSink<B>,
+    ) -> Result<(B::Tensor, B::Indices)> {
         let b = &self.backend;
         trace.tensor("decoder.input", latent)?;
         let hidden = self.decoder_block_traced(latent, trace)?;
@@ -171,11 +183,7 @@ impl<B: CodecBackend> Codec<B> {
         trace.tensor("logits", &logits)?;
         let ids = b.select_last(&logits, true)?;
         trace.indices("ids", &ids)?;
-        Ok(Decoded {
-            logits,
-            ids,
-            snapshots,
-        })
+        Ok((logits, ids))
     }
     /// Encode and decode without a host roundtrip of the intermediate codes.
     /// Reuse the quantized latent already accumulated by encode. Both returned

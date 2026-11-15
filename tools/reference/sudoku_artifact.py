@@ -1,6 +1,6 @@
-"""Export the pinned Sudoku-easy pair without unrestricted pickle or weight changes.
+"""Export a pinned Sudoku checkpoint pair without unrestricted pickle or weight changes.
 
-This is a deliberately scoped Phase 1 inspection bundle, not a general model importer.
+Phase 1 easy and Phase 3 medium/hard profiles are explicit; this is not a general importer.
 """
 
 import argparse
@@ -26,6 +26,20 @@ INPUTS = {
     "generator.pt": "1cefebcd1eae0e210b7e991fdce0e86964d0e897e94a3b432d1008ab92d9926e",
     "tokenizer.pt": "3f9c87e99fd49900929cd650181f55bf00530280416992b11ddc4ea869b39d68",
 }
+# Explicit Phase 3 additions; the existing easy profile and its pins remain unchanged.
+PHASE3_INPUTS = {
+    "medium": {
+        "config.yaml": "a399820c7adbfd0c6ad6e443a63feb7fe7d35d066fb2981b79440af0b237beec",
+        "generator.pt": "8336b53fa3dcbddd9375374b8b7409feba2c2ae3b5a1fc5167ecd7852b26ae17",
+        "tokenizer.pt": "aca5523a0c477a6f142bfd6c2ba157353c01b1e3f072bb0f75e34b3b75ebc211",
+    },
+    "hard": {
+        "config.yaml": "8d58c49e6fe52e60191e06df4061937d5bb84f97c5ffbcd93ed9830c32f8df2f",
+        "generator.pt": "9e0bfe44abc1ca3930b7a63cd56cd0b9564b95e29edfe12dd0903207b89df8b8",
+        "tokenizer.pt": "3bc6aecad8e15820f9d9bb09750e3c59bdf91ca953f1f11dbd109aaed1d80c0b",
+    },
+}
+PHASE3_SIZES = {"medium": {**INPUT_SIZES, "config.yaml": 1982}, "hard": dict(INPUT_SIZES)}
 TRAINING = re.compile(r"vq\.(ema_cluster_size|ema_w|codebook_hit)_\d+$")
 
 
@@ -61,22 +75,27 @@ def checkpoint(data):
     return state
 
 
-def export(source, output):
+def export(source, output, difficulty="easy"):
+    if difficulty not in ("easy", "medium", "hard"):
+        raise ValueError("unsupported Sudoku difficulty")
+    source_hashes = INPUTS if difficulty == "easy" else PHASE3_INPUTS[difficulty]
+    source_sizes = INPUT_SIZES if difficulty == "easy" else PHASE3_SIZES[difficulty]
+    profile = f"sudoku-{difficulty}-inspection-v1"
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     inputs = {}
-    for name, expected in INPUTS.items():
+    for name, expected in source_hashes.items():
         path = source / name
-        if path.is_symlink() or not path.is_file() or path.stat().st_size != INPUT_SIZES[name]:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size != source_sizes[name]:
             raise ValueError(f"input type/size mismatch: {name}")
         with path.open("rb") as file:
-            data = file.read(INPUT_SIZES[name] + 1)
+            data = file.read(source_sizes[name] + 1)
         if digest(data) != expected:
             raise ValueError(f"untrusted or changed input: {name}")
         inputs[name] = data
     config = yaml.safe_load(inputs["config.yaml"])
-    if config["task"] != "sudoku-easy":
-        raise ValueError("only the pinned Sudoku-easy profile is supported")
+    if config["task"] != f"sudoku-{difficulty}":
+        raise ValueError("config task does not match pinned Sudoku profile")
     codec = checkpoint(inputs["tokenizer.pt"])
     generator = checkpoint(inputs["generator.pt"])
     bundles = {
@@ -115,7 +134,7 @@ def export(source, output):
             "converter_sha256": digest(Path(__file__).read_bytes()),
             "converter_base_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
             "python": platform.python_version(), "torch": torch.__version__,
-            "source_sha256": INPUTS, "code_license": "MIT", "weights_license": "MIT",
+            "source_sha256": source_hashes, "code_license": "MIT", "weights_license": "MIT",
             "serialization": "safetensors; unchanged upstream layouts/dtypes",
             "source_loading": "torch.load(weights_only=True); no unrestricted retry",
             "aliases": [], "inference_metadata": "absent in both pinned checkpoints",
@@ -126,7 +145,7 @@ def export(source, output):
         files = {p.name: {"bytes": p.stat().st_size, "sha256": digest(p.read_bytes())}
                  for p in sorted(temporary.iterdir())}
         json_file(temporary / "manifest.json", {
-            "schema_version": 1, "profile": "sudoku-easy-inspection-v1", "upstream_commit": UPSTREAM,
+            "schema_version": 1, "profile": profile, "upstream_commit": UPSTREAM,
             "checkpoint_repository": "hazyresearch/ncm-checkpoints", "checkpoint_revision": REVISION,
             "files": files, "tensors": inventory,
         })
@@ -137,7 +156,7 @@ def export(source, output):
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)
-    return {"profile": "sudoku-easy-inspection-v1", "source_tensors": len(codec) + len(generator),
+    return {"profile": profile, "source_tensors": len(codec) + len(generator),
             "bundle_tensor_counts": {k: len(v) for k, v in bundles.items()},
             "bit_exact_roundtrip": True, "manifest_sha256": digest((output / "manifest.json").read_bytes())}
 
@@ -147,10 +166,11 @@ def main():
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--difficulty", choices=("easy", "medium", "hard"), default="easy")
     args = parser.parse_args()
     if args.report.exists():
         parser.error("report already exists")
-    report = export(args.source, args.output)
+    report = export(args.source, args.output, args.difficulty)
     json_file(args.report, report)
     print(json.dumps(report, sort_keys=True))
 

@@ -162,8 +162,9 @@ brought to the user. The broader full-model optimization/release remains Phase 5
 
 ## Phase 3 — end-to-end Sudoku vertical slice
 
-**Not started. Phase 2 is complete with the documented immediate-memory exception;
-generator/CLI implementation still requires separate authorization.**
+**In progress.** Phase 2 is complete with the documented immediate-memory
+exception. The shared eager generator and explicit-device CLI have initial CUDA
+parity evidence; the full Linux and Apple Phase 3 gates remain pending.
 
 Implement shared generator, raw prefix path, learned level-zero queries, level
 embeddings/RoPE, untied heads, eager level loop, greedy selection and final codec

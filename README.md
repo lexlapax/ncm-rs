@@ -11,14 +11,14 @@ has since produced controlled **78/78** timing and host-memory audits on
 and [Apple](docs/results/2026-11-11-phase2-optimization/cuda-bounded-mlx-check-v1.md),
 with quality checks passing and earlier failures retained. The new Linux candidate's
 synchronized native CUDA-pool snapshots are below 1.05× prior Rust. The [final audit](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md) records the accepted immediate B4 snapshot exception (1.058744× prior Rust), and separately discloses a 1.20127× B4 encode MLX active-memory peak; neither is host RSS.
-Phase 3 is unstarted.
+Phase 3 is in progress; its full Linux and Apple acceptance gates remain pending.
 The earlier accepted FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT
 tokenizers passed [correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):
 642 trained traces / 2,500 decisions and 78 performance/memory comparisons on each
 platform, with unchanged thresholds. CUDA codec latency and Apple loading/memory
 deficits are remediated; original negative results remain published.
 Text tokenizer support does not imply full text-model inference.
-**No generator or inference CLI yet.** See the
+The initial greedy Sudoku generator and explicit-device CLI are under validation; no end-to-end acceptance or inference release is claimed. See the
 [Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
 Within each phase, Linux/CUDA is validated
 first, then macOS/MLX; both gates are required before advancing.

@@ -16,7 +16,7 @@ cuda = ["cpu", "candle-core/cuda", "dep:candle-nn"]
 [dependencies]
 ncm-core = { path = "../ncm-core" }
 candle-core = { version = "=0.11.1", optional = true, default-features = false }
-# Same pinned runtime, for existing fused FP32 CUDA norms/softmax (no new kernels).
+# Same pinned runtime for FP32 CUDA norms, softmax and rotary operations.
 candle-nn = { version = "=0.11.1", optional = true, default-features = false, features = ["cuda"] }
 
 [dev-dependencies]
@@ -73,3 +73,15 @@ required-features = ["cuda"]
 
 [lints]
 workspace = true
+
+[[example]]
+name = "generator_probe"
+required-features = ["cpu"]
+
+[[example]]
+name = "generator_bench"
+required-features = ["cpu"]
+
+[[example]]
+name = "generator_level_profile"
+required-features = ["cuda"]

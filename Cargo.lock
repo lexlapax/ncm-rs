@@ -1076,6 +1076,14 @@ dependencies = [
 [[package]]
 name = "ncm-cli"
 version = "0.1.0"
+dependencies = [
+ "ncm-backend-cuda",
+ "ncm-backend-mlx",
+ "ncm-core",
+ "ncm-io",
+ "ncm-model",
+ "serde_json",
+]
 
 [[package]]
 name = "ncm-core"

@@ -1,0 +1,10 @@
+# CUDA generator layout copies — safety and scope
+
+The candidate adds two FP32 **copy-only** CUDA kernels, motivated by the recorded batch-32 profile: generic CUDA layout copies were a significant part of the observed GPU activity, while Rust and the qualified Python reference spent similar time in the dominant matrix-multiply kernel. This is a data-layout change, not a new model formula or precision mode. The performance comparison remains in progress.
+
+- The packed operation maps contiguous `[B,S,3,8,64]` to `[3,B,8,S,64]`. Its grid covers every `(b,s,q,h,d)` exactly once. The merge maps contiguous `[B,8,S,64]` to `[B,S,8,64]`, also once per element. Values are copied without floating arithmetic.
+- The Rust wrapper checks FP32 device ownership, input shape, contiguous storage and source offset/extent before launch. Batch is bounded to 1–128, sequence to 1–768, and the merge grid's second dimension to 65,535. Under these limits, all kernel element indices fit `u32`; output allocation length is checked before allocation. Cudarc launch arguments retain the existing allocation/event tracking. GPU writes finish in stream order before the resulting tensor is consumed.
+- A model-owned backend checks compute capability once. Devices older than compute capability 7.5, other head layouts and oversized merge grids use the existing generic operation on the same device. There is no implicit CPU fallback. CUDA-only PTX is compiled from the checked-in source with `nvcc --ptx --gpu-architecture=compute_75`; CPU-only builds do not require the CUDA compiler.
+- `generator_layout` regression tests cover CPU generic and real CUDA specialized/fallback paths, irregular shapes, a strided source, signed zero and NaN payloads with bit-for-bit comparisons. The pinned two-board CUDA generator golden passes. Broader device/driver coverage and the Apple gate remain pending.
+
+This review describes the checked source and the tested RTX 3060 Ti / CUDA environment, not a proof for arbitrary CUDA devices or memory corruption outside the API boundary. Raw kernel timing traces remain local; instrumented kernel duration sums are not final wall-clock benchmarks.

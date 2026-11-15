@@ -358,3 +358,108 @@ impl CodecBackend for CandleBackend {
         })
     }
 }
+
+impl ncm_core::GeneratorBackend for CandleBackend {
+    fn pack_qkv(
+        &self,
+        x: &Tensor,
+        batch: usize,
+        seq: usize,
+        heads: usize,
+        head: usize,
+    ) -> Result<Tensor> {
+        let width = heads
+            .checked_mul(head)
+            .and_then(|n| n.checked_mul(3))
+            .ok_or_else(|| Error::Input("QKV dimensions overflow".into()))?;
+        if batch == 0 || seq == 0 || heads == 0 || head == 0 || x.dims() != [batch, seq, width] {
+            return Err(Error::Input("invalid QKV shape".into()));
+        }
+        #[cfg(feature = "cuda")]
+        if self.device().is_cuda()
+            && heads == 8
+            && head == 64
+            && batch <= 128
+            && seq <= 768
+            && self.supports_generator_layout_kernel()?
+        {
+            let function = self.generator_layout_function(0)?;
+            return op!(self, [x], {
+                x.contiguous()?
+                    .apply_op1_no_bwd(&crate::generator_layout::LayoutCopy {
+                        kind: crate::generator_layout::LayoutKind::Pack,
+                        function,
+                    })
+            });
+        }
+        op!(self, [x], {
+            x.reshape((batch, seq, 3, heads, head))?
+                .permute((2, 0, 3, 1, 4))?
+                .reshape((3, batch, heads, seq, head))
+        })
+    }
+    fn merge_heads(
+        &self,
+        x: &Tensor,
+        batch: usize,
+        seq: usize,
+        heads: usize,
+        head: usize,
+    ) -> Result<Tensor> {
+        let width = heads
+            .checked_mul(head)
+            .ok_or_else(|| Error::Input("attention dimensions overflow".into()))?;
+        if batch == 0
+            || seq == 0
+            || heads == 0
+            || head == 0
+            || x.dims() != [batch, heads, seq, head]
+        {
+            return Err(Error::Input("invalid attention shape".into()));
+        }
+        #[cfg(feature = "cuda")]
+        if self.device().is_cuda()
+            && heads == 8
+            && head == 64
+            && batch <= 128
+            && seq <= 768
+            && batch.checked_mul(seq).is_some_and(|n| n <= 65535)
+            && self.supports_generator_layout_kernel()?
+        {
+            let function = self.generator_layout_function(1)?;
+            return op!(self, [x], {
+                x.contiguous()?
+                    .apply_op1_no_bwd(&crate::generator_layout::LayoutCopy {
+                        kind: crate::generator_layout::LayoutKind::Merge,
+                        function,
+                    })
+            });
+        }
+        op!(self, [x], {
+            x.permute((0, 2, 1, 3))?.reshape((batch, seq, width))
+        })
+    }
+    fn concat_f32(&self, xs: &[Tensor], axis: usize) -> Result<Tensor> {
+        op!(self, [], {
+            for x in xs {
+                self.check_tensor(x, DType::F32)?;
+            }
+            Tensor::cat(xs, axis)
+        })
+    }
+    fn rope(&self, x: &Tensor, cos: &Tensor, sin: &Tensor) -> Result<Tensor> {
+        op!(self, [x, cos, sin], {
+            #[cfg(feature = "cuda")]
+            if self.device().is_cuda() {
+                return candle_nn::rotary_emb::rope(
+                    &x.contiguous()?,
+                    &cos.contiguous()?,
+                    &sin.contiguous()?,
+                );
+            }
+            let cos = Tensor::cat(&[cos, cos], 1)?;
+            let sin = Tensor::cat(&[sin, sin], 1)?;
+            ops::rope(x, &cos, &sin)
+        })
+    }
+}

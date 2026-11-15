@@ -2,8 +2,10 @@
 //! Forward execution is implemented separately from artifact validation.
 mod blocks;
 mod codec;
+mod generator;
 pub use blocks::{NoTrace, TraceSink, codebook_distances};
 pub use codec::{Decoded, Encoded};
+pub use generator::{Generated, Generator, GeneratorConfig, GeneratorWeights};
 
 use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;
@@ -48,6 +50,7 @@ impl<B: WeightBackend> Codec<B> {
         let bytes = artifact
             .file("config.json")
             .map_err(|e| Error::Weights(e.to_string()))?;
+        validate_artifact_profile(artifact, bytes)?;
         let config = artifact_config(bytes)?;
         let bytes = artifact
             .file("codec.safetensors")
@@ -126,8 +129,10 @@ fn artifact_config(bytes: &[u8]) -> Result<CodecConfig> {
         return Err(Error::Config("config exceeds 1 MiB".into()));
     }
     let envelope: Envelope = serde_json::from_slice(bytes)?;
-    if envelope.task != "sudoku-easy"
-        || envelope.tokenizer.pre_tokenizer.name != "sudoku"
+    if !matches!(
+        envelope.task.as_str(),
+        "sudoku-easy" | "sudoku-medium" | "sudoku-hard"
+    ) || envelope.tokenizer.pre_tokenizer.name != "sudoku"
         || envelope.tokenizer.pre_tokenizer.tokenizer != "sudoku"
     {
         return Err(Error::Config(
@@ -135,6 +140,16 @@ fn artifact_config(bytes: &[u8]) -> Result<CodecConfig> {
         ));
     }
     CodecConfig::validate(envelope.tokenizer.vqvae)
+}
+
+fn validate_artifact_profile(artifact: &Artifact, bytes: &[u8]) -> Result<()> {
+    let envelope: Envelope = serde_json::from_slice(bytes)?;
+    if artifact.manifest().profile != format!("{}-inspection-v1", envelope.task) {
+        return Err(Error::Config(
+            "artifact profile does not match Sudoku task".into(),
+        ));
+    }
+    Ok(())
 }
 
 #[derive(Deserialize)]
@@ -206,6 +221,11 @@ mod tests {
             "pre_tokenizer": {"name":"sudoku", "tokenizer":"sudoku"}, "vqvae": fixture["config"]},
             "checkpoints": {}, "data": {}, "eval": {}, "generation": {}, "model": {}});
         assert!(artifact_config(&serde_json::to_vec(&valid).unwrap()).is_ok());
+        for task in ["sudoku-medium", "sudoku-hard"] {
+            let mut profile = valid.clone();
+            profile["task"] = json!(task);
+            assert!(artifact_config(&serde_json::to_vec(&profile).unwrap()).is_ok());
+        }
         for (pointer, replacement) in [
             ("/task", json!("text")),
             ("/tokenizer/pre_tokenizer/tokenizer", json!("gpt2")),

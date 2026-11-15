@@ -9,6 +9,11 @@ pub struct CandleBackend {
         Option<std::sync::Arc<std::sync::Mutex<crate::fused_projection::StrictLt>>>,
     >,
     resampling: std::sync::Mutex<crate::resample::Cache>,
+    #[cfg(feature = "cuda")]
+    layout_kernel_supported: std::sync::OnceLock<bool>,
+    #[cfg(feature = "cuda")]
+    layout_functions:
+        std::sync::Mutex<Option<[candle_core::cuda_backend::cudarc::driver::CudaFunction; 2]>>,
 }
 impl Clone for CandleBackend {
     fn clone(&self) -> Self {
@@ -23,7 +28,39 @@ impl CandleBackend {
             #[cfg(feature = "cuda")]
             fused: Default::default(),
             resampling: Default::default(),
+            #[cfg(feature = "cuda")]
+            layout_kernel_supported: Default::default(),
+            #[cfg(feature = "cuda")]
+            layout_functions: Default::default(),
         }
+    }
+    #[cfg(feature = "cuda")]
+    pub(crate) fn generator_layout_function(
+        &self,
+        index: usize,
+    ) -> Result<candle_core::cuda_backend::cudarc::driver::CudaFunction> {
+        let mut functions = self
+            .layout_functions
+            .lock()
+            .map_err(|_| Error::Backend("layout function lock poisoned".into()))?;
+        if functions.is_none() {
+            let device = self
+                .device
+                .as_cuda_device()
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            let load = |name| {
+                device
+                    .get_or_load_custom_func(
+                        name,
+                        "ncm-generator-layout-v1",
+                        crate::generator_layout::PTX,
+                    )
+                    .map(|f| f.into_cuda_function())
+                    .map_err(|e| Error::Backend(e.to_string()))
+            };
+            *functions = Some([load("ncm_pack_qkv_8x64")?, load("ncm_merge_heads_8x64")?]);
+        }
+        Ok(functions.as_ref().expect("initialized layout functions")[index].clone())
     }
     pub fn cpu() -> Self {
         Self::from_device(Device::Cpu)
@@ -46,6 +83,31 @@ impl CandleBackend {
     }
     pub fn device(&self) -> &Device {
         &self.device
+    }
+    #[cfg(feature = "cuda")]
+    pub(crate) fn supports_generator_layout_kernel(&self) -> Result<bool> {
+        if let Some(&supported) = self.layout_kernel_supported.get() {
+            return Ok(supported);
+        }
+        use candle_core::cuda_backend::cudarc::driver::sys::CUdevice_attribute;
+        let device = self
+            .device
+            .as_cuda_device()
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        let stream = device.cuda_stream();
+        let context = stream.context();
+        context
+            .bind_to_thread()
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        let major = context
+            .attribute(CUdevice_attribute::CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR)
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        let minor = context
+            .attribute(CUdevice_attribute::CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR)
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        let supported = major > 7 || (major == 7 && minor >= 5);
+        let _ = self.layout_kernel_supported.set(supported);
+        Ok(supported)
     }
     pub(crate) fn resample(
         &self,

@@ -391,3 +391,19 @@ impl CodecBackend for MlxBackend {
         .map_err(error)
     }
 }
+
+impl ncm_core::GeneratorBackend for MlxBackend {
+    fn concat_f32(&self, xs: &[MlxTensor], axis: usize) -> Result<MlxTensor> {
+        let axis = i32::try_from(axis).map_err(error)?;
+        let inputs: Vec<_> = xs.iter().collect();
+        let arrays: Vec<_> = xs.iter().map(|x| &x.0).collect();
+        self.array_op(&inputs, || Ok(mlx_rs::ops::concatenate(&arrays, axis)?))
+    }
+    fn rope(&self, x: &MlxTensor, cos: &MlxTensor, sin: &MlxTensor) -> Result<MlxTensor> {
+        self.array_op(&[x, cos, sin], || {
+            let cosine = mlx_rs::ops::concatenate(&[&cos.0, &cos.0], 1)?;
+            let sine = mlx_rs::ops::concatenate(&[&sin.0, &sin.0], 1)?;
+            ops::rope(&x.0, &cosine, &sine)
+        })
+    }
+}

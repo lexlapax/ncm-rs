@@ -10,6 +10,8 @@ compile_error!("The ncm CUDA runtime currently supports Linux only");
 mod codec;
 #[cfg(feature = "cuda")]
 mod fused_projection;
+#[cfg(feature = "cuda")]
+mod generator_layout;
 #[cfg(feature = "cpu")]
 pub mod ops;
 #[cfg(feature = "cpu")]

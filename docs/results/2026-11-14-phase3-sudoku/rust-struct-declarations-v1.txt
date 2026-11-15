@@ -1,0 +1,183 @@
+crates/ncm-backend-cuda/examples/codec_bench.rs:105:struct Output {
+crates/ncm-backend-cuda/examples/generator_level_profile.rs:8:struct Capture {
+crates/ncm-backend-cuda/examples/generator_probe.rs:8:struct Capture {
+crates/ncm-backend-cuda/examples/resample_poc.rs:55:struct Area {
+crates/ncm-backend-cuda/examples/resample_poc.rs:9:struct Linear {
+crates/ncm-backend-cuda/examples/support/stages.rs:11:struct Events<'a> {
+crates/ncm-backend-cuda/src/fused_projection.rs:28:pub(crate) struct Fused(pub Arc<Mutex<StrictLt>>);
+crates/ncm-backend-cuda/src/fused_projection.rs:9:pub(crate) struct NoFusedAlgorithm;
+crates/ncm-backend-cuda/src/fused_projection/bounded.rs:172:struct Matrix(sys::cublasLtMatrixLayout_t);
+crates/ncm-backend-cuda/src/fused_projection/bounded.rs:189:struct Desc(sys::cublasLtMatmulDesc_t);
+crates/ncm-backend-cuda/src/fused_projection/bounded.rs:220:struct Pref(sys::cublasLtMatmulPreference_t);
+crates/ncm-backend-cuda/src/fused_projection/bounded.rs:34:pub(crate) struct BoundedLt {
+crates/ncm-backend-cuda/src/generator_layout.rs:14:pub(crate) struct LayoutCopy {
+crates/ncm-backend-cuda/src/resample.rs:134:pub(crate) struct Cache {
+crates/ncm-backend-cuda/src/resample.rs:37:pub(crate) struct Prepared {
+crates/ncm-backend-cuda/src/runtime.rs:5:pub struct CandleBackend {
+crates/ncm-backend-cuda/tests/support/mod.rs:8:pub struct Prepared<'a> {
+crates/ncm-backend-mlx/examples/mlx_codec_bench.rs:110:struct Stages<'a> {
+crates/ncm-backend-mlx/examples/mlx_codec_bench.rs:44:struct Output {
+crates/ncm-backend-mlx/src/codec.rs:12:pub struct MlxTensor(Array);
+crates/ncm-backend-mlx/src/codec.rs:17:pub struct MlxBackend {
+crates/ncm-backend-mlx/tests/support/mod.rs:7:pub struct Prepared<'a> {
+crates/ncm-core/src/config.rs:46:pub struct QuantizerConfig {
+crates/ncm-core/src/config.rs:63:pub struct Levels {
+crates/ncm-core/src/config.rs:69:pub struct Residual {
+crates/ncm-core/src/config.rs:77:pub struct Auxiliary {
+crates/ncm-core/src/config.rs:82:pub struct FineDrop {
+crates/ncm-core/src/config.rs:8:pub struct RawCodecConfig {
+crates/ncm-core/src/config.rs:90:pub struct CodecConfig {
+crates/ncm-io/src/lib.rs:104:    struct Visitor<V>(std::marker::PhantomData<V>);
+crates/ncm-io/src/lib.rs:169:pub struct Artifact {
+crates/ncm-io/src/lib.rs:50:pub struct Manifest {
+crates/ncm-io/src/lib.rs:64:pub struct FileRecord {
+crates/ncm-io/src/lib.rs:71:pub struct TensorRecord {
+crates/ncm-model/src/blocks.rs:12:pub struct NoTrace;
+crates/ncm-model/src/codec.rs:16:struct Prefix<'a, T> {
+crates/ncm-model/src/codec.rs:5:pub struct Encoded<B: CodecBackend> {
+crates/ncm-model/src/codec.rs:9:pub struct Decoded<B: CodecBackend> {
+crates/ncm-model/src/generator.rs:108:struct Envelope {
+crates/ncm-model/src/generator.rs:114:pub struct GeneratorWeights<B: WeightBackend> {
+crates/ncm-model/src/generator.rs:11:pub struct GeneratorConfig {
+crates/ncm-model/src/generator.rs:120:struct Affine<T> {
+crates/ncm-model/src/generator.rs:124:struct GeneratorBlock<T> {
+crates/ncm-model/src/generator.rs:134:struct GeneratorParameters<T> {
+crates/ncm-model/src/generator.rs:305:pub struct Generator<B: ncm_core::GeneratorBackend> {
+crates/ncm-model/src/generator.rs:311:struct LevelGeometry<T> {
+crates/ncm-model/src/generator.rs:317:pub struct Generated<B: ncm_core::GeneratorBackend> {
+crates/ncm-model/src/generator.rs:525:    struct Counter(Rc<Cell<usize>>);
+crates/ncm-model/src/lib.rs:157:struct Envelope {
+crates/ncm-model/src/lib.rs:174:struct Tokenizer {
+crates/ncm-model/src/lib.rs:180:struct PreTokenizer {
+crates/ncm-model/src/lib.rs:39:pub struct Codec<B: WeightBackend> {
+crates/ncm-model/tests/loading.rs:11:struct Counter(Rc<Cell<usize>>);
+crates/ncm-model/tests/loading.rs:123:    struct Failing;
+crates/ncm-model/tests/loading.rs:20:struct HostTensor {
+crates/ncm-tokenizers/examples/asset_allocations.rs:14:struct Case {
+crates/ncm-tokenizers/examples/asset_bench.rs:12:struct Case {
+crates/ncm-tokenizers/src/assets.rs:24:pub struct TokenizerMetadata {
+crates/ncm-tokenizers/src/assets.rs:44:pub struct TextTokenizer {
+crates/ncm-tokenizers/src/bpe.rs:10:struct HexString<'a>(#[serde(borrow)] Cow<'a, str>);
+crates/ncm-tokenizers/src/bpe.rs:14:struct Raw<'a> {
+crates/ncm-tokenizers/src/bpe.rs:22:struct Vocabulary {
+crates/ncm-tokenizers/src/bpe.rs:36:pub struct ByteBpe {
+crates/ncm-tokenizers/src/hf_bpe.rs:28:struct Canonical<const CAP: usize> {
+crates/ncm-tokenizers/src/hf_bpe.rs:48:    struct Visitor<const CAP: usize>;
+crates/ncm-tokenizers/src/hf_bpe.rs:72:    struct Visitor<const CAP: usize>;
+crates/ncm-tokenizers/src/hf_bpe.rs:96:pub(crate) struct CanonicalBpe<const CAP: usize>(BPE);
+crates/ncm-tokenizers/src/hf_wordpiece.rs:22:struct Canonical<const CAP: usize> {
+crates/ncm-tokenizers/src/hf_wordpiece.rs:33:pub(crate) struct CanonicalWordPiece<const CAP: usize>(WordPiece);
+vendor/tokenizers-0.22.2/src/decoders/bpe.rs:10:pub struct BPEDecoder {
+vendor/tokenizers-0.22.2/src/decoders/byte_fallback.rs:11:pub struct ByteFallback {
+vendor/tokenizers-0.22.2/src/decoders/ctc.rs:14:pub struct CTC {
+vendor/tokenizers-0.22.2/src/decoders/fuse.rs:11:pub struct Fuse {
+vendor/tokenizers-0.22.2/src/decoders/mod.rs:48:        pub struct Tagged {
+vendor/tokenizers-0.22.2/src/decoders/sequence.rs:8:pub struct Sequence {
+vendor/tokenizers-0.22.2/src/decoders/strip.rs:11:pub struct Strip {
+vendor/tokenizers-0.22.2/src/decoders/wordpiece.rs:10:pub struct WordPiece {
+vendor/tokenizers-0.22.2/src/models/bpe/mod.rs:56:pub(crate) struct FirstLastIterator<I>
+vendor/tokenizers-0.22.2/src/models/bpe/model.rs:217:pub struct BPE {
+vendor/tokenizers-0.22.2/src/models/bpe/model.rs:22:struct Config {
+vendor/tokenizers-0.22.2/src/models/bpe/model.rs:37:pub struct BpeBuilder {
+vendor/tokenizers-0.22.2/src/models/bpe/serialization.rs:70:struct BPEVisitor;
+vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs:15:struct Merge {
+vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs:182:pub struct BpeTrainer {
+vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs:41:struct Config {
+vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs:521:            struct WordPtr(*mut Word);
+vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs:55:pub struct BpeTrainerBuilder {
+vendor/tokenizers-0.22.2/src/models/bpe/word.rs:39:struct Symbol {
+vendor/tokenizers-0.22.2/src/models/bpe/word.rs:57:pub(super) struct Word {
+vendor/tokenizers-0.22.2/src/models/bpe/word.rs:8:struct Merge {
+vendor/tokenizers-0.22.2/src/models/mod.rs:22:struct OrderedVocabIter<'a> {
+vendor/tokenizers-0.22.2/src/models/mod.rs:78:        pub struct Tagged {
+vendor/tokenizers-0.22.2/src/models/unigram/lattice.rs:12:struct Hypothesis {
+vendor/tokenizers-0.22.2/src/models/unigram/lattice.rs:53:pub struct Lattice<'a> {
+vendor/tokenizers-0.22.2/src/models/unigram/lattice.rs:86:pub struct Node {
+vendor/tokenizers-0.22.2/src/models/unigram/model.rs:19:pub struct Unigram {
+vendor/tokenizers-0.22.2/src/models/unigram/model.rs:243:        struct BestPathNode {
+vendor/tokenizers-0.22.2/src/models/unigram/model.rs:388:pub struct UnigramIterator<'a> {
+vendor/tokenizers-0.22.2/src/models/unigram/serialization.rs:37:struct UnigramVisitor;
+vendor/tokenizers-0.22.2/src/models/unigram/trainer.rs:49:pub struct UnigramTrainer {
+vendor/tokenizers-0.22.2/src/models/unigram/trie.rs:20:pub struct Trie<Label> {
+vendor/tokenizers-0.22.2/src/models/unigram/trie.rs:45:pub struct TrieIterator<'a, Label, T> {
+vendor/tokenizers-0.22.2/src/models/unigram/trie.rs:5:pub struct TrieBuilder<Label> {
+vendor/tokenizers-0.22.2/src/models/unigram/trie.rs:79:pub struct Node<Label> {
+vendor/tokenizers-0.22.2/src/models/wordlevel/mod.rs:26:struct Config {
+vendor/tokenizers-0.22.2/src/models/wordlevel/mod.rs:34:pub struct WordLevelBuilder {
+vendor/tokenizers-0.22.2/src/models/wordlevel/mod.rs:99:pub struct WordLevel {
+vendor/tokenizers-0.22.2/src/models/wordlevel/serialization.rs:36:struct WordLevelVisitor;
+vendor/tokenizers-0.22.2/src/models/wordlevel/trainer.rs:10:pub struct WordLevelTrainer {
+vendor/tokenizers-0.22.2/src/models/wordpiece/mod.rs:124:pub struct WordPiece {
+vendor/tokenizers-0.22.2/src/models/wordpiece/mod.rs:29:struct Config {
+vendor/tokenizers-0.22.2/src/models/wordpiece/mod.rs:38:pub struct WordPieceBuilder {
+vendor/tokenizers-0.22.2/src/models/wordpiece/serialization.rs:49:struct WordPieceVisitor;
+vendor/tokenizers-0.22.2/src/models/wordpiece/trainer.rs:11:pub struct WordPieceTrainerBuilder {
+vendor/tokenizers-0.22.2/src/models/wordpiece/trainer.rs:94:pub struct WordPieceTrainer {
+vendor/tokenizers-0.22.2/src/normalizers/bert.rs:53:pub struct BertNormalizer {
+vendor/tokenizers-0.22.2/src/normalizers/byte_level.rs:9:pub struct ByteLevel;
+vendor/tokenizers-0.22.2/src/normalizers/mod.rs:47:        pub struct Tagged {
+vendor/tokenizers-0.22.2/src/normalizers/prepend.rs:6:pub struct Prepend {
+vendor/tokenizers-0.22.2/src/normalizers/replace.rs:30:struct ReplaceDeserializer {
+vendor/tokenizers-0.22.2/src/normalizers/replace.rs:47:pub struct Replace {
+vendor/tokenizers-0.22.2/src/normalizers/strip.rs:48:pub struct StripAccents;
+vendor/tokenizers-0.22.2/src/normalizers/strip.rs:9:pub struct Strip {
+vendor/tokenizers-0.22.2/src/normalizers/unicode.rs:16:pub struct NFKD;
+vendor/tokenizers-0.22.2/src/normalizers/unicode.rs:26:pub struct NFC;
+vendor/tokenizers-0.22.2/src/normalizers/unicode.rs:36:pub struct NFKC;
+vendor/tokenizers-0.22.2/src/normalizers/unicode.rs:6:pub struct NFD;
+vendor/tokenizers-0.22.2/src/normalizers/unicode.rs:77:pub struct Nmt;
+vendor/tokenizers-0.22.2/src/normalizers/utils.rs:11:pub struct Sequence {
+vendor/tokenizers-0.22.2/src/normalizers/utils.rs:54:pub struct Lowercase;
+vendor/tokenizers-0.22.2/src/pre_tokenizers/bert.rs:11:pub struct BertPreTokenizer;
+vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs:57:pub struct ByteLevel {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/delimiter.rs:9:pub struct CharDelimiterSplit {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/digits.rs:11:pub struct Digits {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/fixed_length.rs:9:pub struct FixedLength {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/metaspace.rs:26:pub struct Metaspace {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/metaspace.rs:49:        pub struct MetaspaceHelper {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/mod.rs:70:        pub struct Tagged {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/punctuation.rs:13:pub struct Punctuation {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/sequence.rs:8:pub struct Sequence {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/split.rs:29:pub struct Split {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/split.rs:48:        pub struct SplitHelper {
+vendor/tokenizers-0.22.2/src/pre_tokenizers/unicode_scripts/pre_tokenizer.rs:7:pub struct UnicodeScripts;
+vendor/tokenizers-0.22.2/src/pre_tokenizers/whitespace.rs:12:pub struct Whitespace;
+vendor/tokenizers-0.22.2/src/pre_tokenizers/whitespace.rs:33:pub struct WhitespaceSplit;
+vendor/tokenizers-0.22.2/src/processors/bert.rs:8:pub struct BertProcessing {
+vendor/tokenizers-0.22.2/src/processors/roberta.rs:9:pub struct RobertaProcessing {
+vendor/tokenizers-0.22.2/src/processors/sequence.rs:8:pub struct Sequence {
+vendor/tokenizers-0.22.2/src/processors/template.rs:193:pub struct SpecialToken {
+vendor/tokenizers-0.22.2/src/processors/template.rs:255:pub struct Template(Vec<Piece>);
+vendor/tokenizers-0.22.2/src/processors/template.rs:295:pub struct Tokens(
+vendor/tokenizers-0.22.2/src/processors/template.rs:339:pub struct TemplateProcessing {
+vendor/tokenizers-0.22.2/src/processors/template.rs:423:struct TemplateProcessingDeserializer {
+vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs:141:pub struct AddedVocabulary {
+vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs:16:pub struct AddedToken {
+vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs:512:pub(super) struct AddedTokenWithId {
+vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs:556:    struct ModelMock {
+vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs:594:    struct TrainerMock;
+vendor/tokenizers-0.22.2/src/tokenizer/encoding.rs:11:pub struct Encoding {
+vendor/tokenizers-0.22.2/src/tokenizer/mod.rs:1017:pub struct DecodeStream<'tok, M, N, PT, PP, D> {
+vendor/tokenizers-0.22.2/src/tokenizer/mod.rs:180:pub struct Token {
+vendor/tokenizers-0.22.2/src/tokenizer/mod.rs:280:pub struct BuilderError(String);
+vendor/tokenizers-0.22.2/src/tokenizer/mod.rs:285:pub struct TokenizerBuilder<M, N, PT, PP, D> {
+vendor/tokenizers-0.22.2/src/tokenizer/mod.rs:410:pub struct Tokenizer(
+vendor/tokenizers-0.22.2/src/tokenizer/mod.rs:509:pub struct TruncationParamError(String);
+vendor/tokenizers-0.22.2/src/tokenizer/mod.rs:513:pub struct TokenizerImpl<M, N, PT, PP, D> {
+vendor/tokenizers-0.22.2/src/tokenizer/normalizer.rs:105:pub struct NormalizedString {
+vendor/tokenizers-0.22.2/src/tokenizer/pattern.rs:128:pub struct Invert<P: Pattern>(pub P);
+vendor/tokenizers-0.22.2/src/tokenizer/pre_tokenizer.rs:20:pub struct Split {
+vendor/tokenizers-0.22.2/src/tokenizer/pre_tokenizer.rs:267:struct BytesToCharOffsetConverter {
+vendor/tokenizers-0.22.2/src/tokenizer/pre_tokenizer.rs:54:pub struct PreTokenizedString {
+vendor/tokenizers-0.22.2/src/tokenizer/serialization.rs:86:struct TokenizerVisitor<M, N, PT, PP, D>(
+vendor/tokenizers-0.22.2/src/utils/cache.rs:17:pub(crate) struct Cache<K, V>
+vendor/tokenizers-0.22.2/src/utils/fancy.rs:23:pub struct Matches<'r, 't>(fancy_regex::Matches<'r, 't>);
+vendor/tokenizers-0.22.2/src/utils/fancy.rs:7:pub struct SysRegex {
+vendor/tokenizers-0.22.2/src/utils/from_pretrained.rs:8:pub struct FromPretrainedParameters {
+vendor/tokenizers-0.22.2/src/utils/iter.rs:64:pub struct Lines<B> {
+vendor/tokenizers-0.22.2/src/utils/iter.rs:8:pub struct ResultShunt<I, E> {
+vendor/tokenizers-0.22.2/src/utils/onig.rs:7:pub struct SysRegex {
+vendor/tokenizers-0.22.2/src/utils/padding.rs:22:pub struct PaddingParams {
+vendor/tokenizers-0.22.2/src/utils/progress.rs:21:    pub struct ProgressStyle {}
+vendor/tokenizers-0.22.2/src/utils/progress.rs:7:    pub struct ProgressBar;
+vendor/tokenizers-0.22.2/src/utils/truncation.rs:23:pub struct TruncationParams {

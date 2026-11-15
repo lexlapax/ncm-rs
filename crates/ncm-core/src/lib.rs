@@ -118,3 +118,64 @@ pub trait CodecBackend: WeightBackend {
     /// Materialize lazy results and wait for device completion for measurements.
     fn evaluate(&self, xs: &[Self::Tensor]) -> Result<()>;
 }
+
+/// Additional operations needed by the eager generator. Implementations retain
+/// the same FP32, device and immutable-value guarantees as `CodecBackend`.
+pub trait GeneratorBackend: CodecBackend {
+    /// Copy B×S×(3HD) projected Q/K/V to contiguous 3×B×H×S×D.
+    fn pack_qkv(
+        &self,
+        x: &Self::Tensor,
+        batch: usize,
+        seq: usize,
+        heads: usize,
+        head: usize,
+    ) -> Result<Self::Tensor> {
+        let width = heads
+            .checked_mul(head)
+            .and_then(|n| n.checked_mul(3))
+            .ok_or_else(|| Error::Input("QKV dimensions overflow".into()))?;
+        if batch == 0 || seq == 0 || heads == 0 || head == 0 || self.shape(x) != [batch, seq, width]
+        {
+            return Err(Error::Input("invalid QKV shape".into()));
+        }
+        self.reshape(
+            &self.permute(
+                &self.reshape(x, &[batch, seq, 3, heads, head])?,
+                &[2, 0, 3, 1, 4],
+            )?,
+            &[3, batch, heads, seq, head],
+        )
+    }
+    /// Copy B×H×S×D attention output to contiguous B×S×(HD).
+    fn merge_heads(
+        &self,
+        x: &Self::Tensor,
+        batch: usize,
+        seq: usize,
+        heads: usize,
+        head: usize,
+    ) -> Result<Self::Tensor> {
+        let width = heads
+            .checked_mul(head)
+            .ok_or_else(|| Error::Input("attention dimensions overflow".into()))?;
+        if batch == 0
+            || seq == 0
+            || heads == 0
+            || head == 0
+            || self.shape(x) != [batch, heads, seq, head]
+        {
+            return Err(Error::Input("invalid attention shape".into()));
+        }
+        self.reshape(&self.permute(x, &[0, 2, 1, 3])?, &[batch, seq, width])
+    }
+    fn concat_f32(&self, xs: &[Self::Tensor], axis: usize) -> Result<Self::Tensor>;
+    /// Split-half rotary embedding with explicit [sequence, head_width/2]
+    /// cosine/sine arrays; positions are supplied by the model.
+    fn rope(
+        &self,
+        x: &Self::Tensor,
+        cos: &Self::Tensor,
+        sin: &Self::Tensor,
+    ) -> Result<Self::Tensor>;
+}

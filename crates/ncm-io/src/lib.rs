@@ -181,7 +181,12 @@ impl Artifact {
         let manifest: Manifest =
             serde_json::from_slice(&bounded_read(&root.join("manifest.json"), MAX_MANIFEST)?)?;
         if manifest.schema_version != 1
-            || manifest.profile != "sudoku-easy-inspection-v1"
+            || !matches!(
+                manifest.profile.as_str(),
+                "sudoku-easy-inspection-v1"
+                    | "sudoku-medium-inspection-v1"
+                    | "sudoku-hard-inspection-v1"
+            )
             || manifest.upstream_commit != UPSTREAM
             || manifest.checkpoint_revision != CHECKPOINT_REVISION
             || manifest.checkpoint_repository != "hazyresearch/ncm-checkpoints"

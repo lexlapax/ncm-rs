@@ -1,5 +1,6 @@
 """Offline exporter rejection tests; requires the pinned reference venv, no weights/GPU."""
 import io
+import hashlib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -43,6 +44,22 @@ class ExportTests(unittest.TestCase):
                 checkpoint(b"bad")
             self.assertEqual(load.call_count, 1)
             self.assertIs(load.call_args.kwargs["weights_only"], True)
+
+    def test_phase3_profile_task_must_match_before_checkpoint_loading(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            payloads = {"config.yaml": b"task: sudoku-hard\n", "generator.pt": b"a", "tokenizer.pt": b"b"}
+            for name, data in payloads.items(): (root / name).write_bytes(data)
+            hashes = {name: hashlib.sha256(data).hexdigest() for name, data in payloads.items()}
+            sizes = {name: len(data) for name, data in payloads.items()}
+            with patch("sudoku_artifact.PHASE3_INPUTS", {"medium": hashes}), \
+                 patch("sudoku_artifact.PHASE3_SIZES", {"medium": sizes}), \
+                 patch("sudoku_artifact.torch.load") as load:
+                with self.assertRaisesRegex(ValueError, "task does not match"):
+                    export(root, root / "out", "medium")
+                load.assert_not_called()
+            with self.assertRaisesRegex(ValueError, "unsupported"):
+                export(root, root / "out", "unknown")
 
     def test_bad_input_never_loads_and_existing_output_refused(self):
         with TemporaryDirectory() as temp:

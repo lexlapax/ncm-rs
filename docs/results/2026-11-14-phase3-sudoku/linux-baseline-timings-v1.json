@@ -1,0 +1,224 @@
+{
+  "activity_samples": 564,
+  "activity_warning": "GPU process observations are sampled, not continuous; inspect activity.jsonl for competing work.",
+  "batches": {
+    "1": {
+      "outputs_sha256_i64le": "f5ac6e6a258752401e7f38502016ded4519196b5ba5671e4d325052b1f0ad3ab",
+      "python": {
+        "max_ms": 38.81151898531243,
+        "median_ms": 33.645763993263245,
+        "min_ms": 32.363383972551674,
+        "p95_ms_nearest_rank": 35.47219804022461,
+        "peak_rss_bytes": [
+          1812586496,
+          1813348352,
+          1813377024
+        ],
+        "process_medians_ms": [
+          33.477288496214896,
+          33.56684948084876,
+          33.932652964722365
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": [
+          {
+            "allocated": 264562176,
+            "reserved": 310378496
+          },
+          {
+            "allocated": 264562176,
+            "reserved": 310378496
+          },
+          {
+            "allocated": 264562176,
+            "reserved": 310378496
+          }
+        ]
+      },
+      "rust": {
+        "max_ms": 38.360941000000004,
+        "median_ms": 35.56824,
+        "min_ms": 35.419757000000004,
+        "p95_ms_nearest_rank": 37.894483,
+        "peak_rss_bytes": [
+          750448640,
+          750452736,
+          750776320
+        ],
+        "process_medians_ms": [
+          36.7557075,
+          35.695349,
+          35.523391000000004
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": null
+      },
+      "rust_over_python_median": 1.05713872352911
+    },
+    "128": {
+      "outputs_sha256_i64le": "4e434e8361e34f410ca6a78445928f25f5641fe3334c70fd52361de25fbb81ae",
+      "python": {
+        "max_ms": 1797.685147030279,
+        "median_ms": 1774.1099185077474,
+        "min_ms": 1763.4552199742757,
+        "p95_ms_nearest_rank": 1782.14578400366,
+        "peak_rss_bytes": [
+          1823678464,
+          1823756288,
+          1823350784
+        ],
+        "process_medians_ms": [
+          1772.9308109846897,
+          1776.3541965105105,
+          1775.9222165041137
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": [
+          {
+            "allocated": 4562768384,
+            "reserved": 5169479680
+          },
+          {
+            "allocated": 4562768384,
+            "reserved": 5169479680
+          },
+          {
+            "allocated": 4562768384,
+            "reserved": 5169479680
+          }
+        ]
+      },
+      "rust": {
+        "max_ms": 2316.8476610000002,
+        "median_ms": 2231.0615755,
+        "min_ms": 2213.271621,
+        "p95_ms_nearest_rank": 2272.082692,
+        "peak_rss_bytes": [
+          733847552,
+          733773824,
+          734519296
+        ],
+        "process_medians_ms": [
+          2224.9407115,
+          2235.216868,
+          2233.761387
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": null
+      },
+      "rust_over_python_median": 1.2575667111858588
+    },
+    "32": {
+      "outputs_sha256_i64le": "2f9d3e66395c7794c21087876a48bddb89a9b36d4c45f13cfcc5e7c813675006",
+      "python": {
+        "max_ms": 488.57854201924056,
+        "median_ms": 458.1183330155909,
+        "min_ms": 452.1374360192567,
+        "p95_ms_nearest_rank": 463.5600020410493,
+        "peak_rss_bytes": [
+          1859731456,
+          1859162112,
+          1858629632
+        ],
+        "process_medians_ms": [
+          458.3274635078851,
+          456.4446914882865,
+          458.9803479902912
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": [
+          {
+            "allocated": 1309920256,
+            "reserved": 1430257664
+          },
+          {
+            "allocated": 1309920256,
+            "reserved": 1430257664
+          },
+          {
+            "allocated": 1309920256,
+            "reserved": 1430257664
+          }
+        ]
+      },
+      "rust": {
+        "max_ms": 576.334802,
+        "median_ms": 569.7769509999999,
+        "min_ms": 560.3665100000001,
+        "p95_ms_nearest_rank": 573.890178,
+        "peak_rss_bytes": [
+          734539776,
+          733728768,
+          733851648
+        ],
+        "process_medians_ms": [
+          569.6842525,
+          569.2009390000001,
+          570.2597330000001
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": null
+      },
+      "rust_over_python_median": 1.2437331360424055
+    },
+    "4": {
+      "outputs_sha256_i64le": "e1bb4df11d3d11aeb0e5039e4026307efa42f282f5b8b4e5da11307f41c56d5a",
+      "python": {
+        "max_ms": 72.34437396982685,
+        "median_ms": 69.14862501434982,
+        "min_ms": 67.5109900184907,
+        "p95_ms_nearest_rank": 70.97470998996869,
+        "peak_rss_bytes": [
+          1795768320,
+          1802219520,
+          1802645504
+        ],
+        "process_medians_ms": [
+          69.27311950130388,
+          69.85814851941541,
+          68.54248349554837
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": [
+          {
+            "allocated": 351833600,
+            "reserved": 408944640
+          },
+          {
+            "allocated": 351833600,
+            "reserved": 408944640
+          },
+          {
+            "allocated": 351833600,
+            "reserved": 408944640
+          }
+        ]
+      },
+      "rust": {
+        "max_ms": 95.287211,
+        "median_ms": 86.3576635,
+        "min_ms": 84.21210699999999,
+        "p95_ms_nearest_rank": 90.45437000000001,
+        "peak_rss_bytes": [
+          736755712,
+          736866304,
+          738615296
+        ],
+        "process_medians_ms": [
+          86.22091599999999,
+          86.41420250000002,
+          86.8691335
+        ],
+        "sample_count": 90,
+        "torch_device_peaks": null
+      },
+      "rust_over_python_median": 1.2488702918109933
+    }
+  },
+  "limitations": [
+    "Rust native CUDA-pool peak not captured in this timing run.",
+    "Host peak RSS is whole-process, including model load and runtime startup.",
+    "Timings are a single machine, not universal performance claims."
+  ],
+  "scope": "eager generate and synchronized code/ID host readback; excludes load"
+}

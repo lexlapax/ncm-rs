@@ -190,3 +190,23 @@ fn rejects_symlink_files_and_roots() {
         assert!(Artifact::load(root).is_err());
     }
 }
+
+#[test]
+fn sudoku_phase3_profiles_are_explicit_and_other_profiles_are_rejected() {
+    let (directory, mut manifest) = fixture();
+    for profile in [
+        "sudoku-easy-inspection-v1",
+        "sudoku-medium-inspection-v1",
+        "sudoku-hard-inspection-v1",
+    ] {
+        manifest.profile = profile.into();
+        save(directory.path(), &manifest);
+        assert_eq!(
+            Artifact::load(directory.path()).unwrap().manifest().profile,
+            profile
+        );
+    }
+    manifest.profile = "sudoku-other-inspection-v1".into();
+    save(directory.path(), &manifest);
+    assert!(Artifact::load(directory.path()).is_err());
+}

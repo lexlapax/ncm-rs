@@ -1,0 +1,1736 @@
+{
+  "records": [
+    {
+      "file_sha256": "2648faa43e439efd82a0a318962dec6171d1a808e1fc4398f0496775f0b6e11a",
+      "lexical_body_complete": true,
+      "line": 105,
+      "name": "Output",
+      "path": "crates/ncm-backend-cuda/examples/codec_bench.rs",
+      "storage_signals": [
+        "Vec",
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "3ae7c37352ba4872bfb389de78ddc7f17727b8ae9e41ab2a9b0d554ccba179cd",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "Capture",
+      "path": "crates/ncm-backend-cuda/examples/generator_level_profile.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "feefe0e2b866f5113f4c03b899b044bdb12f1dbcbe33b2be5a4599cfb49735c7",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "Capture",
+      "path": "crates/ncm-backend-cuda/examples/generator_probe.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "BTreeMap"
+      ]
+    },
+    {
+      "file_sha256": "d572e43981fbc97804b0adb591fb15a2c0421a94ba23d55c40738b87ae9e6475",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "Linear",
+      "path": "crates/ncm-backend-cuda/examples/resample_poc.rs",
+      "storage_signals": [
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "d572e43981fbc97804b0adb591fb15a2c0421a94ba23d55c40738b87ae9e6475",
+      "lexical_body_complete": true,
+      "line": 55,
+      "name": "Area",
+      "path": "crates/ncm-backend-cuda/examples/resample_poc.rs",
+      "storage_signals": [
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "d716c58d5a9432615821a7a87509aee4210e2785d767a1be8c25eaec511339b5",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "Events",
+      "path": "crates/ncm-backend-cuda/examples/support/stages.rs",
+      "storage_signals": [
+        "String",
+        "BTreeMap"
+      ]
+    },
+    {
+      "file_sha256": "5e5cd0fe6176dd3bd0079a73fb36e5687fa09e49f217564cffc5e56ae0740327",
+      "lexical_body_complete": true,
+      "line": 34,
+      "name": "BoundedLt",
+      "path": "crates/ncm-backend-cuda/src/fused_projection/bounded.rs",
+      "storage_signals": [
+        "Arc",
+        "CudaSlice"
+      ]
+    },
+    {
+      "file_sha256": "5e5cd0fe6176dd3bd0079a73fb36e5687fa09e49f217564cffc5e56ae0740327",
+      "lexical_body_complete": true,
+      "line": 172,
+      "name": "Matrix",
+      "path": "crates/ncm-backend-cuda/src/fused_projection/bounded.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "5e5cd0fe6176dd3bd0079a73fb36e5687fa09e49f217564cffc5e56ae0740327",
+      "lexical_body_complete": true,
+      "line": 189,
+      "name": "Desc",
+      "path": "crates/ncm-backend-cuda/src/fused_projection/bounded.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "5e5cd0fe6176dd3bd0079a73fb36e5687fa09e49f217564cffc5e56ae0740327",
+      "lexical_body_complete": true,
+      "line": 220,
+      "name": "Pref",
+      "path": "crates/ncm-backend-cuda/src/fused_projection/bounded.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "92686330ae3c661d60ed291b68a069b15ca25a1103c444deb502f19708014950",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "NoFusedAlgorithm",
+      "path": "crates/ncm-backend-cuda/src/fused_projection.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "92686330ae3c661d60ed291b68a069b15ca25a1103c444deb502f19708014950",
+      "lexical_body_complete": true,
+      "line": 28,
+      "name": "Fused",
+      "path": "crates/ncm-backend-cuda/src/fused_projection.rs",
+      "storage_signals": [
+        "Arc",
+        "Mutex"
+      ]
+    },
+    {
+      "file_sha256": "5342915e2f385036905c9b480222f6dee9b7fc8af86d06619ca52e1afefcea70",
+      "lexical_body_complete": true,
+      "line": 14,
+      "name": "LayoutCopy",
+      "path": "crates/ncm-backend-cuda/src/generator_layout.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "c29773b534ed82f4a9a90192f7316508f71d1290fbd3be41ab706bf20a1acf72",
+      "lexical_body_complete": true,
+      "line": 37,
+      "name": "Prepared",
+      "path": "crates/ncm-backend-cuda/src/resample.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "c29773b534ed82f4a9a90192f7316508f71d1290fbd3be41ab706bf20a1acf72",
+      "lexical_body_complete": true,
+      "line": 134,
+      "name": "Cache",
+      "path": "crates/ncm-backend-cuda/src/resample.rs",
+      "storage_signals": [
+        "BTreeMap"
+      ]
+    },
+    {
+      "file_sha256": "6c1f6df3c3097e8381d26233d2e200c9fabd50b7c4667748a8c751e079d57022",
+      "lexical_body_complete": true,
+      "line": 5,
+      "name": "CandleBackend",
+      "path": "crates/ncm-backend-cuda/src/runtime.rs",
+      "storage_signals": [
+        "Arc",
+        "Mutex",
+        "OnceLock",
+        "Cache"
+      ]
+    },
+    {
+      "file_sha256": "7a8ce879957211309070ab5caba9657722e879ca68b5e278655f7b3605e253a6",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "Prepared",
+      "path": "crates/ncm-backend-cuda/tests/support/mod.rs",
+      "storage_signals": [
+        "String",
+        "BTreeMap",
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "748ff55a3b816002d90512b4892957c60dc466762b4aaa83df7bd4fb50f0bb45",
+      "lexical_body_complete": true,
+      "line": 44,
+      "name": "Output",
+      "path": "crates/ncm-backend-mlx/examples/mlx_codec_bench.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "748ff55a3b816002d90512b4892957c60dc466762b4aaa83df7bd4fb50f0bb45",
+      "lexical_body_complete": true,
+      "line": 110,
+      "name": "Stages",
+      "path": "crates/ncm-backend-mlx/examples/mlx_codec_bench.rs",
+      "storage_signals": [
+        "String",
+        "BTreeMap"
+      ]
+    },
+    {
+      "file_sha256": "26e394709971b73fe1ae95464bfbe22d4bfd628bd2038a8a54609bacaafb80cf",
+      "lexical_body_complete": true,
+      "line": 12,
+      "name": "MlxTensor",
+      "path": "crates/ncm-backend-mlx/src/codec.rs",
+      "storage_signals": [
+        "Array"
+      ]
+    },
+    {
+      "file_sha256": "26e394709971b73fe1ae95464bfbe22d4bfd628bd2038a8a54609bacaafb80cf",
+      "lexical_body_complete": true,
+      "line": 17,
+      "name": "MlxBackend",
+      "path": "crates/ncm-backend-mlx/src/codec.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "18a7f70c80f1049dbd8aeac79f5ccf00fc67286f5a9273b3185ca255f3f4086d",
+      "lexical_body_complete": true,
+      "line": 7,
+      "name": "Prepared",
+      "path": "crates/ncm-backend-mlx/tests/support/mod.rs",
+      "storage_signals": [
+        "String",
+        "BTreeMap",
+        "Array"
+      ]
+    },
+    {
+      "file_sha256": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "RawCodecConfig",
+      "path": "crates/ncm-core/src/config.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "lexical_body_complete": true,
+      "line": 46,
+      "name": "QuantizerConfig",
+      "path": "crates/ncm-core/src/config.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "lexical_body_complete": true,
+      "line": 63,
+      "name": "Levels",
+      "path": "crates/ncm-core/src/config.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "lexical_body_complete": true,
+      "line": 69,
+      "name": "Residual",
+      "path": "crates/ncm-core/src/config.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "lexical_body_complete": true,
+      "line": 77,
+      "name": "Auxiliary",
+      "path": "crates/ncm-core/src/config.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "lexical_body_complete": true,
+      "line": 82,
+      "name": "FineDrop",
+      "path": "crates/ncm-core/src/config.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "535a353a25e6113add9888c395e8246d23f4cafbb7deadee372bc32542b8a0b5",
+      "lexical_body_complete": true,
+      "line": 90,
+      "name": "CodecConfig",
+      "path": "crates/ncm-core/src/config.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "bbde4130906d89b42c5c256dce7576c9828570c6538c146f16b8e14113ee512f",
+      "lexical_body_complete": true,
+      "line": 50,
+      "name": "Manifest",
+      "path": "crates/ncm-io/src/lib.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "BTreeMap"
+      ]
+    },
+    {
+      "file_sha256": "bbde4130906d89b42c5c256dce7576c9828570c6538c146f16b8e14113ee512f",
+      "lexical_body_complete": true,
+      "line": 64,
+      "name": "FileRecord",
+      "path": "crates/ncm-io/src/lib.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "bbde4130906d89b42c5c256dce7576c9828570c6538c146f16b8e14113ee512f",
+      "lexical_body_complete": true,
+      "line": 71,
+      "name": "TensorRecord",
+      "path": "crates/ncm-io/src/lib.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "bbde4130906d89b42c5c256dce7576c9828570c6538c146f16b8e14113ee512f",
+      "lexical_body_complete": true,
+      "line": 104,
+      "name": "Visitor",
+      "path": "crates/ncm-io/src/lib.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "bbde4130906d89b42c5c256dce7576c9828570c6538c146f16b8e14113ee512f",
+      "lexical_body_complete": true,
+      "line": 169,
+      "name": "Artifact",
+      "path": "crates/ncm-io/src/lib.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "BTreeMap"
+      ]
+    },
+    {
+      "file_sha256": "efbc829cfb79d45d027f0013ee81fa24be52f74c5384ad254a9deb7fe30ed7b0",
+      "lexical_body_complete": true,
+      "line": 12,
+      "name": "NoTrace",
+      "path": "crates/ncm-model/src/blocks.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "0d5c4ab0370f33bde34943b9a7a34bd0edf724c4d5e806a07e4d8aef95d6376b",
+      "lexical_body_complete": true,
+      "line": 5,
+      "name": "Encoded",
+      "path": "crates/ncm-model/src/codec.rs",
+      "storage_signals": [
+        "Vec",
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "0d5c4ab0370f33bde34943b9a7a34bd0edf724c4d5e806a07e4d8aef95d6376b",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "Decoded",
+      "path": "crates/ncm-model/src/codec.rs",
+      "storage_signals": [
+        "Vec",
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "0d5c4ab0370f33bde34943b9a7a34bd0edf724c4d5e806a07e4d8aef95d6376b",
+      "lexical_body_complete": true,
+      "line": 16,
+      "name": "Prefix",
+      "path": "crates/ncm-model/src/codec.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "GeneratorConfig",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 108,
+      "name": "Envelope",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 114,
+      "name": "GeneratorWeights",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": [
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 120,
+      "name": "Affine",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 124,
+      "name": "GeneratorBlock",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 134,
+      "name": "GeneratorParameters",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": [
+        "Box"
+      ]
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 305,
+      "name": "Generator",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": [
+        "Vec",
+        "Mutex",
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 311,
+      "name": "LevelGeometry",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 317,
+      "name": "Generated",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": [
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "8e9cce4eaceabd05b7f64451138b02bd10cb7525196c9f687595687283707779",
+      "lexical_body_complete": true,
+      "line": 525,
+      "name": "Counter",
+      "path": "crates/ncm-model/src/generator.rs",
+      "storage_signals": [
+        "Rc"
+      ]
+    },
+    {
+      "file_sha256": "bfbf9fca9c5799c38390c9f32d155abcdde021d03701b8d2befcc386d766dd55",
+      "lexical_body_complete": true,
+      "line": 39,
+      "name": "Codec",
+      "path": "crates/ncm-model/src/lib.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "BTreeMap",
+        "OnceLock",
+        "Tensor"
+      ]
+    },
+    {
+      "file_sha256": "bfbf9fca9c5799c38390c9f32d155abcdde021d03701b8d2befcc386d766dd55",
+      "lexical_body_complete": true,
+      "line": 157,
+      "name": "Envelope",
+      "path": "crates/ncm-model/src/lib.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "bfbf9fca9c5799c38390c9f32d155abcdde021d03701b8d2befcc386d766dd55",
+      "lexical_body_complete": true,
+      "line": 174,
+      "name": "Tokenizer",
+      "path": "crates/ncm-model/src/lib.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "bfbf9fca9c5799c38390c9f32d155abcdde021d03701b8d2befcc386d766dd55",
+      "lexical_body_complete": true,
+      "line": 180,
+      "name": "PreTokenizer",
+      "path": "crates/ncm-model/src/lib.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "4dbd176b8f794aa7351d8611bdea742ba851101f5c6e4d805fb359c514eaa1f7",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "Counter",
+      "path": "crates/ncm-model/tests/loading.rs",
+      "storage_signals": [
+        "Rc"
+      ]
+    },
+    {
+      "file_sha256": "4dbd176b8f794aa7351d8611bdea742ba851101f5c6e4d805fb359c514eaa1f7",
+      "lexical_body_complete": true,
+      "line": 20,
+      "name": "HostTensor",
+      "path": "crates/ncm-model/tests/loading.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "4dbd176b8f794aa7351d8611bdea742ba851101f5c6e4d805fb359c514eaa1f7",
+      "lexical_body_complete": true,
+      "line": 123,
+      "name": "Failing",
+      "path": "crates/ncm-model/tests/loading.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "5dc0c5caa5abdab6d2a0ddca71cbe66307fe631d38105ee6a75b33dfa2dcc39b",
+      "lexical_body_complete": true,
+      "line": 14,
+      "name": "Case",
+      "path": "crates/ncm-tokenizers/examples/asset_allocations.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "38a868b8a83b3fa46c43c35a1d3ed395f6aafc4fbc647d58e031c703c20243e7",
+      "lexical_body_complete": true,
+      "line": 12,
+      "name": "Case",
+      "path": "crates/ncm-tokenizers/examples/asset_bench.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "61b24b555f0d46bcfbf749a22358d0a81a491822c84b059183202331751158ac",
+      "lexical_body_complete": true,
+      "line": 24,
+      "name": "TokenizerMetadata",
+      "path": "crates/ncm-tokenizers/src/assets.rs",
+      "storage_signals": [
+        "String",
+        "BTreeMap"
+      ]
+    },
+    {
+      "file_sha256": "61b24b555f0d46bcfbf749a22358d0a81a491822c84b059183202331751158ac",
+      "lexical_body_complete": true,
+      "line": 44,
+      "name": "TextTokenizer",
+      "path": "crates/ncm-tokenizers/src/assets.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "a1f7a00b4ac539673f843fa5fe14bede5ce93332f7257621a3b59258579abf81",
+      "lexical_body_complete": true,
+      "line": 10,
+      "name": "HexString",
+      "path": "crates/ncm-tokenizers/src/bpe.rs",
+      "storage_signals": [
+        "Cow"
+      ]
+    },
+    {
+      "file_sha256": "a1f7a00b4ac539673f843fa5fe14bede5ce93332f7257621a3b59258579abf81",
+      "lexical_body_complete": true,
+      "line": 14,
+      "name": "Raw",
+      "path": "crates/ncm-tokenizers/src/bpe.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "a1f7a00b4ac539673f843fa5fe14bede5ce93332f7257621a3b59258579abf81",
+      "lexical_body_complete": true,
+      "line": 22,
+      "name": "Vocabulary",
+      "path": "crates/ncm-tokenizers/src/bpe.rs",
+      "storage_signals": [
+        "Box"
+      ]
+    },
+    {
+      "file_sha256": "a1f7a00b4ac539673f843fa5fe14bede5ce93332f7257621a3b59258579abf81",
+      "lexical_body_complete": true,
+      "line": 36,
+      "name": "ByteBpe",
+      "path": "crates/ncm-tokenizers/src/bpe.rs",
+      "storage_signals": [
+        "HashMap",
+        "Regex"
+      ]
+    },
+    {
+      "file_sha256": "c7408a8c6204fb29cc46616b53728c85ca7520cc2267846b8ad11127eb895c00",
+      "lexical_body_complete": true,
+      "line": 28,
+      "name": "Canonical",
+      "path": "crates/ncm-tokenizers/src/hf_bpe.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "Vocab"
+      ]
+    },
+    {
+      "file_sha256": "c7408a8c6204fb29cc46616b53728c85ca7520cc2267846b8ad11127eb895c00",
+      "lexical_body_complete": true,
+      "line": 48,
+      "name": "Visitor",
+      "path": "crates/ncm-tokenizers/src/hf_bpe.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "c7408a8c6204fb29cc46616b53728c85ca7520cc2267846b8ad11127eb895c00",
+      "lexical_body_complete": true,
+      "line": 72,
+      "name": "Visitor",
+      "path": "crates/ncm-tokenizers/src/hf_bpe.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "c7408a8c6204fb29cc46616b53728c85ca7520cc2267846b8ad11127eb895c00",
+      "lexical_body_complete": true,
+      "line": 96,
+      "name": "CanonicalBpe",
+      "path": "crates/ncm-tokenizers/src/hf_bpe.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "730637fda5d1fb330b92651e89d478e8c37d840164dd576b002fea711eb7c445",
+      "lexical_body_complete": true,
+      "line": 22,
+      "name": "Canonical",
+      "path": "crates/ncm-tokenizers/src/hf_wordpiece.rs",
+      "storage_signals": [
+        "String",
+        "Vocab"
+      ]
+    },
+    {
+      "file_sha256": "730637fda5d1fb330b92651e89d478e8c37d840164dd576b002fea711eb7c445",
+      "lexical_body_complete": true,
+      "line": 33,
+      "name": "CanonicalWordPiece",
+      "path": "crates/ncm-tokenizers/src/hf_wordpiece.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "9c363604a82b2e1439afaa78efe6b11c2d33348525bb934c797a37f2007bf3bb",
+      "lexical_body_complete": true,
+      "line": 10,
+      "name": "BPEDecoder",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/bpe.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "74d0d3546551f6ca126617af450a22436289e3be2a8049f19271f41524318e64",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "ByteFallback",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/byte_fallback.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "5bc7697e3661238e33d1614e95003e24b4814cf9e1dc7f458c1fc814d84c9d27",
+      "lexical_body_complete": true,
+      "line": 14,
+      "name": "CTC",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/ctc.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "19b7bfca165bdee6ab084ed5429a49afc9d52664c51187a500335a80707850fa",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "Fuse",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/fuse.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "9963dedcd9a965ae80888e72a7d83fbe2ee1c4f426b313cf1b7014c384419a08",
+      "lexical_body_complete": true,
+      "line": 48,
+      "name": "Tagged",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "6bbaf543e2ac97e658bd657ccdb56b8930218c9381492e712d4c93131b663eca",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "Sequence",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/sequence.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "8f552ed13ffd5ec94808f00a62d3e28e9d1b5a811412669f87ffbf4cf857b306",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "Strip",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/strip.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "3765198f8efe1e74f6bae74a679db94afec5f030c30d3c24cd579c976354768e",
+      "lexical_body_complete": true,
+      "line": 10,
+      "name": "WordPiece",
+      "path": "vendor/tokenizers-0.22.2/src/decoders/wordpiece.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "bd38f20a24f390ea319148bc494010319cb613948edf42e1acd817b5801e6d8f",
+      "lexical_body_complete": true,
+      "line": 56,
+      "name": "FirstLastIterator",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "670002196337620fd9eff7af54c52591aebbb52a184534c41907c857be67649c",
+      "lexical_body_complete": true,
+      "line": 22,
+      "name": "Config",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
+      "storage_signals": [
+        "String",
+        "Vocab"
+      ]
+    },
+    {
+      "file_sha256": "670002196337620fd9eff7af54c52591aebbb52a184534c41907c857be67649c",
+      "lexical_body_complete": true,
+      "line": 37,
+      "name": "BpeBuilder",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "670002196337620fd9eff7af54c52591aebbb52a184534c41907c857be67649c",
+      "lexical_body_complete": true,
+      "line": 217,
+      "name": "BPE",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/model.rs",
+      "storage_signals": [
+        "String",
+        "Cache",
+        "Vocab",
+        "VocabR",
+        "MergeMap"
+      ]
+    },
+    {
+      "file_sha256": "123a0c7f42580f508a784e0fa3c3115aa5ae1b2e604dcedde3e083d2cb94a92a",
+      "lexical_body_complete": true,
+      "line": 70,
+      "name": "BPEVisitor",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/serialization.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "a1734fe3cbb8d204e6f9368a1f83f297d7d45413c636ad678b47215ae28fa739",
+      "lexical_body_complete": true,
+      "line": 15,
+      "name": "Merge",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs",
+      "storage_signals": [
+        "AHashSet"
+      ]
+    },
+    {
+      "file_sha256": "a1734fe3cbb8d204e6f9368a1f83f297d7d45413c636ad678b47215ae28fa739",
+      "lexical_body_complete": true,
+      "line": 41,
+      "name": "Config",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "AHashSet"
+      ]
+    },
+    {
+      "file_sha256": "a1734fe3cbb8d204e6f9368a1f83f297d7d45413c636ad678b47215ae28fa739",
+      "lexical_body_complete": true,
+      "line": 55,
+      "name": "BpeTrainerBuilder",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "a1734fe3cbb8d204e6f9368a1f83f297d7d45413c636ad678b47215ae28fa739",
+      "lexical_body_complete": true,
+      "line": 182,
+      "name": "BpeTrainer",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "AHashMap",
+        "AHashSet"
+      ]
+    },
+    {
+      "file_sha256": "a1734fe3cbb8d204e6f9368a1f83f297d7d45413c636ad678b47215ae28fa739",
+      "lexical_body_complete": true,
+      "line": 521,
+      "name": "WordPtr",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/trainer.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "42a5547426082590675979ed72e03ce59a16f7cf0b57aaac6890d43ce0a79ad0",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "Merge",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/word.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "42a5547426082590675979ed72e03ce59a16f7cf0b57aaac6890d43ce0a79ad0",
+      "lexical_body_complete": true,
+      "line": 39,
+      "name": "Symbol",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/word.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "42a5547426082590675979ed72e03ce59a16f7cf0b57aaac6890d43ce0a79ad0",
+      "lexical_body_complete": true,
+      "line": 57,
+      "name": "Word",
+      "path": "vendor/tokenizers-0.22.2/src/models/bpe/word.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "776ade91b627a05d0dcec688c040b3634d9f3618607afdc8f5bb11f944857dd9",
+      "lexical_body_complete": true,
+      "line": 22,
+      "name": "OrderedVocabIter",
+      "path": "vendor/tokenizers-0.22.2/src/models/mod.rs",
+      "storage_signals": [
+        "String",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "776ade91b627a05d0dcec688c040b3634d9f3618607afdc8f5bb11f944857dd9",
+      "lexical_body_complete": true,
+      "line": 78,
+      "name": "Tagged",
+      "path": "vendor/tokenizers-0.22.2/src/models/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "d68eeda555a6ab623599e90d51121d1dcd2ad2829167e0aa6d932872da86f7b7",
+      "lexical_body_complete": true,
+      "line": 12,
+      "name": "Hypothesis",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/lattice.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "d68eeda555a6ab623599e90d51121d1dcd2ad2829167e0aa6d932872da86f7b7",
+      "lexical_body_complete": true,
+      "line": 53,
+      "name": "Lattice",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/lattice.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "d68eeda555a6ab623599e90d51121d1dcd2ad2829167e0aa6d932872da86f7b7",
+      "lexical_body_complete": true,
+      "line": 86,
+      "name": "Node",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/lattice.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "85593fb96dfac2710ae0bdb84b767c2605a105f6f9b59f30547aa8bce5059a9a",
+      "lexical_body_complete": true,
+      "line": 19,
+      "name": "Unigram",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/model.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "Cache",
+        "Vocab"
+      ]
+    },
+    {
+      "file_sha256": "85593fb96dfac2710ae0bdb84b767c2605a105f6f9b59f30547aa8bce5059a9a",
+      "lexical_body_complete": true,
+      "line": 243,
+      "name": "BestPathNode",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/model.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "85593fb96dfac2710ae0bdb84b767c2605a105f6f9b59f30547aa8bce5059a9a",
+      "lexical_body_complete": true,
+      "line": 388,
+      "name": "UnigramIterator",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/model.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "2358d3985ae5330b2caebdbd5567621572368869dcbb36e3a95696325e941ce3",
+      "lexical_body_complete": true,
+      "line": 37,
+      "name": "UnigramVisitor",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/serialization.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "cb5a1965aafbe00b8893ae494ca1cc8c74809d26a7047363e65df1f7e57c2140",
+      "lexical_body_complete": true,
+      "line": 49,
+      "name": "UnigramTrainer",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/trainer.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "AHashMap",
+        "AHashSet"
+      ]
+    },
+    {
+      "file_sha256": "ae2cf2aeb7f468d64d70a4696b4f739ac37e7fc7e6b3d3c4347f1c6f65a8d76c",
+      "lexical_body_complete": true,
+      "line": 5,
+      "name": "TrieBuilder",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/trie.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "ae2cf2aeb7f468d64d70a4696b4f739ac37e7fc7e6b3d3c4347f1c6f65a8d76c",
+      "lexical_body_complete": true,
+      "line": 20,
+      "name": "Trie",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/trie.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "ae2cf2aeb7f468d64d70a4696b4f739ac37e7fc7e6b3d3c4347f1c6f65a8d76c",
+      "lexical_body_complete": true,
+      "line": 45,
+      "name": "TrieIterator",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/trie.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "ae2cf2aeb7f468d64d70a4696b4f739ac37e7fc7e6b3d3c4347f1c6f65a8d76c",
+      "lexical_body_complete": true,
+      "line": 79,
+      "name": "Node",
+      "path": "vendor/tokenizers-0.22.2/src/models/unigram/trie.rs",
+      "storage_signals": [
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "ab105b50463b4eff10a2e367aeaa51a1461feb3a535bace6bf5759df8819d2e3",
+      "lexical_body_complete": true,
+      "line": 26,
+      "name": "Config",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordlevel/mod.rs",
+      "storage_signals": [
+        "String",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "ab105b50463b4eff10a2e367aeaa51a1461feb3a535bace6bf5759df8819d2e3",
+      "lexical_body_complete": true,
+      "line": 34,
+      "name": "WordLevelBuilder",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordlevel/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "ab105b50463b4eff10a2e367aeaa51a1461feb3a535bace6bf5759df8819d2e3",
+      "lexical_body_complete": true,
+      "line": 99,
+      "name": "WordLevel",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordlevel/mod.rs",
+      "storage_signals": [
+        "String",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "75a367e46105e3bebf8fdc2925e81cb1ac625ae1f700571069214d84a05e067a",
+      "lexical_body_complete": true,
+      "line": 36,
+      "name": "WordLevelVisitor",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordlevel/serialization.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "a270dc783a3d2e1e8c8409b0d5ec5b62178d25769108a50a0862ad61adb66c2c",
+      "lexical_body_complete": true,
+      "line": 10,
+      "name": "WordLevelTrainer",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordlevel/trainer.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "f92f8a451ee17a8bc5a2b5108e3bb4b45195918b320a9746c722c44a2a5f360f",
+      "lexical_body_complete": true,
+      "line": 29,
+      "name": "Config",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordpiece/mod.rs",
+      "storage_signals": [
+        "String",
+        "Vocab"
+      ]
+    },
+    {
+      "file_sha256": "f92f8a451ee17a8bc5a2b5108e3bb4b45195918b320a9746c722c44a2a5f360f",
+      "lexical_body_complete": true,
+      "line": 38,
+      "name": "WordPieceBuilder",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordpiece/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "f92f8a451ee17a8bc5a2b5108e3bb4b45195918b320a9746c722c44a2a5f360f",
+      "lexical_body_complete": true,
+      "line": 124,
+      "name": "WordPiece",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordpiece/mod.rs",
+      "storage_signals": [
+        "String",
+        "Vocab",
+        "VocabR"
+      ]
+    },
+    {
+      "file_sha256": "6c3f71f99773a354f0ed29df78f13737bc8593e94af8da461b19a7d584b618e7",
+      "lexical_body_complete": true,
+      "line": 49,
+      "name": "WordPieceVisitor",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordpiece/serialization.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "7abfaf6d843c15d575c00c6b8564e6908612e98360f858204e80ad38cb8e07d5",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "WordPieceTrainerBuilder",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordpiece/trainer.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "7abfaf6d843c15d575c00c6b8564e6908612e98360f858204e80ad38cb8e07d5",
+      "lexical_body_complete": true,
+      "line": 94,
+      "name": "WordPieceTrainer",
+      "path": "vendor/tokenizers-0.22.2/src/models/wordpiece/trainer.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "1c8b1602de94ed84d3f3a0d05f32d3f6f4f398ce9d5cee67f2bacd28d53bc940",
+      "lexical_body_complete": true,
+      "line": 53,
+      "name": "BertNormalizer",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/bert.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "d39bd4a8dc7677fd017394c614d72ec5f10565f8f680e215d3ef29bd85bbd82d",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "ByteLevel",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/byte_level.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "93bbbae1b8885989b0163ad4e4141aeb0676928e6754e6a3d010f205f712cdd2",
+      "lexical_body_complete": true,
+      "line": 47,
+      "name": "Tagged",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "99d7336d9c9ba8baca0f30b435c2a7930332100ec0d58f6221eff94da373fa19",
+      "lexical_body_complete": true,
+      "line": 6,
+      "name": "Prepend",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/prepend.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "0bc5c139e0f4e05f3ead555b40789327a1c6e765601a8c3b6bdbfec877c875d9",
+      "lexical_body_complete": true,
+      "line": 30,
+      "name": "ReplaceDeserializer",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/replace.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "0bc5c139e0f4e05f3ead555b40789327a1c6e765601a8c3b6bdbfec877c875d9",
+      "lexical_body_complete": true,
+      "line": 47,
+      "name": "Replace",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/replace.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "3d088593a2fa931261f4cd906440b83c053351a0e0e12cb797e541b98d7e2b06",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "Strip",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/strip.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "3d088593a2fa931261f4cd906440b83c053351a0e0e12cb797e541b98d7e2b06",
+      "lexical_body_complete": true,
+      "line": 48,
+      "name": "StripAccents",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/strip.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "6c2312c8a2ba9461b850147fd63432f59f81e942042995d7c28e097f8198139e",
+      "lexical_body_complete": true,
+      "line": 6,
+      "name": "NFD",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/unicode.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "6c2312c8a2ba9461b850147fd63432f59f81e942042995d7c28e097f8198139e",
+      "lexical_body_complete": true,
+      "line": 16,
+      "name": "NFKD",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/unicode.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "6c2312c8a2ba9461b850147fd63432f59f81e942042995d7c28e097f8198139e",
+      "lexical_body_complete": true,
+      "line": 26,
+      "name": "NFC",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/unicode.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "6c2312c8a2ba9461b850147fd63432f59f81e942042995d7c28e097f8198139e",
+      "lexical_body_complete": true,
+      "line": 36,
+      "name": "NFKC",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/unicode.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "6c2312c8a2ba9461b850147fd63432f59f81e942042995d7c28e097f8198139e",
+      "lexical_body_complete": true,
+      "line": 77,
+      "name": "Nmt",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/unicode.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "5f598772c1140f0252b5f19fcf2581a803d8d6df097e5709c23838d58d27da2c",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "Sequence",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/utils.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "5f598772c1140f0252b5f19fcf2581a803d8d6df097e5709c23838d58d27da2c",
+      "lexical_body_complete": true,
+      "line": 54,
+      "name": "Lowercase",
+      "path": "vendor/tokenizers-0.22.2/src/normalizers/utils.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "32dd35c1f815072c6ba32df390389d10e5f4073b480d1c4ade06143ba23b571d",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "BertPreTokenizer",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/bert.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "2eb8ad4c8fe3d4331c3969551aa683cbda51676ee507ca8c9d5666495d9d83d6",
+      "lexical_body_complete": true,
+      "line": 57,
+      "name": "ByteLevel",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/byte_level.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "7d2d0170eeb5d864742df867958f379ec564bc5af67e835f5793b06bfab4185f",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "CharDelimiterSplit",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/delimiter.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "1452f56c9fcb0265ee91c5439f860033209e44fe61565b743970d64216b9b41a",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "Digits",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/digits.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "d888230bb4003270b85599f4b94478386f0a6c836ce197cd0e50fe469aa11836",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "FixedLength",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/fixed_length.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "0048101657d3d0ab8d6280be30c4ac72d0ee1f00eb2a4ddad9ae45c6f424735b",
+      "lexical_body_complete": true,
+      "line": 26,
+      "name": "Metaspace",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/metaspace.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "0048101657d3d0ab8d6280be30c4ac72d0ee1f00eb2a4ddad9ae45c6f424735b",
+      "lexical_body_complete": true,
+      "line": 49,
+      "name": "MetaspaceHelper",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/metaspace.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "e1face4a2de95b1dfe92472de274d7dc5dbcc6854b1eeeb791a1fb86255aca0d",
+      "lexical_body_complete": true,
+      "line": 70,
+      "name": "Tagged",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "b0bdf7d5edf658ec5e65d8cd91c3b39c8c2d82e1d3ff9e2ebb959ac21b2cde09",
+      "lexical_body_complete": true,
+      "line": 13,
+      "name": "Punctuation",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/punctuation.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "ebc4547dd4768e25941add14e9e67122dd10de7695f112031603bc52654b7213",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "Sequence",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/sequence.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "cf6a6805a0fda58dd732fa7d4361639e27e9b5a87368860907995ba027bd58e1",
+      "lexical_body_complete": true,
+      "line": 29,
+      "name": "Split",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/split.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "cf6a6805a0fda58dd732fa7d4361639e27e9b5a87368860907995ba027bd58e1",
+      "lexical_body_complete": true,
+      "line": 48,
+      "name": "SplitHelper",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/split.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "4ed0d408409ec35bcba141d75a2647d7503bc17d1e6f4641627325c99bd56edb",
+      "lexical_body_complete": true,
+      "line": 7,
+      "name": "UnicodeScripts",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/unicode_scripts/pre_tokenizer.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "21bf8000de54d7f09488dfaa04ec8ec6c599decdcb88704494162f54bc65d7c8",
+      "lexical_body_complete": true,
+      "line": 12,
+      "name": "Whitespace",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/whitespace.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "21bf8000de54d7f09488dfaa04ec8ec6c599decdcb88704494162f54bc65d7c8",
+      "lexical_body_complete": true,
+      "line": 33,
+      "name": "WhitespaceSplit",
+      "path": "vendor/tokenizers-0.22.2/src/pre_tokenizers/whitespace.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "11954abc42c7d9748e8b690ba40a82bd97cf5741d80cd166a8b46eb0dd4f7f8a",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "BertProcessing",
+      "path": "vendor/tokenizers-0.22.2/src/processors/bert.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "5a00fcfcd37cfd28de62cde9c3f1f21c0045f5be904b8f603db55c603d1357f4",
+      "lexical_body_complete": true,
+      "line": 9,
+      "name": "RobertaProcessing",
+      "path": "vendor/tokenizers-0.22.2/src/processors/roberta.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "2d10b84a463f107fde6d532c48fab5a518eac75bc6efc302a60d8f2b1a98a8bf",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "Sequence",
+      "path": "vendor/tokenizers-0.22.2/src/processors/sequence.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "f7a120027c11339b2f2cbeb814361469dd21adc0029fe3b4c7c75a68f6f3593d",
+      "lexical_body_complete": true,
+      "line": 193,
+      "name": "SpecialToken",
+      "path": "vendor/tokenizers-0.22.2/src/processors/template.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "f7a120027c11339b2f2cbeb814361469dd21adc0029fe3b4c7c75a68f6f3593d",
+      "lexical_body_complete": true,
+      "line": 255,
+      "name": "Template",
+      "path": "vendor/tokenizers-0.22.2/src/processors/template.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "f7a120027c11339b2f2cbeb814361469dd21adc0029fe3b4c7c75a68f6f3593d",
+      "lexical_body_complete": true,
+      "line": 295,
+      "name": "Tokens",
+      "path": "vendor/tokenizers-0.22.2/src/processors/template.rs",
+      "storage_signals": [
+        "String",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "f7a120027c11339b2f2cbeb814361469dd21adc0029fe3b4c7c75a68f6f3593d",
+      "lexical_body_complete": true,
+      "line": 339,
+      "name": "TemplateProcessing",
+      "path": "vendor/tokenizers-0.22.2/src/processors/template.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "f7a120027c11339b2f2cbeb814361469dd21adc0029fe3b4c7c75a68f6f3593d",
+      "lexical_body_complete": true,
+      "line": 423,
+      "name": "TemplateProcessingDeserializer",
+      "path": "vendor/tokenizers-0.22.2/src/processors/template.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "ae4e5ab645ff4847b86549ccdf886981e25922ce34c06c65488e51c22c27443d",
+      "lexical_body_complete": true,
+      "line": 16,
+      "name": "AddedToken",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "ae4e5ab645ff4847b86549ccdf886981e25922ce34c06c65488e51c22c27443d",
+      "lexical_body_complete": true,
+      "line": 141,
+      "name": "AddedVocabulary",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "AHashMap",
+        "AHashSet",
+        "MatchingSet"
+      ]
+    },
+    {
+      "file_sha256": "ae4e5ab645ff4847b86549ccdf886981e25922ce34c06c65488e51c22c27443d",
+      "lexical_body_complete": true,
+      "line": 512,
+      "name": "AddedTokenWithId",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "ae4e5ab645ff4847b86549ccdf886981e25922ce34c06c65488e51c22c27443d",
+      "lexical_body_complete": true,
+      "line": 556,
+      "name": "ModelMock",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs",
+      "storage_signals": [
+        "String",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "ae4e5ab645ff4847b86549ccdf886981e25922ce34c06c65488e51c22c27443d",
+      "lexical_body_complete": true,
+      "line": 594,
+      "name": "TrainerMock",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/added_vocabulary.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "9866cf67379cbffb48e912102da5712fb4f84ff10be1269d60805f901cb781c5",
+      "lexical_body_complete": true,
+      "line": 11,
+      "name": "Encoding",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/encoding.rs",
+      "storage_signals": [
+        "Vec",
+        "String",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "f47ea3e878b2a6766ed9809c648ba8f1bcd5b943e05c18e79fbd425b42e24b00",
+      "lexical_body_complete": true,
+      "line": 180,
+      "name": "Token",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/mod.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "f47ea3e878b2a6766ed9809c648ba8f1bcd5b943e05c18e79fbd425b42e24b00",
+      "lexical_body_complete": true,
+      "line": 280,
+      "name": "BuilderError",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/mod.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "f47ea3e878b2a6766ed9809c648ba8f1bcd5b943e05c18e79fbd425b42e24b00",
+      "lexical_body_complete": true,
+      "line": 285,
+      "name": "TokenizerBuilder",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "f47ea3e878b2a6766ed9809c648ba8f1bcd5b943e05c18e79fbd425b42e24b00",
+      "lexical_body_complete": true,
+      "line": 410,
+      "name": "Tokenizer",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "f47ea3e878b2a6766ed9809c648ba8f1bcd5b943e05c18e79fbd425b42e24b00",
+      "lexical_body_complete": true,
+      "line": 509,
+      "name": "TruncationParamError",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/mod.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "f47ea3e878b2a6766ed9809c648ba8f1bcd5b943e05c18e79fbd425b42e24b00",
+      "lexical_body_complete": true,
+      "line": 513,
+      "name": "TokenizerImpl",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/mod.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "f47ea3e878b2a6766ed9809c648ba8f1bcd5b943e05c18e79fbd425b42e24b00",
+      "lexical_body_complete": true,
+      "line": 1017,
+      "name": "DecodeStream",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/mod.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "490d2b81fd26a14bb711c37911e960b5edda6f1dd45739da7141a98cbcdc3341",
+      "lexical_body_complete": true,
+      "line": 105,
+      "name": "NormalizedString",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/normalizer.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "ba84d97619bdc8ab3eb7c56bf997493988a498d0840f78945805a93ddbaaf3cb",
+      "lexical_body_complete": true,
+      "line": 128,
+      "name": "Invert",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/pattern.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "2050974242070d86f2492277d4a37892a25afc9d3d60215e6fecfac6516440e7",
+      "lexical_body_complete": true,
+      "line": 20,
+      "name": "Split",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/pre_tokenizer.rs",
+      "storage_signals": [
+        "Vec"
+      ]
+    },
+    {
+      "file_sha256": "2050974242070d86f2492277d4a37892a25afc9d3d60215e6fecfac6516440e7",
+      "lexical_body_complete": true,
+      "line": 54,
+      "name": "PreTokenizedString",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/pre_tokenizer.rs",
+      "storage_signals": [
+        "Vec",
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "2050974242070d86f2492277d4a37892a25afc9d3d60215e6fecfac6516440e7",
+      "lexical_body_complete": true,
+      "line": 267,
+      "name": "BytesToCharOffsetConverter",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/pre_tokenizer.rs",
+      "storage_signals": [
+        "HashMap"
+      ]
+    },
+    {
+      "file_sha256": "c8d367a6921c59c48404b344396c5fa6c3a76cf0a6e1b4cf1513e5cef92c2295",
+      "lexical_body_complete": true,
+      "line": 86,
+      "name": "TokenizerVisitor",
+      "path": "vendor/tokenizers-0.22.2/src/tokenizer/serialization.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "e865470393ae5c651cb1fbc7ea59c444c130ddf924d8c8e6c241a0da3707b602",
+      "lexical_body_complete": true,
+      "line": 17,
+      "name": "Cache",
+      "path": "vendor/tokenizers-0.22.2/src/utils/cache.rs",
+      "storage_signals": [
+        "RwLock",
+        "AHashMap"
+      ]
+    },
+    {
+      "file_sha256": "534ed9e80f94b5355cda3692a5ef9ad15296ec5e8f895dd854ee040d45669382",
+      "lexical_body_complete": true,
+      "line": 7,
+      "name": "SysRegex",
+      "path": "vendor/tokenizers-0.22.2/src/utils/fancy.rs",
+      "storage_signals": [
+        "Regex"
+      ]
+    },
+    {
+      "file_sha256": "534ed9e80f94b5355cda3692a5ef9ad15296ec5e8f895dd854ee040d45669382",
+      "lexical_body_complete": true,
+      "line": 23,
+      "name": "Matches",
+      "path": "vendor/tokenizers-0.22.2/src/utils/fancy.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "6d00a9c45584f0bcd64d0d01110d48444191f5450eab2731280f77ae36500757",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "FromPretrainedParameters",
+      "path": "vendor/tokenizers-0.22.2/src/utils/from_pretrained.rs",
+      "storage_signals": [
+        "String",
+        "HashMap"
+      ]
+    },
+    {
+      "file_sha256": "004540ac0fc434f6ec25c1cf8e6818998550da936a728aa5a301458c6c66a540",
+      "lexical_body_complete": true,
+      "line": 8,
+      "name": "ResultShunt",
+      "path": "vendor/tokenizers-0.22.2/src/utils/iter.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "004540ac0fc434f6ec25c1cf8e6818998550da936a728aa5a301458c6c66a540",
+      "lexical_body_complete": true,
+      "line": 64,
+      "name": "Lines",
+      "path": "vendor/tokenizers-0.22.2/src/utils/iter.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "f6f58fb3fcf2dfbee2e8edc9b763247443fa102aea185481ff591f7d52c5256e",
+      "lexical_body_complete": true,
+      "line": 7,
+      "name": "SysRegex",
+      "path": "vendor/tokenizers-0.22.2/src/utils/onig.rs",
+      "storage_signals": [
+        "Regex"
+      ]
+    },
+    {
+      "file_sha256": "1015ed9beb2adc62e1c1bbab847a1f2fe379acf89a6f2bd9a3e81b92c30d4c69",
+      "lexical_body_complete": true,
+      "line": 22,
+      "name": "PaddingParams",
+      "path": "vendor/tokenizers-0.22.2/src/utils/padding.rs",
+      "storage_signals": [
+        "String"
+      ]
+    },
+    {
+      "file_sha256": "2bae922cafe5167d36cc6cd973edf4fcf6d0224be4d27fa47b9285dcca447ca8",
+      "lexical_body_complete": true,
+      "line": 7,
+      "name": "ProgressBar",
+      "path": "vendor/tokenizers-0.22.2/src/utils/progress.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "2bae922cafe5167d36cc6cd973edf4fcf6d0224be4d27fa47b9285dcca447ca8",
+      "lexical_body_complete": true,
+      "line": 21,
+      "name": "ProgressStyle",
+      "path": "vendor/tokenizers-0.22.2/src/utils/progress.rs",
+      "storage_signals": []
+    },
+    {
+      "file_sha256": "cc5933ba8a39ad4f5992fd851eea175262f5e16ec2ed88a9f33d5dd06ad6dbce",
+      "lexical_body_complete": true,
+      "line": 23,
+      "name": "TruncationParams",
+      "path": "vendor/tokenizers-0.22.2/src/utils/truncation.rs",
+      "storage_signals": []
+    }
+  ],
+  "schema_version": 1,
+  "scope": "explicit declarations; lexical heuristics, not measured memory or generated types"
+}
