@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Metal trace launch bound:** a fresh 642-trace/2,500-decision capture records
+  the executable, MLX/model sources and native libraries before/after; its
+  qualification matches the earlier gated result byte-for-byte. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-bound-trace-capture-v2-result.md).
+
 - **CUDA trace launch bound:** a fresh 642-trace/2,500-decision capture records
   the trace executable and both CUDA source hashes before/after; its qualification
   matches the gated result byte-for-byte. Current depfiles list both CUDA modules;

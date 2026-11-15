@@ -8,6 +8,7 @@
 | --- | --- |
 | [Linux controlled audit](cuda-bounded-linux-acceptance-v1.json) | New candidate passes 78/78 timing and host-memory cells plus quality; [collection and reproduction](cuda-bounded-linux-gate-v1.md). |
 | [Fresh CUDA trace binding](cuda-bound-trace-capture-v2-result.md) | 642 traces and 2,500 decisions pass; executable and CUDA source hashes were recorded around capture. |
+| [Fresh Metal trace binding](mlx-bound-trace-capture-v2-result.md) | 642 traces and 2,500 decisions pass; executable, source and library hashes were recorded around capture. |
 | [Apple controlled audit](mlx-acceptance.json) | 78/78 timing and host-memory cells plus quality pass; the initial B4 tail failure and earlier controls remain in the [results](apple-gate18-results-v1.md). |
 | [Source and audit bindings](phase2-current-bindings-v2.md) | Current candidate source, published audits, Apple binary identities and Linux pool observations are bound; the Apple memory question remains open. |
 | [Platform performance summary](phase2-performance-summary-v2.md) | Per-scope controlled median, p95 and candidate rate, plus host-memory ratios for both references. |
