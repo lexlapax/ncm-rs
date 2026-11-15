@@ -70,3 +70,7 @@ required-features = ["mlx"]
 [[example]]
 name = "tinystories_samples"
 required-features = ["mlx"]
+
+[[example]]
+name = "tinystories_sample_bench"
+required-features = ["mlx"]
