@@ -90,10 +90,11 @@ def main():
         if error_ms > 0.2:
             raise ValueError('marker and reported timing differ by more than 0.2 ms')
         marker_errors.append(error_ms)
-        windows.append((sequence, values['Begin'], values['End']))
+        windows.append((sequence, values['Begin'], values['Event'], values['End']))
     root, index = parse(gpu)
     target_intervals = overlapping = 0
     overlapping_requests = set()
+    clipped_intervals = defaultdict(list)
     for row in root.iter('row'):
         if value(row, 'process', index) != process_name:
             continue
@@ -103,13 +104,27 @@ def main():
         begin = int(start.text)
         end = begin + int(duration.text)
         target_intervals += 1
-        for sequence, left, right in windows:
+        hit = False
+        for sequence, left, _, right in windows:
             if begin < right and end > left:
-                overlapping += 1
+                hit = True
                 overlapping_requests.add(sequence)
-                break
+                clipped_intervals[sequence].append((max(begin, left), min(end, right)))
+        overlapping += int(hit)
     if not target_intervals or len(overlapping_requests) != 30:
         raise ValueError('GPU intervals do not overlap all measured requests')
+    gpu_unions_ms = []
+    for sequence, _, _, _ in windows:
+        total, left, right = 0, 0, 0
+        for begin, end in sorted(clipped_intervals[sequence]):
+            if begin > right:
+                total += right - left
+                left, right = begin, end
+            else:
+                right = max(right, end)
+        gpu_unions_ms.append((total + right - left) / 1e6)
+    sample_phase_ms = [(event - begin) / 1e6 for _, begin, event, _ in windows]
+    readback_phase_ms = [(end - event) / 1e6 for _, _, event, end in windows]
     trials = sorted(data['trials_seconds'])
     report = {'target_sha256': digest(target), 'signposts_sha256': digest(signposts),
               'gpu_intervals_sha256': digest(gpu), 'measured_requests': len(windows),
@@ -117,10 +132,16 @@ def main():
               'warmup_zero_begin_present': bool(markers[(0, 'Begin')]),
               'target_gpu_intervals': target_intervals, 'intervals_overlapping_measured_requests': overlapping,
               'measured_requests_with_gpu_overlap': len(overlapping_requests),
+              'median_sample_phase_ms': statistics.median(sample_phase_ms),
+              'median_readback_cleanup_phase_ms': statistics.median(readback_phase_ms),
+              'median_gpu_overlap_union_ms': statistics.median(gpu_unions_ms),
+              'gpu_overlap_union_range_ms': [min(gpu_unions_ms), max(gpu_unions_ms)],
               'median_ms': statistics.median(trials) * 1000, 'p95_ms': trials[28] * 1000,
               'maximum_ms': trials[-1] * 1000, 'trials_over_4_seconds': sum(t > 4 for t in trials),
               'limitations': ['Instrumented measurements are not a performance gate.',
-                              'GPU overlaps do not establish cause of a slow request.']}
+                              'GPU overlaps do not establish cause of a slow request.',
+                              'GPU overlap is the union of target intervals clipped to request windows;',
+                              'it is not a complete device-utilization or causal decomposition.']}
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
     print(json.dumps(report))
 
