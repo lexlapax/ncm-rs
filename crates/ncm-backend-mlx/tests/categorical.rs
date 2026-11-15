@@ -33,3 +33,46 @@ fn categorical_respects_boundaries_and_rejects_invalid_rows() {
     let bad = backend.upload_indices(&[0; 9], &[1, 9]).unwrap();
     assert!(backend.categorical_4096(&logits, &bad).is_err());
 }
+
+#[test]
+fn categorical_matches_independent_f64_for_controlled_draws() {
+    let backend = MlxBackend::gpu().unwrap();
+    let rows = 256;
+    let mut state = 0x721c_14a9_u32;
+    let mut next = || {
+        state ^= state << 13;
+        state ^= state >> 17;
+        state ^= state << 5;
+        state
+    };
+    let mut logits = Vec::with_capacity(rows * 4096);
+    let mut uniforms = Vec::with_capacity(rows);
+    let mut expected = Vec::with_capacity(rows);
+    for _ in 0..rows {
+        let row: Vec<f32> = (0..4096)
+            .map(|_| (next() % 16001) as f32 / 1000.0 - 8.0)
+            .collect();
+        let bits = next();
+        let max = row.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+        let weights: Vec<f64> = row
+            .iter()
+            .map(|&x| (f64::from(x) - f64::from(max)).exp())
+            .collect();
+        let threshold = f64::from(bits) * (1.0 / 4294967296.0) * weights.iter().sum::<f64>();
+        let mut prefix = 0.0;
+        let index = weights
+            .iter()
+            .position(|w| {
+                prefix += w;
+                threshold < prefix
+            })
+            .unwrap();
+        logits.extend(row);
+        uniforms.push(bits);
+        expected.push(index as u32);
+    }
+    let logits = backend.upload_f32(&logits, &[4, 64, 4096]).unwrap();
+    let uniforms = backend.upload_indices(&uniforms, &[4, 64]).unwrap();
+    let actual = backend.categorical_4096(&logits, &uniforms).unwrap();
+    assert_eq!(backend.read_indices(&actual).unwrap(), expected);
+}
