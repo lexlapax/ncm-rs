@@ -13,9 +13,10 @@ both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
 committing to a detailed delivery estimate.
 
-The current expanded candidate has passing Linux and Apple 78-cell controlled
-audits and qualified outputs. Linux CUDA-pool live snapshots exceed 1.05× prior Rust; their applicability
-to the separate live-memory requirement, the final evidence audit and
+The current candidate has a passing Linux 78-cell controlled audit and qualified
+outputs. Its native CUDA-pool snapshots are below 1.05× prior Rust. Rebuilt Apple
+binaries match the earlier passing 78-cell control and fresh Metal quality passes;
+Apple immediate live-memory comparability, the final evidence audit and
 publication remain open; see the [current completion
 checklist](results/2026-11-11-phase2-optimization/completion-audit.md).
 

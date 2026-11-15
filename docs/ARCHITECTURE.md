@@ -5,9 +5,11 @@ on Linux/CUDA then macOS/MLX. The shared codec/backend contract is implemented a
 validated for that scope; generator, sampling and inference-CLI architecture below
 remains planned. Crate boundaries do not imply full-model APIs or frozen abstractions.
 Phase 2 is reopened for the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md).
-The retained implementation passes the Linux and Apple controlled timing and
-host-memory audits. Synchronized Linux CUDA-pool live snapshots exceed 1.05×
-prior Rust; the separate comparable live-memory criterion remains open. Experimental fused interpolation is deferred; it is not production code.
+The current candidate passes the Linux controlled timing and host-memory audit,
+and its rebuilt Apple executables match the earlier passing control. Linux native
+CUDA-pool snapshots are below 1.05× prior Rust; Apple immediate live-memory
+comparability remains open. Experimental fused interpolation is deferred; it is
+not production code.
 
 ## Decision: one model, two runtime adapters
 

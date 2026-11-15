@@ -1,0 +1,9 @@
+# Bounded-workspace candidate: Apple validation
+
+After Linux passed, the clean Mac checkout was fast-forwarded to `f155794`. The full `tools/check.sh --mlx` passed, including all 18 Metal operator cases. The fresh trained Metal capture passes **642 traces and 2,500 decisions**, with zero ID disagreements and the same two near ties. Its trace hash `27cce6ff04a079f7c4fb23bebc44906a4057dbb76cb4da78377f2c20662a4dcb` matches the previously qualified Apple capture. A cleared-environment tokenizer probe passes all four profiles.
+
+The rebuilt candidate `mlx_codec_bench` and `asset_bench` are byte-identical to the binaries in the previously passing [Apple 18-process control](apple-gate18-results-v1.md). The existing 78/78 timing and host RSS/HWM evidence therefore remains applicable to these executables; no new timing run or changed acceptance rule is claimed. The first build command omitted `--features mlx` and failed before the successful rebuild. The initial on-Mac qualification command used a nonexistent CUDA reference environment; the resulting Metal trace was copied and qualified locally against the pinned oracle. Both failed commands changed no model inputs or outputs.
+
+The separate MLX immediate active-memory observation remains unresolved: B4 resident-block was 1.058744× previous Rust immediately after the call, but after the additional barrier settled near parity. Retained roots match, but internal live graph and cleanup-state comparability remain unproven; neither snapshot is discarded and no tolerance is changed. B4 encode peak active allocation is also higher. Phase 2 remains open pending this interpretation and final evidence review.
+
+[Raw check, tokenizer, qualification and identity evidence](raw/cuda-bounded-mlx-check-v1.tar.xz) SHA-256 `9c6a9f314fe061932bccda06b5832a2022cb0b7e7672f4c34b808cfdb80eb3c2`; the large Metal capture remains local in `reports/phase2-codec/mlx-bounded-workspace-v1`.

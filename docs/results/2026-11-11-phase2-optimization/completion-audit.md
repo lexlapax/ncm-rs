@@ -1,10 +1,12 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
-**Linux live-memory finding:** [synchronized native CUDA pool observations](linux-live-pool-review-v1.md) are 1.07039–1.07071× prior Rust across the retained matrix and control. They exceed 1.05 for that same-allocator scope, with the 4 MiB workspace and prepared state accounting for the observed difference. The host-memory 78-cell audit does not adjudicate it; metric applicability and remediation remain open.
+**Current candidate:** bounded CUDA workspace `f155794` passes the [Linux initial and controlled 78/78 audits](cuda-bounded-linux-gate-v1.md); synchronized native pool ratios are 1.044155–1.044357 versus prior Rust. Fresh [Apple checks](cuda-bounded-mlx-check-v1.md) pass and its rebuilt timing binaries match the prior 78/78 Apple control. The host-memory audits do not resolve the separate Apple immediate active-memory observation below.
+
+**Historical Linux live-memory finding:** the prior candidate's [synchronized native CUDA pool observations](linux-live-pool-review-v1.md) were 1.07039–1.07071× prior Rust. The 4 MiB workspace and prepared state accounted for the observed difference; the new candidate addresses that same-allocator observation without changing the band.
 
 **Latest Apple evidence:** the predeclared [18-process control](apple-gate18-results-v1.md) passes 78/78 and quality after the initial B4 tail failure; a 45-process CPU comparison also passes report validation. Matched live-memory observations reveal an immediate B4 block ratio of 1.058744 and a B4 encode peak ratio of 1.20127 versus prior Rust. Comparable steady-state live memory and the peak difference remain unresolved, so Phase 2 remains incomplete. Prior failed controls remain retained.
 
-**Candidate history:** TinyStories borrowing `5200924` passes the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; its [Apple initial gate](tiny-borrow-apple-gate-v1.md) is 78/78 and fixed control is 76/78. Both batch-4 block p95 comparisons remain open.
+**Candidate history:** TinyStories borrowing `5200924` passed the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; its [earlier Apple fixed control](tiny-borrow-apple-gate-v1.md) was 76/78 before the later 18-process control above.
 
 **Previous candidate:** MLX projection-bias `a323b16` has a [76/78 Apple control](mlx-addmm-apple-gate-v1.md); TinyStories RSS/HWM remain open. A [finite current-runtime MLX memory observation](mlx-memory-addmm-v1.md) is retained.
 

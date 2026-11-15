@@ -4,38 +4,38 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Bounded CUDA workspace candidate:** the 8.x backend now tries its original
-  heuristic with a 2.5 MiB buffer, retrying with that cap if needed. Three
-  exploratory full-codec processes show synchronized native pool ratios
-  1.044155–1.044357 against prior Rust; all 642 trained traces and 2,500
-  decisions pass. Batch-one reconstruction is 1.111× an earlier candidate
-  in an unpaired timing comparison. Isolated full CUDA check passes; earlier
-  failed check attempts are retained. Controlled Linux performance and Apple
-  validation remain pending. [Review](docs/results/2026-11-11-phase2-optimization/cuda-bounded-runtime-review-v1.md), [Linux gate plan](docs/results/2026-11-11-phase2-optimization/cuda-bounded-linux-gate-plan-v1.md).
+- **Bounded CUDA workspace validated:** candidate `f155794` passes Linux
+  initial and controlled 78/78 audits, trained quality, and native pool ratios
+  1.044155–1.044357 versus prior Rust. On Mac the full MLX check, 642 traces,
+  2,500 decisions and four tokenizer probes pass; rebuilt timing binaries and
+  trace hash match the earlier Apple control. Apple immediate live-memory
+  comparability and peak allocation remain open, so Phase 2 is not complete.
+  [Linux gate](docs/results/2026-11-11-phase2-optimization/cuda-bounded-linux-gate-v1.md),
+  [Apple checks](docs/results/2026-11-11-phase2-optimization/cuda-bounded-mlx-check-v1.md).
 
 - **CUDA workspace feasibility:** zero workspace and a 2.5 MiB heuristic cap
   produced mixed isolated timings. Retaining the 4 MiB algorithm preference but
   supplying 2.5 MiB gave numerically identical outputs and near-parity isolated
   timing on 12 shapes. The experiment still allocates 4 MiB and is not a gate;
-  safe Rust integration, general fallback and measured live memory remain open.
+  subsequent integration, fallback and pool measurement are reported above.
   [Results](docs/results/2026-11-11-phase2-optimization/cuda-workspace-followup-result-v1.md),
   [zero workspace](docs/results/2026-11-11-phase2-optimization/cuda-zero-workspace-poc-result-v1.md).
 
-- **Linux live-pool limit concern:** synchronized retained-root native CUDA
-  pool-used snapshots are 1.07039–1.07071× prior Rust in every batch/scope,
+- **Historical Linux live-pool concern:** prior-candidate synchronized native CUDA
+  pool-used snapshots were 1.07039–1.07071× prior Rust in every batch/scope,
   above the separate 1.05 live-memory band if that pool metric is applicable.
   The 4,219,984-byte increase matches a 4 MiB fused-projection workspace plus
   25,680 bytes of prepared state; Python allocator counters differ in coverage.
-  The 78-cell host-memory audit still passes but does not decide this issue.
-  [Review](docs/results/2026-11-11-phase2-optimization/linux-live-pool-review-v1.md).
+  The host-memory audit did not decide this; the later bounded candidate above
+  reduces the measured same-pool ratio. [Review](docs/results/2026-11-11-phase2-optimization/linux-live-pool-review-v1.md).
 
 - **Pinned algorithm alignment reviewed:** the supported codec's quantization,
   interpolation, decoder and tokenizer choices are mapped to the pinned Python
   source, including deliberate snapshot/reconstruction differences and FP32
   limits. This is not exhaustive parity or a new run. [Review](docs/results/2026-11-11-phase2-optimization/upstream-codec-alignment-v2.md).
 
-- **Closure binding verified:** current guarded production/harness sources match
-  gated candidate `5200924`; selected pins/fixtures match baseline, and the
+- **Earlier closure binding verified:** guarded production/harness sources then
+  matched gated candidate `5200924`; selected pins/fixtures match baseline, and the
   archived and published Linux/Apple 78-cell audits pass with unchanged limits.
   The Apple source review also matches all 315 reports and 210 Python copies.
   All 58 timing and 20 host-memory cells per platform are uniquely inventoried

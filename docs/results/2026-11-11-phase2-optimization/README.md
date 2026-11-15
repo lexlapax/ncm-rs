@@ -1,12 +1,12 @@
 # Additional Phase 2 optimization — baseline checkpoint
 
-**In progress, not final acceptance.** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates) remains open. The current runtime passes the Linux initial and controlled 78/78 gates and the [Apple 18-process controlled 78/78 gate](apple-gate18-results-v1.md), with the initial Apple B4 tail failure retained. Synchronized Linux native CUDA-pool snapshots exceed the 1.05 band, subject to metric applicability; Apple live-memory comparability and the higher B4 encode peak also remain unresolved. Full hardware checks and trained qualifications pass; no gate or numerical limit is waived. [Completion audit](completion-audit.md) and [experiment ledger](experiments.json) retain the history. Phase 3 remains out of scope.
+**In progress, not final acceptance.** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates) remains open. The current runtime passes the Linux initial and controlled 78/78 gates and the [Apple 18-process controlled 78/78 gate](apple-gate18-results-v1.md), with the initial Apple B4 tail failure retained. The [new Linux candidate](cuda-bounded-linux-gate-v1.md) keeps native CUDA-pool snapshots below 1.05; [Apple binary identity and fresh validation](cuda-bounded-mlx-check-v1.md) preserve the earlier timing evidence. Apple immediate live-memory comparability and the higher B4 encode peak remain unresolved. Full hardware checks and trained qualifications pass; no gate or numerical limit is waived. [Completion audit](completion-audit.md) and [experiment ledger](experiments.json) retain the history. Phase 3 remains out of scope.
 
 ## Current evidence
 
 | Evidence | Status and scope |
 | --- | --- |
-| [Linux controlled audit](linux-acceptance.json) | 78/78 timing and host-memory cells plus quality pass; [collection and reproduction](tiny-borrow-linux-gate-v1.md). |
+| [Linux controlled audit](cuda-bounded-linux-acceptance-v1.json) | New candidate passes 78/78 timing and host-memory cells plus quality; [collection and reproduction](cuda-bounded-linux-gate-v1.md). |
 | [Apple controlled audit](mlx-acceptance.json) | 78/78 timing and host-memory cells plus quality pass; the initial B4 tail failure and earlier controls remain in the [results](apple-gate18-results-v1.md). |
 | [Source and audit bindings](phase2-closure-bindings-v1.md) | Current guarded source matches the gated candidate; published audits are exact archived bytes. |
 | [Platform performance summary](phase2-performance-summary-v1.md) | Per-scope controlled median, p95 and candidate rate, plus host-memory ratios for both references. |
