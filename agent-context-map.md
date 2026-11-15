@@ -4,9 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **GELU lifetime diagnostic prepared:** compare eager and experimental compiled
-  modes across three backend/model drops and 48 requests each, including first-use
-  and memory snapshots. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-lifetime-plan-v1.md).
+- **GELU lifetime observation:** all backend/model drops return active MLX
+  bytes to zero; first compiled/eager requests were 266/85 ms in sequential
+  processes, with later first requests near 7 ms. Startup and fallible compiler
+  initialization prevent integration as-is. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-lifetime-result-v1.md).
 
 - **Shape-independent GELU diagnostic:** Metal shape/view/special-value
   regression passes; all nine resident-block medians improve. One first compiled
@@ -96,7 +97,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   outcomes match, but this is not a Python oracle or exhaustive proof. An initial
   shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
 
-- **Evidence reconciliation:** the current 38-entry experiment ledger and
+- **Evidence reconciliation:** the current 39-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
   open; the user was asked whether to choose a separately predeclared quiet

@@ -272,6 +272,13 @@
       "status": "isolated diagnostic promising; not integrated; compile errors, startup and cache lifetime unresolved",
       "finding": "Metal shape, view, special-value and clone regression passes. Nine same-process resident-block medians improve; B4 ratios 0.9243/0.9428/0.9505. One first compiled reconstruction took 261.016 ms.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-shapeless-result-v1.md"
+    },
+    {
+      "id": "mlx-gelu-lifetime",
+      "hypothesis": "Observe first use and resource retention across repeated model/backend lifetimes for the shape-independent exact-GELU prototype.",
+      "status": "bounded diagnostic complete; startup and fallible compiler initialization preclude integration as-is",
+      "finding": "48 requests per mode and three drops each; IDs match and active MLX bytes return to zero. First eager/compiled requests 84.884/266.292 ms in sequential processes; later first requests near 7 ms; cache stabilizes in this finite sample.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-lifetime-result-v1.md"
     }
   ]
 }
