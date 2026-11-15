@@ -53,6 +53,25 @@ in `tools/reference/sudoku_phase3_data.py`. Conversion restricts pickle opcodes,
 rejects global/persistent references and validates all 2,000 board shapes and
 clues before writing JSON. Weights and datasets remain outside Git.
 
+## TinyStories inspection profile
+
+`tools/reference/tinystories_artifact.py` exports the pinned TinyStories source as
+`tinystories-inference-v1`. Its manifest declares exactly `config.json`,
+`codec.safetensors`, `generator.safetensors`, `training.safetensors`,
+`inference.safetensors`, `tokenizer.json`, `tokenizer-manifest.json`,
+`tokenizer.LICENSE`, and `provenance.json`. The inference bundle preserves the
+checkpoint's level-zero unigram; 36 training buffers remain separately
+available. Conversion verifies the source files and tokenizer lock, rejects
+unexpected tensors, and checks bit-exact tensor roundtrips. The artifact loader
+allows up to 384 MiB per file and 640 MiB total only for this profile; Sudoku
+limits are unchanged. Limits describe input bytes, not runtime memory.
+
+The generator and codec inventory and embedded tokenizer have host-side checks,
+but this is not a claim of working TinyStories inference or GPU parity. Like the
+Sudoku profile, manifest hashes provide integrity rather than authentication;
+use a trusted manifest digest and trusted, stable directory. The pinned local
+export and its digest are recorded in [the Phase 4 contract](PHASE4-TEXT.md).
+
 ## Proposed general runtime layout
 
 ```text

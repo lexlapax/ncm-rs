@@ -85,3 +85,7 @@ required-features = ["cpu"]
 [[example]]
 name = "generator_level_profile"
 required-features = ["cuda"]
+
+[[example]]
+name = "tinystories_teacher_probe"
+required-features = ["cuda"]

@@ -9,6 +9,32 @@ fn parse(v: &Value) -> ncm_core::Result<CodecConfig> {
 }
 
 #[test]
+fn tinystories_codec_is_explicit_and_does_not_widen_sudoku() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/tinystories-config-phase4.json"
+    ))
+    .unwrap();
+    let raw = serde_json::from_value(fixture["tokenizer"]["vqvae"].clone()).unwrap();
+    assert!(CodecConfig::validate(raw).is_err());
+    let raw = serde_json::from_value(fixture["tokenizer"]["vqvae"].clone()).unwrap();
+    let config = CodecConfig::validate_tinystories(raw).unwrap();
+    assert_eq!(config.raw().embed_dim, 384);
+    assert_eq!(config.strides(), [4, 4, 4, 2]);
+    assert_eq!(config.code_length(), 641);
+    assert_eq!(config.weight_shapes().len(), 70);
+    assert_eq!(
+        config.weight_shapes()["vq.embeddings.11.weight"],
+        [4096, 384]
+    );
+    let mut bad = config.raw().clone();
+    bad.vector_quantizer_config.ema_scale_by_world_size = true;
+    assert!(CodecConfig::validate_tinystories(bad).is_err());
+    let mut bad = config.raw().clone();
+    bad.embed_dim = 256;
+    assert!(CodecConfig::validate_tinystories(bad).is_err());
+}
+
+#[test]
 fn validated_inventory_matches_both_reference_profiles() {
     let v = tiny();
     let c = parse(&v).unwrap();
@@ -98,6 +124,14 @@ fn malformed_and_unsupported_configs_fail() {
         v.pointer_mut(parent).unwrap()[key] = value;
         assert!(parse(&v).is_err(), "accepted {pointer}");
     }
+    for field in ["pre_quant_norm_type", "dec_layers"] {
+        let mut v = tiny();
+        v.as_object_mut().unwrap().remove(field);
+        assert!(parse(&v).is_err(), "accepted missing {field}");
+    }
+    let mut v = tiny();
+    v["vector_quantizer_config"]["ema_scale_by_world_size"] = json!(false);
+    assert!(parse(&v).is_err());
     let mut v = tiny();
     v["unknown_inference_option"] = json!(true);
     assert!(parse(&v).is_err());

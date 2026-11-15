@@ -210,3 +210,81 @@ fn sudoku_phase3_profiles_are_explicit_and_other_profiles_are_rejected() {
     save(directory.path(), &manifest);
     assert!(Artifact::load(directory.path()).is_err());
 }
+
+#[test]
+fn tinystories_has_a_separate_exact_inventory_and_budget() {
+    let (directory, mut manifest) = fixture();
+    manifest.profile = "tinystories-inference-v1".into();
+    let bundle = fs::read(directory.path().join("codec.safetensors")).unwrap();
+    fs::write(directory.path().join("inference.safetensors"), &bundle).unwrap();
+    manifest.files.insert(
+        "inference.safetensors".into(),
+        FileRecord {
+            bytes: bundle.len() as u64,
+            sha256: sha256(&bundle),
+        },
+    );
+    let entries = serde_json::from_value(
+        serde_json::to_value(&manifest.tensors["codec.safetensors"]).unwrap(),
+    )
+    .unwrap();
+    manifest
+        .tensors
+        .insert("inference.safetensors".into(), entries);
+    for (name, bytes) in [
+        ("tokenizer-manifest.json", b"{}".as_slice()),
+        ("tokenizer.LICENSE", b"license".as_slice()),
+    ] {
+        fs::write(directory.path().join(name), bytes).unwrap();
+        manifest.files.insert(
+            name.into(),
+            FileRecord {
+                bytes: bytes.len() as u64,
+                sha256: sha256(bytes),
+            },
+        );
+    }
+    save(directory.path(), &manifest);
+    assert_eq!(
+        Artifact::load(directory.path())
+            .unwrap()
+            .manifest()
+            .tensors
+            .len(),
+        4
+    );
+
+    // The profile cannot drop the inference tensor bundle or accept an
+    // undeclared extra file, even when all remaining files are valid.
+    manifest.files.remove("inference.safetensors");
+    save(directory.path(), &manifest);
+    assert!(Artifact::load(directory.path()).is_err());
+    manifest.files.insert(
+        "inference.safetensors".into(),
+        FileRecord {
+            bytes: bundle.len() as u64,
+            sha256: sha256(&bundle),
+        },
+    );
+    manifest
+        .files
+        .get_mut("generator.safetensors")
+        .unwrap()
+        .bytes = 384 * 1024 * 1024 + 1;
+    save(directory.path(), &manifest);
+    assert!(Artifact::load(directory.path()).is_err());
+    manifest
+        .files
+        .get_mut("generator.safetensors")
+        .unwrap()
+        .bytes = 350 * 1024 * 1024;
+    manifest.files.get_mut("codec.safetensors").unwrap().bytes = 350 * 1024 * 1024;
+    save(directory.path(), &manifest);
+    assert!(Artifact::load(directory.path()).is_err());
+
+    // The higher TinyStories allowance never changes the Sudoku bound.
+    let (sudoku_dir, mut sudoku) = fixture();
+    sudoku.files.get_mut("generator.safetensors").unwrap().bytes = 256 * 1024 * 1024 + 1;
+    save(sudoku_dir.path(), &sudoku);
+    assert!(Artifact::load(sudoku_dir.path()).is_err());
+}

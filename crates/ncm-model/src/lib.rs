@@ -5,7 +5,10 @@ mod codec;
 mod generator;
 pub use blocks::{NoTrace, TraceSink, codebook_distances};
 pub use codec::{Decoded, Encoded};
-pub use generator::{Generated, Generator, GeneratorConfig, GeneratorWeights};
+pub use generator::{
+    Generated, Generator, GeneratorConfig, GeneratorWeights, TinyStoriesGeneratorInspection,
+    TinyStoriesTeacher,
+};
 
 use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;
@@ -129,25 +132,49 @@ fn artifact_config(bytes: &[u8]) -> Result<CodecConfig> {
         return Err(Error::Config("config exceeds 1 MiB".into()));
     }
     let envelope: Envelope = serde_json::from_slice(bytes)?;
-    if !matches!(
-        envelope.task.as_str(),
-        "sudoku-easy" | "sudoku-medium" | "sudoku-hard"
-    ) || envelope.tokenizer.pre_tokenizer.name != "sudoku"
-        || envelope.tokenizer.pre_tokenizer.tokenizer != "sudoku"
-    {
-        return Err(Error::Config(
+    match envelope.task.as_str() {
+        "sudoku-easy" | "sudoku-medium" | "sudoku-hard" => {
+            let pre: SudokuPreTokenizer = serde_json::from_value(envelope.tokenizer.pre_tokenizer)?;
+            if pre.name != "sudoku" || pre.tokenizer != "sudoku" {
+                return Err(Error::Config("unsupported Sudoku tokenizer".into()));
+            }
+            // Preserve the original Sudoku wire schema before using the shared
+            // profile-capable deserializer. The typed envelope already rejects
+            // duplicate fields in the original input.
+            let document: serde_json::Value = serde_json::from_slice(bytes)?;
+            let codec = document
+                .pointer("/tokenizer/vqvae")
+                .ok_or_else(|| Error::Config("missing Sudoku codec config".into()))?;
+            CodecConfig::from_json(&serde_json::to_vec(codec)?)
+        }
+        "tinystories" => {
+            let pre: TinyStoriesPreTokenizer =
+                serde_json::from_value(envelope.tokenizer.pre_tokenizer)?;
+            if pre.name != "bpe"
+                || pre.tokenizer != "bpe"
+                || pre.vocab_file_path != "bpe_vocab_8192.pickle"
+                || pre.merges_file_path != "bpe_merges_8192.pickle"
+                || pre.special_tokens.eos_token != "<|endoftext|>"
+                || pre.special_tokens.pad_token != "<|pad|>"
+            {
+                return Err(Error::Config("unsupported TinyStories tokenizer".into()));
+            }
+            CodecConfig::validate_tinystories(envelope.tokenizer.vqvae)
+        }
+        _ => Err(Error::Config(
             "unsupported codec artifact task/tokenizer".into(),
-        ));
+        )),
     }
-    CodecConfig::validate(envelope.tokenizer.vqvae)
 }
 
 fn validate_artifact_profile(artifact: &Artifact, bytes: &[u8]) -> Result<()> {
     let envelope: Envelope = serde_json::from_slice(bytes)?;
-    if artifact.manifest().profile != format!("{}-inspection-v1", envelope.task) {
-        return Err(Error::Config(
-            "artifact profile does not match Sudoku task".into(),
-        ));
+    let expected = match envelope.task.as_str() {
+        "tinystories" => "tinystories-inference-v1".to_owned(),
+        _ => format!("{}-inspection-v1", envelope.task),
+    };
+    if artifact.manifest().profile != expected {
+        return Err(Error::Config("artifact profile does not match task".into()));
     }
     Ok(())
 }
@@ -172,14 +199,29 @@ struct Envelope {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Tokenizer {
-    pre_tokenizer: PreTokenizer,
+    pre_tokenizer: serde_json::Value,
     vqvae: ncm_core::RawCodecConfig,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct PreTokenizer {
+struct SudokuPreTokenizer {
     name: String,
     tokenizer: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TinyStoriesPreTokenizer {
+    name: String,
+    tokenizer: String,
+    vocab_file_path: String,
+    merges_file_path: String,
+    special_tokens: TinyStoriesSpecialTokens,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TinyStoriesSpecialTokens {
+    eos_token: String,
+    pad_token: String,
 }
 
 #[cfg(test)]

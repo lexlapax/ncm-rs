@@ -17,8 +17,10 @@ pub struct RawCodecConfig {
     pub dropout: f64,
     pub pre_quant_dropout: f64,
     pub pre_quant_groupnorm: usize,
+    #[serde(default = "group")]
     pub pre_quant_norm_type: String,
     pub use_qk_norm: bool,
+    #[serde(default = "one")]
     pub dec_layers: usize,
     #[serde(default)]
     pub enc_layers: usize,
@@ -37,6 +39,12 @@ pub struct RawCodecConfig {
 fn three() -> usize {
     3
 }
+fn one() -> usize {
+    1
+}
+fn group() -> String {
+    "group".into()
+}
 fn yes() -> bool {
     true
 }
@@ -54,6 +62,9 @@ pub struct QuantizerConfig {
     pub learned_l1_cascade_base: usize,
     pub learned_l1_cascade_norm: bool,
     pub learned_l1_cascade_norm_final: bool,
+    /// Training-only upstream flag; the supported inference profile requires false.
+    #[serde(default)]
+    pub ema_scale_by_world_size: bool,
     pub levels: Levels,
     pub quant_resi: Residual,
     pub aux: Auxiliary,
@@ -97,9 +108,41 @@ impl CodecConfig {
         if bytes.len() > 1024 * 1024 {
             return Err(Error::Config("config exceeds 1 MiB".into()));
         }
+        // The historical Sudoku JSON schema requires these fields and does not
+        // admit TinyStories' training-only EMA flag. Keep that boundary even
+        // though the shared wire struct also represents TinyStories defaults.
+        let value: serde_json::Value = serde_json::from_slice(bytes)?;
+        if value.get("pre_quant_norm_type").is_none()
+            || value.get("dec_layers").is_none()
+            || value
+                .get("vector_quantizer_config")
+                .and_then(|q| q.get("ema_scale_by_world_size"))
+                .is_some()
+        {
+            return Err(Error::Config("unsupported Sudoku codec JSON schema".into()));
+        }
         Self::validate(serde_json::from_slice(bytes)?)
     }
     pub fn validate(raw: RawCodecConfig) -> Result<Self> {
+        Self::validate_with_width(raw, 256)
+    }
+    /// Explicit pinned TinyStories codec profile; does not widen Sudoku bounds.
+    pub fn validate_tinystories(raw: RawCodecConfig) -> Result<Self> {
+        let expected_levels = [1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128];
+        if raw.in_vocab_size != 8192
+            || raw.context_length != 128
+            || raw.embed_dim != 384
+            || raw.n_layers != 6
+            || raw.vqvae_vocab_size != [4096; 12]
+            || raw.vector_quantizer_config.levels.manual_levels != expected_levels
+        {
+            return Err(Error::Config(
+                "unsupported TinyStories codec profile".into(),
+            ));
+        }
+        Self::validate_with_width(raw, 384)
+    }
+    fn validate_with_width(raw: RawCodecConfig, max_width: usize) -> Result<Self> {
         let q = &raw.vector_quantizer_config;
         let levels = &q.levels.manual_levels;
         let require = |valid, message: &str| {
@@ -114,7 +157,7 @@ impl CodecConfig {
             "vocabulary must be in 2..=65536",
         )?;
         require(
-            (2..=256).contains(&raw.context_length) && (8..=256).contains(&raw.embed_dim),
+            (2..=256).contains(&raw.context_length) && (8..=max_width).contains(&raw.embed_dim),
             "length/width outside initial codec bounds",
         )?;
         require(
@@ -167,7 +210,8 @@ impl CodecConfig {
             q.clss == "multiscale_residual_vector_quantizer"
                 && !q.learned_all_sampling
                 && q.learned_l1_sampling
-                && q.learned_l1_cascade,
+                && q.learned_l1_cascade
+                && !q.ema_scale_by_world_size,
             "unsupported quantizer or sampling mode",
         )?;
         require(

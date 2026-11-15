@@ -1,0 +1,151 @@
+{
+  "checkpoints": {
+    "bpe_merges": "bpe_merges_8192.pickle",
+    "bpe_vocab": "bpe_vocab_8192.pickle",
+    "generator": "generator.pt",
+    "tokenizer": "tokenizer.pt"
+  },
+  "data": {},
+  "eval": {
+    "batch_size": 128,
+    "metric": "genppl",
+    "n_samples": 256,
+    "n_shards": 2,
+    "ref_model": "gpt2-large",
+    "seeds": [
+      42,
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "generation": {
+    "cfg_scale": 0.0,
+    "level0_unigram": "generator.pt:inference.level0_unigram",
+    "temperature": 1.0,
+    "top_k": 0,
+    "top_p": 1.0
+  },
+  "model": {
+    "attn_pattern": "block_diagonal",
+    "bias": true,
+    "context_length": 129,
+    "ctx_encoder": {
+      "enabled": false,
+      "n_layer": 4,
+      "vocab_size": 8192
+    },
+    "dropout": 0.1,
+    "n_embd": 768,
+    "n_head": 12,
+    "n_layer": 12,
+    "predict_level0": false,
+    "prefix_len": 1,
+    "prefix_pad_token_id": 1,
+    "query_level0": false,
+    "raw_token_prefix": true,
+    "rope_base": 100000,
+    "tie_heads_learn_scale": true,
+    "tie_heads_to_codebook": true,
+    "use_flex_attention": false,
+    "use_level_encoding": true,
+    "use_positional_encoding": true,
+    "use_qk_norm": true,
+    "use_rope": true,
+    "vocab_size": [
+      4096,
+      4096,
+      4096,
+      4096,
+      4096,
+      4096,
+      4096,
+      4096,
+      4096,
+      4096,
+      4096
+    ]
+  },
+  "task": "tinystories",
+  "tokenizer": {
+    "pre_tokenizer": {
+      "merges_file_path": "bpe_merges_8192.pickle",
+      "name": "bpe",
+      "special_tokens": {
+        "eos_token": "<|endoftext|>",
+        "pad_token": "<|pad|>"
+      },
+      "tokenizer": "bpe",
+      "vocab_file_path": "bpe_vocab_8192.pickle"
+    },
+    "vqvae": {
+      "checkpoint_path": "tokenizer.pt",
+      "compression_factor": 1,
+      "context_length": 128,
+      "dropout": 0.3,
+      "embed_dim": 384,
+      "in_vocab_size": 8192,
+      "n_layers": 6,
+      "pre_quant_dropout": 0.0,
+      "pre_quant_groupnorm": 8,
+      "use_qk_norm": true,
+      "vector_quantizer_config": {
+        "aux": {
+          "fine_drop": {
+            "min_keep": 1,
+            "prob": 0.5
+          }
+        },
+        "clss": "multiscale_residual_vector_quantizer",
+        "commitment_cost": 0.25,
+        "decay": 0.95,
+        "ema_scale_by_world_size": false,
+        "epsilon": 1e-05,
+        "learned_all_sampling": false,
+        "learned_l1_cascade": true,
+        "learned_l1_cascade_base": 4,
+        "learned_l1_cascade_norm": false,
+        "learned_l1_cascade_norm_final": false,
+        "learned_l1_sampling": true,
+        "levels": {
+          "manual_levels": [
+            1,
+            8,
+            16,
+            24,
+            32,
+            40,
+            52,
+            64,
+            76,
+            92,
+            108,
+            128
+          ],
+          "use_manual_levels": true
+        },
+        "quant_resi": {
+          "enabled": true,
+          "learnable_ratio": false,
+          "ratio": 0.5,
+          "share_mode": 0
+        }
+      },
+      "vqvae_vocab_size": [
+        4096,
+        4096,
+        4096,
+        4096,
+        4096,
+        4096,
+        4096,
+        4096,
+        4096,
+        4096,
+        4096,
+        4096
+      ]
+    }
+  }
+}

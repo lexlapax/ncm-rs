@@ -337,46 +337,20 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
         model: &GeneratorWeights<B>,
         levels: &[usize],
     ) -> Result<Vec<LevelGeometry<B::Tensor>>> {
-        let b = &model.backend;
-        let cfg = &model.config;
-        let head = cfg.n_embd / cfg.n_head;
-        let mut result = Vec::with_capacity(levels.len());
-        for &length in levels {
-            let seq = cfg.prefix_len + length;
-            let mut mask = vec![0.0f32; seq * seq];
-            for row in 0..cfg.prefix_len {
-                for col in cfg.prefix_len..seq {
-                    mask[row * seq + col] = f32::NEG_INFINITY;
-                }
-            }
-            let mask = b.upload_f32(&mask, &[1, 1, seq, seq])?;
-            let mut cosine = Vec::with_capacity(seq * head / 2);
-            let mut sine = Vec::with_capacity(seq * head / 2);
-            for pos in (0..cfg.prefix_len).chain(0..length) {
-                for i in 0..head / 2 {
-                    let freq =
-                        (pos as f32) / (cfg.rope_base as f32).powf(i as f32 / (head / 2) as f32);
-                    cosine.push(freq.cos());
-                    sine.push(freq.sin());
-                }
-            }
-            result.push(LevelGeometry {
-                mask,
-                cosine: b.upload_f32(&cosine, &[seq, head / 2])?,
-                sine: b.upload_f32(&sine, &[seq, head / 2])?,
-            });
-        }
-        Ok(result)
+        prepare_geometry(
+            &model.backend,
+            levels,
+            model.config.prefix_len,
+            model.config.n_embd,
+            model.config.n_head,
+            model.config.rope_base,
+        )
     }
+
     fn linear(&self, affine: &Affine<B::Tensor>, x: &B::Tensor) -> Result<B::Tensor> {
         self.model
             .backend
             .project_bias(x, &affine.weight, &affine.bias)
-    }
-    fn norm(&self, affine: &Affine<B::Tensor>, x: &B::Tensor) -> Result<B::Tensor> {
-        self.model
-            .backend
-            .layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
     }
     fn decode_level(
         &self,
@@ -385,46 +359,24 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
         length: usize,
         level: usize,
     ) -> Result<B::Tensor> {
-        let b = &self.model.backend;
-        let cfg = &self.model.config;
-        let batch = b.shape(prefix)[0];
-        let seq = cfg.prefix_len + length;
-        let head = cfg.n_embd / cfg.n_head;
         let geometry = self
             .geometry
             .get(level)
             .ok_or_else(|| Error::Input("invalid generator level".into()))?;
-        let mask = &geometry.mask;
-        let cos = &geometry.cosine;
-        let sin = &geometry.sine;
-        let mut x = b.concat_f32(&[prefix.clone(), target.clone()], 1)?;
-        for block in &self.model.parameters.blocks {
-            let norm = self.norm(&block.ln_1, &x)?;
-            let qkv = self.linear(&block.qkv, &norm)?;
-            // Materialize Q/K/V together in the head-major order required by
-            // normalization and attention, instead of three separate copies.
-            let packed = b.pack_qkv(&qkv, batch, seq, cfg.n_head, head)?;
-            let make = |i| -> Result<B::Tensor> {
-                b.reshape(
-                    &b.narrow(&packed, 0, i, 1)?,
-                    &[batch, cfg.n_head, seq, head],
-                )
-            };
-            let q = b.rms_norm(&make(0)?, &block.q_norm, 1e-6)?;
-            let k = b.rms_norm(&make(1)?, &block.k_norm, 1e-6)?;
-            let v = make(2)?;
-            let q = b.rope(&q, cos, sin)?;
-            let k = b.rope(&k, cos, sin)?;
-            let attn = b.attention(&q, &k, &v, Some(mask))?;
-            let attn = b.merge_heads(&attn, batch, seq, cfg.n_head, head)?;
-            x = b.add(&x, &self.linear(&block.attention_projection, &attn)?)?;
-            let norm = self.norm(&block.ln_2, &x)?;
-            let hidden = b.gelu(&self.linear(&block.mlp_in, &norm)?)?;
-            x = b.add(&x, &self.linear(&block.mlp_out, &hidden)?)?;
-        }
-        let x = self.norm(&self.model.parameters.final_norm, &x)?;
-        b.narrow(&x, 1, cfg.prefix_len, length)
+        decode_transformer(
+            &self.model.backend,
+            &self.model.parameters.blocks,
+            &self.model.parameters.final_norm,
+            geometry,
+            prefix,
+            target,
+            self.model.config.prefix_len,
+            self.model.config.n_head,
+            self.model.config.n_embd,
+            length,
+        )
     }
+
     /// Greedy generation (temperature zero), without caching or CPU fallback.
     pub fn generate(&self, prefix_tokens: &[u32], batch: usize) -> Result<Generated<B>> {
         self.generate_traced(prefix_tokens, batch, &mut crate::NoTrace)
@@ -512,6 +464,465 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
             .codec
             .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
         Ok(Generated { codes, logits, ids })
+    }
+}
+
+fn prepare_geometry<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    levels: &[usize],
+    prefix_len: usize,
+    width: usize,
+    heads: usize,
+    rope_base: usize,
+) -> Result<Vec<LevelGeometry<B::Tensor>>> {
+    let head = width / heads;
+    let mut result = Vec::with_capacity(levels.len());
+    for &length in levels {
+        let seq = prefix_len + length;
+        let mut mask = vec![0.0f32; seq * seq];
+        for row in 0..prefix_len {
+            for col in prefix_len..seq {
+                mask[row * seq + col] = f32::NEG_INFINITY;
+            }
+        }
+        let mask = b.upload_f32(&mask, &[1, 1, seq, seq])?;
+        let mut cosine = Vec::with_capacity(seq * head / 2);
+        let mut sine = Vec::with_capacity(seq * head / 2);
+        for pos in (0..prefix_len).chain(0..length) {
+            for i in 0..head / 2 {
+                let freq = (pos as f32) / (rope_base as f32).powf(i as f32 / (head / 2) as f32);
+                cosine.push(freq.cos());
+                sine.push(freq.sin());
+            }
+        }
+        result.push(LevelGeometry {
+            mask,
+            cosine: b.upload_f32(&cosine, &[seq, head / 2])?,
+            sine: b.upload_f32(&sine, &[seq, head / 2])?,
+        });
+    }
+    Ok(result)
+}
+
+// Shared block execution for profiles with the same upstream transformer.
+// Profile-specific embeddings, attention masks and output heads stay outside.
+#[allow(clippy::too_many_arguments)]
+fn decode_transformer<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    blocks: &[GeneratorBlock<B::Tensor>],
+    final_norm: &Affine<B::Tensor>,
+    geometry: &LevelGeometry<B::Tensor>,
+    prefix: &B::Tensor,
+    target: &B::Tensor,
+    prefix_len: usize,
+    heads: usize,
+    width: usize,
+    length: usize,
+) -> Result<B::Tensor> {
+    let batch = b.shape(prefix)[0];
+    let seq = prefix_len + length;
+    let head = width / heads;
+    let linear =
+        |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
+    let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
+        b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
+    };
+    let mut x = b.concat_f32(&[prefix.clone(), target.clone()], 1)?;
+    for block in blocks {
+        let normalized = norm(&block.ln_1, &x)?;
+        let qkv = linear(&block.qkv, &normalized)?;
+        let packed = b.pack_qkv(&qkv, batch, seq, heads, head)?;
+        let make = |i| -> Result<B::Tensor> {
+            b.reshape(&b.narrow(&packed, 0, i, 1)?, &[batch, heads, seq, head])
+        };
+        let q = b.rms_norm(&make(0)?, &block.q_norm, 1e-6)?;
+        let k = b.rms_norm(&make(1)?, &block.k_norm, 1e-6)?;
+        let v = make(2)?;
+        let q = b.rope(&q, &geometry.cosine, &geometry.sine)?;
+        let k = b.rope(&k, &geometry.cosine, &geometry.sine)?;
+        let attn = b.attention(&q, &k, &v, Some(&geometry.mask))?;
+        let attn = b.merge_heads(&attn, batch, seq, heads, head)?;
+        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let normalized = norm(&block.ln_2, &x)?;
+        let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
+        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+    }
+    let x = norm(final_norm, &x)?;
+    b.narrow(&x, 1, prefix_len, length)
+}
+
+/// TinyStories teacher-forced execution for numerical qualification. Stochastic
+/// generation and arbitrary padded prefixes are not yet implemented.
+pub struct TinyStoriesTeacher<B: ncm_core::GeneratorBackend> {
+    codec: crate::Codec<B>,
+    backend: B,
+    input: Affine<B::Tensor>,
+    level_embedding: B::Tensor,
+    final_norm: Affine<B::Tensor>,
+    blocks: Box<[GeneratorBlock<B::Tensor>]>,
+    heads: Box<[TinyHead<B::Tensor>]>,
+    geometry: Vec<LevelGeometry<B::Tensor>>,
+    initial_distribution: Vec<f32>,
+    request_lock: std::sync::Mutex<()>,
+}
+struct TinyHead<T> {
+    projection: T,
+    squared_norm: T,
+    mean_squared_norm: f32,
+    inverse_temperature: f32,
+}
+impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
+    pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
+        // Check the complete generator and inference inventory before any upload.
+        let inspection = TinyStoriesGeneratorInspection::from_artifact(artifact)?;
+        let codec = crate::Codec::from_artifact(backend.clone(), artifact)?;
+        let bytes = artifact
+            .file("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        let mut weights = BTreeMap::new();
+        let mut scales = Vec::with_capacity(11);
+        for i in 0..11 {
+            let t = tensors
+                .tensor(&format!("lm_heads.{i}.log_inv_T"))
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let log_scale = f32::from_le_bytes(
+                t.data()
+                    .try_into()
+                    .map_err(|_| Error::Weights("invalid head scale".into()))?,
+            );
+            let scale = log_scale.exp();
+            if !scale.is_finite() || scale <= 0.0 {
+                return Err(Error::Weights("invalid head temperature".into()));
+            }
+            scales.push(scale);
+        }
+        for name in tensors.names() {
+            if name == "lvl_1L" || name == "attn_mask_for_masking" || name.ends_with(".log_inv_T") {
+                continue;
+            }
+            let t = tensors
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let values: Vec<f32> = t
+                .data()
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|x| f32::from_le_bytes(*x))
+                .collect();
+            weights.insert(name.to_owned(), backend.upload_f32(&values, t.shape())?);
+        }
+        let input = take_affine(&mut weights, "transformer.wte")?;
+        let level_embedding = take(&mut weights, "transformer.wle.weight")?;
+        let final_norm = take_affine(&mut weights, "transformer.ln_f")?;
+        let mut blocks = Vec::with_capacity(12);
+        for i in 0..12 {
+            let p = format!("transformer.blocks.{i}");
+            blocks.push(GeneratorBlock {
+                ln_1: take_affine(&mut weights, &format!("{p}.ln_1"))?,
+                qkv: take_affine(&mut weights, &format!("{p}.attn.c_attn"))?,
+                q_norm: take(&mut weights, &format!("{p}.attn.q_norm.weight"))?,
+                k_norm: take(&mut weights, &format!("{p}.attn.k_norm.weight"))?,
+                attention_projection: take_affine(&mut weights, &format!("{p}.attn.c_proj"))?,
+                ln_2: take_affine(&mut weights, &format!("{p}.ln_2"))?,
+                mlp_in: take_affine(&mut weights, &format!("{p}.mlp.c_fc"))?,
+                mlp_out: take_affine(&mut weights, &format!("{p}.mlp.c_proj"))?,
+            });
+        }
+        let mut heads = Vec::with_capacity(11);
+        for (i, inverse_temperature) in scales.into_iter().enumerate() {
+            let book = codec.weight(&format!("vq.embeddings.{}.weight", i + 1))?;
+            let norm = backend.sum_last(&backend.square(book)?)?;
+            let total = backend.sum_last(&backend.reshape(&norm, &[1, 4096])?)?;
+            let mean = backend.read_f32(&backend.scale(&total, 1.0 / 4096.0)?)?[0].max(1e-12);
+            if !mean.is_finite() {
+                return Err(Error::Weights("invalid codebook norm".into()));
+            }
+            heads.push(TinyHead {
+                projection: take(&mut weights, &format!("lm_heads.{i}.proj.weight"))?,
+                squared_norm: backend.reshape(&norm, &[1, 1, 4096])?,
+                mean_squared_norm: mean,
+                inverse_temperature,
+            });
+        }
+        if !weights.is_empty() {
+            return Err(Error::Weights(
+                "unbound TinyStories generator tensor".into(),
+            ));
+        }
+        let geometry =
+            prepare_geometry(&backend, &codec.config().levels()[1..], 1, 768, 12, 100000)?;
+        Ok(Self {
+            codec,
+            backend,
+            input,
+            level_embedding,
+            final_norm,
+            blocks: blocks.into_boxed_slice(),
+            heads: heads.into_boxed_slice(),
+            geometry,
+            initial_distribution: inspection.initial_distribution,
+            request_lock: std::sync::Mutex::new(()),
+        })
+    }
+}
+impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
+    pub fn initial_distribution(&self) -> &[f32] {
+        &self.initial_distribution
+    }
+
+    /// Run fixed codes through each transformer level and trace logits. Prefix
+    /// padding is rejected until the upstream additive padding mask is supported.
+    pub fn run_traced(
+        &self,
+        prefix: &[u32],
+        forced_codes: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Generated<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let levels = self.codec.config().levels();
+        let total: usize = levels.iter().sum();
+        if !(1..=128).contains(&batch)
+            || prefix.len() != batch
+            || prefix.iter().any(|&p| p >= 8192 || p == 1)
+            || batch.checked_mul(total) != Some(forced_codes.len())
+            || forced_codes.iter().any(|&c| c >= 4096)
+        {
+            return Err(Error::Input(
+                "invalid TinyStories prefix, forced codes or batch".into(),
+            ));
+        }
+        let b = &self.backend;
+        let prefix_ids = b.upload_indices(prefix, &[batch, 1])?;
+        let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
+        let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
+        let codes = b.upload_indices(forced_codes, &[batch, total])?;
+        let mut cumulative: Option<B::Tensor> = None;
+        let mut offset = 0;
+        for (level, &length) in levels.iter().enumerate() {
+            let selected = b.narrow_indices(&codes, 1, offset, length)?;
+            offset += length;
+            let book = self
+                .codec
+                .weight(&format!("vq.embeddings.{level}.weight"))?;
+            let embedding = b.embedding(book, &selected)?;
+            let up = self.codec.upsample(&embedding, level)?;
+            let contribution = self.codec.refine(&up, level)?;
+            let sum = match cumulative {
+                Some(ref old) => b.add(old, &contribution)?,
+                None => contribution,
+            };
+            if level + 1 < levels.len() {
+                let next_length = levels[level + 1];
+                let latent = b.area1d(&sum, next_length)?;
+                let target = b.project_bias(&latent, &self.input.weight, &self.input.bias)?;
+                let encoding = b.narrow(&self.level_embedding, 0, level, 1)?;
+                let target = b.add(&target, &encoding)?;
+                let hidden = decode_transformer(
+                    b,
+                    &self.blocks,
+                    &self.final_norm,
+                    &self.geometry[level],
+                    &prefix,
+                    &target,
+                    1,
+                    12,
+                    768,
+                    next_length,
+                )?;
+                let head = &self.heads[level];
+                let z = b.project(&hidden, &head.projection)?;
+                let book = self
+                    .codec
+                    .weight(&format!("vq.embeddings.{}.weight", level + 1))?;
+                let score = b.sub(&b.scale(&b.project(&z, book)?, 2.0)?, &head.squared_norm)?;
+                let score = b.scale(&score, 1.0 / f64::from(head.mean_squared_norm))?;
+                let logits = b.scale(&score, f64::from(head.inverse_temperature))?;
+                trace.tensor(&format!("generator.level_{:02}.logits", level + 1), &logits)?;
+            }
+            trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
+            cumulative = Some(sum);
+        }
+        let (logits, ids) = self
+            .codec
+            .decode_latent_outputs(&cumulative.expect("validated levels"), &mut crate::NoTrace)?;
+        trace.tensor("generator.final_logits", &logits)?;
+        trace.indices("generator.output_ids", &ids)?;
+        Ok(Generated { codes, logits, ids })
+    }
+}
+
+/// Validates the exact TinyStories generator and its supplied initial distribution
+/// on the host. This is not a generator implementation or a parity qualification.
+pub struct TinyStoriesGeneratorInspection {
+    pub tensor_count: usize,
+    pub initial_distribution: Vec<f32>,
+}
+
+impl TinyStoriesGeneratorInspection {
+    pub fn from_artifact(artifact: &Artifact) -> Result<Self> {
+        let config_bytes = artifact
+            .file("config.json")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        crate::validate_artifact_profile(artifact, config_bytes)?;
+        let codec = artifact_config(config_bytes)?;
+        let config: serde_json::Value = serde_json::from_slice(config_bytes)?;
+        let reference: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/tinystories-config-phase4.json"
+        ))?;
+        if config["model"] != reference["model"] || config["task"] != "tinystories" {
+            return Err(Error::Config(
+                "unsupported TinyStories generator configuration".into(),
+            ));
+        }
+        let mut shapes = GeneratorConfig {
+            attn_pattern: "block_diagonal".into(),
+            bias: true,
+            context_length: 129,
+            dropout: 0.1,
+            n_embd: 768,
+            n_head: 12,
+            n_layer: 12,
+            prefix_len: 1,
+            query_level0: true,
+            raw_token_prefix: true,
+            rope_base: 100000,
+            tie_heads_to_codebook: false,
+            use_level_encoding: true,
+            use_positional_encoding: true,
+            use_qk_norm: true,
+            use_rope: true,
+            vocab_size: vec![4096; 11],
+        }
+        .shapes(&codec);
+        shapes.remove("l0_queries");
+        shapes.insert("transformer.wle.weight".into(), vec![11, 768]);
+        for i in 0..11 {
+            shapes.remove(&format!("lm_heads.{i}.weight"));
+            shapes.remove(&format!("lm_heads.{i}.bias"));
+            shapes.insert(format!("lm_heads.{i}.proj.weight"), vec![384, 768]);
+            shapes.insert(format!("lm_heads.{i}.log_inv_T"), vec![]);
+        }
+        let bytes = artifact
+            .file("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        if tensors.len() != shapes.len() + 2 {
+            return Err(Error::Weights(
+                "TinyStories generator tensor inventory differs".into(),
+            ));
+        }
+        for (name, shape) in &shapes {
+            let t = tensors
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            if t.dtype() != Dtype::F32 || t.shape() != shape || has_nonfinite_f32_le(t.data()) {
+                return Err(Error::Weights(format!(
+                    "invalid TinyStories generator tensor {name}"
+                )));
+            }
+        }
+        for i in 0..11 {
+            let scale = tensors
+                .tensor(&format!("lm_heads.{i}.log_inv_T"))
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let raw: [u8; 4] = scale
+                .data()
+                .try_into()
+                .map_err(|_| Error::Weights("invalid head scale".into()))?;
+            let temperature = f32::from_le_bytes(raw).exp();
+            if !temperature.is_finite() || temperature <= 0.0 {
+                return Err(Error::Weights("invalid head temperature".into()));
+            }
+        }
+        let levels = &codec.levels()[1..];
+        let total: usize = levels.iter().sum();
+        let level = tensors
+            .tensor("lvl_1L")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let expected = levels
+            .iter()
+            .enumerate()
+            .flat_map(|(i, &len)| std::iter::repeat_n(i as i64, len));
+        if level.dtype() != Dtype::I64
+            || level.shape() != [1, total]
+            || !level
+                .data()
+                .as_chunks::<8>()
+                .0
+                .iter()
+                .map(|x| i64::from_le_bytes(*x))
+                .eq(expected)
+        {
+            return Err(Error::Weights("incorrect TinyStories level buffer".into()));
+        }
+        let seq = 1 + total;
+        let mask = tensors
+            .tensor("attn_mask_for_masking")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        if mask.dtype() != Dtype::F32 || mask.shape() != [1, 1, seq, seq] {
+            return Err(Error::Weights("invalid TinyStories attention mask".into()));
+        }
+        let mut positions = vec![usize::MAX];
+        for (i, &len) in levels.iter().enumerate() {
+            positions.extend(std::iter::repeat_n(i, len));
+        }
+        for (i, raw) in mask.data().as_chunks::<4>().0.iter().enumerate() {
+            let (row, col) = (i / seq, i % seq);
+            let allowed = col == 0 || (row > 0 && positions[row] == positions[col]);
+            let expected = if allowed {
+                0f32.to_bits()
+            } else {
+                f32::NEG_INFINITY.to_bits()
+            };
+            if u32::from_le_bytes(*raw) != expected {
+                return Err(Error::Weights(
+                    "incorrect TinyStories attention mask".into(),
+                ));
+            }
+        }
+        let bytes = artifact
+            .file("inference.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let inference =
+            SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        if inference.len() != 1 {
+            return Err(Error::Weights(
+                "invalid TinyStories inference inventory".into(),
+            ));
+        }
+        let unigram = inference
+            .tensor("level0_unigram")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        if unigram.dtype() != Dtype::F32 || unigram.shape() != [4096] {
+            return Err(Error::Weights("invalid TinyStories unigram shape".into()));
+        }
+        let initial_distribution: Vec<f32> = unigram
+            .data()
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|x| f32::from_le_bytes(*x))
+            .collect();
+        let sum: f64 = initial_distribution.iter().map(|&p| f64::from(p)).sum();
+        if initial_distribution
+            .iter()
+            .any(|p| !p.is_finite() || *p < 0.0)
+            || (sum - 1.0).abs() > 1e-6
+        {
+            return Err(Error::Weights(
+                "invalid TinyStories unigram distribution".into(),
+            ));
+        }
+        Ok(Self {
+            tensor_count: shapes.len(),
+            initial_distribution,
+        })
     }
 }
 

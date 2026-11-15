@@ -132,3 +132,26 @@ fn malformed_file_and_backend_failure_propagate() {
         Err(Error::Backend(_))
     ));
 }
+
+#[test]
+#[ignore = "requires the local pinned TinyStories artifact"]
+fn real_tinystories_codec_inventory_loads_after_preflight() {
+    let root = std::env::var_os("NCM_PHASE4_ARTIFACT").expect("NCM_PHASE4_ARTIFACT required");
+    let artifact = ncm_io::Artifact::load(root).unwrap();
+    let backend = Counter::default();
+    let codec = Codec::from_artifact(backend.clone(), &artifact).unwrap();
+    assert_eq!(codec.weights().len(), 70);
+    assert_eq!(backend.0.get(), 70);
+    assert_eq!(codec.config().raw().embed_dim, 384);
+    assert_eq!(codec.config().code_length(), 641);
+}
+
+#[test]
+#[ignore = "requires the local canonical TinyStories artifact"]
+fn real_tinystories_generator_inventory_and_unigram_preflight() {
+    let path = std::env::var_os("NCM_PHASE4_ARTIFACT").expect("NCM_PHASE4_ARTIFACT is required");
+    let artifact = ncm_io::Artifact::load(path).unwrap();
+    let checked = ncm_model::TinyStoriesGeneratorInspection::from_artifact(&artifact).unwrap();
+    assert_eq!(checked.tensor_count, 195);
+    assert_eq!(checked.initial_distribution.len(), 4096);
+}

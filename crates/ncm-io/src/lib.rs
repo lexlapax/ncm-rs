@@ -18,6 +18,10 @@ pub const CHECKPOINT_REVISION: &str = "d342ce8aaea58830eef3b8ad473664673e41f692"
 const MAX_MANIFEST: u64 = 4 * 1024 * 1024;
 const MAX_FILE: u64 = 256 * 1024 * 1024;
 const MAX_TOTAL: u64 = 512 * 1024 * 1024;
+// TinyStories' pinned generator contains 356,071,472 tensor bytes. These
+// limits are profile-specific and do not relax the existing Sudoku bounds.
+const TINYSTORIES_MAX_FILE: u64 = 384 * 1024 * 1024;
+const TINYSTORIES_MAX_TOTAL: u64 = 640 * 1024 * 1024;
 const FILES: [&str; 6] = [
     "codec.safetensors",
     "generator.safetensors",
@@ -30,6 +34,23 @@ const BUNDLES: [&str; 3] = [
     "codec.safetensors",
     "generator.safetensors",
     "training.safetensors",
+];
+const TINYSTORIES_FILES: [&str; 9] = [
+    "codec.safetensors",
+    "generator.safetensors",
+    "training.safetensors",
+    "inference.safetensors",
+    "config.json",
+    "tokenizer.json",
+    "tokenizer-manifest.json",
+    "tokenizer.LICENSE",
+    "provenance.json",
+];
+const TINYSTORIES_BUNDLES: [&str; 4] = [
+    "codec.safetensors",
+    "generator.safetensors",
+    "training.safetensors",
+    "inference.safetensors",
 ];
 
 #[derive(Debug, thiserror::Error)]
@@ -181,31 +202,38 @@ impl Artifact {
         let manifest: Manifest =
             serde_json::from_slice(&bounded_read(&root.join("manifest.json"), MAX_MANIFEST)?)?;
         if manifest.schema_version != 1
-            || !matches!(
-                manifest.profile.as_str(),
-                "sudoku-easy-inspection-v1"
-                    | "sudoku-medium-inspection-v1"
-                    | "sudoku-hard-inspection-v1"
-            )
             || manifest.upstream_commit != UPSTREAM
             || manifest.checkpoint_revision != CHECKPOINT_REVISION
             || manifest.checkpoint_repository != "hazyresearch/ncm-checkpoints"
         {
             return Err(invalid("unsupported schema, profile or source pins"));
         }
+        let (files, bundles, max_file, max_total): (&[&str], &[&str], u64, u64) =
+            match manifest.profile.as_str() {
+                "sudoku-easy-inspection-v1"
+                | "sudoku-medium-inspection-v1"
+                | "sudoku-hard-inspection-v1" => (&FILES, &BUNDLES, MAX_FILE, MAX_TOTAL),
+                "tinystories-inference-v1" => (
+                    &TINYSTORIES_FILES,
+                    &TINYSTORIES_BUNDLES,
+                    TINYSTORIES_MAX_FILE,
+                    TINYSTORIES_MAX_TOTAL,
+                ),
+                _ => return Err(invalid("unsupported schema, profile or source pins")),
+            };
         // Exact flat filename sets reject unknown files, absolute paths, traversal and aliases.
         if manifest
             .files
             .keys()
             .map(String::as_str)
             .collect::<BTreeSet<_>>()
-            != FILES.into_iter().collect()
+            != files.iter().copied().collect()
             || manifest
                 .tensors
                 .keys()
                 .map(String::as_str)
                 .collect::<BTreeSet<_>>()
-                != BUNDLES.into_iter().collect()
+                != bundles.iter().copied().collect()
         {
             return Err(invalid("unexpected file/bundle inventory"));
         }
@@ -215,7 +243,7 @@ impl Artifact {
             total = total
                 .checked_add(record.bytes)
                 .ok_or_else(|| invalid("file-size overflow"))?;
-            if record.bytes > MAX_FILE || total > MAX_TOTAL {
+            if record.bytes > max_file || total > max_total {
                 return Err(invalid("artifact exceeds memory budget"));
             }
         }

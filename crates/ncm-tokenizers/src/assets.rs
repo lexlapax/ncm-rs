@@ -120,7 +120,30 @@ impl TextTokenizer {
             return Err(invalid("tokenizer root must be a real directory"));
         }
         let bytes = read(&directory.join("manifest.json"), 64 * 1024)?;
-        let metadata: TokenizerMetadata = serde_json::from_slice(&bytes)?;
+        let metadata = Self::checked_metadata(&bytes)?;
+        let payload = read(&directory.join("tokenizer.json"), 32 * 1024 * 1024)?;
+        Self::check_payload(&metadata, &payload)?;
+        let license = read(&directory.join("LICENSE"), 64 * 1024)?;
+        Self::from_checked_parts(metadata, &payload, &license)
+    }
+
+    /// Load the same pinned tokenizer assets from already-owned artifact bytes.
+    /// Manifest, payload and license are authenticated against the same lock as
+    /// `load`; the caller need not write a temporary tokenizer directory.
+    pub fn from_asset_bytes(manifest: &[u8], payload: &[u8], license: &[u8]) -> Result<Self> {
+        if manifest.len() > 64 * 1024
+            || payload.len() > 32 * 1024 * 1024
+            || license.len() > 64 * 1024
+        {
+            return Err(invalid("invalid or oversized asset bytes"));
+        }
+        let metadata = Self::checked_metadata(manifest)?;
+        Self::check_payload(&metadata, payload)?;
+        Self::from_checked_parts(metadata, payload, license)
+    }
+
+    fn checked_metadata(bytes: &[u8]) -> Result<TokenizerMetadata> {
+        let metadata: TokenizerMetadata = serde_json::from_slice(bytes)?;
         let lock: serde_json::Value = serde_json::from_str(include_str!(
             "../../../tools/reference/tokenizers-v1.lock.json"
         ))?;
@@ -128,30 +151,41 @@ impl TextTokenizer {
             .get(&metadata.profile)
             .ok_or_else(|| invalid("unknown tokenizer profile"))?;
         if metadata.schema_version != 1
-            || record["manifest_sha256"].as_str() != Some(&digest(&bytes))
+            || record["manifest_sha256"].as_str() != Some(&digest(bytes))
         {
             return Err(invalid("manifest differs from pinned profile"));
         }
-        let payload = read(&directory.join("tokenizer.json"), 32 * 1024 * 1024)?;
-        if payload.len() != metadata.payload_bytes
-            || digest(&payload) != metadata.payload_sha256
-            || record["payload_sha256"].as_str() != Some(&metadata.payload_sha256)
-        {
+        if record["payload_sha256"].as_str() != Some(&metadata.payload_sha256) {
             return Err(invalid("tokenizer payload integrity failure"));
         }
-        if digest(&read(&directory.join("LICENSE"), 64 * 1024)?) != metadata.license_sha256 {
+        Ok(metadata)
+    }
+
+    fn check_payload(metadata: &TokenizerMetadata, payload: &[u8]) -> Result<()> {
+        if payload.len() != metadata.payload_bytes || digest(payload) != metadata.payload_sha256 {
+            return Err(invalid("tokenizer payload integrity failure"));
+        }
+        Ok(())
+    }
+
+    fn from_checked_parts(
+        metadata: TokenizerMetadata,
+        payload: &[u8],
+        license: &[u8],
+    ) -> Result<Self> {
+        if digest(license) != metadata.license_sha256 {
             return Err(invalid("license notice differs from pinned asset"));
         }
         let implementation = match metadata.kind.as_str() {
             "byte_bpe" => {
-                let bpe = ByteBpe::from_json(&payload)?;
+                let bpe = ByteBpe::from_json(payload)?;
                 if bpe.vocab_size() != metadata.total_vocab_size {
                     return Err(invalid("BPE vocabulary differs"));
                 }
                 Implementation::ByteBpe(Box::new(bpe))
             }
             "huggingface" => {
-                let tokenizer = parse_hf(&payload, &metadata.profile)?;
+                let tokenizer = parse_hf(payload, &metadata.profile)?;
                 if tokenizer.get_vocab_size(false) != metadata.vocab_size
                     || total_vocab_size(&tokenizer) != metadata.total_vocab_size
                 {
