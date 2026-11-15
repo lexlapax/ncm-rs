@@ -279,6 +279,13 @@
       "status": "bounded diagnostic complete; startup and fallible compiler initialization preclude integration as-is",
       "finding": "48 requests per mode and three drops each; IDs match and active MLX bytes return to zero. First eager/compiled requests 84.884/266.292 ms in sequential processes; later first requests near 7 ms; cache stabilizes in this finite sample.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-lifetime-result-v1.md"
+    },
+    {
+      "id": "mlx-attention-same-process",
+      "hypothesis": "Alternate zero-mask and unmasked attention on the same model to reduce between-process drift.",
+      "status": "diagnostic mixed; not integrated",
+      "finding": "Initial finite outputs and IDs match. B4 block median ratios 0.9852/0.9771/1.0066; decode and reconstruction are mixed. No consistent full-codec gain established.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-attention-toggle-result-v1.md"
     }
   ]
 }

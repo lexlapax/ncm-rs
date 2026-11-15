@@ -25,6 +25,8 @@ general bound or a measurement of all compiler/driver memory. Six activity
 samples recorded WindowServer up to 31.7% CPU; they cannot establish exclusive
 GPU access. No thermal warning was reported.
 
+The pinned Rust binding's [built-in GELU](https://github.com/oxiglade/mlx-rs/blob/adf439bf5361d8a02955de7aaf651b0c45900945/mlx-rs/src/nn/activation.rs) also constructs a compiled function on each call; its [compiled-state drop](https://github.com/oxiglade/mlx-rs/blob/adf439bf5361d8a02955de7aaf651b0c45900945/mlx-rs/src/transforms/compile/mod.rs) erases that function's compile-cache entry. It uses the same exact GELU formula but a different FP32 operation order. Source inspection does not quantify its startup or rule out lower-level GPU shader caching, and no helper substitution was measured. It is not evidence of an ahead-of-time, reusable alternative.
+
 The repeated large first-use observation is a material startup concern. Together
 with the pinned binding's fallible cache acquisition implemented as `expect`, it
 precludes integrating this prototype as-is. Do not move the cost to an

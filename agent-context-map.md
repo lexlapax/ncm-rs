@@ -4,9 +4,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Same-process unmasked attention diagnostic prepared:** alternate the prior
-  zero-mask and no-mask paths in one model, including decode, reconstruction
-  and block scopes. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-attention-toggle-plan-v1.md).
+- **Same-process unmasked attention deferred:** output comparisons pass but
+  B4 block medians are mixed (0.985/0.977/1.007); no runtime change or gate
+  pass follows. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-toggle-result-v1.md).
 
 - **GELU lifetime observation:** all backend/model drops return active MLX
   bytes to zero; first compiled/eager requests were 266/85 ms in sequential
@@ -101,7 +101,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   outcomes match, but this is not a Python oracle or exhaustive proof. An initial
   shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
 
-- **Evidence reconciliation:** the current 39-entry experiment ledger and
+- **Evidence reconciliation:** the current 40-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
   open; the user was asked whether to choose a separately predeclared quiet
