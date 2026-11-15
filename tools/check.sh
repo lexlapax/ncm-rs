@@ -67,6 +67,7 @@ if [[ "$(uname -s)" == Darwin ]]; then
 else
     python3 -m unittest discover -s tools/bench -p 'test_*.py' -v
 fi
+python3 -m unittest discover -s tools/reference -p "test_text_phase4_data.py" -v
 python3 -m py_compile tools/reference/*.py tools/bench/compare.py
 
 if "$cuda"; then
