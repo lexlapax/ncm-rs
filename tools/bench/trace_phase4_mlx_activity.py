@@ -81,7 +81,7 @@ def main():
             meta['target_returncode'] = target_result.returncode
             meta['status'] = 'saving'
             save()
-            meta['recorder_returncode'] = recorder.wait(timeout=200)
+            meta['recorder_returncode'] = recorder.wait()
         data = json.loads((out / 'target.json').read_bytes())
         samples = data['trials_seconds']
         if (target_result.returncode or meta['recorder_returncode'] or data['batch'] != 128
