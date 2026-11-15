@@ -36,7 +36,18 @@ The upstream metric names `gpt2-large`. For this Phase 4 comparison its evaluato
 
 Read-only repository metadata at the existing checkpoint revision confirms XSum requires a 354,355,211-byte generator and a 299,626,079-byte tokenizer checkpoint. These and its 2,345-byte config are downloaded and SHA-256 verified under ignored `artifacts/upstream/xsum-phase4/`; their respective hashes are `f152f390253de886e46303654f01b9e7a2586e609ba3d6b5e86d5969903b1fd4`, `1f806ddaf8e023d1933e95efeabcaaf99f795576c0a05045f1a0f9389ab34fa7`, and `5dee6b7339645a22362f695fbadb27df6e5254db2d3be0bff8516138d95da493`. CPU `weights_only=True` inspection finds 194 generator model tensors and required `inference.token_unigram`, plus 80 tokenizer checkpoint tensors. The XSum profile requires padded 512-token prefixes, query level zero and sequential output penalties; this inspection does not implement or qualify them.
 
-The same immutable revision lists WMT14 generator/tokenizer files of 480,582,539/645,790,351 bytes, and LM1B small/medium/large generator files of 390,138,443/1,268,014,283/2,901,184,267 bytes with a shared 597,840,331-byte tokenizer checkpoint. These remain unfetched and need explicit per-profile memory bounds and GPU validation. The pinned OWT directory still contains only `TODO.md`; no released checkpoint or quality gate is asserted.
+The WMT14 and LM1B checkpoints at the same immutable revision have been fetched to ignored `artifacts/upstream/wmt14-phase4/` and `artifacts/upstream/lm1b-phase4/` and verified against their published SHA-256 values:
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `wmt14/generator.pt` | 480,582,539 | `ae580cbbb400a27b30c616634745d4c9cfa8b66806f936c6c26041e5b9640d4f` |
+| `wmt14/tokenizer.pt` | 645,790,351 | `74f04176a3cd985e4142761bd7464ea6edb44dc0025c40302b5e45ea0d865702` |
+| `lm1b/small/generator.pt` | 390,138,443 | `b0789d5a2aad9114d40976d26bd1af09d8cea0b0bec7d385b6a44739f77256fe` |
+| `lm1b/medium/generator.pt` | 1,268,014,283 | `5aa4621472c2e658ab343e50d98abc808e4c2c6dd26eaf8535897b6a540c1604` |
+| `lm1b/large/generator.pt` | 2,901,184,267 | `ec34d6c56a81f428303b2fa3a8e1615ceee81b7dec7f59380427f46808ec224c` |
+| `lm1b/tokenizer.pt` | 597,840,331 | `d88aa17b66d730f2cb1fb31c5dbe63888a10da47ed8bea29dcb1f89423c3059c` |
+
+These downloads need explicit per-profile memory bounds, implementation and GPU validation; they do not establish support. The pinned OWT directory still contains only `TODO.md`; no released checkpoint or quality gate is asserted.
 
 The original GPT-2-large scorer ran out of memory on this 8 GiB GPU at batch 32 with the desktop present. A proposed memory-bounded scorer keeps the upstream batch-32 tokenizer, attention masks and FP32 transformer forward pass, but projects/log-softmaxes output rows in smaller chunks and disables unused KV-cache output. Before using it for any held-out score, compare each sample's token count and mean NLL with the unmodified upstream scorer on development inputs at a batch size that fits. Require exactly equal token counts and maximum absolute per-token mean-NLL difference at most `1e-4`; record the measured differences. This is a newly declared evaluator-implementation tolerance, not a change to a previously passed oracle. Preserve and disclose the original batch-32 OOM and the chunked evaluator rather than calling it an unmodified run.
 
