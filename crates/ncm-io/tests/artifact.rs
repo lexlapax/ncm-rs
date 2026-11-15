@@ -91,6 +91,21 @@ fn inference_view_validates_then_releases_training_state() {
     assert_eq!(artifact.manifest().tensors.len(), 3);
     fs::write(dir.path().join("training.safetensors"), b"tampered").unwrap();
     assert!(Artifact::load_inference(dir.path()).is_err());
+
+    // Matching the outer file hash does not bypass the recorded tensor hash.
+    let (dir, mut manifest) = fixture();
+    let path = dir.path().join("training.safetensors");
+    let mut bytes = fs::read(&path).unwrap();
+    *bytes.last_mut().unwrap() ^= 1;
+    fs::write(&path, &bytes).unwrap();
+    manifest
+        .files
+        .get_mut("training.safetensors")
+        .unwrap()
+        .sha256 = sha256(&bytes);
+    save(dir.path(), &manifest);
+    assert!(Artifact::load_inference(dir.path()).is_err());
+    assert!(Artifact::load(dir.path()).is_err());
 }
 
 #[test]

@@ -187,26 +187,104 @@ fn bounded_read(path: &Path, limit: u64) -> Result<Vec<u8>> {
     Ok(data)
 }
 
+// Training data is validated in one bounded pass and never enters the
+// inference view. Header parsing uses the safetensors crate's own Metadata
+// validation; the whole-file and individual tensor digests are both checked.
+fn validate_training_stream(
+    path: &Path,
+    record: &FileRecord,
+    entries: &[TensorRecord],
+) -> Result<()> {
+    let meta = fs::symlink_metadata(path)?;
+    if !meta.file_type().is_file() || meta.len() != record.bytes {
+        return Err(invalid("invalid training bundle file"));
+    }
+    let mut file = fs::File::open(path)?;
+    let mut prefix = [0u8; 8];
+    file.read_exact(&mut prefix)?;
+    let header_len = u64::from_le_bytes(prefix);
+    if header_len > 100_000_000 || header_len.checked_add(8).is_none_or(|n| n > record.bytes) {
+        return Err(invalid("invalid training bundle header length"));
+    }
+    let mut header =
+        vec![0u8; usize::try_from(header_len).map_err(|_| invalid("header overflow"))?];
+    file.read_exact(&mut header)?;
+    let metadata: safetensors::tensor::Metadata = serde_json::from_slice(&header)?;
+    if (metadata.data_len() as u64).checked_add(header_len + 8) != Some(record.bytes) {
+        return Err(invalid("training bundle extent mismatch"));
+    }
+    let by_name: BTreeMap<_, _> = entries
+        .iter()
+        .map(|entry| (entry.name.as_str(), entry))
+        .collect();
+    if by_name.len() != entries.len() || metadata.tensors().len() != entries.len() {
+        return Err(invalid("training bundle tensor inventory differs"));
+    }
+    let mut file_hash = Sha256::new();
+    file_hash.update(prefix);
+    file_hash.update(&header);
+    let mut buffer = vec![0u8; 1024 * 1024];
+    for name in metadata.offset_keys() {
+        let info = metadata
+            .info(&name)
+            .ok_or_else(|| invalid("missing training metadata"))?;
+        let entry = by_name
+            .get(name.as_str())
+            .ok_or_else(|| invalid("unexpected training tensor"))?;
+        check_hash_format(&entry.sha256)?;
+        let size = entry
+            .shape
+            .iter()
+            .try_fold(entry.dtype.size(), |n, &dim| n.checked_mul(dim))
+            .ok_or_else(|| invalid("training tensor shape overflow"))?;
+        if entry.shape.len() > 8
+            || info.shape != entry.shape
+            || info.dtype != entry.dtype.native()
+            || size != entry.bytes
+            || info.data_offsets.1 - info.data_offsets.0 != entry.bytes
+        {
+            return Err(invalid("training tensor metadata differs"));
+        }
+        let mut remaining = entry.bytes;
+        let mut tensor_hash = Sha256::new();
+        while remaining > 0 {
+            let n = remaining.min(buffer.len());
+            file.read_exact(&mut buffer[..n])?;
+            tensor_hash.update(&buffer[..n]);
+            file_hash.update(&buffer[..n]);
+            remaining -= n;
+        }
+        if format!("{:x}", tensor_hash.finalize()) != entry.sha256 {
+            return Err(invalid("training tensor hash differs"));
+        }
+    }
+    let mut extra = [0u8; 1];
+    if file.read(&mut extra)? != 0 || format!("{:x}", file_hash.finalize()) != record.sha256 {
+        return Err(invalid("training bundle size/hash differs"));
+    }
+    Ok(())
+}
+
 pub struct Artifact {
     manifest: Manifest,
     payloads: BTreeMap<String, Vec<u8>>,
 }
 
 impl Artifact {
-    /// Validate the complete artifact, then release the training-only bundle.
+    /// Validate the complete artifact, streaming the training-only bundle.
     /// Inference payloads remain owned and immutable; `file("training.safetensors")`
     /// explicitly fails on this reduced view. `load` retains the full artifact.
     pub fn load_inference(root: impl AsRef<Path>) -> Result<Self> {
-        let mut artifact = Self::load(root)?;
-        if artifact.payloads.remove("training.safetensors").is_none() {
-            return Err(invalid("missing validated training bundle"));
-        }
-        Ok(artifact)
+        Self::load_impl(root.as_ref(), true)
     }
 
     pub fn load(root: impl AsRef<Path>) -> Result<Self> {
+        Self::load_impl(root.as_ref(), false)
+    }
+
+    fn load_impl(root: &Path, inference: bool) -> Result<Self> {
         // Strip trailing separators/dot components before the no-symlink leaf check.
-        let root = root.as_ref().components().collect::<std::path::PathBuf>();
+        let root = root.components().collect::<std::path::PathBuf>();
         if !fs::symlink_metadata(&root)?.file_type().is_dir() {
             return Err(invalid("artifact root must be a real directory"));
         }
@@ -260,6 +338,10 @@ impl Artifact {
         }
         let mut payloads = BTreeMap::new();
         for (name, record) in &manifest.files {
+            if inference && name == "training.safetensors" {
+                validate_training_stream(&root.join(name), record, &manifest.tensors[name])?;
+                continue;
+            }
             let bytes = bounded_read(&root.join(name), record.bytes)?;
             if bytes.len() as u64 != record.bytes || sha256(&bytes) != record.sha256 {
                 return Err(invalid(format!("file size/hash mismatch: {name}")));
@@ -270,6 +352,9 @@ impl Artifact {
             payloads.insert(name.clone(), bytes);
         }
         for (bundle, entries) in &manifest.tensors {
+            if inference && bundle == "training.safetensors" {
+                continue;
+            }
             let tensors = SafeTensors::deserialize(&payloads[bundle])?;
             let names = entries
                 .iter()
