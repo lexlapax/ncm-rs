@@ -24,6 +24,8 @@ def main():
                         help='native Metal comparison against the adapted fixed-code trace')
     parser.add_argument('--qualification-sha256', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--binary', type=Path, help='explicit Rust generation benchmark binary')
+    parser.add_argument('--candidate-source-root', type=Path, help='isolated candidate source tree to fingerprint')
     parser.add_argument('--rust-lifecycle-policy', action='store_true',
                         help='include output cleanup/barrier; use a process-local 512 MiB cache at batches 1 and 4')
     parser.add_argument('--batches', type=int, nargs='+', choices=BATCHES, default=BATCHES,
@@ -42,6 +44,10 @@ def main():
         raise SystemExit('instrumented environment is not permitted')
     binary = (ROOT / 'target/release/examples/tinystories_lifecycle_bench'
               if args.rust_lifecycle_policy else BINARY)
+    if args.binary:
+        binary = args.binary.resolve()
+    if not binary.is_file():
+        raise ValueError('Rust benchmark binary must be an existing file')
     qualification = args.qualification.resolve()
     if digest(qualification) != args.qualification_sha256:
         raise ValueError('qualification digest differs')
@@ -74,6 +80,12 @@ def main():
                Path(packages['python']), ROOT / 'Cargo.toml', ROOT / 'Cargo.lock']
     watched += list((ROOT / 'crates').rglob('*.rs')) + list((ROOT / 'crates').rglob('Cargo.toml'))
     watched += [p for p in ARTIFACT.rglob('*') if p.is_file()]
+    if args.candidate_source_root:
+        source_root = args.candidate_source_root.resolve()
+        if not (source_root / 'crates').is_dir():
+            raise ValueError('candidate source tree must contain crates')
+        watched += [source_root / 'Cargo.toml', source_root / 'Cargo.lock']
+        watched += list((source_root / 'crates').rglob('*.rs')) + list((source_root / 'crates').rglob('Cargo.toml'))
     before = {str(p): digest(p) for p in watched}
     out.mkdir(parents=True)
     manifest = {'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
