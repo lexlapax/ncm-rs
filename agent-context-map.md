@@ -4,7 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Fused interpolation diagnostic prepared:** an isolated [Metal proof of concept](docs/results/2026-11-11-phase2-optimization/mlx-linear-fused-poc-plan-v1.md) aims to retain gather speed while reducing temporary allocations. The first Mac build failed at the unsafe-code lint; a narrow existing-pattern allowance is prepared. Rust formatting passes; no hardware run, production change, or parity claim yet.
+- **Fused interpolation diagnostic promising:** six isolated Metal processes
+  matched finite outputs bit-for-bit across ten shapes. B4 13→89 peak active
+  allocation fell from 3,083,040 to 822,048 bytes and median time ratio was
+  0.8689. Full-model, special-value, views, startup and safe integration remain
+  untested; no production change or gate pass. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-linear-fused-poc-result-v1.md).
 
 - **Apple 18-process control passed 78/78** after the initial B4 tail failure;
   quality passed, and the separate 45-process CPU comparison is validated.
