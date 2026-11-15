@@ -8,8 +8,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   quality passed, and the separate 45-process CPU comparison is validated.
   Matched live-memory probes show a 1.058744 immediate B4 block ratio, settling
   near parity after a barrier; B4 encode peak active bytes are 1.20127× prior
-  Rust. The 1.05 steady-state live criterion and peak explanation remain open;
-  Phase 2 is not complete. [Evidence and activity](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md).
+  Rust. Earlier matched evidence attributes a similar 26 MB peak increase to
+  linear-gather interpolation, which also sped up B4 encode. The 1.05
+  steady-state live criterion and resource tradeoff remain open; Phase 2 is not
+  complete. [Evidence and activity](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md).
 
 - **Same-process unmasked attention deferred:** output comparisons pass but
   B4 block medians are mixed (0.985/0.977/1.007); no runtime change or gate

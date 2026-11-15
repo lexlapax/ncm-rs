@@ -51,8 +51,15 @@ The B4 encode peak active MLX allocation was 155,866,252 candidate bytes versus
 129,751,100 prior Rust and 129,750,040 Python (1.20127 and 1.20128). This is a
 real observed peak-counter difference, distinct from steady-state active memory,
 cache, host RSS and physical device-wide usage; it is not one of the 78 host
-memory checks. Its cause and practical effect require investigation. The
-performance control alone does not close Phase 2.
+memory checks. Its practical effect requires investigation. A prior [matched linear-gather
+experiment](mlx-linear-poc-v1.md) supplies a strong attribution: with all other
+code held to the preceding native implementation, its three B4 encode peaks
+were 129,613,076 bytes before the interpolation change and 155,857,940,
+155,857,940 and 155,866,308 bytes after. That 26.2 MB increase closely matches
+the new comparison. The same experiment reported a 0.552 B4 encode latency
+ratio, so reverting it would sacrifice a measured performance benefit. This is
+strong evidence for the interpolation tradeoff, not proof of the exact internal
+buffer ownership. The performance control alone does not close Phase 2.
 
 MLX's [0.32.2 Metal evaluation source](https://github.com/ml-explore/mlx/blob/v0.32.2/mlx/backend/metal/eval.cpp)
 retains input buffers in command completion handlers, and its
