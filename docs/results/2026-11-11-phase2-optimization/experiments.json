@@ -265,6 +265,13 @@
       "status": "diagnostic promising for resident block; not integrated; startup/cache and end-to-end acceptance unresolved",
       "finding": "Nine resident-block median comparisons improve; B4 compiled/eager 0.9380/0.9448/0.9364. Reconstruction medians range 0.9899–1.0088; one first compiled reconstruction 212.978 ms.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-toggle-result-v1.md"
+    },
+    {
+      "id": "mlx-gelu-shapeless",
+      "hypothesis": "Use shape-independent compilation for the exact rank-three GELU expression instead of three benchmark-specific specializations.",
+      "status": "isolated diagnostic promising; not integrated; compile errors, startup and cache lifetime unresolved",
+      "finding": "Metal shape, view, special-value and clone regression passes. Nine same-process resident-block medians improve; B4 ratios 0.9243/0.9428/0.9505. One first compiled reconstruction took 261.016 ms.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-shapeless-result-v1.md"
     }
   ]
 }

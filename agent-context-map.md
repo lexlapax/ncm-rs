@@ -4,10 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Shape-independent GELU experiment prepared:** test the exact expression
-  with one shapeless rank-three compiler rather than benchmark-specific shapes;
-  compiler error handling and startup/cache lifetime still require resolution.
-  [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-shapeless-plan-v1.md).
+- **Shape-independent GELU diagnostic:** Metal shape/view/special-value
+  regression passes; all nine resident-block medians improve. One first compiled
+  reconstruction took 261 ms. Cache errors, startup/lifetime and acceptance
+  remain open; no integration. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-shapeless-result-v1.md).
 
 - **Same-process GELU diagnostic:** compiled exact GELU improves resident-block
   medians in all nine comparisons; reconstruction is near unchanged. One first
@@ -92,7 +92,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   outcomes match, but this is not a Python oracle or exhaustive proof. An initial
   shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
 
-- **Evidence reconciliation:** the current 37-entry experiment ledger and
+- **Evidence reconciliation:** the current 38-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
   open; the user was asked whether to choose a separately predeclared quiet
