@@ -126,6 +126,9 @@ def main():
         full = json.loads((DATA / 'easy-2000-inputs.json').read_bytes())
         if hashlib.sha256((DATA / 'easy-2000-inputs.json').read_bytes()).hexdigest() != ref['inputs_sha256'] or expected_inputs != full[:128]:
             raise ValueError('qualification inputs differ from original reference')
+        for batch in BATCHES:
+            if json.loads((DATA / f'easy-{batch}-inputs.json').read_bytes()) != full[:batch]:
+                raise ValueError(f'batch {batch} inputs differ from original reference')
         py_result = out / 'qualification-python.json'
         run([str(PYTHON), str(ROOT / 'tools/reference/phase3_mlx_generator.py'), '--artifact', str(ARTIFACT),
              '--inputs', str(inputs128), '--output', str(py_result)], 'qualification-python', out)
