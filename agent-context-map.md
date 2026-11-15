@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Pinned algorithm alignment reviewed:** the supported codec's quantization,
+  interpolation, decoder and tokenizer choices are mapped to the pinned Python
+  source, including deliberate snapshot/reconstruction differences and FP32
+  limits. This is not exhaustive parity or a new run. [Review](docs/results/2026-11-11-phase2-optimization/upstream-codec-alignment-v2.md).
+
 - **Closure binding verified:** current guarded production/harness sources match
   gated candidate `5200924`; selected pins/fixtures match baseline, and the
   archived and published Linux/Apple 78-cell audits pass with unchanged limits.

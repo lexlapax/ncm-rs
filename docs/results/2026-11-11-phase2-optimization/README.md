@@ -11,6 +11,7 @@
 | [Source and audit bindings](phase2-closure-bindings-v1.md) | Current guarded source matches the gated candidate; published audits are exact archived bytes. |
 | [Platform performance summary](phase2-performance-summary-v1.md) | Per-scope controlled median, p95 and candidate rate, plus host-memory ratios for both references. |
 | [CPU and memory follow-up](apple-gate18-results-v1.md) | Whole-process CPU is reported; the separate 1.05 comparable live-memory criterion remains unresolved. MLX active/cache values are distinct from host RSS/HWM. |
+| [Pinned codec alignment](upstream-codec-alignment-v2.md) | Source-level comparison with upstream, including documented helper defects and numerical limits. |
 | [Experiment ledger](experiments.json) | Independent outcomes and deferrals are recorded, including the [fused interpolation experiment](mlx-linear-fused-codec-result-v1.md). |
 
 The 78-cell audit files cover their recorded timing, host-memory and quality
