@@ -1,6 +1,8 @@
 """Render descriptive platform tables from the published controlled audits."""
 import hashlib
 import json
+import math
+import statistics
 from pathlib import Path
 import sys
 import tarfile
@@ -43,15 +45,36 @@ def main():
             raise ValueError('archive differs')
         with tarfile.open(archive, 'r:xz') as tar:
             strings = {}
-            for profile in WORK[1:]:
-                name = f'{control}/candidate/tokenizer-{profile}-rust-1.json'
-                raw = tar.extractfile(name).read()
-                if sha(raw) != audit['controls'][profile]['report_sha256']['candidate'][0]:
-                    raise ValueError('tokenizer report differs')
-                count = json.loads(raw)['strings_per_trial']
-                if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
-                    raise ValueError('invalid string count')
-                strings[profile] = count
+            startup = {profile: {role: [] for role in ('previous', 'candidate', 'python')} for profile in WORK}
+            first_execution = {role: [] for role in ('previous', 'candidate', 'python')}
+            for profile in WORK:
+                repeats = audit['controls'][profile]['processes_per_runtime']
+                for role in ('previous', 'candidate', 'python'):
+                    kind = 'python' if role == 'python' else 'rust'
+                    stem = 'codec' if profile == 'codec' else 'tokenizer-' + profile
+                    hashes = audit['controls'][profile]['report_sha256'][role]
+                    if len(hashes) != repeats:
+                        raise ValueError('incomplete startup inventory')
+                    for i, digest in enumerate(hashes, 1):
+                        name = f'{control}/{role}/{stem}-{kind}-{i}.json'
+                        raw = tar.extractfile(name).read()
+                        if sha(raw) != digest:
+                            raise ValueError('startup report differs')
+                        report = json.loads(raw)
+                        first_load = report['first_load_ms']
+                        if not isinstance(first_load, (float, int)) or isinstance(first_load, bool) or not math.isfinite(first_load) or first_load <= 0:
+                            raise ValueError('invalid first load')
+                        startup[profile][role].append(first_load)
+                        if profile == 'codec':
+                            first = report['first_execution_ms']
+                            if not isinstance(first, (float, int)) or isinstance(first, bool) or not math.isfinite(first) or first <= 0:
+                                raise ValueError('invalid first execution')
+                            first_execution[role].append(first)
+                        else:
+                            count = report['strings_per_trial']
+                            if not isinstance(count, int) or isinstance(count, bool) or count <= 0 or profile in strings and strings[profile] != count:
+                                raise ValueError('invalid or differing string count')
+                            strings[profile] = count
         print(f'## {platform}\n')
         print(f'[Complete controlled audit]({audit_name}).\n')
         print('| Workload | Candidate median / p95 ms | Candidate rate | Previous median / p95 ms | Python median / p95 ms |')
@@ -77,6 +100,19 @@ def main():
                 else:
                     rate = f"{1000 * strings[workload] / values[0]['median_ms']:.1f} strings/s"
                 print(f'| {label} | {fmt(values[0])} | {rate} | {fmt(values[1])} | {fmt(values[2])} |')
+        print('\nFirst-load and first-execution values below summarize all controlled '
+              'processes as median [minimum, maximum] in milliseconds. Process, '
+              'OS disk and compiler caches were not cleared; process-local allocator '
+              'handling follows the benchmark harness. First execution starts '
+              'after loading and is not a disk-cold or compilation-only measure.\n')
+        print('| Observation | Previous | Candidate | Python |')
+        print('| --- | ---: | ---: | ---: |')
+        def range_ms(values):
+            return f'{statistics.median(values):.3f} [{min(values):.3f}, {max(values):.3f}]'
+        for workload in WORK:
+            values = startup[workload]
+            print(f"| {workload} first load | " + ' | '.join(range_ms(values[role]) for role in ('previous', 'candidate', 'python')) + ' |')
+        print('| codec first execution | ' + ' | '.join(range_ms(first_execution[role]) for role in ('previous', 'candidate', 'python')) + ' |')
         print('\nHost memory is the maximum observed process HWM/RSS ratio from the '
               'three-process matrix, not the MLX allocator counter and not a '
               'separate physical-memory estimate.\n')

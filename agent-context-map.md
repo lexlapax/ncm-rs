@@ -11,7 +11,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   All 58 timing and 20 host-memory cells per platform are uniquely inventoried
   and their stored controlled bounds independently checked; focused negative
   cases pass. [Platform summaries](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v1.md)
-  report per-scope timing, candidate throughput and host-memory ratios.
+  report per-scope timing, candidate throughput, host-memory ratios and
+  observed first-load/first-execution ranges.
   A clean Linux replay is byte-identical; Apple replay differs only in nine
   last-digit standard deviations. This does not resolve live memory or close
   Phase 2. Public README, plan, architecture and

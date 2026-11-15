@@ -40,6 +40,17 @@ Timings are pooled controlled process trials in milliseconds; each cell has 30 t
 | tinystories/decode_skip_special | 0.0134 / 0.0143 | 6659682.7 strings/s | 0.0151 / 0.0166 | 0.5012 / 0.5158 |
 | tinystories/checked_load | 2.8972 / 2.9681 | — | 3.3469 / 3.4354 | 28.1234 / 28.7134 |
 
+First-load and first-execution values below summarize all controlled processes as median [minimum, maximum] in milliseconds. Process, OS disk and compiler caches were not cleared; process-local allocator handling follows the benchmark harness. First execution starts after loading and is not a disk-cold or compilation-only measure.
+
+| Observation | Previous | Candidate | Python |
+| --- | ---: | ---: | ---: |
+| codec first load | 192.694 [192.368, 194.435] | 192.177 [190.853, 193.059] | 289.221 [286.403, 292.737] |
+| bert first load | 4.855 [4.501, 5.225] | 4.174 [3.726, 4.620] | 24.754 [24.183, 25.414] |
+| gpt2 first load | 19.905 [19.020, 20.843] | 19.075 [18.495, 19.456] | 62.902 [61.560, 64.139] |
+| qwen3 first load | 71.771 [70.440, 73.053] | 71.320 [69.579, 72.559] | 179.055 [177.200, 181.476] |
+| tinystories first load | 4.275 [4.142, 4.412] | 3.774 [3.678, 3.883] | 29.070 [28.754, 30.149] |
+| codec first execution | 53.859 [53.259, 54.978] | 52.793 [52.222, 54.272] | 228.490 [223.104, 237.373] |
+
 Host memory is the maximum observed process HWM/RSS ratio from the three-process matrix, not the MLX allocator counter and not a separate physical-memory estimate.
 
 | Workload | HWM / previous | HWM / Python | RSS / previous | RSS / Python |
@@ -85,6 +96,17 @@ Host memory is the maximum observed process HWM/RSS ratio from the three-process
 | tinystories/decode | 0.0170 / 0.0177 | 5248260.4 strings/s | 0.0203 / 0.0210 | 0.3538 / 0.3625 |
 | tinystories/decode_skip_special | 0.0173 / 0.0182 | 5146888.7 strings/s | 0.0202 / 0.0215 | 0.6090 / 0.6245 |
 | tinystories/checked_load | 3.4164 / 3.5466 | — | 3.7974 / 3.8737 | 30.8374 / 31.3325 |
+
+First-load and first-execution values below summarize all controlled processes as median [minimum, maximum] in milliseconds. Process, OS disk and compiler caches were not cleared; process-local allocator handling follows the benchmark harness. First execution starts after loading and is not a disk-cold or compilation-only measure.
+
+| Observation | Previous | Candidate | Python |
+| --- | ---: | ---: | ---: |
+| codec first load | 181.923 [180.224, 183.146] | 177.175 [176.085, 178.452] | 273.172 [237.451, 283.552] |
+| bert first load | 4.208 [4.129, 4.466] | 3.751 [3.690, 4.156] | 27.135 [26.892, 28.236] |
+| gpt2 first load | 18.156 [17.987, 20.101] | 17.202 [17.035, 17.321] | 62.352 [62.089, 65.584] |
+| qwen3 first load | 67.348 [66.760, 68.005] | 63.099 [62.484, 69.441] | 160.384 [159.700, 162.075] |
+| tinystories first load | 4.478 [4.312, 4.608] | 3.998 [3.947, 4.121] | 31.239 [30.928, 31.909] |
+| codec first execution | 67.388 [58.304, 73.664] | 28.337 [26.770, 30.325] | 71.572 [70.087, 82.363] |
 
 Host memory is the maximum observed process HWM/RSS ratio from the three-process matrix, not the MLX allocator counter and not a separate physical-memory estimate.
 
