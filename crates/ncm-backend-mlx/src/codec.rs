@@ -434,6 +434,17 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         {
             return Err(Error::Input("invalid QKV shape".into()));
         }
+        // Large batches can retain substantially more MLX scratch when each
+        // view is materialized separately; retain the packed path there.
+        if batch >= 16 {
+            let packed = self.pack_qkv(x, batch, seq, heads, head)?;
+            let shape = [batch, heads, seq, head];
+            return Ok([
+                self.reshape(&self.narrow(&packed, 0, 0, 1)?, &shape)?,
+                self.reshape(&self.narrow(&packed, 0, 1, 1)?, &shape)?,
+                self.reshape(&self.narrow(&packed, 0, 2, 1)?, &shape)?,
+            ]);
+        }
         let part = |i| {
             let values = self.narrow(x, 2, i * width, width)?;
             let values = self.reshape(&values, &[batch, seq, heads, head])?;

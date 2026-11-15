@@ -6,7 +6,13 @@ use ncm_core::{CodecBackend, GeneratorBackend, WeightBackend};
 #[test]
 fn split_qkv_preserves_each_head_and_position() {
     let backend = MlxBackend::gpu().unwrap();
-    let (batch, seq, heads, head) = (2, 3, 2, 2);
+    for batch in [2, 32] {
+        check(&backend, batch);
+    }
+}
+
+fn check(backend: &MlxBackend, batch: usize) {
+    let (seq, heads, head) = (3, 2, 2);
     let width = heads * head;
     let values: Vec<f32> = (0..batch * seq * 3 * width).map(|x| x as f32).collect();
     let input = backend
