@@ -1,0 +1,35 @@
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -388,6 +388,15 @@
+         with_stream(&self.stream, || {
+             mlx_rs::transforms::eval(xs.iter().map(|x| &x.0))
+         })
+-        .map_err(error)
+-    }
+-}
++        .map_err(error)?;
++        if !xs.is_empty() {
++            // Diagnostic only: wait for completion of this backend's stream.
++            #[allow(unsafe_code)]
++            let status = unsafe { mlx_sys::mlx_synchronize(self.stream.as_ptr()) };
++            if status != 0 {
++                return Err(Error::Backend("MLX stream synchronization failed".into()));
++            }
++        }
++        Ok(())
++    }
++}
+--- a/crates/ncm-backend-mlx/Cargo.toml
++++ b/crates/ncm-backend-mlx/Cargo.toml
+@@ -10,9 +10,10 @@
+
+ [features]
+ default = []
+-mlx = ["dep:mlx-rs", "dep:ncm-core", "dep:ncm-io", "dep:safetensors"]
++mlx = ["dep:mlx-sys", "dep:mlx-rs", "dep:ncm-core", "dep:ncm-io", "dep:safetensors"]
+
+ [target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
++mlx-sys = { git = "https://github.com/oxiglade/mlx-rs", rev = "adf439bf5361d8a02955de7aaf651b0c45900945", optional = true }
+ mlx-rs = { git = "https://github.com/oxiglade/mlx-rs", rev = "adf439bf5361d8a02955de7aaf651b0c45900945", optional = true, features = ["safetensors"] }
+ ncm-core = { path = "../ncm-core", optional = true }
+ ncm-io = { path = "../ncm-io", optional = true }

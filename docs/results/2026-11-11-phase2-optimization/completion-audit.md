@@ -6,6 +6,8 @@
 
 **Latest Apple evidence:** the predeclared [18-process control](apple-gate18-results-v1.md) passes 78/78 and quality after the initial B4 tail failure; a 45-process CPU comparison also passes report validation. Matched live-memory observations reveal an immediate B4 block ratio of 1.058744 and a B4 encode peak ratio of 1.20127 versus prior Rust. Comparable steady-state live memory and the peak difference remain unresolved, so Phase 2 remains incomplete. Prior failed controls remain retained.
 
+**Stream synchronization diagnostic:** [explicit stream synchronization](mlx-stream-sync-memory-result-v1.md) consistently reduced the immediate B4 active snapshot to the previously observed settled value. It remains a diagnostic: full-codec performance, float parity, and any production behavior change are unqualified.
+
 **Q/K/V memory toggle:** [separate slices](mlx-qkv-memory-toggle-result-v1.md) reduced the immediate B4 snapshot by 376,832 bytes in three runs, but remained 1.053× the historical prior-Rust snapshot. This is not a gate or a qualified runtime change.
 
 **Projection memory toggle:** a [six-process isolated comparison](mlx-projection-memory-toggle-result-v1.md) found no consistent improvement in the immediate B4 block snapshot from reverting fused addmm to separate operations. No runtime change or acceptance inference follows.

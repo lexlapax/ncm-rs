@@ -4,10 +4,15 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Apple stream synchronization diagnostic planned:** isolate the pinned MLX
-  stream synchronization after block evaluation and measure whether it clears
-  the immediate active-memory discrepancy. No runtime or acceptance change.
-  [Plan](docs/results/2026-11-11-phase2-optimization/mlx-stream-sync-memory-plan-v1.md).
+- **Apple synchronization runtime diagnostic planned:** the isolated probe
+  reduced immediate active memory; a separate full-codec candidate will assess
+  added wait cost and parity before any runtime change. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-stream-sync-runtime-plan-v1.md).
+
+- **Apple stream synchronization diagnostic:** explicitly synchronizing the
+  GPU stream after block evaluation reduced immediate B4 active bytes from
+  69,702,948 to 59,970,828 in all three pairs. This is not a runtime change,
+  timing result or gate pass; full-codec cost and float parity remain open.
+  [Result](docs/results/2026-11-11-phase2-optimization/mlx-stream-sync-memory-result-v1.md).
 
 - **Apple Q/K/V memory toggle:** separate slices reduce immediate B4 block
   active bytes by 376,832 consistently, but remain 1.053× the historical
