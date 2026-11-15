@@ -4,12 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Zero-workspace CUDA feasibility planned:** the synchronized live-pool
-  increase matches the current per-backend workspace plus prepared state. A
-  bounded [12-shape diagnostic](docs/results/2026-11-11-phase2-optimization/cuda-zero-workspace-poc-plan-v1.md)
-  compares strict-FP32 fused operations with zero versus 4 MiB workspace;
-  the standalone diagnostic compiles, but has not run. Production code and
-  limits remain unchanged.
+- **CUDA workspace feasibility:** zero workspace and a 2.5 MiB heuristic cap
+  produced mixed isolated timings. Retaining the 4 MiB algorithm preference but
+  supplying 2.5 MiB gave numerically identical outputs and near-parity isolated
+  timing on 12 shapes. The experiment still allocates 4 MiB and is not a gate;
+  safe Rust integration, general fallback and measured live memory remain open.
+  [Results](docs/results/2026-11-11-phase2-optimization/cuda-workspace-followup-result-v1.md),
+  [zero workspace](docs/results/2026-11-11-phase2-optimization/cuda-zero-workspace-poc-result-v1.md).
 
 - **Linux live-pool limit concern:** synchronized retained-root native CUDA
   pool-used snapshots are 1.07039–1.07071× prior Rust in every batch/scope,

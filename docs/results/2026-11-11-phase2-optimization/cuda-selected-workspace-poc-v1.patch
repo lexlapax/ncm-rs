@@ -1,0 +1,31 @@
+--- a/cuda-zero-workspace-poc-v1.cpp
++++ b/cuda-zero-workspace-poc-v1.cpp
+@@ -142,7 +142,9 @@
+     cuda_ok(cudaMemcpy(db.ptr,hb.data(),m*sizeof(float),cudaMemcpyHostToDevice), "copy bias");
+     Layout a(k,m,k), b(k,n,k), c(m,n,m);
+     Descriptor desc(db.ptr);
+-    Candidate zero = select(h,desc,a,b,c,0), four = select(h,desc,a,b,c,4*1024*1024);
++    Candidate zero = select(h,desc,a,b,c,4*1024*1024), four = select(h,desc,a,b,c,4*1024*1024);
++    if (zero.available && zero.heuristic.workspaceSize > 2621440) throw std::runtime_error("selected algorithm exceeds capped buffer");
++    zero.requested = 2621440;
+     if (!four.available) throw std::runtime_error("4 MiB baseline unavailable");
+     Event begin, end;
+     float gpu = 0; double wall = 0;
+@@ -159,7 +161,7 @@
+     }
+     double max_abs = 0; std::size_t differing = 0;
+     if (zero.available) {
+-        launch(h,desc,a,b,c,zero,dw.ptr,dx.ptr,dy.ptr,nullptr,begin,end,gpu,wall);
++        launch(h,desc,a,b,c,zero,dw.ptr,dx.ptr,dy.ptr,workspace.ptr,begin,end,gpu,wall);
+         zero.first_gpu_ms=gpu; zero.first_wall_ms=wall;
+         cuda_ok(cudaMemcpy(candidate.data(),dy.ptr,yn*sizeof(float),cudaMemcpyDeviceToHost), "copy candidate");
+         for (std::size_t i=0;i<yn;++i) {
+@@ -180,7 +182,7 @@
+     std::cout << "{\"batch\":" << batch << ",\"n\":" << n << ",\"input_width\":" << k << ",\"output_width\":" << m
+               << ",\"reference_elements\":9,\"max_reference_abs\":" << max_ref_error
+               << ",\"output_elements\":" << yn << ",\"differing_values\":" << differing << ",\"max_abs_difference\":" << max_abs
+-              << ",\"zero\":"; result(zero); std::cout << ",\"four_mib\":"; result(four); std::cout << '}';
++              << ",\"selected_capped\":"; result(zero); std::cout << ",\"four_mib\":"; result(four); std::cout << '}';
+ }
+ int main() {
+     try {
