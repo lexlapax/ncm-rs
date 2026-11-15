@@ -4,7 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Apple memory diagnostic planned:** an isolated [projection toggle](docs/results/2026-11-11-phase2-optimization/mlx-projection-memory-toggle-plan-v1.md) will compare the current fused operation to the original separate matmul/add composition. No production change, tolerance change or pass is implied.
+- **Apple projection memory toggle deferred:** six isolated processes found
+  no consistent immediate B4 block improvement from replacing fused projection
+  with separate matmul/add; the target median was unchanged. ID/latent hashes
+  matched, but floating outputs and timing were not qualified. No runtime change
+  or gate pass. [Result](docs/results/2026-11-11-phase2-optimization/mlx-projection-memory-toggle-result-v1.md).
 
 - **Bounded CUDA workspace validated:** candidate `f155794` passes Linux
   initial and controlled 78/78 audits, trained quality, and native pool ratios

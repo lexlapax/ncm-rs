@@ -6,6 +6,8 @@
 
 **Latest Apple evidence:** the predeclared [18-process control](apple-gate18-results-v1.md) passes 78/78 and quality after the initial B4 tail failure; a 45-process CPU comparison also passes report validation. Matched live-memory observations reveal an immediate B4 block ratio of 1.058744 and a B4 encode peak ratio of 1.20127 versus prior Rust. Comparable steady-state live memory and the peak difference remain unresolved, so Phase 2 remains incomplete. Prior failed controls remain retained.
 
+**Projection memory toggle:** a [six-process isolated comparison](mlx-projection-memory-toggle-result-v1.md) found no consistent improvement in the immediate B4 block snapshot from reverting fused addmm to separate operations. No runtime change or acceptance inference follows.
+
 **Candidate history:** TinyStories borrowing `5200924` passed the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; its [earlier Apple fixed control](tiny-borrow-apple-gate-v1.md) was 76/78 before the later 18-process control above.
 
 **Previous candidate:** MLX projection-bias `a323b16` has a [76/78 Apple control](mlx-addmm-apple-gate-v1.md); TinyStories RSS/HWM remain open. A [finite current-runtime MLX memory observation](mlx-memory-addmm-v1.md) is retained.
