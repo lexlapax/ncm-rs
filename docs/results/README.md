@@ -2,7 +2,7 @@
 
 The [Phase 3 Sudoku report](2026-11-14-phase3-sudoku/README.md) records the
 completed Linux/CUDA and Apple/MLX full-board quality, latency, throughput and
-memory comparisons; the final publication check remains pending. Entries below
+memory comparisons and final publication check. Entries below
 retain their historical status at capture time.
 
 | Report | Scope | CUDA | MLX | Model quality |

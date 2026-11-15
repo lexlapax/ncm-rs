@@ -1,12 +1,12 @@
 # Phased port and validation plan
 
-The user approved implementation on 2026-11-09. **Phases 0 and 1 are complete;
-Phase 2 is complete with the user-accepted Apple immediate-memory exception after the additional five-step optimization plan approved on 2026-11-11.** The earlier codec/tokenizer remediation passes unchanged correctness
+The user approved implementation on 2026-11-09. **Phases 0–3 are complete;
+Phase 2 has the user-accepted Apple immediate-memory exception after the additional five-step optimization plan approved on 2026-11-11.** The earlier codec/tokenizer remediation passes unchanged correctness
 and all 78 performance/memory comparisons on both platforms; its
 [acceptance](results/2026-11-10-phase2-acceptance/README.md) remains valid historical
 evidence for that historical work. The user authorized Phase 3 and its
 [dual-platform Sudoku comparison](results/2026-11-14-phase3-sudoku/README.md)
-has passed hardware validation; its final publication check remains pending. **Within
+and final publication check have passed. **Within
 every phase, implement and validate Linux/CUDA first, then macOS/MLX.** Complete
 both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
@@ -160,7 +160,7 @@ negative/no-go evidence and verify the retained candidate rather than claiming a
 speedup. Missing evidence or consequential uncertainty blocks closure and must be
 brought to the user. The broader full-model optimization/release remains Phase 5.
 
-## Phase 3 — end-to-end Sudoku vertical slice (hardware gates passed; final check pending)
+## Phase 3 — end-to-end Sudoku vertical slice (complete)
 
 The shared eager generator and explicit-device CLI passed the pinned synthetic
 golden and all three full evaluations on CUDA and then MLX. Both final outputs

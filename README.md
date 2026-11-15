@@ -3,7 +3,7 @@
 A Rust port in progress of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
-**Status: Phase 3 hardware validation passed; final publication check pending.**
+**Status: Phase 3 complete for greedy Sudoku on CUDA and MLX.**
 The earlier Linux/CUDA and Apple Silicon/MLX remediation is accepted. The
 [additional plan](docs/PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
 has since produced controlled **78/78** timing and host-memory audits on
@@ -22,7 +22,7 @@ platform, with unchanged thresholds. CUDA codec latency and Apple loading/memory
 deficits are remediated; original negative results remain published.
 Text tokenizer support does not imply full text-model inference.
 The greedy Sudoku generator and explicit-device CLI have passed the scoped
-hardware checks; a general inference release is not yet claimed. See the
+Phase 3 checks; a general inference release is not yet claimed. See the
 [Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
 Within each phase, Linux/CUDA is validated
 first, then macOS/MLX; both gates are required before advancing.
