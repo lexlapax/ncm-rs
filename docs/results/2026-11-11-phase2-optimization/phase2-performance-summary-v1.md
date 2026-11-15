@@ -1,6 +1,6 @@
 # Controlled Phase 2 performance summary
 
-These tables describe the retained controlled audits, not a new run. The independent [coverage and source binding](phase2-closure-bindings-v1.md) checks all 78 cells per platform. The separate comparable live-memory criterion remains unresolved.
+These tables describe the retained controlled audits, not a new run. The independent [coverage and source binding](phase2-closure-bindings-v1.md) checks all 78 cells per platform. Synchronized [Linux CUDA-pool snapshots](linux-live-pool-review-v1.md) exceed 1.05× prior Rust; the separate live-memory criterion remains unresolved.
 
 Timings are pooled controlled process trials in milliseconds; each cell has 30 trials per process (nine processes per runtime on Linux, 18 on Apple). Rate is calculated from the candidate median: codec batch items/s or tokenizer fixture strings/s. Checked-load rows have no rate. This is not generated-token throughput. Confidence bounds and every original result remain in the linked audit JSON.
 

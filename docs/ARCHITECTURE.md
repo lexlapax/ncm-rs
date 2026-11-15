@@ -6,8 +6,8 @@ validated for that scope; generator, sampling and inference-CLI architecture bel
 remains planned. Crate boundaries do not imply full-model APIs or frozen abstractions.
 Phase 2 is reopened for the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md).
 The retained implementation passes the Linux and Apple controlled timing and
-host-memory audits, while the separate comparable live-memory criterion remains
-open. Experimental fused interpolation is deferred; it is not production code.
+host-memory audits. Synchronized Linux CUDA-pool live snapshots exceed 1.05×
+prior Rust; the separate comparable live-memory criterion remains open. Experimental fused interpolation is deferred; it is not production code.
 
 ## Decision: one model, two runtime adapters
 

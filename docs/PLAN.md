@@ -14,8 +14,9 @@ CUDA project before starting Apple work. GPU feasibility and artifact work prece
 committing to a detailed delivery estimate.
 
 The current expanded candidate has passing Linux and Apple 78-cell controlled
-audits and qualified outputs. The separate comparable live-memory requirement,
-final evidence audit and publication remain open; see the [current completion
+audits and qualified outputs. Linux CUDA-pool live snapshots exceed 1.05× prior Rust; their applicability
+to the separate live-memory requirement, the final evidence audit and
+publication remain open; see the [current completion
 checklist](results/2026-11-11-phase2-optimization/completion-audit.md).
 
 ## Phase 0 — research, structure, and review (complete)

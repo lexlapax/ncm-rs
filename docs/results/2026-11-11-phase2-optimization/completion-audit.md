@@ -1,5 +1,7 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+**Linux live-memory finding:** [synchronized native CUDA pool observations](linux-live-pool-review-v1.md) are 1.07039–1.07071× prior Rust across the retained matrix and control. They exceed 1.05 for that same-allocator scope, with the 4 MiB workspace and prepared state accounting for the observed difference. The host-memory 78-cell audit does not adjudicate it; metric applicability and remediation remain open.
+
 **Latest Apple evidence:** the predeclared [18-process control](apple-gate18-results-v1.md) passes 78/78 and quality after the initial B4 tail failure; a 45-process CPU comparison also passes report validation. Matched live-memory observations reveal an immediate B4 block ratio of 1.058744 and a B4 encode peak ratio of 1.20127 versus prior Rust. Comparable steady-state live memory and the peak difference remain unresolved, so Phase 2 remains incomplete. Prior failed controls remain retained.
 
 **Candidate history:** TinyStories borrowing `5200924` passes the [initial and controlled Linux gates](tiny-borrow-linux-gate-v1.md) 78/78; its [Apple initial gate](tiny-borrow-apple-gate-v1.md) is 78/78 and fixed control is 76/78. Both batch-4 block p95 comparisons remain open.

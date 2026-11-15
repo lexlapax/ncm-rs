@@ -15,8 +15,9 @@ earlier accepted candidate. Phase 2 is reopened for the
 Linux-first/Apple-second gates against current accepted Rust and qualified Python,
 plus CPU/allocation and lifecycle evidence. The retained candidate passes the
 Linux and Apple controlled 78-cell timing and host-memory audits, with trained quality checks; historical failed controls
-remain published. A separate comparable live-memory criterion is still under
-review, so the expanded Phase 2 work is not complete. Default checks cannot
+remain published. Synchronized Linux CUDA-pool live snapshots exceed 1.05×
+prior Rust; their applicability to the separate live-memory criterion remains
+under review, so the expanded Phase 2 work is not complete. Default checks cannot
 substitute for either GPU validation. The remaining model gates below are still
 planned.
 

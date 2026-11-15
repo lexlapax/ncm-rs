@@ -4,6 +4,14 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Linux live-pool limit concern:** synchronized retained-root native CUDA
+  pool-used snapshots are 1.07039–1.07071× prior Rust in every batch/scope,
+  above the separate 1.05 live-memory band if that pool metric is applicable.
+  The 4,219,984-byte increase matches a 4 MiB fused-projection workspace plus
+  25,680 bytes of prepared state; Python allocator counters differ in coverage.
+  The 78-cell host-memory audit still passes but does not decide this issue.
+  [Review](docs/results/2026-11-11-phase2-optimization/linux-live-pool-review-v1.md).
+
 - **Pinned algorithm alignment reviewed:** the supported codec's quantization,
   interpolation, decoder and tokenizer choices are mapped to the pinned Python
   source, including deliberate snapshot/reconstruction differences and FP32

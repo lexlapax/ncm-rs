@@ -9,8 +9,9 @@ The earlier Linux/CUDA and Apple Silicon/MLX remediation is accepted. The
 has since produced controlled **78/78** timing and host-memory audits on
 [Linux](docs/results/2026-11-11-phase2-optimization/tiny-borrow-linux-gate-v1.md)
 and [Apple](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md),
-with quality checks passing and earlier failures retained. The separate
-comparable live-memory criterion and final completion audit remain open.
+with quality checks passing and earlier failures retained. Synchronized Linux
+CUDA-pool live snapshots exceed 1.05× prior Rust; their applicability to the
+separate live-memory criterion and the final completion audit remain open.
 Phase 3 is unstarted.
 The earlier accepted FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT
 tokenizers passed [correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):
