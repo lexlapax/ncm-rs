@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple 18-process control authorized:** user confirmed the Mac is ready;
+  run the fresh matrix and unconditional full control with unchanged criteria.
+  [Plan](docs/results/2026-11-11-phase2-optimization/apple-gate18-plan-v1.md).
+
 - **Same-process unmasked attention deferred:** output comparisons pass but
   B4 block medians are mixed (0.985/0.977/1.007); no runtime change or gate
   pass follows. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-toggle-result-v1.md).
@@ -44,7 +48,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **Apple all-cell sensitivity:** both retained controls' 58 timing cells and
   20 memory cells are checked; post-hoc pooled timing intervals fit the limits,
   but neither failed gate is reclassified. A prospective 3+18-repeat option is
-  documented for review, not authorized; an offline replay verifies 18-process
+  selected by the user; an offline replay verifies 18-process
   summaries and the full audit reject a missing report. [Analysis](docs/results/2026-11-11-phase2-optimization/mlx-all-windows-exploratory-v1.md).
 
 - **Full-codec GELU prototype deferred:** Linux CUDA and full Metal checks and

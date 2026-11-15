@@ -1,0 +1,7 @@
+{
+  "device": "metal",
+  "previous": "reports/phase2-mlx-gate18-matrix-v1/previous",
+  "candidate": "reports/phase2-mlx-gate18-matrix-v1/candidate",
+  "qualification": ".reference/phase2-mlx-gate18-preflight-v1/qualification.json",
+  "lifecycle": "reports/phase2-tiny-borrow-mlx-lifecycle-v1.json"
+}
