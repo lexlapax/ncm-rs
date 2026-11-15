@@ -4,6 +4,10 @@ use ncm_core::{Error, Result, WeightBackend};
 /// Explicit native device selection. CPU is a diagnostic path, never a fallback.
 pub struct CandleBackend {
     device: Device,
+    #[cfg(feature = "cuda-cudnn")]
+    pub(crate) strict_cudnn: bool,
+    #[cfg(feature = "cuda-cudnn")]
+    pub(crate) cudnn_algorithms: crate::cudnn_convolution::AlgorithmCache,
     #[cfg(feature = "cuda")]
     pub(crate) fused: std::sync::Mutex<
         Option<std::sync::Arc<std::sync::Mutex<crate::fused_projection::StrictLt>>>,
@@ -18,6 +22,13 @@ pub struct CandleBackend {
 impl Clone for CandleBackend {
     fn clone(&self) -> Self {
         // Share the native device, not a previous owner's prepared buffers.
+        #[cfg(feature = "cuda-cudnn")]
+        {
+            let mut cloned = Self::from_device(self.device.clone());
+            cloned.strict_cudnn = self.strict_cudnn;
+            cloned
+        }
+        #[cfg(not(feature = "cuda-cudnn"))]
         Self::from_device(self.device.clone())
     }
 }
@@ -25,6 +36,10 @@ impl CandleBackend {
     fn from_device(device: Device) -> Self {
         Self {
             device,
+            #[cfg(feature = "cuda-cudnn")]
+            strict_cudnn: false,
+            #[cfg(feature = "cuda-cudnn")]
+            cudnn_algorithms: Default::default(),
             #[cfg(feature = "cuda")]
             fused: Default::default(),
             resampling: Default::default(),
@@ -78,6 +93,20 @@ impl CandleBackend {
     /// Configure the current process's per-device default CUDA pool. Other CUDA
     /// libraries sharing that pool see this setting; callers must coordinate policy.
     /// Use zero for CUDA's eager-release default. No system-wide setting is changed.
+    /// Explicit strict-FP32 cuDNN convolution selection. Requires native cuDNN;
+    /// loading or allocation failures are returned rather than falling back.
+    #[cfg(feature = "cuda-cudnn")]
+    pub fn cuda_cudnn(ordinal: usize) -> Result<Self> {
+        let mut backend = Self::cuda(ordinal)?;
+        backend.strict_cudnn = true;
+        Ok(backend)
+    }
+    /// Whether the explicitly selected backend uses strict cuDNN convolution.
+    #[cfg(feature = "cuda-cudnn")]
+    pub fn uses_strict_cudnn(&self) -> bool {
+        self.strict_cudnn
+    }
+
     pub fn cuda_with_pool_retention(ordinal: usize, retained_bytes: u64) -> Result<Self> {
         let device = Device::new_cuda(ordinal).map_err(|e| Error::Backend(e.to_string()))?;
         #[cfg(feature = "cuda")]

@@ -1049,6 +1049,7 @@ version = "0.1.0"
 dependencies = [
  "candle-core",
  "candle-nn",
+ "cudarc",
  "ncm-core",
  "ncm-io",
  "ncm-model",

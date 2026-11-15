@@ -13,6 +13,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !(1..=128).contains(&batch) {
         return Err("batch must be in 1..=128".into());
     }
+    #[cfg(feature = "cuda-cudnn")]
+    let backend = CandleBackend::cuda_cudnn(0)?;
+    #[cfg(not(feature = "cuda-cudnn"))]
     let backend = CandleBackend::cuda(0)?;
     let artifact = Artifact::load(&args[1])?;
     let model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
@@ -35,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!(
         "{}",
-        serde_json::json!({"batch":batch,"warmups":5,"trials_seconds":samples,"scope":"generation plus code and final-ID host readback; model loading excluded","rng":"SplitMix64 and inverse CDF, seed 42; not PyTorch's RNG","status":"exploratory"})
+        serde_json::json!({"batch":batch,"warmups":5,"trials_seconds":samples,"scope":"generation plus code and final-ID host readback; model loading excluded","rng":"SplitMix64 and inverse CDF, seed 42; not PyTorch's RNG","status":"exploratory","backend":if cfg!(feature = "cuda-cudnn") { "strict-cudnn" } else { "cuda" }})
     );
     Ok(())
 }

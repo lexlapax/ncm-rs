@@ -12,12 +12,15 @@ publish = false
 default = []
 cpu = ["dep:candle-core"]
 cuda = ["cpu", "candle-core/cuda", "dep:candle-nn"]
+cuda-cudnn = ["cuda", "dep:cudarc"]
+cudnn-probe = ["cuda-cudnn", "candle-core/cudnn"]
 
 [dependencies]
 ncm-core = { path = "../ncm-core" }
 candle-core = { version = "=0.11.1", optional = true, default-features = false }
 # Same pinned runtime for FP32 CUDA norms, softmax and rotary operations.
 candle-nn = { version = "=0.11.1", optional = true, default-features = false, features = ["cuda"] }
+cudarc = { version = "=0.19.10", optional = true, default-features = false, features = ["cudnn", "dynamic-linking", "cuda-version-from-build-system"] }
 
 [dev-dependencies]
 ncm-tokenizers = { path = "../ncm-tokenizers" }
@@ -97,4 +100,28 @@ required-features = ["cuda"]
 
 [[example]]
 name = "tinystories_samples"
+required-features = ["cuda"]
+
+[[example]]
+name = "tinystories_cascade_probe"
+required-features = ["cuda"]
+
+[[example]]
+name = "tinystories_conv_orientation"
+required-features = ["cuda"]
+
+[[example]]
+name = "tinystories_cudnn_exact_probe"
+required-features = ["cudnn-probe"]
+
+[[example]]
+name = "tinystories_cudnn_up_probe"
+required-features = ["cudnn-probe"]
+
+[[example]]
+name = "tinystories_first_logits"
+required-features = ["cuda"]
+
+[[example]]
+name = "tinystories_memory"
 required-features = ["cuda"]

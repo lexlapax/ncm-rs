@@ -21,6 +21,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         artifact.file("tokenizer.json")?,
         artifact.file("tokenizer.LICENSE")?,
     )?;
+    #[cfg(feature = "cuda-cudnn")]
+    let backend = CandleBackend::cuda_cudnn(0)?;
+    #[cfg(not(feature = "cuda-cudnn"))]
     let backend = CandleBackend::cuda(0)?;
     let model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
     drop(artifact);

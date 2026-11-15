@@ -323,6 +323,18 @@ impl CodecBackend for CandleBackend {
             if span.is_none() {
                 candle_core::bail!("convolution output is empty or overflows")
             }
+            #[cfg(feature = "cuda-cudnn")]
+            if self.strict_cudnn {
+                return crate::cudnn_convolution::convolve(
+                    &self.cudnn_algorithms,
+                    x,
+                    weight,
+                    bias,
+                    stride,
+                    padding,
+                    transposed,
+                );
+            }
             let x = x.transpose(1, 2)?.contiguous()?;
             let value = if transposed && self.device().is_cpu() && x.dim(0)? > 1 {
                 // Candle 0.11.1's CPU batched transpose path misindexes the

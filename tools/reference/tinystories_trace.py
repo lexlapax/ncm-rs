@@ -19,6 +19,8 @@ def main():
     parser.add_argument('--upstream', type=Path, required=True)
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--sample', type=Path, help='development samples supplying fixed code rows')
+    parser.add_argument('--count', type=int, default=16)
     args = parser.parse_args()
     if args.output.exists() or args.output.is_symlink():
         raise ValueError('output must not exist')
@@ -52,9 +54,17 @@ def main():
     def save(name, value):
         traces[name] = value.detach().cpu().contiguous().clone()
     levels = list(codec.vq.levels)
-    batch = 2
-    forced = [((torch.arange(batch * length, device='cuda').reshape(batch, length) * 37 + level * 97) % 4096).long()
-              for level, length in enumerate(levels)]
+    if args.sample is None:
+        batch = 2
+        forced = [((torch.arange(batch * length, device='cuda').reshape(batch, length) * 37 + level * 97) % 4096).long()
+                  for level, length in enumerate(levels)]
+    else:
+        rows = json.loads(args.sample.read_bytes())['codes'][:args.count]
+        if not 1 <= len(rows) <= 16 or any(len(row) != sum(levels) or any(type(v) is not int or not 0 <= v < 4096 for v in row) for row in rows):
+            raise ValueError('invalid fixed development codes')
+        batch = len(rows)
+        combined = torch.tensor(rows, dtype=torch.long, device='cuda')
+        forced = list(combined.split(levels, dim=1))
     prefix = torch.zeros((batch, 1), dtype=torch.long, device='cuda')
     # Synthetic codec IDs cover ordinary IDs and special tokens; not natural text quality.
     inputs = (torch.arange(batch * 128, device='cuda').reshape(batch, 128) * 29 % 8192).long()
@@ -91,7 +101,8 @@ def main():
     report = {'upstream': rev, 'sources': {k: v[1] for k, v in INPUTS.items()},
               'torch': torch.__version__, 'cuda_device': torch.cuda.get_device_name(0),
               'tf32': False, 'sdpa': 'math', 'batch': batch,
-              'mode': 'teacher forced synthetic code indices; sampling not evaluated',
+              'mode': 'teacher forced fixed code indices; sampling not evaluated',
+              'sample_sha256': digest_file(args.sample) if args.sample else None,
               'trace_sha256': digest_file(args.output / 'trace.safetensors'),
               'tensors': sorted(traces)}
     with (args.output / 'report.json').open('x') as out:

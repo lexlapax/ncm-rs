@@ -9,6 +9,9 @@ use ncm_model::TinyStoriesTeacher;
 #[ignore = "requires the pinned TinyStories artifact and CUDA hardware"]
 fn cuda_tinystories_seeded_generation_smoke() {
     let root = std::env::var_os("NCM_PHASE4_ARTIFACT").expect("NCM_PHASE4_ARTIFACT required");
+    #[cfg(feature = "cuda-cudnn")]
+    let backend = CandleBackend::cuda_cudnn(0).unwrap();
+    #[cfg(not(feature = "cuda-cudnn"))]
     let backend = CandleBackend::cuda(0).unwrap();
     let artifact = Artifact::load(root).unwrap();
     let model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact).unwrap();
@@ -25,4 +28,14 @@ fn cuda_tinystories_seeded_generation_smoke() {
     assert_eq!(ids, backend.read_indices(&second.ids).unwrap());
     let third = model.sample_seeded(&[0, 0], 2, 43).unwrap();
     assert_ne!(a, backend.read_indices(&third.codes).unwrap());
+    #[cfg(feature = "cuda-cudnn")]
+    std::thread::scope(|scope| {
+        let run = || {
+            let out = model.sample_seeded(&[0], 1, 7).unwrap();
+            backend.read_indices(&out.codes).unwrap()
+        };
+        let first = scope.spawn(run);
+        let second = scope.spawn(run);
+        assert_eq!(first.join().unwrap(), second.join().unwrap());
+    });
 }

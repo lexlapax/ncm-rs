@@ -1,0 +1,48 @@
+//! Real-device ownership and failure checks for the opt-in cuDNN backend.
+#![cfg(feature = "cuda-cudnn")]
+use ncm_backend_cuda::CandleBackend;
+use ncm_core::{CodecBackend, WeightBackend};
+
+#[test]
+fn strict_handle_can_move_and_drop_on_another_host_thread() {
+    let backend = CandleBackend::cuda_cudnn(0).unwrap();
+    assert!(backend.uses_strict_cudnn());
+    assert!(backend.clone().uses_strict_cudnn());
+    let x = backend.upload_f32(&[1.0; 8], &[1, 4, 2]).unwrap();
+    let weight = backend.upload_f32(&[0.0; 12], &[2, 2, 3]).unwrap();
+    let bias = backend.upload_f32(&[1.0, -1.0], &[2]).unwrap();
+    assert!(backend.conv1d(&x, &weight, &bias, 0, 1, false).is_err());
+    let y = backend.conv1d(&x, &weight, &bias, 1, 1, false).unwrap();
+    assert_eq!(
+        backend.read_f32(&y).unwrap(),
+        [1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0]
+    );
+    drop((x, weight, bias, y));
+    std::thread::spawn(move || drop(backend)).join().unwrap();
+}
+
+#[test]
+fn strict_convolution_handles_forward_transpose_and_invalid_geometry() {
+    let backend = CandleBackend::cuda_cudnn(0).unwrap();
+    let bias = backend.upload_f32(&[0.0], &[1]).unwrap();
+    let input = backend.upload_f32(&[1.0, 2.0, 3.0], &[1, 3, 1]).unwrap();
+    let weights = backend.upload_f32(&[1.0, 2.0], &[1, 1, 2]).unwrap();
+    let output = backend
+        .conv1d(&input, &weights, &bias, 1, 0, false)
+        .unwrap();
+    assert_eq!(backend.read_f32(&output).unwrap(), [5.0, 8.0]);
+
+    let input = backend.upload_f32(&[1.0, 2.0], &[1, 2, 1]).unwrap();
+    let weights = backend.upload_f32(&[1.0, 2.0, 3.0], &[1, 1, 3]).unwrap();
+    let output = backend.conv1d(&input, &weights, &bias, 2, 0, true).unwrap();
+    assert_eq!(
+        backend.read_f32(&output).unwrap(),
+        [1.0, 2.0, 5.0, 4.0, 6.0]
+    );
+    assert!(backend.conv1d(&input, &weights, &bias, 1, 3, true).is_err());
+    assert!(
+        backend
+            .conv1d(&input, &weights, &bias, 0, 0, false)
+            .is_err()
+    );
+}

@@ -35,6 +35,10 @@ impl TraceSink<CandleBackend> for Capture<'_> {
             )));
         }
         let mut max: f64 = 0.0;
+        let mut max_normalized: f64 = 0.0;
+        let mut outside = 0usize;
+        let mut accumulated_outside = 0usize;
+        let mut accumulated_max_normalized: f64 = 0.0;
         let mut sum = 0.0;
         for (x, raw) in actual.iter().zip(expected.data().as_chunks::<4>().0) {
             let y = f32::from_le_bytes(*raw);
@@ -43,9 +47,15 @@ impl TraceSink<CandleBackend> for Capture<'_> {
             }
             let diff = f64::from(*x) - f64::from(y);
             max = max.max(diff.abs());
+            let normalized = diff.abs() / (1e-5 + 1e-4 * f64::from(y).abs());
+            max_normalized = max_normalized.max(normalized);
+            outside += usize::from(normalized > 1.0);
+            let accumulated = diff.abs() / (5e-4 + 2e-4 * f64::from(y).abs());
+            accumulated_max_normalized = accumulated_max_normalized.max(accumulated);
+            accumulated_outside += usize::from(accumulated > 1.0);
             sum += diff * diff;
         }
-        let mut stats = serde_json::json!({"elements":actual.len(),"max_abs":max,"rms":(sum / actual.len() as f64).sqrt()});
+        let mut stats = serde_json::json!({"elements":actual.len(),"max_abs":max,"rms":(sum / actual.len() as f64).sqrt(),"operator_starting_band_atol_1e-5_rtol_1e-4_outside":outside,"max_normalized_error":max_normalized,"phase2_accumulated_band_atol_5e-4_rtol_2e-4_outside":accumulated_outside,"phase2_accumulated_max_normalized":accumulated_max_normalized});
         if name.starts_with("generator.level_") && name.ends_with(".logits") {
             let mut changed = 0usize;
             for (a, bytes) in actual
@@ -116,7 +126,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data = std::fs::read(&args[2])?;
     let reference = SafeTensors::deserialize(&data)?;
     let raw = reference.tensor("generator.forced_codes")?;
-    if raw.dtype() != Dtype::I64 || raw.shape() != [2, 641] {
+    let [batch, total] = raw.shape() else {
+        return Err("invalid forced-code rank".into());
+    };
+    let batch = *batch;
+    if raw.dtype() != Dtype::I64 || !(1..=16).contains(&batch) || *total != 641 {
         return Err("invalid forced codes".into());
     }
     let codes: Vec<u32> = raw
@@ -126,6 +140,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .map(|x| u32::try_from(i64::from_le_bytes(*x)))
         .collect::<Result<_, _>>()?;
+    #[cfg(feature = "cuda-cudnn")]
+    let backend = CandleBackend::cuda_cudnn(0)?;
+    #[cfg(not(feature = "cuda-cudnn"))]
     let backend = CandleBackend::cuda(0)?;
     let artifact = Artifact::load(&args[1])?;
     let teacher = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
@@ -134,10 +151,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         reference,
         stats: BTreeMap::new(),
     };
-    teacher.run_traced(&[0, 0], &codes, 2, &mut capture)?;
+    teacher.run_traced(&vec![0; batch], &codes, batch, &mut capture)?;
     drop(teacher);
     let raw = capture.reference.tensor("codec.input_ids")?;
-    if raw.dtype() != Dtype::I64 || raw.shape() != [2, 128] {
+    if raw.dtype() != Dtype::I64 || raw.shape() != [batch, 128] {
         return Err("invalid codec inputs".into());
     }
     let inputs: Vec<u32> = raw
@@ -148,9 +165,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|x| u32::try_from(i64::from_le_bytes(*x)))
         .collect::<Result<_, _>>()?;
     let codec = Codec::from_artifact(capture.backend.clone(), &artifact)?;
-    let encoded = codec.encode_traced(&inputs, 2, &mut capture)?;
+    let encoded = codec.encode_traced(&inputs, batch, &mut capture)?;
     let encoded_ids = capture.backend.read_indices(&encoded.codes)?;
-    let decoded = codec.decode(&encoded_ids, 2)?;
+    let decoded = codec.decode(&encoded_ids, batch)?;
     capture.tensor("codec.logits", &decoded.logits)?;
     println!("{}", serde_json::to_string_pretty(&capture.stats)?);
     Ok(())
