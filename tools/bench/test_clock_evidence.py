@@ -19,7 +19,13 @@ from clock_codec_sequence import CAPTURE_BYTES, REPORT_BYTES, MIN_FREE_BYTES
 
 
 def write(path,raw):
-    path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+    # pathlib applies mode only to the leaf when creating multiple parents.
+    # Build each missing fixture directory privately, regardless of umask.
+    missing=[]; parent=path.parent
+    while not parent.exists():
+        missing.append(parent); parent=parent.parent
+    for directory in reversed(missing):
+        directory.mkdir(mode=0o700)
     path.write_bytes(raw); path.chmod(0o600)
 
 

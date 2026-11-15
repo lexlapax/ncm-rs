@@ -1,9 +1,10 @@
 # Architecture proposal
 
-Status: [Phase 2 codec/tokenizer acceptance passes](results/2026-11-10-phase2-acceptance/README.md)
-on Linux/CUDA then macOS/MLX. The shared codec/backend contract is implemented and
-validated for that scope; generator, sampling and inference-CLI architecture below
-remains planned. Crate boundaries do not imply full-model APIs or frozen abstractions.
+Status: [Phase 3 Sudoku quality and performance](results/2026-11-14-phase3-sudoku/README.md)
+are measured on Linux/CUDA and then macOS/MLX. The shared codec, eager greedy
+generator and explicit-device CLI are implemented for the supported Sudoku profiles;
+general sampling and other full-model profiles remain planned. Crate boundaries do
+not imply frozen abstractions.
 Phase 2 is complete with the user-accepted immediate-memory exception under the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md).
 The current candidate passes the Linux controlled timing and host-memory audit,
 and its rebuilt Apple executables match the earlier passing control. Linux native
@@ -29,8 +30,8 @@ ncm-cli
   └── ncm-backend-cuda ─────> ncm-core + Candle -> CUDA/cuBLAS/custom kernels
 ```
 
-This is the intended full dependency graph; codec/backend/config edges are wired,
-while the generator, sampler and inference CLI remain future work. `ncm-io` and tokenizers may depend on core types;
+This is the intended full dependency graph; codec, Sudoku generator and CLI edges
+are wired, while general sampling and further profiles remain future work. `ncm-io` and tokenizers may depend on core types;
 core never depends on a concrete runtime. A bounded Candle CPU implementation is
 for fixtures and development, **not a third production runtime target**.
 

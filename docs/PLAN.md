@@ -4,9 +4,9 @@ The user approved implementation on 2026-11-09. **Phases 0 and 1 are complete;
 Phase 2 is complete with the user-accepted Apple immediate-memory exception after the additional five-step optimization plan approved on 2026-11-11.** The earlier codec/tokenizer remediation passes unchanged correctness
 and all 78 performance/memory comparisons on both platforms; its
 [acceptance](results/2026-11-10-phase2-acceptance/README.md) remains valid historical
-evidence, not acceptance of the new work. The user requested this revised plan
-be committed/pushed before implementation. Phase 3 is not started and remains
-subject to separate authorization. **Within
+evidence for that historical work. The user authorized Phase 3 and its
+[dual-platform Sudoku comparison](results/2026-11-14-phase3-sudoku/README.md)
+has passed hardware validation; its final publication check remains pending. **Within
 every phase, implement and validate Linux/CUDA first, then macOS/MLX.** Complete
 both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
@@ -160,11 +160,15 @@ negative/no-go evidence and verify the retained candidate rather than claiming a
 speedup. Missing evidence or consequential uncertainty blocks closure and must be
 brought to the user. The broader full-model optimization/release remains Phase 5.
 
-## Phase 3 — end-to-end Sudoku vertical slice
+## Phase 3 — end-to-end Sudoku vertical slice (hardware gates passed; final check pending)
 
-**In progress.** Phase 2 is complete with the documented immediate-memory
-exception. The shared eager generator and explicit-device CLI have initial CUDA
-parity evidence; the full Linux and Apple Phase 3 gates remain pending.
+The shared eager generator and explicit-device CLI passed the pinned synthetic
+golden and all three full evaluations on CUDA and then MLX. Both final outputs
+match Python on 6,000 boards; CUDA has one documented intermediate code near tie,
+while MLX matches all codes. Repeated latency, throughput and memory comparisons,
+the Python MLX qualification and activity limitations are in the
+[Phase 3 report](results/2026-11-14-phase3-sudoku/README.md). Shared-model
+requests are serialized; concurrent-request throughput is not measured.
 
 Implement shared generator, raw prefix path, learned level-zero queries, level
 embeddings/RoPE, untied heads, eager level loop, greedy selection and final codec

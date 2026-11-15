@@ -1,5 +1,10 @@
 # Published comparison index
 
+The [Phase 3 Sudoku report](2026-11-14-phase3-sudoku/README.md) records the
+completed Linux/CUDA and Apple/MLX full-board quality, latency, throughput and
+memory comparisons; the final publication check remains pending. Entries below
+retain their historical status at capture time.
+
 | Report | Scope | CUDA | MLX | Model quality |
 | --- | --- | --- | --- | --- |
 | [2026-11-09: operator capability spike](2026-11-09-cuda-operators/README.md) | 18 synthetic cases; three fresh-process timing runs per runtime | Measured, parity passed; slower composed resampling reported | Pending Linux gate; Mac now available | Not measured |
@@ -9,8 +14,8 @@
 | [2026-11-10: Phase 2 codec oracle](2026-11-10-phase2-oracle/README.md) | 236 tiny / 642 trained codec traces; declared budgets | CUDA reference captured; Rust pending; CPU/CUDA diagnostic failure retained | Phase 2 not started | Reference only |
 | [2026-11-10: Phase 2 Apple runtime gate](2026-11-10-phase2-mlx/README.md) | 642-trace qualified adapted baseline; 30 matched fresh-process codec/tokenizer reports | Linux gate already passed | Measured; parity/output checks pass, high native host RSS retained | Not measured |
 
-**The earlier Phase 2 remediation is accepted; Phase 2 is now reopened for the
-additional five-step optimization plan approved on 2026-11-11.** See the
+**Historical Phase 2 optimization sequence:** the earlier remediation was
+reopened for the additional five-step plan approved on 2026-11-11. See the
 [research and approved plan](../PHASE2-OPTIMIZATION-REVIEW.md), with
 [source retrieval metadata](2026-11-11-phase2-optimization-review/sources.json) and
 [static estimates](2026-11-11-phase2-optimization-review/derived.json). These are
@@ -28,8 +33,8 @@ review and production loading is unchanged.
 [Fixed Linux controls and resources](2026-11-11-phase2-linux-controls/README.md)
 retain all 360 control processes and six open comparisons (72/78); whole-model
 drop/isolation and native retained-output savings are verified. No final new Linux
-or Apple gate is accepted. Phase 3 is unstarted and blocked
-on the expanded gate. Historical results below remain valid:
+or Apple gate had yet been accepted at that checkpoint, and Phase 3 had not
+started. Historical results below remain valid:
 [earlier dual-platform acceptance](2026-11-10-phase2-acceptance/README.md), the
 [extension contract](../PHASE2-PERFORMANCE.md) and [initial research/CPU PoC](2026-11-10-phase2-performance-research/README.md).
 [Production CUDA remediation](2026-11-10-phase2-cuda-remediation/README.md) now

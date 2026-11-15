@@ -3,7 +3,7 @@
 A Rust port in progress of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
-**Status: Phase 2 complete with the user-accepted Apple immediate-memory exception.**
+**Status: Phase 3 hardware validation passed; final publication check pending.**
 The earlier Linux/CUDA and Apple Silicon/MLX remediation is accepted. The
 [additional plan](docs/PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
 has since produced controlled **78/78** timing and host-memory audits on
@@ -11,14 +11,18 @@ has since produced controlled **78/78** timing and host-memory audits on
 and [Apple](docs/results/2026-11-11-phase2-optimization/cuda-bounded-mlx-check-v1.md),
 with quality checks passing and earlier failures retained. The new Linux candidate's
 synchronized native CUDA-pool snapshots are below 1.05× prior Rust. The [final audit](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md) records the accepted immediate B4 snapshot exception (1.058744× prior Rust), and separately discloses a 1.20127× B4 encode MLX active-memory peak; neither is host RSS.
-Phase 3 is in progress; its full Linux and Apple acceptance gates remain pending.
+The [Phase 3 comparison](docs/results/2026-11-14-phase3-sudoku/README.md) records
+all three 2,000-board evaluations and generation latency, throughput and memory
+on both platforms. Metal matched every original Python code and output; CUDA had
+one intermediate near-tie code difference and no final output differences.
 The earlier accepted FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT
 tokenizers passed [correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):
 642 trained traces / 2,500 decisions and 78 performance/memory comparisons on each
 platform, with unchanged thresholds. CUDA codec latency and Apple loading/memory
 deficits are remediated; original negative results remain published.
 Text tokenizer support does not imply full text-model inference.
-The initial greedy Sudoku generator and explicit-device CLI are under validation; no end-to-end acceptance or inference release is claimed. See the
+The greedy Sudoku generator and explicit-device CLI have passed the scoped
+hardware checks; a general inference release is not yet claimed. See the
 [Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
 Within each phase, Linux/CUDA is validated
 first, then macOS/MLX; both gates are required before advancing.
@@ -58,12 +62,12 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 | Path | Responsibility / current scope |
 | --- | --- |
 | `crates/ncm-core` | Validated codec configuration, provisional backend contract, errors |
-| `crates/ncm-model` | Shared FP32 Sudoku codec and blocks; generation/sampling planned |
+| `crates/ncm-model` | Shared FP32 Sudoku codec, blocks and eager greedy generator |
 | `crates/ncm-tokenizers` | Sudoku, pinned HF tokenizers and TinyStories byte BPE |
 | `crates/ncm-io` | Versioned manifests, safetensors, artifact validation |
 | `crates/ncm-backend-cuda` | Candle CUDA codec/operators; CPU fixture path and real-device checks |
 | `crates/ncm-backend-mlx` | Native MLX codec/operators, real-Metal tests and memory probes |
-| `crates/ncm-cli` | Future `ncm` command; currently a status-only executable |
+| `crates/ncm-cli` | Artifact inspection and explicit-device Sudoku reconstruction/generation |
 | `tools/reference` | Pinned operator/model oracles and scoped Sudoku checkpoint exporter |
 | `tests/fixtures` | 18 synthetic FP32 operator cases, Sudoku tokenizer goldens and fixture policy |
 | `tools/bench` | Validated aggregation of raw probe results |
@@ -71,8 +75,20 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 
 Candle is pinned to 0.11.1 behind the backend crate's opt-in `cpu`/`cuda` features.
 Default builds do not require a GPU SDK. MLX is opt-in on Apple Silicon with a
-pinned native runtime. The shared backend contract is validated for the supported
-codec; generator APIs remain future work. The status-only CLI has no runtime features yet.
+pinned native runtime. The shared backend contract supports the qualified Sudoku
+codec and generator; other model profiles and sampling modes remain future work.
+
+The CLI accepts JSON arrays of token-ID rows and requires an explicit device:
+
+```sh
+ncm inspect ARTIFACT
+ncm generate ARTIFACT cuda INPUT_JSON 128
+ncm reconstruct ARTIFACT mlx INPUT_JSON 128
+```
+
+Build with the corresponding `ncm-cli` feature (`cuda` on Linux, `mlx` on Apple
+Silicon). Generation accepts 91-token prefixes; reconstruction accepts 89-token
+boards. The final argument is an optional batch size from 1 to 128.
 
 [First public operator comparison](docs/results/2026-11-09-cuda-operators/README.md):
 correctness passes, but composed resampling is substantially slower than PyTorch.
@@ -108,8 +124,9 @@ Torch installation. A smoke report is not a full three-run benchmark comparison.
 The [Sudoku artifact report](docs/results/2026-11-10-sudoku-artifacts/README.md)
 records byte-exact conversion, CPU/CUDA tensor readback and Python model traces.
 It does not establish Rust model parity. The later Linux and Apple reports close
-Phase 1's capability/baseline gates. Phase 2 now adds qualified codec/tokenizer
-parity and remediation; end-to-end generation quality remains future work. Recheck Mac availability before starting a later phase's hardware runs.
+Phase 1's capability/baseline gates. Phase 2 adds qualified codec/tokenizer
+parity and remediation; Phase 3 adds the scoped end-to-end Sudoku comparison.
+Recheck Mac availability before starting a later phase's hardware runs.
 
 ## Provenance and license
 

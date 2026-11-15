@@ -1,0 +1,393 @@
+{
+  "activity_samples": {
+    "benchmark": 283,
+    "quality": 58
+  },
+  "all_comparison_checks_passed": true,
+  "benchmarks": {
+    "1": {
+      "outputs_sha256_i64le": "f5ac6e6a258752401e7f38502016ded4519196b5ba5671e4d325052b1f0ad3ab",
+      "python": {
+        "boards_per_second_at_median": 12.171900710766593,
+        "median_ms": 82.15643749997525,
+        "mlx_memory": [
+          {
+            "active": 163807488,
+            "cache": 674079164,
+            "peak": 282965268
+          },
+          {
+            "active": 163807488,
+            "cache": 679802084,
+            "peak": 282587412
+          },
+          {
+            "active": 163807488,
+            "cache": 678768804,
+            "peak": 281834768
+          }
+        ],
+        "p95_ms_nearest_rank": 82.49766699987049,
+        "peak_rss_bytes": [
+          423067648,
+          422461440,
+          422576128
+        ],
+        "process_medians_ms": [
+          82.23639649997949,
+          82.12668750002194,
+          82.13849999992817
+        ]
+      },
+      "rust": {
+        "boards_per_second_at_median": 18.467213521486908,
+        "median_ms": 54.150021,
+        "mlx_memory": [
+          {
+            "active": 166839740,
+            "cache": 699605572,
+            "peak": 273745128
+          },
+          {
+            "active": 166839740,
+            "cache": 701048388,
+            "peak": 274512468
+          },
+          {
+            "active": 164430904,
+            "cache": 703768008,
+            "peak": 274423380
+          }
+        ],
+        "p95_ms_nearest_rank": 54.546209,
+        "peak_rss_bytes": [
+          398983168,
+          397918208,
+          398082048
+        ],
+        "process_medians_ms": [
+          54.234145999999996,
+          54.1266875,
+          54.052749999999996
+        ]
+      },
+      "rust_over_python_median": 0.659108679097926
+    },
+    "128": {
+      "outputs_sha256_i64le": "4e434e8361e34f410ca6a78445928f25f5641fe3334c70fd52361de25fbb81ae",
+      "python": {
+        "boards_per_second_at_median": 71.90758919091827,
+        "median_ms": 1780.0624585000833,
+        "mlx_memory": [
+          {
+            "active": 163807488,
+            "cache": 26638230376,
+            "peak": 3051797668
+          },
+          {
+            "active": 163807488,
+            "cache": 26454467432,
+            "peak": 3051797668
+          },
+          {
+            "active": 163807488,
+            "cache": 26452632424,
+            "peak": 3051797668
+          }
+        ],
+        "p95_ms_nearest_rank": 4853.583167000124,
+        "peak_rss_bytes": [
+          420233216,
+          420364288,
+          420429824
+        ],
+        "process_medians_ms": [
+          1769.5677080000678,
+          1782.0214375000205,
+          1912.4245415000587
+        ]
+      },
+      "rust": {
+        "boards_per_second_at_median": 83.00724326911514,
+        "median_ms": 1542.034104,
+        "mlx_memory": [
+          {
+            "active": 162670592,
+            "cache": 23591310904,
+            "peak": 2861799160
+          },
+          {
+            "active": 162670592,
+            "cache": 23591310904,
+            "peak": 2861799160
+          },
+          {
+            "active": 162670592,
+            "cache": 23591310904,
+            "peak": 2861799160
+          }
+        ],
+        "p95_ms_nearest_rank": 1612.399458,
+        "peak_rss_bytes": [
+          400670720,
+          400211968,
+          400769024
+        ],
+        "process_medians_ms": [
+          1550.753583,
+          1540.218229,
+          1524.8222504999999
+        ]
+      },
+      "rust_over_python_median": 0.8662808974126387
+    },
+    "32": {
+      "outputs_sha256_i64le": "2f9d3e66395c7794c21087876a48bddb89a9b36d4c45f13cfcc5e7c813675006",
+      "python": {
+        "boards_per_second_at_median": 64.70279915157397,
+        "median_ms": 494.5690204999664,
+        "mlx_memory": [
+          {
+            "active": 163807488,
+            "cache": 23848802280,
+            "peak": 2334699024
+          },
+          {
+            "active": 163807488,
+            "cache": 23848785896,
+            "peak": 2334699024
+          },
+          {
+            "active": 163807488,
+            "cache": 23846721512,
+            "peak": 2334699024
+          }
+        ],
+        "p95_ms_nearest_rank": 500.9818329999689,
+        "peak_rss_bytes": [
+          423837696,
+          423280640,
+          423903232
+        ],
+        "process_medians_ms": [
+          496.8923545001189,
+          497.00675049996335,
+          492.438646000096
+        ]
+      },
+      "rust": {
+        "boards_per_second_at_median": 80.2521967415005,
+        "median_ms": 398.742979,
+        "mlx_memory": [
+          {
+            "active": 162670592,
+            "cache": 22103443512,
+            "peak": 2293959064
+          },
+          {
+            "active": 167520256,
+            "cache": 22098593848,
+            "peak": 2293959064
+          },
+          {
+            "active": 162670592,
+            "cache": 22103443512,
+            "peak": 2293959064
+          }
+        ],
+        "p95_ms_nearest_rank": 404.688917,
+        "peak_rss_bytes": [
+          400736256,
+          401162240,
+          401866752
+        ],
+        "process_medians_ms": [
+          403.21483300000006,
+          398.237542,
+          397.60816700000004
+        ]
+      },
+      "rust_over_python_median": 0.80624334010429
+    },
+    "4": {
+      "outputs_sha256_i64le": "e1bb4df11d3d11aeb0e5039e4026307efa42f282f5b8b4e5da11307f41c56d5a",
+      "python": {
+        "boards_per_second_at_median": 31.407081413533724,
+        "median_ms": 127.3598125000035,
+        "mlx_memory": [
+          {
+            "active": 163807488,
+            "cache": 3524128728,
+            "peak": 604635172
+          },
+          {
+            "active": 163807488,
+            "cache": 3517682488,
+            "peak": 604632740
+          },
+          {
+            "active": 163807488,
+            "cache": 3524602328,
+            "peak": 604632740
+          }
+        ],
+        "p95_ms_nearest_rank": 127.88845800014315,
+        "peak_rss_bytes": [
+          423428096,
+          424165376,
+          423657472
+        ],
+        "process_medians_ms": [
+          127.36468750006225,
+          127.11368750001384,
+          127.62410400011959
+        ]
+      },
+      "rust": {
+        "boards_per_second_at_median": 42.11012975910131,
+        "median_ms": 94.98902100000001,
+        "mlx_memory": [
+          {
+            "active": 175946076,
+            "cache": 3365811436,
+            "peak": 575487088
+          },
+          {
+            "active": 175947548,
+            "cache": 3365809964,
+            "peak": 575487088
+          },
+          {
+            "active": 175946076,
+            "cache": 3365795056,
+            "peak": 575470704
+          }
+        ],
+        "p95_ms_nearest_rank": 95.995875,
+        "peak_rss_bytes": [
+          398950400,
+          399130624,
+          398950400
+        ],
+        "process_medians_ms": [
+          94.94645899999999,
+          94.782146,
+          95.49737499999999
+        ]
+      },
+      "rust_over_python_median": 0.7458319789847162
+    }
+  },
+  "comparison_checks": {
+    "1": {
+      "median_latency_lower": true,
+      "median_mlx_peak_lower": true,
+      "median_process_peak_rss_lower": true
+    },
+    "128": {
+      "median_latency_lower": true,
+      "median_mlx_peak_lower": true,
+      "median_process_peak_rss_lower": true
+    },
+    "32": {
+      "median_latency_lower": true,
+      "median_mlx_peak_lower": true,
+      "median_process_peak_rss_lower": true
+    },
+    "4": {
+      "median_latency_lower": true,
+      "median_mlx_peak_lower": true,
+      "median_process_peak_rss_lower": true
+    }
+  },
+  "git_head": "82e07ea15b3f45155abe85b5c36c5b573f90eec4",
+  "limitations": [
+    "Activity samples are CPU-only and do not establish GPU idleness.",
+    "RSS covers startup and loading; MLX counters do not establish total physical memory.",
+    "Measurements are from one Apple system; compare actual samples and background activity."
+  ],
+  "quality": {
+    "easy": {
+      "code_mismatched_boards": 0,
+      "id_mismatched_boards": 0,
+      "python": {
+        "boards": 2000,
+        "cell_accuracy": 0.9997407407407407,
+        "clue_preservation_rate": 0.999,
+        "clues_preserved": 1998,
+        "malformed": 0,
+        "solved": 1988,
+        "solved_rate": 0.994,
+        "valid_grids": 1988,
+        "valid_rate": 0.994
+      },
+      "rust": {
+        "boards": 2000,
+        "cell_accuracy": 0.9997407407407407,
+        "clue_preservation_rate": 0.999,
+        "clues_preserved": 1998,
+        "malformed": 0,
+        "solved": 1988,
+        "solved_rate": 0.994,
+        "valid_grids": 1988,
+        "valid_rate": 0.994
+      }
+    },
+    "hard": {
+      "code_mismatched_boards": 0,
+      "id_mismatched_boards": 0,
+      "python": {
+        "boards": 2000,
+        "cell_accuracy": 0.9835246913580247,
+        "clue_preservation_rate": 0.9985,
+        "clues_preserved": 1997,
+        "malformed": 1,
+        "solved": 1726,
+        "solved_rate": 0.863,
+        "valid_grids": 1726,
+        "valid_rate": 0.863
+      },
+      "rust": {
+        "boards": 2000,
+        "cell_accuracy": 0.9835246913580247,
+        "clue_preservation_rate": 0.9985,
+        "clues_preserved": 1997,
+        "malformed": 1,
+        "solved": 1726,
+        "solved_rate": 0.863,
+        "valid_grids": 1726,
+        "valid_rate": 0.863
+      }
+    },
+    "medium": {
+      "code_mismatched_boards": 0,
+      "id_mismatched_boards": 0,
+      "python": {
+        "boards": 2000,
+        "cell_accuracy": 0.9979382716049382,
+        "clue_preservation_rate": 0.9965,
+        "clues_preserved": 1993,
+        "malformed": 1,
+        "solved": 1928,
+        "solved_rate": 0.964,
+        "valid_grids": 1928,
+        "valid_rate": 0.964
+      },
+      "rust": {
+        "boards": 2000,
+        "cell_accuracy": 0.9979382716049382,
+        "clue_preservation_rate": 0.9965,
+        "clues_preserved": 1993,
+        "malformed": 1,
+        "solved": 1928,
+        "solved_rate": 0.964,
+        "valid_grids": 1928,
+        "valid_rate": 0.964
+      }
+    }
+  },
+  "tracked_sources_checked": {
+    "benchmark": 87,
+    "quality": 84
+  }
+}
