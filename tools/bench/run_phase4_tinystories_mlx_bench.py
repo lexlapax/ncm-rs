@@ -26,7 +26,16 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--rust-lifecycle-policy', action='store_true',
                         help='include output cleanup/barrier; use a process-local 512 MiB cache at batches 1 and 4')
+    parser.add_argument('--batches', type=int, nargs='+', choices=BATCHES, default=BATCHES,
+                        help='batches to measure; default is all four')
+    parser.add_argument('--rust-large-cache-mib', type=int,
+                        help='explicit Rust process cache limit for batch 32 and 128')
     args = parser.parse_args()
+    if len(set(args.batches)) != len(args.batches):
+        parser.error('batches must be unique')
+    if args.rust_large_cache_mib is not None and (not args.rust_lifecycle_policy
+                                                  or not 1 <= args.rust_large_cache_mib <= 16384):
+        parser.error('large cache limit requires lifecycle policy and must be 1..=16384 MiB')
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise SystemExit('Apple Silicon required')
     if any(os.environ.get(k) for k in ('DYLD_INSERT_LIBRARIES', 'MallocStackLogging', 'MallocStackLoggingNoCompact')):
@@ -71,11 +80,13 @@ def main():
                 'git_status': subprocess.check_output(['git', 'status', '--short'], cwd=ROOT, text=True),
                 'watched_sha256': before, 'qualification_sha256': args.qualification_sha256,
                 'platform': platform.platform(), 'python_packages': packages,
-                'warmups': 5, 'trials': 30, 'repetitions': 3, 'batches': BATCHES,
+                'warmups': 5, 'trials': 30, 'repetitions': 3, 'batches': args.batches,
                 'scope': 'generation plus synchronized code/ID host readback; excludes load',
                 'sampling': 'different Rust SplitMix64 and Python MLX random streams',
                 'rust_policy': ('drop unused logits and evaluate GPU barrier within timing; '
-                                'process-local 512 MiB cache for batch 1/4, default cache for batch 32/128'
+                                'process-local 512 MiB cache for batch 1/4; batch 32/128: ' +
+                                (f'{args.rust_large_cache_mib} MiB' if args.rust_large_cache_mib is not None
+                                 else 'default cache')
                                 if args.rust_lifecycle_policy else 'default cache and output lifetime'),
                 'limitations': ['CPU activity sampled every two seconds; GPU activity is not measured.',
                                 'No exclusive reservation, CPU affinity or GPU clock/power changes.',
@@ -86,7 +97,7 @@ def main():
     thread = threading.Thread(target=monitor, args=(stop, out / 'activity.jsonl', errors))
     thread.start()
     try:
-        for j, batch in enumerate(BATCHES):
+        for j, batch in enumerate(args.batches):
             for rep in range(3):
                 for runtime in (('rust', 'python') if (j + rep) % 2 == 0 else ('python', 'rust')):
                     stem = f'{runtime}-b{batch}-r{rep}'
@@ -94,7 +105,9 @@ def main():
                     if runtime == 'rust':
                         command = [str(binary), str(ARTIFACT), str(batch)]
                         if args.rust_lifecycle_policy:
-                            command.append('512' if batch in (1, 4) else 'default')
+                            command.append('512' if batch in (1, 4) else
+                                           str(args.rust_large_cache_mib) if args.rust_large_cache_mib is not None
+                                           else 'default')
                     else:
                         command = [str(PYTHON), str(ROOT / 'tools/reference/phase4_tinystories_mlx.py'),
                                    '--artifact', str(ARTIFACT), '--batch', str(batch), '--bench', '--output', str(report)]
@@ -110,7 +123,7 @@ def main():
                         raise ValueError(f'incomplete measurement: {stem}')
                     print(stem, 'complete', flush=True)
         summary = {}
-        for batch in BATCHES:
+        for batch in args.batches:
             pair = {}
             for runtime in ('rust', 'python'):
                 reports = [json.loads((out / f'{runtime}-b{batch}-r{i}.json').read_bytes()) for i in range(3)]
