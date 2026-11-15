@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple live-memory comparability unresolved:** retained B4 post-block active
+  snapshots reach 1.058744× prior Rust and 1.162296× Python, beyond the 1.05
+  live-memory band if comparable. Object liveness/cleanup are not established;
+  this is neither a gate pass nor failure. [Review](docs/results/2026-11-11-phase2-optimization/mlx-active-snapshot-review-v1.md).
+
 - **Apple 18-process control authorized:** user confirmed the Mac is ready;
   run the fresh matrix and unconditional full control with unchanged criteria.
   A separate post-pass [CPU/resource comparison](docs/results/2026-11-11-phase2-optimization/apple-resources-plan-v1.md) is prepared.
