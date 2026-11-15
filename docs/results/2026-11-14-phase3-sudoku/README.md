@@ -23,6 +23,11 @@ The later candidate, including shared-generator request serialization, was measu
 | 32 | 419.45 / 447.28 | 598 / 1,760 | 676 / 1,470 |
 | 128 | 1,644.83 / 1,744.12 | 597 / 1,725 | 1,700 / 5,096 |
 
+At those median latencies, throughput in boards per second is Rust / Python:
+38.88 / 29.50 (batch 1), 63.26 / 58.79 (batch 4), 76.29 / 71.54 (batch 32),
+and 77.82 / 73.39 (batch 128). These are batch size divided by the median
+latency, not a separate concurrent-throughput measurement.
+
 The CUDA default-pool and PyTorch allocator peaks in the raw summary have different scope and reset points and are not directly comparable. Whole-process RSS includes startup and loading; latency includes generation and code/ID readback but excludes loading. Desktop GPU processes were present, and the 481 activity samples are retained locally under `reports/phase3-linux-final-timings-v1/`; this is a single-machine result, not an idle-machine guarantee. The exact measured files are preserved locally under `.reference/phase3-final-timings-source/`; `python3 tools/bench/phase3_bench_summary.py reports/phase3-linux-final-timings-v1 --source-root .reference/phase3-final-timings-source` reproduces the summary.
 
 The later [source-bound full-quality run](linux-qualified-quality-v1.json) repeated all 6,000 boards at commit `cb0162c`: every final ID matched Python, and the same single medium code near tie remained. All watched source, checkpoint and dataset hashes were unchanged across the six runs. The CLI SHA-256 was `52e696598b4f882d34ab0be18b120e9131860530c7f828ccb2dbb058f935353b`; the local manifest SHA-256 is `3fa4abca7c28c92085c3a3ac57656f4283433499187d4f5a58545ff4bb1ba82f`. Raw results and exact commands remain under `reports/phase3-linux-qualified-v1/`; run `python3 tools/bench/run_phase3_linux_quality.py --output NEW_DIRECTORY` to repeat with the specified local assets. Apple validation remains pending.

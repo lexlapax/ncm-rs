@@ -163,7 +163,11 @@ def main():
                 reports = [json.loads((out / f'{runtime}-b{batch}-r{i}.json').read_bytes()) for i in range(3)]
                 metas = [json.loads((out / f'{runtime}-b{batch}-r{i}.meta.json').read_bytes()) for i in range(3)]
                 hashes.update(report['outputs_sha256_i64le'] for report in reports)
-                values[runtime] = {'median_ms': statistics.median(x for report in reports for x in report['trials']) * 1000,
+                samples = sorted(x for report in reports for x in report['trials'])
+                median = statistics.median(samples)
+                values[runtime] = {'median_ms': median * 1000,
+                                   'p95_ms_nearest_rank': samples[math.ceil(.95 * len(samples)) - 1] * 1000,
+                                   'boards_per_second_at_median': batch / median,
                                    'process_medians_ms': [statistics.median(r['trials']) * 1000 for r in reports],
                                    'peak_rss_bytes': [m['child_peak_rss_platform_units'] for m in metas],
                                    'mlx_memory': [r.get('mlx_memory', {'peak': r.get('mlx_peak_bytes'),
