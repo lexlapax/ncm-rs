@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Same-process GELU diagnostic prepared:** an isolated toggle alternates the
+  prior eager/compiled expressions on the same model to assess process drift;
+  production is unchanged. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-toggle-plan-v1.md).
+
 - **GELU scalar reuse deferred:** finite outputs matched bitwise, but three
   isolated Metal processes showed no consistent material speedup; no backend
   state or runtime change was added. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-scalars-result-v1.md).
