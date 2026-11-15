@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **GELU lifetime diagnostic prepared:** compare eager and experimental compiled
+  modes across three backend/model drops and 48 requests each, including first-use
+  and memory snapshots. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-lifetime-plan-v1.md).
+
 - **Shape-independent GELU diagnostic:** Metal shape/view/special-value
   regression passes; all nine resident-block medians improve. One first compiled
   reconstruction took 261 ms. Cache errors, startup/lifetime and acceptance
