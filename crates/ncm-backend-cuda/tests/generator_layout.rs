@@ -146,3 +146,52 @@ fn cuda_specialized_layout_accepts_strided_input() {
         }
     }
 }
+
+#[cfg(feature = "cuda")]
+#[test]
+fn cuda_twelve_head_layout_exact() {
+    let backend = CandleBackend::cuda(0).unwrap();
+    for (batch, seq) in [(1, 1), (2, 9), (4, 129), (32, 65)] {
+        let values: Vec<f32> = (0..batch * seq * 3 * 12 * 64)
+            .map(|i| (i % 10007) as f32)
+            .collect();
+        let x = backend
+            .upload_f32(&values, &[batch, seq, 3 * 12 * 64])
+            .unwrap();
+        let packed = backend.pack_qkv(&x, batch, seq, 12, 64).unwrap();
+        let actual = backend.read_f32(&packed).unwrap();
+        for q in 0..3 {
+            for b in 0..batch {
+                for h in 0..12 {
+                    for t in 0..seq {
+                        for d in 0..64 {
+                            let source = ((b * seq + t) * 36 + q * 12 + h) * 64 + d;
+                            let output = (((q * batch + b) * 12 + h) * seq + t) * 64 + d;
+                            assert_eq!(actual[output], values[source]);
+                        }
+                    }
+                }
+            }
+        }
+        let q = backend
+            .reshape(
+                &backend.narrow(&packed, 0, 0, 1).unwrap(),
+                &[batch, 12, seq, 64],
+            )
+            .unwrap();
+        let merged = backend.merge_heads(&q, batch, seq, 12, 64).unwrap();
+        let actual = backend.read_f32(&merged).unwrap();
+        for b in 0..batch {
+            for t in 0..seq {
+                for h in 0..12 {
+                    for d in 0..64 {
+                        assert_eq!(
+                            actual[((b * seq + t) * 12 + h) * 64 + d],
+                            values[((b * seq + t) * 36 + h) * 64 + d]
+                        );
+                    }
+                }
+            }
+        }
+    }
+}

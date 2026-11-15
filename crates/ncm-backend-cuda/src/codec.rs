@@ -360,6 +360,20 @@ impl CodecBackend for CandleBackend {
 }
 
 impl ncm_core::GeneratorBackend for CandleBackend {
+    fn categorical_4096(&self, logits: &Tensor, uniforms: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        {
+            crate::categorical::categorical_from_uniforms(self, logits, uniforms)
+                .map_err(|e| Error::Backend(e.to_string()))
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            let _ = (logits, uniforms);
+            Err(Error::Backend(
+                "native categorical sampling is unsupported".into(),
+            ))
+        }
+    }
     fn pack_qkv(
         &self,
         x: &Tensor,
@@ -377,17 +391,18 @@ impl ncm_core::GeneratorBackend for CandleBackend {
         }
         #[cfg(feature = "cuda")]
         if self.device().is_cuda()
-            && heads == 8
+            && matches!(heads, 8 | 12)
             && head == 64
             && batch <= 128
             && seq <= 768
             && self.supports_generator_layout_kernel()?
         {
-            let function = self.generator_layout_function(0)?;
+            let function = self.generator_layout_function(if heads == 8 { 0 } else { 2 })?;
             return op!(self, [x], {
                 x.contiguous()?
                     .apply_op1_no_bwd(&crate::generator_layout::LayoutCopy {
                         kind: crate::generator_layout::LayoutKind::Pack,
+                        heads,
                         function,
                     })
             });
@@ -419,18 +434,19 @@ impl ncm_core::GeneratorBackend for CandleBackend {
         }
         #[cfg(feature = "cuda")]
         if self.device().is_cuda()
-            && heads == 8
+            && matches!(heads, 8 | 12)
             && head == 64
             && batch <= 128
             && seq <= 768
             && batch.checked_mul(seq).is_some_and(|n| n <= 65535)
             && self.supports_generator_layout_kernel()?
         {
-            let function = self.generator_layout_function(1)?;
+            let function = self.generator_layout_function(if heads == 8 { 1 } else { 3 })?;
             return op!(self, [x], {
                 x.contiguous()?
                     .apply_op1_no_bwd(&crate::generator_layout::LayoutCopy {
                         kind: crate::generator_layout::LayoutKind::Merge,
+                        heads,
                         function,
                     })
             });

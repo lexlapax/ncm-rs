@@ -122,6 +122,19 @@ pub trait CodecBackend: WeightBackend {
 /// Additional operations needed by the eager generator. Implementations retain
 /// the same FP32, device and immutable-value guarantees as `CodecBackend`.
 pub trait GeneratorBackend: CodecBackend {
+    /// Experimental 4096-way categorical draw with one supplied random word
+    /// per row. Each full 32-bit word represents a uniform in [0,1). Invalid rows must
+    /// return u32::MAX, which the caller must reject before returning results.
+    /// Backends without a native implementation fail explicitly.
+    fn categorical_4096(
+        &self,
+        _logits: &Self::Tensor,
+        _uniforms: &Self::Indices,
+    ) -> Result<Self::Indices> {
+        Err(Error::Backend(
+            "native categorical sampling is unsupported".into(),
+        ))
+    }
     /// Copy B×S×(3HD) projected Q/K/V to contiguous 3×B×H×S×D.
     fn pack_qkv(
         &self,

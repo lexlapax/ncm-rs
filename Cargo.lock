@@ -1052,6 +1052,7 @@ dependencies = [
  "ncm-core",
  "ncm-io",
  "ncm-model",
+ "ncm-tokenizers",
  "safetensors",
  "serde",
  "serde_json",

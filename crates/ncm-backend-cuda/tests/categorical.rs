@@ -1,0 +1,61 @@
+//! Controlled, same-draw validation of the experimental CUDA categorical kernel.
+#![cfg(feature = "cuda")]
+use ncm_backend_cuda::{CandleBackend, categorical::categorical_from_uniforms};
+use ncm_core::{CodecBackend, WeightBackend};
+
+#[test]
+fn categorical_uniforms_and_invalid_rows() {
+    let backend = CandleBackend::cuda(0).unwrap();
+    let draws = [
+        0, 0x10000000, 0x7fffffff, 0xffffffff, 0x40000000, 0x80000000, 0x20000000,
+    ];
+    let mut scores = vec![0.0f32; draws.len() * 4096];
+    scores[4 * 4096..5 * 4096].fill(f32::NEG_INFINITY);
+    scores[4 * 4096 + 237] = 0.0;
+    scores[5 * 4096..6 * 4096].fill(f32::NEG_INFINITY);
+    scores[6 * 4096 + 1] = f32::NAN;
+    let x = backend
+        .upload_f32(&scores, &[1, draws.len(), 4096])
+        .unwrap();
+    let u = backend.upload_indices(&draws, &[1, draws.len()]).unwrap();
+    let result = backend
+        .read_indices(&categorical_from_uniforms(&backend, &x, &u).unwrap())
+        .unwrap();
+    assert_eq!(result, [0, 256, 2047, 4095, 237, u32::MAX, u32::MAX]);
+    let wrong = backend.upload_indices(&[0], &[1, 1]).unwrap();
+    assert!(categorical_from_uniforms(&backend, &x, &wrong).is_err());
+}
+
+#[test]
+fn categorical_matches_reference_cdf_for_controlled_nonuniform_rows() {
+    let backend = CandleBackend::cuda(0).unwrap();
+    let mut scores = Vec::new();
+    let mut uniforms = Vec::new();
+    let mut expected = Vec::new();
+    for row in 0..64u32 {
+        let row_scores: Vec<f32> = (0..4096u32)
+            .map(|i| -(((i * 43 + row * 31) % 127) as f32) * 0.03125)
+            .collect();
+        let weights: Vec<f64> = row_scores.iter().map(|&v| f64::from(v).exp()).collect();
+        let total: f64 = weights.iter().sum();
+        let random = row.wrapping_mul(2_654_435_761).wrapping_add(1_234_567);
+        let threshold = f64::from(random) / 4_294_967_296.0 * total;
+        let mut sum = 0.0;
+        let selected = weights
+            .iter()
+            .position(|weight| {
+                sum += weight;
+                threshold < sum
+            })
+            .unwrap();
+        scores.extend(row_scores);
+        uniforms.push(random);
+        expected.push(selected as u32);
+    }
+    let x = backend.upload_f32(&scores, &[1, 64, 4096]).unwrap();
+    let u = backend.upload_indices(&uniforms, &[1, 64]).unwrap();
+    let actual = backend
+        .read_indices(&categorical_from_uniforms(&backend, &x, &u).unwrap())
+        .unwrap();
+    assert_eq!(actual, expected);
+}

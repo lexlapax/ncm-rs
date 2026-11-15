@@ -6,6 +6,8 @@
 #[cfg(all(feature = "cuda", not(target_os = "linux")))]
 compile_error!("The ncm CUDA runtime currently supports Linux only");
 
+#[cfg(feature = "cuda")]
+pub mod categorical;
 #[cfg(feature = "cpu")]
 mod codec;
 #[cfg(feature = "cuda")]

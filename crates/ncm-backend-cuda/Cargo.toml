@@ -20,6 +20,7 @@ candle-core = { version = "=0.11.1", optional = true, default-features = false }
 candle-nn = { version = "=0.11.1", optional = true, default-features = false, features = ["cuda"] }
 
 [dev-dependencies]
+ncm-tokenizers = { path = "../ncm-tokenizers" }
 safetensors = "=0.8.0"
 ncm-model = { path = "../ncm-model" }
 ncm-io = { path = "../ncm-io" }
@@ -88,4 +89,12 @@ required-features = ["cuda"]
 
 [[example]]
 name = "tinystories_teacher_probe"
+required-features = ["cuda"]
+
+[[example]]
+name = "tinystories_sample_bench"
+required-features = ["cuda"]
+
+[[example]]
+name = "tinystories_samples"
 required-features = ["cuda"]

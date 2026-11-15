@@ -1,4 +1,4 @@
-//! Exact, bounded CUDA layout copies for the profiled 8-head × 64-wide generator.
+//! Exact, bounded CUDA layout copies for 8- and 12-head × 64-wide generators.
 use candle_core::cuda_backend::{
     CudaStorageSlice,
     cudarc::driver::{LaunchConfig, PushKernelArg},
@@ -13,6 +13,7 @@ pub(crate) enum LayoutKind {
 }
 pub(crate) struct LayoutCopy {
     pub(crate) kind: LayoutKind,
+    pub(crate) heads: usize,
     pub(crate) function: candle_core::cuda_backend::cudarc::driver::CudaFunction,
 }
 impl CustomOp1 for LayoutCopy {
@@ -27,38 +28,52 @@ impl CustomOp1 for LayoutCopy {
     }
     #[allow(unsafe_code)]
     fn cuda_fwd(&self, storage: &CudaStorage, layout: &Layout) -> Result<(CudaStorage, Shape)> {
+        if !matches!(self.heads, 8 | 12) {
+            candle_core::bail!("unsupported layout head count")
+        }
         let (batch, seq, count, shape, grid) = match self.kind {
             LayoutKind::Pack => {
                 let [b, s, width] = layout.dims() else {
                     candle_core::bail!("invalid QKV rank")
                 };
-                if *width != 1536 || !(1..=128).contains(b) || !(1..=768).contains(s) {
+                if *width != 3 * self.heads * 64 || !(1..=128).contains(b) || !(1..=768).contains(s)
+                {
                     candle_core::bail!("invalid QKV dimensions")
                 }
                 let count = b
                     .checked_mul(*s)
-                    .and_then(|n| n.checked_mul(1536))
+                    .and_then(|n| n.checked_mul(*width))
                     .ok_or_else(|| candle_core::Error::Msg("QKV size overflow".into()))?;
                 (
                     *b,
                     *s,
                     count,
-                    vec![3, *b, 8, *s, 64],
-                    ((s * 64).div_ceil(256), b * 24),
+                    vec![3, *b, self.heads, *s, 64],
+                    ((s * 64).div_ceil(256), b * 3 * self.heads),
                 )
             }
             LayoutKind::Merge => {
                 let [b, heads, s, width] = layout.dims() else {
                     candle_core::bail!("invalid attention rank")
                 };
-                if *heads != 8 || *width != 64 || !(1..=128).contains(b) || !(1..=768).contains(s) {
+                if *heads != self.heads
+                    || *width != 64
+                    || !(1..=128).contains(b)
+                    || !(1..=768).contains(s)
+                {
                     candle_core::bail!("invalid attention dimensions")
                 }
                 let count = b
                     .checked_mul(*s)
-                    .and_then(|n| n.checked_mul(512))
+                    .and_then(|n| n.checked_mul(self.heads * 64))
                     .ok_or_else(|| candle_core::Error::Msg("attention size overflow".into()))?;
-                (*b, *s, count, vec![*b, *s, 512], (2, b * s))
+                (
+                    *b,
+                    *s,
+                    count,
+                    vec![*b, *s, self.heads * 64],
+                    ((self.heads * 64).div_ceil(256), b * s),
+                )
             }
         };
         if !(1..=128).contains(&batch) || !(1..=768).contains(&seq) || grid.1 > 65535 {

@@ -13,7 +13,7 @@ pub struct CandleBackend {
     layout_kernel_supported: std::sync::OnceLock<bool>,
     #[cfg(feature = "cuda")]
     layout_functions:
-        std::sync::Mutex<Option<[candle_core::cuda_backend::cudarc::driver::CudaFunction; 2]>>,
+        std::sync::Mutex<Option<[candle_core::cuda_backend::cudarc::driver::CudaFunction; 4]>>,
 }
 impl Clone for CandleBackend {
     fn clone(&self) -> Self {
@@ -58,7 +58,12 @@ impl CandleBackend {
                     .map(|f| f.into_cuda_function())
                     .map_err(|e| Error::Backend(e.to_string()))
             };
-            *functions = Some([load("ncm_pack_qkv_8x64")?, load("ncm_merge_heads_8x64")?]);
+            *functions = Some([
+                load("ncm_pack_qkv_8x64")?,
+                load("ncm_merge_heads_8x64")?,
+                load("ncm_pack_qkv_12x64")?,
+                load("ncm_merge_heads_12x64")?,
+            ]);
         }
         Ok(functions.as_ref().expect("initialized layout functions")[index].clone())
     }

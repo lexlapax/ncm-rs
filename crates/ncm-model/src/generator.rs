@@ -672,6 +672,119 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
         &self.initial_distribution
     }
 
+    /// Experimental TinyStories generation at temperature 1, top-k 0, top-p 1
+    /// and CFG 0. SplitMix64 supplies independent controlled draws; its seed
+    /// and the inverse-CDF sampler are not PyTorch's random-number stream.
+    /// Prefix padding and other generation settings are explicitly unsupported.
+    pub fn sample_seeded(&self, prefix: &[u32], batch: usize, seed: u64) -> Result<Generated<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        if !(1..=128).contains(&batch)
+            || prefix.len() != batch
+            || prefix.iter().any(|&p| p >= 8192 || p == 1)
+        {
+            return Err(Error::Input("invalid TinyStories prefix or batch".into()));
+        }
+        let b = &self.backend;
+        let levels = self.codec.config().levels();
+        let mut random = SplitMix64(seed);
+        let sum: f64 = self
+            .initial_distribution
+            .iter()
+            .map(|&x| f64::from(x))
+            .sum();
+        let mut initial = Vec::with_capacity(batch);
+        for _ in 0..batch {
+            let threshold = ((random.next() >> 11) as f64 / 9007199254740992.0) * sum;
+            let mut cumulative = 0.0f64;
+            let selected = self
+                .initial_distribution
+                .iter()
+                .position(|&p| {
+                    cumulative += f64::from(p);
+                    threshold < cumulative
+                })
+                .ok_or_else(|| Error::Weights("invalid initial distribution".into()))?;
+            initial.push(selected as u32);
+        }
+        let prefix_ids = b.upload_indices(prefix, &[batch, 1])?;
+        let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
+        let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
+        let mut selected = b.upload_indices(&initial, &[batch, 1])?;
+        let mut codes = vec![selected.clone()];
+        let mut cumulative: Option<B::Tensor> = None;
+        for level in 0..levels.len() - 1 {
+            let book = self
+                .codec
+                .weight(&format!("vq.embeddings.{level}.weight"))?;
+            let embedding = b.embedding(book, &selected)?;
+            let up = self.codec.upsample(&embedding, level)?;
+            let contribution = self.codec.refine(&up, level)?;
+            let sum = match cumulative {
+                Some(ref old) => b.add(old, &contribution)?,
+                None => contribution,
+            };
+            let length = levels[level + 1];
+            let latent = b.area1d(&sum, length)?;
+            let target = b.project_bias(&latent, &self.input.weight, &self.input.bias)?;
+            let target = b.add(&target, &b.narrow(&self.level_embedding, 0, level, 1)?)?;
+            let hidden = decode_transformer(
+                b,
+                &self.blocks,
+                &self.final_norm,
+                &self.geometry[level],
+                &prefix,
+                &target,
+                1,
+                12,
+                768,
+                length,
+            )?;
+            let head = &self.heads[level];
+            let z = b.project(&hidden, &head.projection)?;
+            let book = self
+                .codec
+                .weight(&format!("vq.embeddings.{}.weight", level + 1))?;
+            let score = b.sub(&b.scale(&b.project(&z, book)?, 2.0)?, &head.squared_norm)?;
+            let score = b.scale(&score, 1.0 / f64::from(head.mean_squared_norm))?;
+            let logits = b.scale(&score, f64::from(head.inverse_temperature))?;
+            let words: Vec<u32> = (0..batch * length)
+                .map(|_| (random.next() >> 32) as u32)
+                .collect();
+            let words = b.upload_indices(&words, &[batch, length])?;
+            selected = b.categorical_4096(&logits, &words)?;
+            codes.push(selected.clone());
+            cumulative = Some(sum);
+        }
+        let codes = b.concat_indices(&codes, 1)?;
+        // The native sampler marks invalid logits with u32::MAX. Candle treats
+        // that value specially in embedding, so validate before returning any
+        // result rather than allowing it to masquerade as an ordinary token.
+        if b.read_indices(&codes)?.iter().any(|&v| v >= 4096) {
+            return Err(Error::Backend(
+                "categorical sampling encountered invalid logits".into(),
+            ));
+        }
+        let last = levels.len() - 1;
+        let embedding = b.embedding(
+            self.codec.weight(&format!("vq.embeddings.{last}.weight"))?,
+            &selected,
+        )?;
+        let contribution = self
+            .codec
+            .refine(&self.codec.upsample(&embedding, last)?, last)?;
+        let latent = b.add(
+            cumulative.as_ref().expect("validated levels"),
+            &contribution,
+        )?;
+        let (logits, ids) = self
+            .codec
+            .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
+        Ok(Generated { codes, logits, ids })
+    }
+
     /// Run fixed codes through each transformer level and trace logits. Prefix
     /// padding is rejected until the upstream additive padding mask is supported.
     pub fn run_traced(
@@ -754,6 +867,18 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
         trace.tensor("generator.final_logits", &logits)?;
         trace.indices("generator.output_ids", &ids)?;
         Ok(Generated { codes, logits, ids })
+    }
+}
+
+// Explicit portable request-local RNG, not a claim of PyTorch seed equivalence.
+struct SplitMix64(u64);
+impl SplitMix64 {
+    fn next(&mut self) -> u64 {
+        self.0 = self.0.wrapping_add(0x9e3779b97f4a7c15);
+        let mut z = self.0;
+        z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+        z ^ (z >> 31)
     }
 }
 
