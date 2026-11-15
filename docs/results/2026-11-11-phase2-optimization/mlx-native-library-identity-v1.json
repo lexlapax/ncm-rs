@@ -1,0 +1,15 @@
+{
+  "scope": "read-only live Mac library hash observation; not a timing or memory gate",
+  "captured_utc": "2026-11-15T04:08:25.747010+00:00",
+  "checkout_head": "e06939ed45b6f3e061120b8160cc8ade0397f14f",
+  "checkout_status": "clean",
+  "library_sha256": {
+    "libmlx.dylib": "d24c7a9b9d55a76bfd3bbcd1d042251a185cbadcb6340c3244a6ffa3dcb7c7e8",
+    "mlx.metallib": "dc59d1cceb1a5c7e578232e6e41e28e2c73c9463ac6dbc3886c3ee17ffc270ed"
+  },
+  "matches_apple_control": true,
+  "limitations": [
+    "Remote hashes are observation evidence, not independently authenticated execution provenance.",
+    "This observation does not establish the binary mapped those libraries during the past check."
+  ]
+}

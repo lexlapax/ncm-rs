@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "scope": "current guarded source, historical gates and selected resource binding; not a Phase 2 completion decision",
+  "candidate": "f155794",
+  "historical_apple_candidate": "5200924",
+  "linux_cells": 78,
+  "apple_cells": 78,
+  "qualified_traces_each": 642,
+  "selection_decisions_each": 2500,
+  "native_cuda_pool_observations": 144,
+  "native_cuda_pool_ratio_min": 1.0441550268594513,
+  "native_cuda_pool_ratio_max": 1.0443573208816288,
+  "tokenizer_profiles_each": 4,
+  "apple_benchmarks_match_prior_control": true,
+  "apple_trace_hash_matches_prior_control": true,
+  "apple_native_library_hashes_match_prior_control": true,
+  "native_library_observation_limitations": [
+    "Remote hashes are observation evidence, not independently authenticated execution provenance.",
+    "This observation does not establish the binary mapped those libraries during the past check."
+  ],
+  "apple_immediate_live_memory": "unresolved; both immediate and post-barrier measurements retained",
+  "phase_2_complete": false
+}

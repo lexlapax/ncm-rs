@@ -1,0 +1,11 @@
+# Current candidate source and evidence binding
+
+The [checker](phase2-current-bindings-v2.py) independently checks that the current guarded source matches CUDA candidate `f155794`, and that the only guarded changes since the prior Apple-gated candidate `5200924` are the two CUDA fused-projection files. Selected upstream pins, the tracked artifact manifest and oracle/fixtures match baseline `3307dff`. If a local artifact manifest exists, it is also checked; model weights are not needed for the offline audit. It verifies the exact archived and published Linux and Apple controlled audits, all 78 unique cells per platform and their recorded bounds, nine Linux and 18 Apple control processes per runtime/workload, the pinned quality policy, 642 distinct traces, 2,500 decisions and two near ties.
+
+For Linux it independently checks all 144 matrix/control native-pool comparisons against 1.05 and verifies matching input/output IDs and counts; the observed range is 1.044155–1.044357. It binds the unchanged tokenizer executable to the prior qualified four-profile probe. For Apple it verifies the fresh trained trace hash matches the earlier qualified trace and the rebuilt codec/tokenizer benchmark hashes match the earlier Apple control. A subsequent [read-only Mac observation](mlx-native-library-identity-v1.json) matches the earlier native MLX library hashes; it does not prove which files were mapped during the prior validation.
+
+Run `python3 docs/results/2026-11-11-phase2-optimization/phase2-current-bindings-v2.py`; the [negative cases](phase2-current-bindings-test-v2.py) reject untracked guarded source, a raised Linux pool value, a mismatched Apple executable and a mismatched native library. This is a source/evidence binding, not a full completion decision. Apple immediate active-memory interpretation and its higher encode peak remain open; both immediate and post-barrier values are retained.
+
+[Updated performance and lifecycle summary](phase2-performance-summary-v2.md) is generated from the current Linux and retained Apple controlled archives.
+
+A fresh temporary Git worktree with the staged evidence files, no local artifact directory and no model weights reproduced the binding JSON and performance summary byte-for-byte; all four negative cases passed. The temporary worktree was removed after verification.

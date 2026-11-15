@@ -293,6 +293,34 @@
       "status": "deferred; isolated full-codec timings mixed and peak reduction partial; not integrated",
       "finding": "Linux CUDA and Metal checks pass; trained qualification passes 642 traces and 2,500 decisions. B4 encode peak falls 5.7% versus current but remains above accepted Rust; paired model timings are mixed and the unrelated block scope also varies.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-linear-fused-codec-result-v1.md"
+    },
+    {
+      "id": "cuda-bounded-workspace",
+      "hypothesis": "Retain the original strict-FP32 cuBLASLt heuristic while reducing the allocated workspace, with a safe constrained fallback.",
+      "status": "integrated; Linux controlled 78/78 and trained qualification pass; native pool observation below 1.05",
+      "finding": "2.5 MiB workspace on 8.x, native pool ratios 1.044155–1.044357 versus prior Rust. Other architectures retain their prior allocations; only the RTX 3060 Ti is measured.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/cuda-bounded-linux-gate-v1.md"
+    },
+    {
+      "id": "mlx-projection-memory-toggle",
+      "hypothesis": "Replace fused projection/bias with separate operations to reduce immediate retained-root block allocations.",
+      "status": "deferred; no production change or gate pass",
+      "finding": "B4 immediate active bytes unchanged in two of three pairs and lower once; output IDs and latent hashes agree, but block float parity and timing were not measured.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-projection-memory-toggle-result-v1.md"
+    },
+    {
+      "id": "mlx-qkv-memory-toggle",
+      "hypothesis": "Restore separate Q/K/V slices to reduce the packed-layout temporary in the immediate MLX memory snapshot.",
+      "status": "diagnostic only; not integrated",
+      "finding": "B4 immediate active bytes decrease by 376,832 in all three pairs, but remain 1.053× the historical prior-Rust snapshot; float parity and timing were not measured.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-qkv-memory-toggle-result-v1.md"
+    },
+    {
+      "id": "mlx-stream-synchronize",
+      "hypothesis": "Wait for same-stream command-buffer completion after evaluation to reduce the immediate active-memory snapshot.",
+      "status": "deferred; no production change or gate pass",
+      "finding": "B4 active bytes settle to 59,970,828, but full-codec B4 block median times regress 10–16% in three pairs; float parity was not qualified.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-stream-sync-runtime-result-v1.md"
     }
   ]
 }

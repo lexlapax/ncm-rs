@@ -4,6 +4,14 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Current source and evidence binding:** the [v2 checker](docs/results/2026-11-11-phase2-optimization/phase2-current-bindings-v2.md)
+  validates the `f155794` candidate, both 78-cell audits, trained qualifications,
+  144 Linux pool comparisons, and reused Apple benchmark/library identities;
+  four negative cases pass. The [current summary](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v2.md)
+  reports timing, host memory and lifecycle evidence. A fresh temporary worktree
+  without model weights reproduced both outputs and passed four negative cases.
+  Apple immediate memory remains unresolved; this does not close Phase 2.
+
 - **Apple completion ordering reviewed:** pinned MLX event waits and Metal
   completion handlers are distinct; explicit stream synchronization waits for
   a command buffer but does not by itself prove prior-handler ordering. This
