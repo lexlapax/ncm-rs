@@ -1,0 +1,26 @@
+--- a/crates/ncm-backend-mlx/examples/mlx_live_memory_probe.rs
++++ b/crates/ncm-backend-mlx/examples/mlx_live_memory_probe.rs
+@@ -68,6 +68,13 @@
+         "resident_decoder_block" => {
+             let v = model.decoder_block(latent)?;
+             b.evaluate(std::slice::from_ref(&v))?;
++            // Diagnostic only: both calls select this thread's default GPU stream.
++            let stream = mlx_rs::Stream::gpu();
++            #[allow(unsafe_code)]
++            let status = unsafe { mlx_sys::mlx_synchronize(stream.as_ptr()) };
++            if status != 0 {
++                return Err("MLX stream synchronization failed".into());
++            }
+             Ok((vec![v], Vec::new(), None))
+         }
+         _ => Err("unsupported scope".into()),
+--- a/crates/ncm-backend-mlx/Cargo.toml
++++ b/crates/ncm-backend-mlx/Cargo.toml
+@@ -53,6 +53,7 @@
+ required-features = ["mlx"]
+
+ [target.'cfg(target_os = "macos")'.dev-dependencies]
++mlx-sys = { git = "https://github.com/oxiglade/mlx-rs", rev = "adf439bf5361d8a02955de7aaf651b0c45900945" }
+ libc = "0.2"
+
+ [lints]

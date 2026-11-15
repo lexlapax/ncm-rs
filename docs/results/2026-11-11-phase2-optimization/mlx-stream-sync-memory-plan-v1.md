@@ -1,0 +1,9 @@
+# MLX stream synchronization memory diagnostic
+
+The pinned MLX `eval` waits for its output event, while its GPU stream synchronization commits a command buffer and waits for completion. Metal documents that waiting for a command buffer includes its completion handlers; prior source inspection found buffers retained by such handlers. Those facts do not prove that synchronization waits for all earlier handlers. Test the mechanism rather than changing runtime semantics.
+
+In a separate worktree, patch only the existing matched-memory probe's resident-block path to call the pinned `mlx_synchronize` C API on the same thread's default GPU stream after each synchronous evaluation. The diagnostic example adds the already-pinned transitive `mlx-sys` package as a direct development dependency; it does not change the production backend or pins. Compare three fresh processes per version, rotating order, recording all 12 scopes, four snapshot stages, identities, process activity and thermal observations. Compare the immediate B4 block and after-barrier data; retain all outcomes and do not infer float output parity from ID hashes.
+
+If the immediate value does not reliably decrease, stop. If it does, it is a diagnostic mechanism only: evaluate the cost and correctness of any proposed runtime change separately, including full-codec performance and Linux-first/Apple validation. No gate is waived, and adding a synchronization to production requires an explicit behavior and performance review.
+
+Sources: [MLX synchronous evaluation](https://github.com/ml-explore/mlx/blob/v0.32.2/mlx/transforms.cpp), [MLX Metal stream synchronization](https://github.com/ml-explore/mlx/blob/v0.32.2/mlx/backend/metal/device.cpp), and [Apple Metal completion semantics](https://developer.apple.com/documentation/metal/mtlcommandbuffer/waituntilcompleted()).

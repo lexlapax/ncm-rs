@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple stream synchronization diagnostic planned:** isolate the pinned MLX
+  stream synchronization after block evaluation and measure whether it clears
+  the immediate active-memory discrepancy. No runtime or acceptance change.
+  [Plan](docs/results/2026-11-11-phase2-optimization/mlx-stream-sync-memory-plan-v1.md).
+
 - **Apple Q/K/V memory toggle:** separate slices reduce immediate B4 block
   active bytes by 376,832 consistently, but remain 1.053× the historical
   previous-Rust snapshot; no float parity or timing was measured. Shared CUDA
