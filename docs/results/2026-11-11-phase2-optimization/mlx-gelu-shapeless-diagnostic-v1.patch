@@ -1,0 +1,50 @@
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -8,0 +9,12 @@
++use std::{
++    cell::{Cell, RefCell},
++    rc::Rc,
++};
++type CompiledGelu =
++    Box<dyn FnMut(&[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception>>;
++fn gelu_graph(inputs: &[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception> {
++    let (x, half, sqrt_two, one) = (&inputs[0], &inputs[1], &inputs[2], &inputs[3]);
++    Ok(vec![x.multiply(half)?.multiply(
++        mlx_rs::ops::erf(x.divide(sqrt_two)?)?.add(one)?,
++    )?])
++}
+@@ -18,0 +31,2 @@
++    use_compiled_gelu: Rc<Cell<bool>>,
++    compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+@@ -44,0 +59,3 @@
++    pub fn set_compiled_gelu_for_diagnostic(&self, enabled: bool) {
++        self.use_compiled_gelu.set(enabled);
++    }
+@@ -47 +64,5 @@
+-        let backend = Self { stream };
++        let backend = Self {
++            stream,
++            use_compiled_gelu: Rc::new(Cell::new(false)),
++            compiled_gelu: Rc::new(RefCell::new(None)),
++        };
+@@ -289,0 +311,20 @@
++            if self.use_compiled_gelu.get() && x.0.shape().len() == 3 {
++                let mut slot = self
++                    .compiled_gelu
++                    .try_borrow_mut()
++                    .map_err(|_| "GELU compiler reentered")?;
++                let compiled = slot.get_or_insert_with(|| {
++                    Box::new(mlx_rs::transforms::compile::compile(gelu_graph, Some(true)))
++                });
++                let inputs = [
++                    x.0.clone(),
++                    Array::from_f32(0.5),
++                    Array::from_f32(std::f32::consts::SQRT_2),
++                    Array::from_f32(1.),
++                ];
++                let mut result = compiled(&inputs)?;
++                if result.len() != 1 {
++                    return Err("invalid compiled GELU result".into());
++                }
++                return Ok(result.remove(0));
++            }

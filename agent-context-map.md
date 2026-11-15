@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Shape-independent GELU experiment prepared:** test the exact expression
+  with one shapeless rank-three compiler rather than benchmark-specific shapes;
+  compiler error handling and startup/cache lifetime still require resolution.
+  [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-shapeless-plan-v1.md).
+
 - **Same-process GELU diagnostic:** compiled exact GELU improves resident-block
   medians in all nine comparisons; reconstruction is near unchanged. One first
   compiled reconstruction took 213 ms. General cache/startup design and full
