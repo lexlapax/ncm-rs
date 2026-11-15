@@ -495,10 +495,11 @@ fn prepare_geometry<B: ncm_core::GeneratorBackend>(
                 sine.push(freq.sin());
             }
         }
-        let cosine = b.upload_f32(&cosine, &[seq, head / 2])?;
-        let sine = b.upload_f32(&sine, &[seq, head / 2])?;
-        let [cosine, sine] = b.prepare_rope_tables(&cosine, &sine)?;
-        result.push(LevelGeometry { mask, cosine, sine });
+        result.push(LevelGeometry {
+            mask,
+            cosine: b.upload_f32(&cosine, &[seq, head / 2])?,
+            sine: b.upload_f32(&sine, &[seq, head / 2])?,
+        });
     }
     Ok(result)
 }
@@ -533,8 +534,8 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
         let [q, k, v] = b.split_qkv(&qkv, batch, seq, heads, head)?;
         let q = b.rms_norm(&q, &block.q_norm, 1e-6)?;
         let k = b.rms_norm(&k, &block.k_norm, 1e-6)?;
-        let q = b.rope_prepared(&q, &geometry.cosine, &geometry.sine)?;
-        let k = b.rope_prepared(&k, &geometry.cosine, &geometry.sine)?;
+        let q = b.rope(&q, &geometry.cosine, &geometry.sine)?;
+        let k = b.rope(&k, &geometry.cosine, &geometry.sine)?;
         let attn = b.attention(&q, &k, &v, Some(&geometry.mask))?;
         let attn = b.merge_heads(&attn, batch, seq, heads, head)?;
         x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;

@@ -458,17 +458,6 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         let arrays: Vec<_> = xs.iter().map(|x| &x.0).collect();
         self.array_op(&inputs, || Ok(mlx_rs::ops::concatenate(&arrays, axis)?))
     }
-    fn prepare_rope_tables(&self, cos: &MlxTensor, sin: &MlxTensor) -> Result<[MlxTensor; 2]> {
-        if self.shape(cos) != self.shape(sin) || self.shape(cos).len() != 2 {
-            return Err(Error::Input("invalid rotary table shapes".into()));
-        }
-        let cosine = self.concat_f32(&[cos.clone(), cos.clone()], 1)?;
-        let sine = self.concat_f32(&[sin.clone(), sin.clone()], 1)?;
-        Ok([cosine, sine])
-    }
-    fn rope_prepared(&self, x: &MlxTensor, cos: &MlxTensor, sin: &MlxTensor) -> Result<MlxTensor> {
-        self.array_op(&[x, cos, sin], || ops::rope(&x.0, &cos.0, &sin.0))
-    }
     fn rope(&self, x: &MlxTensor, cos: &MlxTensor, sin: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x, cos, sin], || {
             let cosine = mlx_rs::ops::concatenate(&[&cos.0, &cos.0], 1)?;
