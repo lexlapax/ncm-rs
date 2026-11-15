@@ -8,6 +8,8 @@ import sys
 import tarfile
 
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parents[2] / 'tools/bench'))
+from run_codec_lifecycle import validate as validate_lifecycle
 WORK = ('codec', 'bert', 'gpt2', 'qwen3', 'tinystories')
 ARCHIVES = {
     'Linux/CUDA': ('linux-acceptance.json', '50960a48e6e026b377b547fcc3df39096a5408ed27c576114d3d79a9b52500e3', 'raw/tiny-borrow-linux-gate-v1.tar.xz',
@@ -44,6 +46,17 @@ def main():
         if sha(archive.read_bytes()) != digest:
             raise ValueError('archive differs')
         with tarfile.open(archive, 'r:xz') as tar:
+            life_path = ('reports/phase2-tiny-borrow-linux-lifecycle-v1.json' if platform == 'Linux/CUDA'
+                         else 'reports/phase2-tiny-borrow-mlx-lifecycle-v1.json')
+            life_raw = tar.extractfile(life_path).read()
+            if sha(life_raw) != audit['input_sha256'][life_path]:
+                raise ValueError('lifecycle evidence differs')
+            lifecycle = json.loads(life_raw)
+            runs = lifecycle['runs']
+            if len(runs) != 9 or {(r['runtime'], r['repeat']) for r in runs} != {(role, i) for role in ('previous', 'candidate', 'python') for i in (1, 2, 3)}:
+                raise ValueError('lifecycle inventory differs')
+            if len({validate_lifecycle(run['phases']) for run in runs}) != 1:
+                raise ValueError('lifecycle output identities differ')
             strings = {}
             startup = {profile: {role: [] for role in ('previous', 'candidate', 'python')} for profile in WORK}
             first_execution = {role: [] for role in ('previous', 'candidate', 'python')}
@@ -113,6 +126,22 @@ def main():
             values = startup[workload]
             print(f"| {workload} first load | " + ' | '.join(range_ms(values[role]) for role in ('previous', 'candidate', 'python')) + ' |')
         print('| codec first execution | ' + ' | '.join(range_ms(first_execution[role]) for role in ('previous', 'candidate', 'python')) + ' |')
+        print('\nSeparate lifecycle capture: three fresh processes per runtime; '
+              'median [minimum, maximum] milliseconds. Parent startup includes '
+              'process creation and initialization; parent exit is measured after '
+              'the drop phase. These are not the controlled warm timings.\n')
+        print('| Lifecycle observation | Previous | Candidate | Python |')
+        print('| --- | ---: | ---: | ---: |')
+        for label, key in (('parent startup', 'startup_wall_ms'), ('child load', 'load'),
+                           ('child execution', 'execute'), ('child drop', 'drop'),
+                           ('parent post-drop exit', 'post_drop_exit_ms')):
+            groups = {role: [] for role in ('previous', 'candidate', 'python')}
+            for run in runs:
+                value = run[key] if key in ('startup_wall_ms', 'post_drop_exit_ms') else next(p['internal_ms'] for p in run['phases'] if p['phase'] == key)
+                if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or value < 0:
+                    raise ValueError('invalid lifecycle timing')
+                groups[run['runtime']].append(value)
+            print('| ' + label + ' | ' + ' | '.join(range_ms(groups[role]) for role in ('previous', 'candidate', 'python')) + ' |')
         print('\nHost memory is the maximum observed process HWM/RSS ratio from the '
               'three-process matrix, not the MLX allocator counter and not a '
               'separate physical-memory estimate.\n')

@@ -13,7 +13,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   inventories, oracle policy, 2,500 decisions and four-profile tokenizer probe
   contents also match. Focused negative cases pass. [Platform summaries](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v1.md)
   report per-scope timing, candidate throughput, host-memory ratios and
-  observed first-load/first-execution ranges.
+  observed first-load/first-execution ranges and separate lifecycle phases.
   The earlier Linux and Apple gate pages now link to the subsequent control
   without erasing their historical results.
   A clean Linux replay is byte-identical; Apple replay differs only in nine
