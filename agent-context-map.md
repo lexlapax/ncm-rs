@@ -4,9 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Apple synchronization runtime diagnostic planned:** the isolated probe
-  reduced immediate active memory; a separate full-codec candidate will assess
-  added wait cost and parity before any runtime change. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-stream-sync-runtime-plan-v1.md).
+- **Apple unconditional synchronization deferred:** three paired full-codec
+  runs reduce immediate B4 block active bytes to 59,970,828, but B4 block
+  medians regress 10–16% in every pair. No production change, float parity or
+  gate pass. [Result](docs/results/2026-11-11-phase2-optimization/mlx-stream-sync-runtime-result-v1.md).
 
 - **Apple stream synchronization diagnostic:** explicitly synchronizing the
   GPU stream after block evaluation reduced immediate B4 active bytes from
