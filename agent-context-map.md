@@ -4,6 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **System-wide Metal trace captured an outlier:** one 1.617 ms B4 block
+  overlaps 0.848 ms of other-process GPU intervals; the target main thread was
+  blocked 1.450 ms. Three near-median trials have no recorded other-process GPU
+  overlap. This single trace does not prove causation or close the gate.
+  [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-system-activity-v2.md).
+
 - **Unmasked attention deferred:** Linux/CUDA and full Metal checks pass;
   trained qualification passes 642 traces and 2,500 decisions. Three paired
   Metal processes show mixed timings and sampled desktop activity, so no runtime
@@ -71,7 +77,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   outcomes match, but this is not a Python oracle or exhaustive proof. An initial
   shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
 
-- **Evidence reconciliation:** the current 34-entry experiment ledger and
+- **Evidence reconciliation:** the current 35-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
   open; the user was asked whether to choose a separately predeclared quiet
