@@ -20,11 +20,16 @@ def main():
     parser.add_argument('--qualification', type=Path, required=True)
     parser.add_argument('--qualification-sha256', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--binary', type=Path, default=BINARY, help='explicit generation binary')
+    parser.add_argument('--candidate-source', type=Path, help='isolated candidate generator source to fingerprint')
     args = parser.parse_args()
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise ValueError('Apple Silicon required')
     if any(os.environ.get(k) for k in ('DYLD_INSERT_LIBRARIES', 'MallocStackLogging', 'MallocStackLoggingNoCompact')):
         raise ValueError('instrumented environment is not permitted')
+    binary = args.binary.resolve()
+    if not binary.is_file():
+        raise ValueError('generation binary must be an existing file')
     qualification = args.qualification.resolve()
     if digest(qualification) != args.qualification_sha256:
         raise ValueError('qualification hash differs')
@@ -40,11 +45,13 @@ def main():
     if out.exists():
         raise ValueError('output must be new')
     watched = [Path(__file__).resolve(), ROOT / 'tools/bench/run_phase3_mlx_bench.py',
-               ROOT / 'tools/bench/phase3_process.py', BINARY, qualification,
+               ROOT / 'tools/bench/phase3_process.py', binary, qualification,
                ROOT / '.reference/mlx-native/lib/libmlx.dylib', ROOT / '.reference/mlx-native/lib/mlx.metallib',
                ROOT / 'Cargo.toml', ROOT / 'Cargo.lock']
     watched += list((ROOT / 'crates').rglob('*.rs')) + list((ROOT / 'crates').rglob('Cargo.toml'))
     watched += [p for p in ARTIFACT.rglob('*') if p.is_file()]
+    if args.candidate_source:
+        watched.append(args.candidate_source.resolve())
     before = {str(p): digest(p) for p in watched}
     out.mkdir(parents=True)
     manifest = {'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
@@ -62,7 +69,7 @@ def main():
     try:
         for seed in SEEDS:
             stem = f'rust-{seed}-b128'
-            run([str(BINARY), str(ARTIFACT), '256', '128', str(seed)], stem, out)
+            run([str(binary), str(ARTIFACT), '256', '128', str(seed)], stem, out)
             raw = (out / f'{stem}.stdout').read_bytes()
             result = json.loads(raw)
             if result['seed'] != seed or result['batch'] != 128:
