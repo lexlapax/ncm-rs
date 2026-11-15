@@ -4,6 +4,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple memory diagnostic planned:** an isolated [projection toggle](docs/results/2026-11-11-phase2-optimization/mlx-projection-memory-toggle-plan-v1.md) will compare the current fused operation to the original separate matmul/add composition. No production change, tolerance change or pass is implied.
+
 - **Bounded CUDA workspace validated:** candidate `f155794` passes Linux
   initial and controlled 78/78 audits, trained quality, and native pool ratios
   1.044155–1.044357 versus prior Rust. On Mac the full MLX check, 642 traces,
