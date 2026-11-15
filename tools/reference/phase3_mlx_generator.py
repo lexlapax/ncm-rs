@@ -14,7 +14,7 @@ import mlx.core as mx
 import numpy as np
 
 from mlx_codec import Codec, prepare_device
-from mlx_codec_assets import digest, load_bundle, tensors
+from mlx_codec_assets import ROOT, digest, load_bundle, tensors
 from mlx_operators import execute
 
 
@@ -23,10 +23,20 @@ class Generator:
         # load_bundle authenticates the fixed easy manifest and all payloads,
         # including every generator tensor, against the Phase 1 anchor.
         codec_config, codec_host = load_bundle(root)
-        config = json.loads((root / 'config.json').read_bytes())
+        anchor = json.loads((ROOT / 'docs/results/2026-11-10-sudoku-artifacts/raw/artifact-manifest.json').read_bytes())
+        def verified_bytes(name):
+            path = root / name
+            record = anchor['files'][name]
+            if path.is_symlink() or not path.is_file() or path.stat().st_size != record['bytes']:
+                raise ValueError(f'invalid {name} file')
+            data = path.read_bytes()
+            if len(data) != record['bytes'] or digest(data) != record['sha256']:
+                raise ValueError(f'{name} differs from the pinned artifact')
+            return data
+        config = json.loads(verified_bytes('config.json'))
         self.cfg = config['model']
         self.levels = codec_config['vector_quantizer_config']['levels']['manual_levels']
-        generator_host = tensors((root / 'generator.safetensors').read_bytes())
+        generator_host = tensors(verified_bytes('generator.safetensors'))
         self.codec = Codec(codec_config, {n: mx.array(v) for n, v in codec_host.items()})
         self.w = {n: mx.array(v) for n, v in generator_host.items() if v.dtype == np.float32}
         mx.eval(*self.codec.w.values(), *self.w.values())

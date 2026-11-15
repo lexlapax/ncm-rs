@@ -90,6 +90,15 @@ def main():
                ROOT / 'docs/results/2026-11-10-sudoku-artifacts/raw/artifact-manifest.json',
                ROOT / '.reference/mlx-native/lib/libmlx.dylib', ROOT / '.reference/mlx-native/lib/mlx.metallib',
                BINARY, CLI, reference]
+    package_info = json.loads(subprocess.check_output(
+        [str(PYTHON), '-c',
+         'import importlib.metadata as m,importlib.util as u,json,pathlib,sys;'
+         'p=pathlib.Path(u.find_spec("mlx.core").origin);'
+         'print(json.dumps({"core":str(p),"python":str(pathlib.Path(sys.executable).resolve()),'
+         '"mlx":m.version("mlx"),"mlx_metal":m.version("mlx-metal"),"numpy":m.version("numpy")}))'],
+        cwd=ROOT, text=True))
+    core = Path(package_info['core'])
+    watched += [core, core.parent / 'lib/libmlx.dylib', core.parent / 'lib/mlx.metallib', Path(package_info['python'])]
     watched += list((ROOT / 'crates').rglob('*.rs'))
     watched += list((ROOT / 'crates').rglob('Cargo.toml'))
     watched += [ROOT / 'Cargo.toml', ROOT / 'Cargo.lock']
@@ -101,7 +110,7 @@ def main():
     manifest = {'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                 'git_status': subprocess.check_output(['git', 'status', '--short'], cwd=ROOT, text=True),
                 'watched_sha256': before, 'reference_sha256': args.reference_sha256,
-                'platform': platform.platform(), 'processor': platform.processor(),
+                'platform': platform.platform(), 'processor': platform.processor(), 'python_packages': package_info,
                 'warmups': 5, 'trials': 30, 'repetitions': 3, 'batches': BATCHES,
                 'limitations': ['CPU activity sampled every two seconds; GPU activity is not measured.',
                                 'No exclusive reservation, CPU affinity or GPU clock/power changes.',
