@@ -6,6 +6,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 - **Apple 18-process control authorized:** user confirmed the Mac is ready;
   run the fresh matrix and unconditional full control with unchanged criteria.
+  A separate post-pass [CPU/resource comparison](docs/results/2026-11-11-phase2-optimization/apple-resources-plan-v1.md) is prepared.
   [Plan](docs/results/2026-11-11-phase2-optimization/apple-gate18-plan-v1.md).
 
 - **Same-process unmasked attention deferred:** output comparisons pass but
