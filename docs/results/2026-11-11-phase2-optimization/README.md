@@ -9,6 +9,7 @@
 | [Linux controlled audit](linux-acceptance.json) | 78/78 timing and host-memory cells plus quality pass; [collection and reproduction](tiny-borrow-linux-gate-v1.md). |
 | [Apple controlled audit](mlx-acceptance.json) | 78/78 timing and host-memory cells plus quality pass; the initial B4 tail failure and earlier controls remain in the [results](apple-gate18-results-v1.md). |
 | [Source and audit bindings](phase2-closure-bindings-v1.md) | Current guarded source matches the gated candidate; published audits are exact archived bytes. |
+| [Platform performance summary](phase2-performance-summary-v1.md) | Per-scope controlled median, p95 and candidate rate, plus host-memory ratios for both references. |
 | [CPU and memory follow-up](apple-gate18-results-v1.md) | Whole-process CPU is reported; the separate 1.05 comparable live-memory criterion remains unresolved. MLX active/cache values are distinct from host RSS/HWM. |
 | [Experiment ledger](experiments.json) | Independent outcomes and deferrals are recorded, including the [fused interpolation experiment](mlx-linear-fused-codec-result-v1.md). |
 

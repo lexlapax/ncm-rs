@@ -10,7 +10,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   The Apple source review also matches all 315 reports and 210 Python copies.
   All 58 timing and 20 host-memory cells per platform are uniquely inventoried
   and their stored controlled bounds independently checked; focused negative
-  cases pass.
+  cases pass. [Platform summaries](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v1.md)
+  report per-scope timing, candidate throughput and host-memory ratios.
   A clean Linux replay is byte-identical; Apple replay differs only in nine
   last-digit standard deviations. This does not resolve live memory or close
   Phase 2. Public README, plan, architecture and
