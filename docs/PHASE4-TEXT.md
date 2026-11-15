@@ -41,3 +41,14 @@ The same immutable revision lists WMT14 generator/tokenizer files of 480,582,539
 The original GPT-2-large scorer ran out of memory on this 8 GiB GPU at batch 32 with the desktop present. A proposed memory-bounded scorer keeps the upstream batch-32 tokenizer, attention masks and FP32 transformer forward pass, but projects/log-softmaxes output rows in smaller chunks and disables unused KV-cache output. Before using it for any held-out score, compare each sample's token count and mean NLL with the unmodified upstream scorer on development inputs at a batch size that fits. Require exactly equal token counts and maximum absolute per-token mean-NLL difference at most `1e-4`; record the measured differences. This is a newly declared evaluator-implementation tolerance, not a change to a previously passed oracle. Preserve and disclose the original batch-32 OOM and the chunked evaluator rather than calling it an unmodified run.
 
 The separate development set was subsequently scored with the qualified memory-bounded batch-32 implementation. Results, the retained unmodified-scorer OOM, and the thresholds fixed before official-seed sampling are in [the development report](results/2026-11-15-phase4-tinystories/development-quality-v1.md).
+
+For later XSum and WMT14 evaluation, read-only Hugging Face dataset metadata at the already used Phase 3 revision `6580ba41a4b0a976dde876fbe84d25327617b0e6` identifies these files; this is metadata preparation, not an evaluation or a new dataset revision:
+
+| Dataset file | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `xsum/passages.pickle` | 18,506,302 | `39b820f0a71ddd6ad178b2700eeae6d035729053b1b2f115d3a92810c6ebf4f8` |
+| `xsum/reference_summaries.pickle` | 1,456,199 | `db624e065b6685dfea25db9106752e837f06f26b799763593759efd150fe554a` |
+| `wmt14/sources.pickle` | 406,100 | `62254653c32ce9e8b93576797597381babaab301b10ee0a2a3babec89576ea43` |
+| `wmt14/reference_translations.pickle` | 366,263 | `3dcef81d8aeded13f79917cd6b794d2ca9f33223bf35c1fff1c5643eae0df52b` |
+
+They have not yet been fetched or converted. Validate bytes against the immutable revision and use a restricted, non-executable conversion into checked data before evaluation; do not load arbitrary pickle instructions into production inference. The pinned XSum upstream decoder applies frequency, deficit and adjacency adjustments sequentially in float64 before argmax, so [MLX's lack of GPU FP64 support](https://ml-explore.github.io/mlx/build/html/python/data_types.html) requires a qualified exact or explicitly reviewed alternative rather than silent float32 substitution.
