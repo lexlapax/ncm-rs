@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **CUDA trace launch bound:** a fresh 642-trace/2,500-decision capture records
+  the trace executable and both CUDA source hashes before/after; its qualification
+  matches the gated result byte-for-byte. Current depfiles list both CUDA modules;
+  their historical build provenance is not claimed. [Evidence](docs/results/2026-11-11-phase2-optimization/cuda-bound-trace-capture-v2-result.md).
+
 - **Current source and evidence binding:** the [v2 checker](docs/results/2026-11-11-phase2-optimization/phase2-current-bindings-v2.md)
   validates the `f155794` candidate, both 78-cell audits, trained qualifications,
   144 Linux pool comparisons, and reused Apple benchmark/library identities;

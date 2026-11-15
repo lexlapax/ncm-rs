@@ -1,5 +1,7 @@
 # Expanded Phase 2 completion audit — INCOMPLETE
 
+**CUDA trace provenance follow-up:** a [fresh bound capture](cuda-bound-trace-capture-v2-result.md) passed 642/2,500 and matched the gated qualification bytes; the executable and CUDA source hashes were recorded before and after. Large licensed arrays remain local.
+
 **Current candidate:** bounded CUDA workspace `f155794` passes the [Linux initial and controlled 78/78 audits](cuda-bounded-linux-gate-v1.md); synchronized native pool ratios are 1.044155–1.044357 versus prior Rust. Fresh [Apple checks](cuda-bounded-mlx-check-v1.md) pass and its rebuilt timing binaries match the prior 78/78 Apple control. The host-memory audits do not resolve the separate Apple immediate active-memory observation below.
 
 **Historical Linux live-memory finding:** the prior candidate's [synchronized native CUDA pool observations](linux-live-pool-review-v1.md) were 1.07039–1.07071× prior Rust. The 4 MiB workspace and prepared state accounted for the observed difference; the new candidate addresses that same-allocator observation without changing the band.
