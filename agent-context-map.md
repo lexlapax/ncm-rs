@@ -4,6 +4,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Phase 2 complete with a scoped user-accepted exception:** [final audit](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md), [exception](docs/results/2026-11-11-phase2-optimization/apple-immediate-memory-exception-v1.md). Linux and Apple controlled timing/host-memory audits are 78/78, and fresh trace qualifications pass 642/2,500 each. The Apple immediate B4 snapshot is 1.058744× prior Rust and is accepted as an exception, not a 1.05 pass. The separate B4 encode MLX active-memory peak is 1.20127× and is disclosed, not part of that exception or host RSS. Fresh Linux tokenizer and finite CUDA lifetime checks are [recorded](docs/results/2026-11-11-phase2-optimization/final-linux-closure-checks-v1.md). Large licensed assets need separate publication authorization; Phase 3 is unstarted and requires separate authorization. The final audit reproduced byte-for-byte in a temporary clean worktree and its three negative tests passed. The local `tools/check.sh` passed, including 484 report-tool tests. Temporary Phase 2 worktrees were removed from Linux and Mac; dirty changes, ignored reports and histories were preserved under `.reference/phase2-cleanup-preserved` on each machine (build caches excluded). Historical entries below retain their contemporaneous status and do not supersede this result.
+
 - **Metal trace launch bound:** a fresh 642-trace/2,500-decision capture records
   the executable, MLX/model sources and native libraries before/after; its
   qualification matches the earlier gated result byte-for-byte. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-bound-trace-capture-v2-result.md).
@@ -19,7 +21,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   four negative cases pass. The [current summary](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v2.md)
   reports timing, host memory and lifecycle evidence. A fresh temporary worktree
   without model weights reproduced both outputs and passed four negative cases.
-  Apple immediate memory remains unresolved; this does not close Phase 2.
+  At that historical checkpoint Apple immediate memory remained unresolved; the later scoped user exception is recorded above.
 
 - **Apple completion ordering reviewed:** pinned MLX event waits and Metal
   completion handlers are distinct; explicit stream synchronization waits for
@@ -54,8 +56,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   initial and controlled 78/78 audits, trained quality, and native pool ratios
   1.044155–1.044357 versus prior Rust. On Mac the full MLX check, 642 traces,
   2,500 decisions and four tokenizer probes pass; rebuilt timing binaries and
-  trace hash match the earlier Apple control. Apple immediate live-memory
-  comparability and peak allocation remain open, so Phase 2 is not complete.
+  trace hash match the earlier Apple control. The later user acceptance covers the immediate snapshot; the separately higher encode peak remains disclosed.
   [Linux gate](docs/results/2026-11-11-phase2-optimization/cuda-bounded-linux-gate-v1.md),
   [Apple checks](docs/results/2026-11-11-phase2-optimization/cuda-bounded-mlx-check-v1.md).
 
@@ -101,8 +102,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   shows a 776-byte candidate delta in every workload and cross-process pairing
   at 10 and 100 ms; cached codebook norms have 768 logical payload bytes. This
   is consistent with prepared-state overhead, not proof of allocation ownership
-  or live-graph comparability. The immediate B4 difference and 1.05 criterion
-  remain open. The [completion checklist](docs/results/2026-11-11-phase2-optimization/completion-audit.md)
+  or live-graph comparability. The immediate B4 difference was later accepted as a scoped exception; exact allocation ownership remains unproven. The [completion checklist](docs/results/2026-11-11-phase2-optimization/completion-audit.md)
   and experiment ledger now reflect the passing 78-cell control, Apple CPU
   diagnostic and deferred fused interpolation. [Evidence](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md).
 

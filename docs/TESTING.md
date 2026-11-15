@@ -10,15 +10,14 @@ disclosed; pinned tokenizer goldens/rejections and all 78 performance/memory
 comparisons per platform also pass. There is no official generation/task-quality
 result. The [oracle audit](results/2026-11-10-phase2-oracle/README.md) retains its
 separate original-Python CPU/CUDA diagnostic failure. Those results qualify the
-earlier accepted candidate. Phase 2 is reopened for the
-[additional five-step plan](PHASE2-OPTIMIZATION-REVIEW.md); it requires fresh
+earlier accepted candidate. The completed Phase 2
+[additional five-step plan](PHASE2-OPTIMIZATION-REVIEW.md) required
 Linux-first/Apple-second gates against current accepted Rust and qualified Python,
 plus CPU/allocation and lifecycle evidence. The retained candidate passes the
 Linux controlled 78-cell timing and host-memory audit, and rebuilt Apple binaries
 match its earlier passing 78-cell control; trained quality checks pass and historical
 failed controls remain published. The new Linux CUDA-pool snapshots fall below
-1.05× prior Rust. Apple immediate live-memory comparability remains under review,
-so the expanded Phase 2 work is not complete. Default checks cannot
+1.05× prior Rust. The [final audit](results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md) records the user-accepted 1.058744× immediate B4 MLX snapshot exception and separately discloses the 1.20127× encode active-memory peak. Default checks cannot
 substitute for either GPU validation. The remaining model gates below are still
 planned.
 

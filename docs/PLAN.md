@@ -1,13 +1,12 @@
 # Phased port and validation plan
 
 The user approved implementation on 2026-11-09. **Phases 0 and 1 are complete;
-Phase 2 is reopened for the additional five-step optimization plan approved on
-2026-11-11.** The earlier codec/tokenizer remediation passes unchanged correctness
+Phase 2 is complete with the user-accepted Apple immediate-memory exception after the additional five-step optimization plan approved on 2026-11-11.** The earlier codec/tokenizer remediation passes unchanged correctness
 and all 78 performance/memory comparisons on both platforms; its
 [acceptance](results/2026-11-10-phase2-acceptance/README.md) remains valid historical
 evidence, not acceptance of the new work. The user requested this revised plan
 be committed/pushed before implementation. Phase 3 is not started and remains
-blocked on the expanded Phase 2 gate and separate authorization. **Within
+subject to separate authorization. **Within
 every phase, implement and validate Linux/CUDA first, then macOS/MLX.** Complete
 both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
@@ -16,9 +15,7 @@ committing to a detailed delivery estimate.
 The current candidate has a passing Linux 78-cell controlled audit and qualified
 outputs. Its native CUDA-pool snapshots are below 1.05× prior Rust. Rebuilt Apple
 binaries match the earlier passing 78-cell control and fresh Metal quality passes;
-Apple immediate live-memory comparability, the final evidence audit and
-publication remain open; see the [current completion
-checklist](results/2026-11-11-phase2-optimization/completion-audit.md).
+The [final audit](results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md) records the accepted 1.058744× Apple immediate B4 snapshot exception and separately discloses the 1.20127× B4 encode MLX active-memory peak. Licensed assets require separate publication authorization.
 
 ## Phase 0 — research, structure, and review (complete)
 

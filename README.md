@@ -3,15 +3,14 @@
 A Rust port in progress of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
 Next-Concept Modeling for parallel, coarse-to-fine text generation.
 
-**Status: Phase 2 reopened for the approved additional five-step optimization plan.**
+**Status: Phase 2 complete with the user-accepted Apple immediate-memory exception.**
 The earlier Linux/CUDA and Apple Silicon/MLX remediation is accepted. The
 [additional plan](docs/PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
 has since produced controlled **78/78** timing and host-memory audits on
 [Linux](docs/results/2026-11-11-phase2-optimization/cuda-bounded-linux-gate-v1.md)
 and [Apple](docs/results/2026-11-11-phase2-optimization/cuda-bounded-mlx-check-v1.md),
 with quality checks passing and earlier failures retained. The new Linux candidate's
-synchronized native CUDA-pool snapshots are below 1.05× prior Rust. Apple immediate
-live-memory comparability and the final completion audit remain open.
+synchronized native CUDA-pool snapshots are below 1.05× prior Rust. The [final audit](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md) records the accepted immediate B4 snapshot exception (1.058744× prior Rust), and separately discloses a 1.20127× B4 encode MLX active-memory peak; neither is host RSS.
 Phase 3 is unstarted.
 The earlier accepted FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT
 tokenizers passed [correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):

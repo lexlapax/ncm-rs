@@ -1,5 +1,7 @@
 # Further Phase 2 optimization review
 
+**Current result:** Phase 2 is complete with the [user-accepted immediate B4 memory exception](results/2026-11-11-phase2-optimization/apple-immediate-memory-exception-v1.md). The [final audit](results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md) separately discloses the higher B4 encode active-memory peak. Phase 3 requires separate authorization. The planning text and original status below are historical.
+
 Research date: 2026-11-11. Reviewed repository: `3307dff`; accepted production
 candidate: `083c1e5`. **The user approved the five-step plan below on 2026-11-11
 and requested its commit/push before implementation. Phase 2 is reopened for this
@@ -387,7 +389,7 @@ publish the complete negative/no-go evidence instead. A failed candidate is not
 a passing gate: verify the actual retained final candidate on both platforms.
 Phase 3 still requires separate authorization.
 
-### Evidence checklist (Phase 2 remains open)
+### Evidence checklist (historical planning status)
 
 Planned final evidence root: `docs/results/2026-11-11-phase2-optimization/`.
 These deliverables and statuses distinguish observed work from the remaining closure requirements.

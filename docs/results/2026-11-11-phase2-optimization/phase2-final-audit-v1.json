@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "scope": "evidence and recorded exception consistency; human approval and historical execution are not machine-authenticated",
+  "candidate": "f155794",
+  "platform_audits": {
+    "linux": 78,
+    "apple": 78
+  },
+  "trained_traces_each": 642,
+  "decisions_each": 2500,
+  "tokenizer_profiles_each": 4,
+  "cuda_lifetimes": 10,
+  "cuda_requests": 144,
+  "apple_lifetimes": 3,
+  "apple_requests_per_lifetime": 128,
+  "native_cuda_pool_ratio_max": 1.0443573208816288,
+  "apple_live_memory_violations": [
+    {
+      "batch": 4,
+      "scope": "resident_decoder_block",
+      "stage": "immediate",
+      "comparator": "previous",
+      "ratio": 1.0587435976062287,
+      "bytes": {
+        "previous": 65835532,
+        "candidate": 69702948,
+        "python": 65835528
+      }
+    },
+    {
+      "batch": 4,
+      "scope": "resident_decoder_block",
+      "stage": "immediate",
+      "comparator": "python",
+      "ratio": 1.0587436619328092,
+      "bytes": {
+        "previous": 65835532,
+        "candidate": 69702948,
+        "python": 65835528
+      }
+    }
+  ],
+  "recorded_exception_scope": "only B4 resident-block immediate snapshot against the two recorded comparators",
+  "apple_b4_encode_peak_bytes": {
+    "previous": 129751100,
+    "candidate": 155866252,
+    "python": 129750040
+  },
+  "peak_not_part_of_exception": true,
+  "experiments_dispositioned": 45,
+  "limitations": [
+    "User approval is recorded from the conversation and cannot be machine-authenticated by this script.",
+    "Native MLX peak/active/cache counters are not host RSS or disjoint physical memory.",
+    "Apple per-request CPU and allocation counts and energy remain unavailable.",
+    "Finite lifetime runs do not establish an unbounded leak-free guarantee.",
+    "Large licensed trace/tokenizer assets remain outside Git pending separate publication authorization."
+  ],
+  "evidence_audit_passed": true
+}

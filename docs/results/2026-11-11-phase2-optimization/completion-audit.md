@@ -1,4 +1,6 @@
-# Expanded Phase 2 completion audit — INCOMPLETE
+# Expanded Phase 2 completion audit — COMPLETE WITH USER-ACCEPTED EXCEPTION
+
+The authoritative [final audit](phase2-final-audit-v1.md) closes Phase 2 with the [specific immediate B4 snapshot exception](apple-immediate-memory-exception-v1.md). The separate higher B4 encode MLX active-memory peak remains disclosed and is not part of that exception. The historical checklist below preserves earlier pending states and failed candidates. Optional clock-diagnostic rows describe unfinished safeguards for an abandoned investigation; no clock modification was used in the final gates, and those safeguards remain required if that investigation resumes.
 
 **Metal trace provenance follow-up:** a [fresh bound capture](mlx-bound-trace-capture-v2-result.md) passed 642/2,500 and matched the prior Apple qualification bytes, recording executable, source and library hashes before and after. Large licensed arrays remain local.
 
@@ -8,7 +10,7 @@
 
 **Historical Linux live-memory finding:** the prior candidate's [synchronized native CUDA pool observations](linux-live-pool-review-v1.md) were 1.07039–1.07071× prior Rust. The 4 MiB workspace and prepared state accounted for the observed difference; the new candidate addresses that same-allocator observation without changing the band.
 
-**Latest Apple evidence:** the predeclared [18-process control](apple-gate18-results-v1.md) passes 78/78 and quality after the initial B4 tail failure; a 45-process CPU comparison also passes report validation. Matched live-memory observations reveal an immediate B4 block ratio of 1.058744 and a B4 encode peak ratio of 1.20127 versus prior Rust. Comparable steady-state live memory and the peak difference remain unresolved, so Phase 2 remains incomplete. Prior failed controls remain retained.
+**Latest Apple evidence:** the predeclared [18-process control](apple-gate18-results-v1.md) passes 78/78 and quality after the initial B4 tail failure; a 45-process CPU comparison also passes report validation. Matched live-memory observations reveal an immediate B4 block ratio of 1.058744 and a B4 encode peak ratio of 1.20127 versus prior Rust. The user accepted the immediate snapshot exception; the separate peak increase remains disclosed, with exact allocation ownership unproven. Prior failed controls remain retained.
 
 **Stream synchronization diagnostic:** [explicit stream synchronization](mlx-stream-sync-memory-result-v1.md) consistently reduced the immediate B4 active snapshot to the previously observed settled value. An [isolated full-codec follow-up](mlx-stream-sync-runtime-result-v1.md) showed a 10–16% B4 block median regression in all three pairs, so unconditional synchronization is deferred; float parity and a production change were not qualified.
 
@@ -67,7 +69,7 @@ B1 resident block and BERT checked load open. The initial audit was 71/78.
 The prior 72/78 controlled result discussed below belongs to the earlier
 candidate. [Evidence and reproduction](finite-scan-v1.md#fresh-linux-performance-gate).
 
-This is a working requirement-to-evidence checklist, **not a completion claim**.
+The following is the historical working requirement-to-evidence checklist; current completion is established by the final audit linked above.
 The objective is to complete the five approved optimization steps within Phase 2:
 freeze the accepted baseline; independently evaluate lower-risk opportunities;
 finish Linux then Apple correctness/performance gates; measure resource/lifecycle

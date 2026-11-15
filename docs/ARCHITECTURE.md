@@ -4,11 +4,11 @@ Status: [Phase 2 codec/tokenizer acceptance passes](results/2026-11-10-phase2-ac
 on Linux/CUDA then macOS/MLX. The shared codec/backend contract is implemented and
 validated for that scope; generator, sampling and inference-CLI architecture below
 remains planned. Crate boundaries do not imply full-model APIs or frozen abstractions.
-Phase 2 is reopened for the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md).
+Phase 2 is complete with the user-accepted immediate-memory exception under the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md).
 The current candidate passes the Linux controlled timing and host-memory audit,
 and its rebuilt Apple executables match the earlier passing control. Linux native
 CUDA-pool snapshots are below 1.05× prior Rust; Apple immediate live-memory
-comparability remains open. Experimental fused interpolation is deferred; it is
+snapshot is an explicitly accepted 1.058744× exception; the separate B4 encode MLX active-memory peak is 1.20127× prior Rust. See the [final audit](results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md). Experimental fused interpolation is deferred; it is
 not production code.
 
 ## Decision: one model, two runtime adapters

@@ -190,37 +190,18 @@ precision changes, weaker validation and generator caching remain out of scope.
 ## Additional five-step acceptance (required before Phase 3)
 
 The user approved the [five-step plan](PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
-and requested commit/push of the revised plan before implementation. Planning
-publication alone does not pass any runtime item below. The
-[initial Linux baseline checkpoint](results/2026-11-11-phase2-optimization/README.md)
-freezes accepted binaries/bands, refreshes measurements and passes fresh baseline
-correctness. Its diagnostic audit is 73/78 with five uncertainty cells. Subsequent
-[lower-risk Linux experiments](results/2026-11-11-phase2-low-risk/README.md) add
-allocation attribution, ID-only encoding, in-place byte-BPE merges and shared
-reconstruction reuse with fresh correctness checks; that historical matrix is
-74/78. [Prepared state](results/2026-11-11-phase2-prepared-state/README.md) and
-[fixed Linux controls/resources](results/2026-11-11-phase2-linux-controls/README.md)
-now add verified model lifetimes and memory savings, but the controlled audit
-remains **72/78**. Both final platform gates remain pending. The
-[working completion audit](results/2026-11-11-phase2-optimization/completion-audit.md)
-tracks actual evidence and missing requirements.
+and requested commit/push of the revised plan before implementation. The
+[final audit](results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md)
+closes this work with the user-accepted 1.058744× immediate B4 MLX snapshot
+exception. The separate 1.20127× B4 encode MLX active-memory peak is disclosed,
+not part of the exception; neither is host RSS. Phase 3 requires separate authorization.
 
-- [x] Step 1: freeze `3307dff` / production `083c1e5` as current Rust; refresh matched
-  current-Rust/Python baseline reports, verify identities/scopes and lock bands.
-- [ ] Step 2: independently test lower-risk prepared-state, reconstruction-reuse,
-  tokenizer and MLX-resampling candidates; record checks/results/disposition for
-  every reviewed opportunity, including loading-copy investigations and deferrals.
-- [ ] Step 3: complete Linux/CUDA checks, qualifications and all 78 acceptance
-  comparisons before Apple implementation/testing; then complete the Apple gate.
-  Any shared follow-up returns through Linux validation first.
-- [ ] Step 4: publish latency/throughput, CPU work/allocation diagnostics, live/peak
-  memory, startup/first-call/load/drop/teardown and long-lived state evidence;
-  reproduce summaries/audits from committed inputs in a clean checkout.
-- [ ] Step 5: decide on remaining measured bottlenecks before compilation/custom
-  kernels/graph replay; qualify any escalation in the same platform order and
-  publish an explicit requirement-to-evidence completion audit.
-- [ ] Publish final candidate identity, both gates, favorable/negative evidence,
-  limitations and synchronized plan/context/results status before Phase 2 closure.
+- [x] Step 1: freeze and refresh baseline and locked comparisons.
+- [x] Step 2: independently evaluate opportunities and record dispositions.
+- [x] Step 3: complete Linux/CUDA then Apple/MLX checks and controlled 78-cell audits.
+- [x] Step 4: record performance, resource and finite lifecycle evidence, with limitations.
+- [x] Step 5: disposition escalation and publish requirement-to-evidence audit.
+- [x] Record final candidate, historical failures and scoped exception.
 
 Use the same median ≤1.05, p95 ≤1.10 and comparable host peak/live memory ≤1.05
 limits against **current accepted Rust as well as qualified Python**. Preserve

@@ -1,6 +1,8 @@
 # Additional Phase 2 optimization — baseline checkpoint
 
-**In progress, not final acceptance.** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates) remains open. The current runtime passes the Linux initial and controlled 78/78 gates and the [Apple 18-process controlled 78/78 gate](apple-gate18-results-v1.md), with the initial Apple B4 tail failure retained. The [new Linux candidate](cuda-bounded-linux-gate-v1.md) keeps native CUDA-pool snapshots below 1.05; [Apple binary identity and fresh validation](cuda-bounded-mlx-check-v1.md) preserve the earlier timing evidence. Apple immediate live-memory comparability and the higher B4 encode peak remain unresolved. Full hardware checks and trained qualifications pass; no gate or numerical limit is waived. [Completion audit](completion-audit.md) and [experiment ledger](experiments.json) retain the history. Phase 3 remains out of scope.
+**Final result:** Phase 2 is complete with the [user-accepted immediate B4 memory exception](apple-immediate-memory-exception-v1.md). See the [final audit](phase2-final-audit-v1.md) and [fresh Linux checks](final-linux-closure-checks-v1.md). The separate 1.20127× B4 encode MLX active-memory peak remains disclosed and is not part of the exception. Phase 3 requires separate authorization.
+
+**Historical checkpoint:** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates) remains open. The current runtime passes the Linux initial and controlled 78/78 gates and the [Apple 18-process controlled 78/78 gate](apple-gate18-results-v1.md), with the initial Apple B4 tail failure retained. The [new Linux candidate](cuda-bounded-linux-gate-v1.md) keeps native CUDA-pool snapshots below 1.05; [Apple binary identity and fresh validation](cuda-bounded-mlx-check-v1.md) preserve the earlier timing evidence. Apple immediate live-memory comparability and the higher B4 encode peak remain unresolved. Full hardware checks and trained qualifications pass; no gate or numerical limit is waived. [Completion audit](completion-audit.md) and [experiment ledger](experiments.json) retain the history. Phase 3 remains out of scope.
 
 ## Current evidence
 
@@ -17,9 +19,7 @@
 | [Pinned codec alignment](upstream-codec-alignment-v2.md) | Source-level comparison with upstream, including documented helper defects and numerical limits. |
 | [Experiment ledger](experiments.json) | Independent outcomes and deferrals are recorded, including the [fused interpolation experiment](mlx-linear-fused-codec-result-v1.md). |
 
-The 78-cell audit files cover their recorded timing, host-memory and quality
-checks; they do not adjudicate the separate live-memory criterion. Phase 2
-remains open until that question and the final completion audit are resolved.
+The 78-cell audit files cover their recorded timing, host-memory and quality checks; the separate immediate live-memory exception is recorded in the final audit above. The table above preserves historical descriptions.
 
 The following sections preserve the historical baseline checkpoint, not the
 status of the current implementation. Subsequent [lower-risk candidates](../2026-11-11-phase2-low-risk/README.md),
