@@ -82,3 +82,7 @@ required-features = ["mlx"]
 [[example]]
 name = "tinystories_drop_bench"
 required-features = ["mlx"]
+
+[[example]]
+name = "tinystories_drop_cache_bench"
+required-features = ["mlx"]
