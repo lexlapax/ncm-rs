@@ -1,0 +1,5 @@
+# MLX Q/K/V memory toggle
+
+The direct projection toggle did not consistently reduce the immediate B4 block memory. The packed Q/K/V layout is another changed operation, and it previously added a temporary on CUDA while improving block speed. In an isolated worktree only, restore the earlier three independent Q/K/V slices from `3307dff` and compare with the current packed layout using the same matched-memory probe. This preserves the conceptual Q/K/V calculation but can affect lazy graphs, numerical ordering and speed.
+
+Run three fresh counterbalanced processes per version with the same artifact and all 12 batch/scope cases. Record all four active-memory snapshot stages, available ID and retained-latent hashes, activity and thermal observations. No floating-point parity, latency or gate conclusion follows from this probe. If it does not consistently reduce the immediate target snapshot, stop. If promising, measure timing and trained parity separately before considering a backend-appropriate integration; preserve CUDA performance, shared model semantics, Linux-first validation, existing limits and all prior observations.

@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Apple Q/K/V memory diagnostic planned:** compare the current packed layout
+  against the earlier separate slices in an isolated worktree. This is a memory
+  investigation, not a production change or acceptance claim. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-qkv-memory-toggle-plan-v1.md).
+
 - **Apple projection memory toggle deferred:** six isolated processes found
   no consistent immediate B4 block improvement from replacing fused projection
   with separate matmul/add; the target median was unchanged. ID/latent hashes
