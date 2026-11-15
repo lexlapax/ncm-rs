@@ -24,5 +24,32 @@ The checks rely on the existing Git history and archives; they do not re-run
 the underlying audits, verify untracked executable bytes, qualify hardware, or
 establish the separate comparable steady-state live-memory criterion. The
 [Apple result](apple-gate18-results-v1.md) preserves the immediate snapshot and
-its unsettled-versus-retained ambiguity. The named platform files are exact copies of the 78-cell audits; they do not
-include the separate live-memory criterion. Phase 2 remains open.
+its unsettled-versus-retained ambiguity. The named platform files are exact
+copies of the 78-cell audits; they do not include the separate live-memory criterion. Phase 2 remains open.
+
+A fresh clean export of `5200924` with the retained Linux archive reproduces the
+controlled audit byte-for-byte. The prior Apple clean export reproduces the
+initial failure byte-for-byte and the controlled decision with nine differences
+in the last floating-point digit of standard deviations. The [replay checker](phase2-replay-review-v1.py)
+rejects other differences; these are offline recomputations, not new GPU
+measurements. The [Apple result](apple-gate18-results-v1.md) records the
+cross-environment limitation.
+
+For a fresh Linux/Apple audit replay from this repository root:
+
+```sh
+phase2_tmp=$(mktemp -d)
+mkdir "$phase2_tmp/linux" "$phase2_tmp/apple"
+git archive 5200924 | tar -xf - -C "$phase2_tmp/linux"
+git archive e69828a | tar -xf - -C "$phase2_tmp/apple"
+tar -xJf docs/results/2026-11-11-phase2-optimization/raw/tiny-borrow-linux-gate-v1.tar.xz -C "$phase2_tmp/linux"
+tar -xJf docs/results/2026-11-11-phase2-optimization/raw/apple-gate18-resource-memory-v1.tar.xz -C "$phase2_tmp/apple"
+(cd "$phase2_tmp/linux" && python3 tools/bench/audit_phase2_performance.py reports/phase2-tiny-borrow-linux-controlled-config-v1.json "$phase2_tmp/linux.json")
+(cd "$phase2_tmp/apple" && python3 tools/bench/audit_phase2_performance.py docs/results/2026-11-11-phase2-optimization/apple-gate18-initial-config-v1.json "$phase2_tmp/apple-initial.json" || test "$?" -eq 1)
+(cd "$phase2_tmp/apple" && python3 tools/bench/audit_phase2_performance.py docs/results/2026-11-11-phase2-optimization/apple-gate18-controlled-config-v1.json "$phase2_tmp/apple-controlled.json")
+python3 docs/results/2026-11-11-phase2-optimization/phase2-replay-review-v1.py "$phase2_tmp/linux.json" "$phase2_tmp/apple-initial.json" "$phase2_tmp/apple-controlled.json"
+```
+
+The initial Apple audit is expected to return 1; the review script confirms its
+actual retained contents. Results may differ further across Python environments;
+the checker fails closed for changes outside tiny standard-deviation rounding.
