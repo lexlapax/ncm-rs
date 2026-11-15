@@ -393,6 +393,16 @@ impl CodecBackend for MlxBackend {
 }
 
 impl ncm_core::GeneratorBackend for MlxBackend {
+    fn categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
+        check(logits, Dtype::Float32)?;
+        check(uniforms, Dtype::Uint32)?;
+        with_stream(&self.stream, || {
+            crate::categorical::draw(&logits.0, &uniforms.0)
+        })
+        .map(MlxTensor)
+        .map_err(error)
+    }
+
     fn concat_f32(&self, xs: &[MlxTensor], axis: usize) -> Result<MlxTensor> {
         let axis = i32::try_from(axis).map_err(error)?;
         let inputs: Vec<_> = xs.iter().collect();
