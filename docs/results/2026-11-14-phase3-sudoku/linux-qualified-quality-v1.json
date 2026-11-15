@@ -1,0 +1,101 @@
+{
+  "easy": {
+    "code_mismatched_boards": 0,
+    "dataset_revision": "6580ba41a4b0a976dde876fbe84d25327617b0e6",
+    "difficulty": "easy",
+    "id_mismatched_boards": 0,
+    "python": {
+      "boards": 2000,
+      "cell_accuracy": 0.9997407407407407,
+      "clue_preservation_rate": 0.999,
+      "clues_preserved": 1998,
+      "malformed": 0,
+      "solved": 1988,
+      "solved_rate": 0.994,
+      "valid_grids": 1988,
+      "valid_rate": 0.994
+    },
+    "rust": {
+      "boards": 2000,
+      "cell_accuracy": 0.9997407407407407,
+      "clue_preservation_rate": 0.999,
+      "clues_preserved": 1998,
+      "malformed": 0,
+      "solved": 1988,
+      "solved_rate": 0.994,
+      "valid_grids": 1988,
+      "valid_rate": 0.994
+    },
+    "source_sha256": {
+      "artifacts/canonical/sudoku-data-phase3/easy.json": "8bead9fdb11f7fce3fefa6efec6c495297d8ee5f91cd0363ce1468eda735aa59",
+      "reports/phase3-linux-qualified-v1/easy-python.json": "bd5ea581e7d230866637be71caab24aec7b2670164f25415e1db474e591655ca",
+      "reports/phase3-linux-qualified-v1/easy-rust.json": "c0be5340941b4160447becb47fe761ede17ecb8ccb37bb522108168e8f43ced6"
+    }
+  },
+  "hard": {
+    "code_mismatched_boards": 0,
+    "dataset_revision": "6580ba41a4b0a976dde876fbe84d25327617b0e6",
+    "difficulty": "hard",
+    "id_mismatched_boards": 0,
+    "python": {
+      "boards": 2000,
+      "cell_accuracy": 0.9835246913580247,
+      "clue_preservation_rate": 0.9985,
+      "clues_preserved": 1997,
+      "malformed": 1,
+      "solved": 1726,
+      "solved_rate": 0.863,
+      "valid_grids": 1726,
+      "valid_rate": 0.863
+    },
+    "rust": {
+      "boards": 2000,
+      "cell_accuracy": 0.9835246913580247,
+      "clue_preservation_rate": 0.9985,
+      "clues_preserved": 1997,
+      "malformed": 1,
+      "solved": 1726,
+      "solved_rate": 0.863,
+      "valid_grids": 1726,
+      "valid_rate": 0.863
+    },
+    "source_sha256": {
+      "artifacts/canonical/sudoku-data-phase3/hard.json": "828998509024a6d1fb04b956da055f40595da83253ccaae7ce7f9b665d79430c",
+      "reports/phase3-linux-qualified-v1/hard-python.json": "2efd9b68a13b8ef6f4caed8fca413ddf7f4e00afbf3c77ccaee6e85c2b8d8527",
+      "reports/phase3-linux-qualified-v1/hard-rust.json": "c1ba7ba8bfd2470bd479c4eb4f583630370e1e8d53206d8137b8643fd26c9b5e"
+    }
+  },
+  "medium": {
+    "code_mismatched_boards": 1,
+    "dataset_revision": "6580ba41a4b0a976dde876fbe84d25327617b0e6",
+    "difficulty": "medium",
+    "id_mismatched_boards": 0,
+    "python": {
+      "boards": 2000,
+      "cell_accuracy": 0.9979382716049382,
+      "clue_preservation_rate": 0.9965,
+      "clues_preserved": 1993,
+      "malformed": 1,
+      "solved": 1928,
+      "solved_rate": 0.964,
+      "valid_grids": 1928,
+      "valid_rate": 0.964
+    },
+    "rust": {
+      "boards": 2000,
+      "cell_accuracy": 0.9979382716049382,
+      "clue_preservation_rate": 0.9965,
+      "clues_preserved": 1993,
+      "malformed": 1,
+      "solved": 1928,
+      "solved_rate": 0.964,
+      "valid_grids": 1928,
+      "valid_rate": 0.964
+    },
+    "source_sha256": {
+      "artifacts/canonical/sudoku-data-phase3/medium.json": "7d5ff3b523fff2e8dc55a94407ae8aa505913b3ada64e6c0fc537921bdcc15ca",
+      "reports/phase3-linux-qualified-v1/medium-python.json": "3d09a271fa0e87db00dd1fd9c941aae7aa6b212bbd14d46f59617be67bef7224",
+      "reports/phase3-linux-qualified-v1/medium-rust.json": "5163a99d685cfd35095dfbd728e4dda7abd836e50296fc87488e6548fe9799f3"
+    }
+  }
+}
