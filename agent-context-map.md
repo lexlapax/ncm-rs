@@ -4,6 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Same-process unmasked attention diagnostic prepared:** alternate the prior
+  zero-mask and no-mask paths in one model, including decode, reconstruction
+  and block scopes. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-attention-toggle-plan-v1.md).
+
 - **GELU lifetime observation:** all backend/model drops return active MLX
   bytes to zero; first compiled/eager requests were 266/85 ms in sequential
   processes, with later first requests near 7 ms. Startup and fallible compiler

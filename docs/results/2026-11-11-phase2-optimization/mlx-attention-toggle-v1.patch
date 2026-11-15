@@ -1,0 +1,39 @@
+--- a/crates/ncm-backend-mlx/src/ops.rs
++++ b/crates/ncm-backend-mlx/src/ops.rs
+@@ -119,0 +120,8 @@
++    attention_optional(q, k, v, Some(mask))
++}
++pub(crate) fn attention_optional(
++    q: &Array,
++    k: &Array,
++    v: &Array,
++    mask: Option<&Array>,
++) -> Result<Array> {
+@@ -129 +137 @@
+-        mask,
++        mask.map(mlx_rs::fast::ScaledDotProductAttentionMask::Array),
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -8,0 +9 @@
++use std::{cell::Cell, rc::Rc};
+@@ -18,0 +20 @@
++    omit_attention_mask: Rc<Cell<bool>>,
+@@ -44,0 +47,3 @@
++    pub fn set_unmasked_attention_for_diagnostic(&self, enabled: bool) {
++        self.omit_attention_mask.set(enabled);
++    }
+@@ -47 +52,4 @@
+-        let backend = Self { stream };
++        let backend = Self {
++            stream,
++            omit_attention_mask: Rc::new(Cell::new(false)),
++        };
+@@ -307,2 +315,6 @@
+-            let zero = Array::from_f32(0.);
+-            ops::attention(&q.0, &k.0, &v.0, mask.map(|m| &m.0).unwrap_or(&zero))
++            if self.omit_attention_mask.get() && mask.is_none() {
++                ops::attention_optional(&q.0, &k.0, &v.0, None)
++            } else {
++                let zero = Array::from_f32(0.);
++                ops::attention(&q.0, &k.0, &v.0, mask.map(|m| &m.0).unwrap_or(&zero))
++            }
