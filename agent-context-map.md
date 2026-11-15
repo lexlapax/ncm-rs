@@ -8,7 +8,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   gated candidate `5200924`; selected pins/fixtures match baseline, and the
   archived and published Linux/Apple 78-cell audits pass with unchanged limits. This does not
   resolve live memory or close Phase 2. Public README, plan, architecture and
-  testing summaries now reflect the same state. [Checker](docs/results/2026-11-11-phase2-optimization/phase2-closure-bindings-v1.md).
+  testing summaries and the results index now reflect the same state. [Checker](docs/results/2026-11-11-phase2-optimization/phase2-closure-bindings-v1.md).
 
 - **Settled memory accounting reviewed:** the archived matched Apple diagnostic
   shows a 776-byte candidate delta in every workload and cross-process pairing

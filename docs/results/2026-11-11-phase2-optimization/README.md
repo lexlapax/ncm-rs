@@ -2,6 +2,20 @@
 
 **In progress, not final acceptance.** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates) remains open. The current runtime passes the Linux initial and controlled 78/78 gates and the [Apple 18-process controlled 78/78 gate](apple-gate18-results-v1.md), with the initial Apple B4 tail failure retained. The separate live-memory comparability question and higher B4 encode peak remain unresolved. Full hardware checks and trained qualifications pass; no gate or numerical limit is waived. [Completion audit](completion-audit.md) and [experiment ledger](experiments.json) retain the history. Phase 3 remains out of scope.
 
+## Current evidence
+
+| Evidence | Status and scope |
+| --- | --- |
+| [Linux controlled audit](linux-acceptance.json) | 78/78 timing and host-memory cells plus quality pass; [collection and reproduction](tiny-borrow-linux-gate-v1.md). |
+| [Apple controlled audit](mlx-acceptance.json) | 78/78 timing and host-memory cells plus quality pass; the initial B4 tail failure and earlier controls remain in the [results](apple-gate18-results-v1.md). |
+| [Source and audit bindings](phase2-closure-bindings-v1.md) | Current guarded source matches the gated candidate; published audits are exact archived bytes. |
+| [CPU and memory follow-up](apple-gate18-results-v1.md) | Whole-process CPU is reported; the separate 1.05 comparable live-memory criterion remains unresolved. MLX active/cache values are distinct from host RSS/HWM. |
+| [Experiment ledger](experiments.json) | Independent outcomes and deferrals are recorded, including the [fused interpolation experiment](mlx-linear-fused-codec-result-v1.md). |
+
+The 78-cell audit files cover their recorded timing, host-memory and quality
+checks; they do not adjudicate the separate live-memory criterion. Phase 2
+remains open until that question and the final completion audit are resolved.
+
 The following sections preserve the historical baseline checkpoint, not the
 status of the current implementation. Subsequent [lower-risk candidates](../2026-11-11-phase2-low-risk/README.md),
 [prepared-state work](../2026-11-11-phase2-prepared-state/README.md), and
