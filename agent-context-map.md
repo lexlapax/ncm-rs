@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Closure binding verified:** current guarded production/harness sources match
+  gated candidate `5200924`; selected pins/fixtures match baseline, and the
+  archived Linux/Apple 78-cell audits pass with unchanged limits. This does not
+  resolve live memory or close Phase 2. [Checker](docs/results/2026-11-11-phase2-optimization/phase2-closure-bindings-v1.md).
+
 - **Settled memory accounting reviewed:** the archived matched Apple diagnostic
   shows a 776-byte candidate delta in every workload and cross-process pairing
   at 10 and 100 ms; cached codebook norms have 768 logical payload bytes. This

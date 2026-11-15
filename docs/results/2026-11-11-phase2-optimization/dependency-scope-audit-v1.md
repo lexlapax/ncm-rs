@@ -25,5 +25,5 @@ python3 ncm-phase2-scope-audit-v1.py REPOSITORY TOKENIZERS_0_22_2_CRATE NEW_REPO
 ```
 
 The script rejects tracked worktree changes and unexpected vendored-source, package,
-selected pin or tracked-fixture differences. This static audit does not close the current Apple
-76/78 performance control or Phase 2.
+selected pin or tracked-fixture differences. This historical static audit does not itself establish either platform gate or
+close Phase 2; the later 18-process Apple control passed 78/78.
