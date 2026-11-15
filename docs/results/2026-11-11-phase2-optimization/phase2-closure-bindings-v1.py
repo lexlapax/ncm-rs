@@ -38,6 +38,28 @@ def sha(data):
 def changed(*args):
     return subprocess.check_output(['git', 'diff', '--name-only', *args], cwd=ROOT, text=True).splitlines()
 
+def verify_quality(quality, runtime):
+    policy = {'primitive': {'atol': 1e-5, 'rtol': 1e-4},
+              'component': {'atol': 1e-4, 'rtol': 2e-4},
+              'distance': {'atol': 1e-3, 'rtol': 2e-4},
+              'accumulated': {'atol': 5e-4, 'rtol': 2e-4}}
+    if (quality['runtime'] != runtime or quality['all_passed'] is not True
+            or quality['all_trace_elements_pass'] is not True or quality['failures'] != []
+            or quality['policy'] != policy
+            or quality['left_trace_sha256'] != '89bee3830bf97485183a17d325f78183bcc6d5d573b2af312899b2ee9dfad7fa'):
+        raise ValueError('quality policy, reference or status differs')
+    traces = quality['traces']
+    if (quality['trace_count'] != 642 or len(traces) != 642
+            or len({row['name'] for row in traces}) != 642
+            or any(row['elements'] <= 0 or row['mismatches'] != 0 for row in traces)):
+        raise ValueError('quality trace inventory differs or contains failures')
+    selections = quality['selections'].values()
+    if (sum(row['decisions'] for row in selections) != 2500
+            or sum(row['unstable'] for row in quality['selections'].values()) != 2
+            or any(row['disagreements'] != 0 or row['stable_disagreements'] != 0
+                   or row['candidate_selection_mismatches'] != 0 for row in quality['selections'].values())):
+        raise ValueError('selection scope or decisions differ')
+
 def verify_coverage(audit, name):
     workloads = ('codec', 'bert', 'gpt2', 'qwen3', 'tinystories')
     codec = {f'codec/{batch}/{scope}' for batch in (1, 2, 4)
@@ -87,8 +109,11 @@ def main():
         path = EVIDENCE / archive
         if sha(path.read_bytes()) != archive_sha:
             raise ValueError('archive hash mismatch: ' + archive)
+        quality_member = ('reports/phase2-fused-integration-qualification-v1.json' if name == 'linux'
+                          else '.reference/phase2-mlx-gate18-preflight-v1/qualification.json')
         with tarfile.open(path, 'r:xz') as stream:
             raw = stream.extractfile(member).read()
+            quality_raw = stream.extractfile(quality_member).read()
         if sha(raw) != audit_sha:
             raise ValueError('audit hash mismatch: ' + name)
         published = ROOT / 'docs/results/2026-11-11-phase2-optimization' / ('linux-acceptance.json' if name == 'linux' else 'mlx-acceptance.json')
@@ -100,10 +125,14 @@ def main():
                 or audit['limits'] != {'median': 1.05, 'p95': 1.10, 'comparable_host_memory': 1.05}
                 or audit['audit_source_sha256'] != audit_source):
             raise ValueError('audit is incomplete, uses different criteria or source: ' + name)
+        if audit['input_sha256'][quality_member] != sha(quality_raw):
+            raise ValueError('quality evidence differs from audited input: ' + name)
+        verify_quality(json.loads(quality_raw), 'rust-candle' if name == 'linux' else 'rust-mlx')
         expected_repeats = verify_coverage(audit, name)
         results[name] = {'matrix_audit_sha256': audit_sha, 'cells_passed': 78, 'timing_cells': 58,
                          'host_memory_cells': 20, 'control_processes_per_runtime': expected_repeats,
-                         'quality_passed': True}
+                         'quality_passed': True, 'qualified_traces': 642,
+                         'selection_decisions': 2500, 'near_ties': 2}
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     print(json.dumps({'schema_version': 1, 'scope': 'current source and historical audit binding; not Phase 2 acceptance',
                       'head': head, 'gated_candidate': CANDIDATE, 'baseline': BASELINE,

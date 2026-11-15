@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+import tarfile
 
 root = Path(__file__).parent
 spec = importlib.util.spec_from_file_location('closure_bindings', root / 'phase2-closure-bindings-v1.py')
@@ -43,6 +44,27 @@ class CoverageTests(unittest.TestCase):
                 else: next(c for c in value['cells'] if c['cell'].endswith('/VmHWM'))['peak_observed_ratio'] = 1.051
                 with self.assertRaises(ValueError):
                     bindings.verify_coverage(value, 'apple')
+
+class QualityTests(unittest.TestCase):
+    def setUp(self):
+        archive = root / 'raw/apple-gate18-resource-memory-v1.tar.xz'
+        with tarfile.open(archive, 'r:xz') as tar:
+            self.quality = json.load(tar.extractfile('.reference/phase2-mlx-gate18-preflight-v1/qualification.json'))
+
+    def test_reference_trace_and_decision_corruption(self):
+        bindings.verify_quality(self.quality, 'rust-mlx')
+        for mutation in ('oracle', 'duplicate_trace', 'trace_mismatch', 'decisions', 'disagreement', 'near_ties'):
+            with self.subTest(mutation=mutation):
+                value = copy.deepcopy(self.quality)
+                first = next(iter(value['selections'].values()))
+                if mutation == 'oracle': value['left_trace_sha256'] = '0' * 64
+                elif mutation == 'duplicate_trace': value['traces'][0]['name'] = value['traces'][1]['name']
+                elif mutation == 'trace_mismatch': value['traces'][0]['mismatches'] = 1
+                elif mutation == 'decisions': first['decisions'] += 1
+                elif mutation == 'disagreement': first['disagreements'] = 1
+                else: first['unstable'] += 1
+                with self.assertRaises(ValueError):
+                    bindings.verify_quality(value, 'rust-mlx')
 
 if __name__ == '__main__':
     unittest.main()

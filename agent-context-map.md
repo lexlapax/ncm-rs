@@ -9,7 +9,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   archived and published Linux/Apple 78-cell audits pass with unchanged limits.
   The Apple source review also matches all 315 reports and 210 Python copies.
   All 58 timing and 20 host-memory cells per platform are uniquely inventoried
-  and their stored controlled bounds independently checked; focused negative
+  and their stored controlled bounds independently checked; qualification
+  inventories, oracle policy and 2,500 decisions also match. Focused negative
   cases pass. [Platform summaries](docs/results/2026-11-11-phase2-optimization/phase2-performance-summary-v1.md)
   report per-scope timing, candidate throughput, host-memory ratios and
   observed first-load/first-execution ranges.
