@@ -18,6 +18,15 @@ Git history and the retained archives, without running a benchmark:
   1.10 p95 limits. Linux audit SHA-256 is
   `50960a48e6e026b377b547fcc3df39096a5408ed27c576114d3d79a9b52500e3`;
   Apple is `a3ed81700b05f39a50a29a44340ffb00fb826fa738539989eb41e78556d58e4e`.
+- The exact cell inventory is independently checked: 58 timing comparisons
+  cover 12 codec scopes, 12 tokenizer scopes and five checked loads against
+  both references; 20 host-memory comparisons cover RSS and HWM for all five
+  workloads. Every stored controlled median/p95 and upper confidence bound is
+  checked against its original limit, as is each host-memory ratio. Controls
+  contain nine Linux and 18 Apple processes per runtime and workload. Two
+  [focused negative tests](phase2-closure-bindings-test-v1.py) also reject
+  duplicate/missing cells, wrong control counts, nonfinite values and altered
+  timing or memory bounds.
 
 Run from this checkout with `python3 docs/results/2026-11-11-phase2-optimization/phase2-closure-bindings-v1.py`.
 The checks rely on the existing Git history and archives; they do not re-run

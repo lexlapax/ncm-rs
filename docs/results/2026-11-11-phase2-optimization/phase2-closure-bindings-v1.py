@@ -5,6 +5,7 @@ Phase 2. It requires the repository's existing Git history and raw archives.
 """
 import hashlib
 import json
+import math
 from pathlib import Path
 import subprocess
 import tarfile
@@ -36,6 +37,35 @@ def sha(data):
 
 def changed(*args):
     return subprocess.check_output(['git', 'diff', '--name-only', *args], cwd=ROOT, text=True).splitlines()
+
+def verify_coverage(audit, name):
+    workloads = ('codec', 'bert', 'gpt2', 'qwen3', 'tinystories')
+    codec = {f'codec/{batch}/{scope}' for batch in (1, 2, 4)
+             for scope in ('encode', 'decode', 'reconstruct', 'resident_decoder_block')}
+    tokenizer = {f'{profile}/{scope}' for profile in workloads[1:]
+                 for scope in ('encode', 'decode', 'decode_skip_special')}
+    timing = codec | tokenizer | {f'{work}/checked_load' for work in workloads}
+    memory = {f'{work}/{metric}' for work in workloads for metric in ('VmHWM', 'VmRSS')}
+    expected = {(cell, comparator) for cell in timing | memory for comparator in ('previous', 'python')}
+    actual = [(c['cell'], c['comparator']) for c in audit['cells']]
+    if len(expected) != 78 or len(actual) != len(set(actual)) or set(actual) != expected:
+        raise ValueError('incomplete or duplicate matrix cells: ' + name)
+    expected_repeats = 9 if name == 'linux' else 18
+    if set(audit['controls']) != set(workloads) or any(audit['controls'][w]['processes_per_runtime'] != expected_repeats for w in workloads):
+        raise ValueError('control workloads or repeat counts differ: ' + name)
+    for cell in audit['cells']:
+        if cell['cell'] in memory:
+            ratio = cell['peak_observed_ratio']
+            valid = isinstance(ratio, (float, int)) and not isinstance(ratio, bool) and math.isfinite(ratio) and 0 < ratio <= 1.05
+        else:
+            follow = cell['controlled_followup']
+            interval = follow['paired_process_percentile_95_interval']
+            values = (follow['median_ratio'], follow['p95_ratio'], interval['median_ratio'][1], interval['p95_ratio'][1])
+            valid = all(isinstance(v, (float, int)) and not isinstance(v, bool) and math.isfinite(v) and v > 0 for v in values)
+            valid = valid and values[0] <= 1.05 and values[1] <= 1.10 and values[2] <= 1.05 and values[3] <= 1.10
+        if not valid:
+            raise ValueError('cell does not independently satisfy its bound: ' + name + ' ' + cell['cell'])
+    return expected_repeats
 
 def main():
     if changed(CANDIDATE, 'HEAD', '--', *GUARDED):
@@ -70,7 +100,10 @@ def main():
                 or audit['limits'] != {'median': 1.05, 'p95': 1.10, 'comparable_host_memory': 1.05}
                 or audit['audit_source_sha256'] != audit_source):
             raise ValueError('audit is incomplete, uses different criteria or source: ' + name)
-        results[name] = {'matrix_audit_sha256': audit_sha, 'cells_passed': 78, 'quality_passed': True}
+        expected_repeats = verify_coverage(audit, name)
+        results[name] = {'matrix_audit_sha256': audit_sha, 'cells_passed': 78, 'timing_cells': 58,
+                         'host_memory_cells': 20, 'control_processes_per_runtime': expected_repeats,
+                         'quality_passed': True}
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     print(json.dumps({'schema_version': 1, 'scope': 'current source and historical audit binding; not Phase 2 acceptance',
                       'head': head, 'gated_candidate': CANDIDATE, 'baseline': BASELINE,

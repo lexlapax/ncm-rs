@@ -8,6 +8,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   gated candidate `5200924`; selected pins/fixtures match baseline, and the
   archived and published Linux/Apple 78-cell audits pass with unchanged limits.
   The Apple source review also matches all 315 reports and 210 Python copies.
+  All 58 timing and 20 host-memory cells per platform are uniquely inventoried
+  and their stored controlled bounds independently checked; focused negative
+  cases pass.
   A clean Linux replay is byte-identical; Apple replay differs only in nine
   last-digit standard deviations. This does not resolve live memory or close
   Phase 2. Public README, plan, architecture and
