@@ -393,6 +393,19 @@ impl CodecBackend for MlxBackend {
 }
 
 impl ncm_core::GeneratorBackend for MlxBackend {
+    fn sampled_embedding_4096(&self, weight: &MlxTensor, indices: &MlxTensor) -> Result<MlxTensor> {
+        check(weight, Dtype::Float32)?;
+        check(indices, Dtype::Uint32)?;
+        if weight.0.shape().len() != 2 || weight.0.shape().first() != Some(&4096) {
+            return Err(Error::Input("sampled codebook must have 4096 rows".into()));
+        }
+        with_stream(&self.stream, || -> ops::Result<Array> {
+            let safe = mlx_rs::ops::minimum(&indices.0, &Array::from_slice(&[4095u32], &[1]))?;
+            Ok(weight.0.take_axis(&safe, 0)?)
+        })
+        .map(MlxTensor)
+        .map_err(error)
+    }
     fn categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
         check(logits, Dtype::Float32)?;
         check(uniforms, Dtype::Uint32)?;
@@ -403,6 +416,31 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         .map_err(error)
     }
 
+    fn split_qkv(
+        &self,
+        x: &MlxTensor,
+        batch: usize,
+        seq: usize,
+        heads: usize,
+        head: usize,
+    ) -> Result<[MlxTensor; 3]> {
+        let width = heads
+            .checked_mul(head)
+            .ok_or_else(|| Error::Input("QKV width overflow".into()))?;
+        let total = width
+            .checked_mul(3)
+            .ok_or_else(|| Error::Input("QKV width overflow".into()))?;
+        if batch == 0 || seq == 0 || heads == 0 || head == 0 || self.shape(x) != [batch, seq, total]
+        {
+            return Err(Error::Input("invalid QKV shape".into()));
+        }
+        let part = |i| {
+            let values = self.narrow(x, 2, i * width, width)?;
+            let values = self.reshape(&values, &[batch, seq, heads, head])?;
+            self.permute(&values, &[0, 2, 1, 3])
+        };
+        Ok([part(0)?, part(1)?, part(2)?])
+    }
     fn concat_f32(&self, xs: &[MlxTensor], axis: usize) -> Result<MlxTensor> {
         let axis = i32::try_from(axis).map_err(error)?;
         let inputs: Vec<_> = xs.iter().collect();

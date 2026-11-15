@@ -76,3 +76,18 @@ fn categorical_matches_independent_f64_for_controlled_draws() {
     let actual = backend.categorical_4096(&logits, &uniforms).unwrap();
     assert_eq!(backend.read_indices(&actual).unwrap(), expected);
 }
+
+#[test]
+fn sampled_embedding_bounds_invalid_sentinel_without_erasing_it() {
+    let backend = MlxBackend::gpu().unwrap();
+    let weights: Vec<f32> = (0..4096).map(|i| i as f32).collect();
+    let weight = backend.upload_f32(&weights, &[4096, 1]).unwrap();
+    let original = [0, u32::MAX, 4095, 4096];
+    let indices = backend.upload_indices(&original, &[1, 4]).unwrap();
+    let values = backend.sampled_embedding_4096(&weight, &indices).unwrap();
+    assert_eq!(
+        backend.read_f32(&values).unwrap(),
+        [0.0, 4095.0, 4095.0, 4095.0]
+    );
+    assert_eq!(backend.read_indices(&indices).unwrap(), original);
+}

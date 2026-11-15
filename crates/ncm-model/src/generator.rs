@@ -531,13 +531,9 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
     for block in blocks {
         let normalized = norm(&block.ln_1, &x)?;
         let qkv = linear(&block.qkv, &normalized)?;
-        let packed = b.pack_qkv(&qkv, batch, seq, heads, head)?;
-        let make = |i| -> Result<B::Tensor> {
-            b.reshape(&b.narrow(&packed, 0, i, 1)?, &[batch, heads, seq, head])
-        };
-        let q = b.rms_norm(&make(0)?, &block.q_norm, 1e-6)?;
-        let k = b.rms_norm(&make(1)?, &block.k_norm, 1e-6)?;
-        let v = make(2)?;
+        let [q, k, v] = b.split_qkv(&qkv, batch, seq, heads, head)?;
+        let q = b.rms_norm(&q, &block.q_norm, 1e-6)?;
+        let k = b.rms_norm(&k, &block.k_norm, 1e-6)?;
         let q = b.rope(&q, &geometry.cosine, &geometry.sine)?;
         let k = b.rope(&k, &geometry.cosine, &geometry.sine)?;
         let attn = b.attention(&q, &k, &v, Some(&geometry.mask))?;
@@ -551,8 +547,8 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
     b.narrow(&x, 1, prefix_len, length)
 }
 
-/// TinyStories teacher-forced execution for numerical qualification. Stochastic
-/// generation and arbitrary padded prefixes are not yet implemented.
+/// TinyStories teacher-forced execution and seeded stochastic generation.
+/// Arbitrary padded prefixes are not yet implemented.
 pub struct TinyStoriesTeacher<B: ncm_core::GeneratorBackend> {
     codec: crate::Codec<B>,
     backend: B,
@@ -719,7 +715,7 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
             let book = self
                 .codec
                 .weight(&format!("vq.embeddings.{level}.weight"))?;
-            let embedding = b.embedding(book, &selected)?;
+            let embedding = b.sampled_embedding_4096(book, &selected)?;
             let up = self.codec.upsample(&embedding, level)?;
             let contribution = self.codec.refine(&up, level)?;
             let sum = match cumulative {

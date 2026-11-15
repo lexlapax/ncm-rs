@@ -1,7 +1,7 @@
 //! Controlled, same-draw validation of the experimental CUDA categorical kernel.
 #![cfg(feature = "cuda")]
 use ncm_backend_cuda::{CandleBackend, categorical::categorical_from_uniforms};
-use ncm_core::{CodecBackend, WeightBackend};
+use ncm_core::{CodecBackend, GeneratorBackend, WeightBackend};
 
 #[test]
 fn categorical_uniforms_and_invalid_rows() {
@@ -58,4 +58,19 @@ fn categorical_matches_reference_cdf_for_controlled_nonuniform_rows() {
         .read_indices(&categorical_from_uniforms(&backend, &x, &u).unwrap())
         .unwrap();
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn sampled_embedding_bounds_invalid_sentinel_without_erasing_it() {
+    let backend = CandleBackend::cuda(0).unwrap();
+    let weights: Vec<f32> = (0..4096).map(|i| i as f32).collect();
+    let weight = backend.upload_f32(&weights, &[4096, 1]).unwrap();
+    let original = [0, u32::MAX, 4095, 4096];
+    let indices = backend.upload_indices(&original, &[1, 4]).unwrap();
+    let values = backend.sampled_embedding_4096(&weight, &indices).unwrap();
+    assert_eq!(
+        backend.read_f32(&values).unwrap(),
+        [0.0, 4095.0, 4095.0, 4095.0]
+    );
+    assert_eq!(backend.read_indices(&indices).unwrap(), original);
 }

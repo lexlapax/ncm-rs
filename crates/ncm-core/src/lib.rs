@@ -135,6 +135,19 @@ pub trait GeneratorBackend: CodecBackend {
             "native categorical sampling is unsupported".into(),
         ))
     }
+    /// Embed sampled 4096-way codes without indexing out of bounds when a
+    /// sampler has returned its invalid-row sentinel. The original indices
+    /// must remain unchanged so the caller can reject the sentinel before
+    /// returning a result. Backends must implement this explicitly.
+    fn sampled_embedding_4096(
+        &self,
+        _weight: &Self::Tensor,
+        _indices: &Self::Indices,
+    ) -> Result<Self::Tensor> {
+        Err(Error::Backend(
+            "safe sampled embedding is unsupported".into(),
+        ))
+    }
     /// Copy B×S×(3HD) projected Q/K/V to contiguous 3×B×H×S×D.
     fn pack_qkv(
         &self,
@@ -159,6 +172,24 @@ pub trait GeneratorBackend: CodecBackend {
             )?,
             &[3, batch, heads, seq, head],
         )
+    }
+    /// Split projected Q/K/V into three B×H×S×D arrays. Backends may use
+    /// equivalent views when that avoids a packed temporary.
+    fn split_qkv(
+        &self,
+        x: &Self::Tensor,
+        batch: usize,
+        seq: usize,
+        heads: usize,
+        head: usize,
+    ) -> Result<[Self::Tensor; 3]> {
+        let packed = self.pack_qkv(x, batch, seq, heads, head)?;
+        let shape = [batch, heads, seq, head];
+        Ok([
+            self.reshape(&self.narrow(&packed, 0, 0, 1)?, &shape)?,
+            self.reshape(&self.narrow(&packed, 0, 1, 1)?, &shape)?,
+            self.reshape(&self.narrow(&packed, 0, 2, 1)?, &shape)?,
+        ])
     }
     /// Copy B×H×S×D attention output to contiguous B×S×(HD).
     fn merge_heads(
