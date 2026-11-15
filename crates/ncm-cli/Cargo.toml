@@ -12,6 +12,7 @@ publish = false
 default = []
 cpu = ["dep:ncm-backend-cuda", "ncm-backend-cuda/cpu"]
 cuda = ["cpu", "ncm-backend-cuda/cuda"]
+cuda-cudnn = ["cuda", "ncm-backend-cuda/cuda-cudnn"]
 mlx = ["dep:ncm-backend-mlx", "ncm-backend-mlx/mlx"]
 
 [dependencies]

@@ -1,4 +1,4 @@
-//! JSON-array Sudoku inference on an explicitly selected backend.
+//! JSON-array inference on an explicitly selected backend.
 #[cfg(any(
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
@@ -9,7 +9,7 @@ use ncm_io::Artifact;
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
 ))]
-use ncm_model::{Codec, Generator};
+use ncm_model::{Codec, Generator, TinyStoriesTeacher};
 use std::{error::Error, fs, io::Read, path::Path};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -86,6 +86,88 @@ fn run<B: GeneratorBackend + Clone>(
     }
     Ok(serde_json::json!({"codes": codes, "ids": ids}))
 }
+#[cfg(any(
+    feature = "cpu",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
+fn tinystories_prefixes(inputs: &[Vec<u32>]) -> Result<Vec<u32>> {
+    if inputs.is_empty() || inputs.len() > 128 || inputs.iter().any(|row| row.len() != 1) {
+        return Err("TinyStories expects 1..=128 single-token prefixes".into());
+    }
+    Ok(inputs.iter().map(|row| row[0]).collect())
+}
+
+/// Generate one seeded TinyStories batch and return host-owned codes and IDs.
+#[cfg(any(
+    feature = "cpu",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
+fn sample_tinystories<B: GeneratorBackend + Clone>(
+    backend: B,
+    artifact: Artifact,
+    inputs: &[Vec<u32>],
+    seed: u64,
+) -> Result<serde_json::Value> {
+    let prefixes = tinystories_prefixes(inputs)?;
+    let model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
+    drop(artifact);
+    let generated = model.sample_seeded(&prefixes, inputs.len(), seed)?;
+    drop(generated.logits);
+    let codes = backend.read_indices(&generated.codes)?;
+    let ids = backend.read_indices(&generated.ids)?;
+    if codes.len() != inputs.len() * 641 || ids.len() != inputs.len() * 128 {
+        return Err("invalid TinyStories backend output shape".into());
+    }
+    let codes: Vec<_> = codes
+        .as_chunks::<641>()
+        .0
+        .iter()
+        .map(<[u32; 641]>::as_slice)
+        .collect();
+    let ids: Vec<_> = ids
+        .as_chunks::<128>()
+        .0
+        .iter()
+        .map(<[u32; 128]>::as_slice)
+        .collect();
+    Ok(serde_json::json!({"seed": seed, "codes": codes, "ids": ids}))
+}
+
+fn dispatch_tinystories(
+    device: &str,
+    artifact: Artifact,
+    inputs: &[Vec<u32>],
+    seed: u64,
+) -> Result<serde_json::Value> {
+    let _ = (&artifact, inputs, seed);
+    match device {
+        #[cfg(feature = "cpu")]
+        "cpu" => sample_tinystories(
+            ncm_backend_cuda::CandleBackend::cpu(),
+            artifact,
+            inputs,
+            seed,
+        ),
+        #[cfg(feature = "cuda")]
+        "cuda" => sample_tinystories(
+            ncm_backend_cuda::CandleBackend::cuda(0)?,
+            artifact,
+            inputs,
+            seed,
+        ),
+        #[cfg(feature = "cuda-cudnn")]
+        "cuda-cudnn" => sample_tinystories(
+            ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?,
+            artifact,
+            inputs,
+            seed,
+        ),
+        #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+        "mlx" => sample_tinystories(ncm_backend_mlx::MlxBackend::gpu()?, artifact, inputs, seed),
+        _ => Err("requested device is unavailable in this build; no fallback".into()),
+    }
+}
+
 fn dispatch(
     device: &str,
     command: &str,
@@ -129,10 +211,25 @@ fn main_impl() -> Result<()> {
         println!("{}", serde_json::to_string_pretty(artifact.manifest())?);
         return Ok(());
     }
-    if !(5..=6).contains(&args.len()) || !matches!(args[1].as_str(), "generate" | "reconstruct") {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE]".into());
+    if !(5..=6).contains(&args.len())
+        || !matches!(
+            args[1].as_str(),
+            "generate" | "reconstruct" | "sample-tinystories"
+        )
+        || (args[1] == "sample-tinystories" && args.len() != 6)
+    {
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED".into());
     }
-    let artifact = Artifact::load(&args[2])?;
+    let sample_seed = if args[1] == "sample-tinystories" {
+        Some(args[5].parse::<u64>()?)
+    } else {
+        None
+    };
+    let artifact = if sample_seed.is_some() {
+        Artifact::load_inference(&args[2])?
+    } else {
+        Artifact::load(&args[2])?
+    };
     let input_path = Path::new(&args[4]);
     let file = fs::File::open(input_path)?;
     if !file.metadata()?.is_file() {
@@ -144,8 +241,12 @@ fn main_impl() -> Result<()> {
         return Err("input exceeds 1 MiB".into());
     }
     let inputs: Vec<Vec<u32>> = serde_json::from_slice(&bytes)?;
-    let batch_size = args.get(5).map_or(Ok(128), |s| s.parse::<usize>())?;
-    let result = dispatch(&args[3], &args[1], artifact, &inputs, batch_size)?;
+    let result = if let Some(seed) = sample_seed {
+        dispatch_tinystories(&args[3], artifact, &inputs, seed)?
+    } else {
+        let batch_size = args.get(5).map_or(Ok(128), |s| s.parse::<usize>())?;
+        dispatch(&args[3], &args[1], artifact, &inputs, batch_size)?
+    };
     println!("{}", serde_json::to_string(&result)?);
     Ok(())
 }
@@ -153,5 +254,23 @@ fn main() {
     if let Err(e) = main_impl() {
         eprintln!("ncm: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(all(test, feature = "cpu"))]
+mod tests {
+    use super::tinystories_prefixes;
+
+    #[test]
+    fn tinystories_requires_one_token_per_bounded_batch() {
+        assert!(tinystories_prefixes(&[]).is_err());
+        assert!(tinystories_prefixes(&[vec![]]).is_err());
+        assert!(tinystories_prefixes(&[vec![0, 2]]).is_err());
+        assert!(tinystories_prefixes(&vec![vec![0]; 129]).is_err());
+        assert_eq!(tinystories_prefixes(&[vec![0], vec![2]]).unwrap(), [0, 2]);
+        assert_eq!(
+            tinystories_prefixes(&vec![vec![0]; 128]).unwrap().len(),
+            128
+        );
     }
 }
