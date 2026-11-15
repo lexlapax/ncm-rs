@@ -258,6 +258,13 @@
       "status": "isolated Metal diagnostic deferred; not integrated",
       "finding": "Finite outputs bit-identical; three B4 process median ratios 0.9994/0.9994/0.9745 and p95 ratios 1.0140/1.0129/0.9504; no consistent material gain established.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-scalars-result-v1.md"
+    },
+    {
+      "id": "mlx-gelu-same-process",
+      "hypothesis": "Alternate eager and previously prototyped compiled GELU on the same trained model and process to reduce between-process drift.",
+      "status": "diagnostic promising for resident block; not integrated; startup/cache and end-to-end acceptance unresolved",
+      "finding": "Nine resident-block median comparisons improve; B4 compiled/eager 0.9380/0.9448/0.9364. Reconstruction medians range 0.9899–1.0088; one first compiled reconstruction 212.978 ms.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-toggle-result-v1.md"
     }
   ]
 }

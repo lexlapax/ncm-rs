@@ -4,9 +4,10 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Same-process GELU diagnostic prepared:** an isolated toggle alternates the
-  prior eager/compiled expressions on the same model to assess process drift;
-  production is unchanged. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-toggle-plan-v1.md).
+- **Same-process GELU diagnostic:** compiled exact GELU improves resident-block
+  medians in all nine comparisons; reconstruction is near unchanged. One first
+  compiled reconstruction took 213 ms. General cache/startup design and full
+  acceptance remain open; no integration. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-gelu-toggle-result-v1.md).
 
 - **GELU scalar reuse deferred:** finite outputs matched bitwise, but three
   isolated Metal processes showed no consistent material speedup; no backend
@@ -86,7 +87,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   outcomes match, but this is not a Python oracle or exhaustive proof. An initial
   shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
 
-- **Evidence reconciliation:** the current 36-entry experiment ledger and
+- **Evidence reconciliation:** the current 37-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
   open; the user was asked whether to choose a separately predeclared quiet
