@@ -9,7 +9,9 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   at 10 and 100 ms; cached codebook norms have 768 logical payload bytes. This
   is consistent with prepared-state overhead, not proof of allocation ownership
   or live-graph comparability. The immediate B4 difference and 1.05 criterion
-  remain open. [Evidence](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md).
+  remain open. The [completion checklist](docs/results/2026-11-11-phase2-optimization/completion-audit.md)
+  and experiment ledger now reflect the passing 78-cell control, Apple CPU
+  diagnostic and deferred fused interpolation. [Evidence](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md).
 
 - **Fused interpolation deferred after full-codec test:** Linux/CUDA and Metal
   checks and 642-trace / 2,500-decision qualification pass. B4 encode peak

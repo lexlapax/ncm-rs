@@ -387,18 +387,18 @@ publish the complete negative/no-go evidence instead. A failed candidate is not
 a passing gate: verify the actual retained final candidate on both platforms.
 Phase 3 still requires separate authorization.
 
-### Evidence checklist (pending runtime work)
+### Evidence checklist (Phase 2 remains open)
 
 Planned final evidence root: `docs/results/2026-11-11-phase2-optimization/`.
-These are deliverables, not files or results claimed to exist yet.
+These deliverables and statuses distinguish observed work from the remaining closure requirements.
 
 | Approved requirement | Required evidence before closure | Status |
 | --- | --- | --- |
-| Step 1: freeze/refresh baseline | `baseline.json`, source/binary/artifact identities, matched raw baseline runs and locked comparison config | Pending |
-| Step 2: independent lower-risk experiments | `experiments.json` with hypothesis, source diff, checks, raw measurements and keep/reject/defer reason for each opportunity | Pending |
-| Step 3: Linux then Apple | Ordered check/capture/probe logs; `linux-acceptance.json` and `mlx-acceptance.json`, each covering all 78 comparisons against current Rust and Python | Pending |
-| Step 4: all resource/lifecycle dimensions | Raw reports, CPU/allocation diagnostics, lifecycle/load/drop evidence, limitations and clean-checkout audit reproduction | Pending |
-| Step 5: conditional escalation and final audit | Profile-linked go/no-go decisions; `completion-audit.md` mapping requirements to inspected final-candidate evidence | Pending |
+| Step 1: freeze/refresh baseline | `baseline.json`, source/binary/artifact identities, matched raw baseline runs and locked comparison config | Baseline and locked config recorded; verify final source binding at closure |
+| Step 2: independent lower-risk experiments | `experiments.json` with hypothesis, source diff, checks, raw measurements and keep/reject/defer reason for each opportunity | Experiments and deferrals recorded; final dispositions remain to audit |
+| Step 3: Linux then Apple | Ordered check/capture/probe logs; `linux-acceptance.json` and `mlx-acceptance.json`, each covering all 78 comparisons against current Rust and Python | Both platform controlled 78-cell audits pass; named final reports and separate live-memory review remain open |
+| Step 4: all resource/lifecycle dimensions | Raw reports, CPU/allocation diagnostics, lifecycle/load/drop evidence, limitations and clean-checkout audit reproduction | CPU and lifecycle evidence recorded; comparable live memory remains unresolved and Apple allocation counts are unavailable |
+| Step 5: conditional escalation and final audit | Profile-linked go/no-go decisions; `completion-audit.md` mapping requirements to inspected final-candidate evidence | Decisions recorded; final requirement-by-requirement audit remains open |
 | Publish and close Phase 2, not Phase 3 | Final `README.md`, evidence index, reviewed commits/push and synchronized plan/tracker/context status | Pending |
 
 ### Required checks and reporting
