@@ -4,6 +4,13 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Settled memory accounting reviewed:** the archived matched Apple diagnostic
+  shows a 776-byte candidate delta in every workload and cross-process pairing
+  at 10 and 100 ms; cached codebook norms have 768 logical payload bytes. This
+  is consistent with prepared-state overhead, not proof of allocation ownership
+  or live-graph comparability. The immediate B4 difference and 1.05 criterion
+  remain open. [Evidence](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md).
+
 - **Fused interpolation deferred after full-codec test:** Linux/CUDA and Metal
   checks and 642-trace / 2,500-decision qualification pass. B4 encode peak
   drops 5.7% versus the current runtime but remains above old Rust; paired

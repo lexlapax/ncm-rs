@@ -47,6 +47,29 @@ live graphs or the ownership of each immediate allocation. The separate 1.05
 comparable steady-state live-memory criterion remains **unresolved**, not
 passed or failed by this diagnostic.
 
+An offline review of all 12 workload cells and all nine cross-process pairings
+per comparator found that every candidate-minus-comparator active-byte delta at
+both 10 and 100 ms is exactly 776 bytes. The twelve F32 codebook norm arrays
+introduced by prepared state have 768 logical payload bytes in total, from the
+recorded tensor shapes. This is consistent with a small persistent prepared-state
+cost, but the eight-byte difference and allocator ownership are not explained by
+these measurements. It does not identify the immediate B4 allocation or prove
+that the internal live graphs are comparable. The checker calculates both the
+observed deltas and the logical payload independently; the criterion remains open.
+
+Source inspection further narrows the interpretation. Both native checkouts
+retain the validated weight map, backend and configuration; the candidate adds
+only the model-owned norm cache in `Codec`. The Python comparison retains the
+same authenticated weights and model configuration, and the diagnostic drops
+each result while retaining its evaluated latent. MLX 0.32.2's
+[evaluation implementation](https://github.com/ml-explore/mlx/blob/v0.32.2/mlx/transforms.cpp)
+detaches non-tracer evaluated arrays, and [detach](https://github.com/ml-explore/mlx/blob/v0.32.2/mlx/array.cpp)
+clears their primitive and input references. Those facts support comparable
+*declared* roots and a transient-cleanup explanation. They do not enumerate
+Metal's outstanding completion-handler references or identify the residual
+eight bytes in the measured processes, so they do not independently prove that
+each allocator snapshot contains only equivalent live roots.
+
 The B4 encode peak active MLX allocation was 155,866,252 candidate bytes versus
 129,751,100 prior Rust and 129,750,040 Python (1.20127 and 1.20128). This is a
 real observed peak-counter difference, distinct from steady-state active memory,

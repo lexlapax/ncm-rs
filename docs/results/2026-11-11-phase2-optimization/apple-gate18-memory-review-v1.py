@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sys
 
+ROOT = Path(__file__).resolve().parents[3]
 root = Path(sys.argv[1])
 p = root / 'reports/phase2-mlx-live-memory-v1'
 meta = json.loads((p / 'metadata.json').read_bytes())
@@ -25,7 +26,13 @@ for x in meta['commands']:
     reports[x['role']].append(report)
 assert all(report['after_model_drop']['active'] == 0 for group in reports.values() for report in group)
 gate = json.loads((root / 'reports/phase2-mlx-gate18-matrix-v1/candidate/codec-rust-1.json').read_bytes())
+manifest = json.loads((ROOT / 'docs/results/2026-11-10-sudoku-artifacts/raw/artifact-manifest.json').read_bytes())
+books = [r for r in manifest['tensors']['codec.safetensors'] if r['name'].startswith('vq.embeddings.') and r['name'].endswith('.weight')]
+assert len(books) == 12 and all(r['shape'] == [16, 256] and r['dtype'] == 'F32' for r in books)
+logical_norm_bytes = sum(r['shape'][0] * 4 for r in books)
 violations = []
+settled_deltas = {stage: {role: [] for role in ('previous', 'python')} for stage in ('after_10ms', 'after_100ms')}
+
 for batch in (1, 2, 4):
     for scope in ('encode', 'decode', 'reconstruct', 'resident_decoder_block'):
         rows = {role: [next(x for x in report['rows'] if (x['batch'], x['scope']) == (batch, scope)) for report in reports[role]] for role in roles}
@@ -37,6 +44,8 @@ for batch in (1, 2, 4):
         for stage in ('immediate', 'synchronized', 'after_10ms', 'after_100ms'):
             values = {role: max(row[stage]['active'] for row in rows[role]) for role in roles}
             for other in ('previous', 'python'):
+                if stage in settled_deltas:
+                    settled_deltas[stage][other].extend(c[stage]['active'] - r[stage]['active'] for c in rows['candidate'] for r in rows[other])
                 ratio = values['candidate'] / values[other]
                 if ratio > 1.05:
                     violations.append({'batch': batch, 'scope': scope, 'stage': stage, 'comparator': other, 'ratio': ratio, 'bytes': values})
@@ -44,6 +53,8 @@ for batch in (1, 2, 4):
             peaks = {role: max(row['immediate']['peak'] for row in rows[role]) for role in roles}
 print(json.dumps({'all_processes_verified': True, 'matched_root_and_output_hashes': True,
                   'all_post_drop_active_zero': True, 'active_snapshot_over_1_05': violations,
+                  'settled_active_delta_values': {s: {r: sorted(set(v)) for r, v in roles.items()} for s, roles in settled_deltas.items()},
+                  'logical_cached_norm_bytes': logical_norm_bytes,
                   'b4_encode_peak_bytes': peaks,
                   'b4_encode_peak_ratio_previous': peaks['candidate'] / peaks['previous'],
                   'b4_encode_peak_ratio_python': peaks['candidate'] / peaks['python'],
