@@ -2,7 +2,7 @@
 
 Phase 1 is complete: 18 fixed operator cases pass CPU/CUDA/MLX, all 238 checkpoint
 tensors round-trip/read back exactly, and the tokenizer, artifact and real-Metal
-tests exist. There are 42 report-tool tests. Phase 2's unchanged
+tests exist. The local check also runs the report-tool suite. Phase 2's unchanged
 [codec reference contract](PHASE2.md), tiny synthetic fixture and trained CUDA
 oracle now qualify both GPU adapters. [Final dual-platform acceptance](results/2026-11-10-phase2-acceptance/README.md)
 passes 642 trained traces / 2,500 exact decisions per GPU, with two near ties
@@ -13,13 +13,12 @@ separate original-Python CPU/CUDA diagnostic failure. Those results qualify the
 earlier accepted candidate. Phase 2 is reopened for the
 [additional five-step plan](PHASE2-OPTIMIZATION-REVIEW.md); it requires fresh
 Linux-first/Apple-second gates against current accepted Rust and qualified Python,
-plus CPU/allocation and lifecycle evidence. Provisional Linux candidates now pass
-fresh CUDA checks and trained untraced snapshot/logit/ID equivalence; their
-[earlier 74/78 diagnostic audit](results/2026-11-11-phase2-low-risk/README.md) is not final
-acceptance. New [predeclared 30-process controls](results/2026-11-11-phase2-linux-controls/README.md)
-leave six comparisons open (72/78), despite passing correctness/lifetime checks.
-Remaining runtime gates are pending; default checks cannot satisfy them. The remaining model gates
-below are still planned.
+plus CPU/allocation and lifecycle evidence. The retained candidate passes the
+Linux and Apple controlled 78-cell timing and host-memory audits, with trained quality checks; historical failed controls
+remain published. A separate comparable live-memory criterion is still under
+review, so the expanded Phase 2 work is not complete. Default checks cannot
+substitute for either GPU validation. The remaining model gates below are still
+planned.
 
 ## Layers of evidence
 

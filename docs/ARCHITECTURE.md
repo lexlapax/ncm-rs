@@ -4,10 +4,10 @@ Status: [Phase 2 codec/tokenizer acceptance passes](results/2026-11-10-phase2-ac
 on Linux/CUDA then macOS/MLX. The shared codec/backend contract is implemented and
 validated for that scope; generator, sampling and inference-CLI architecture below
 remains planned. Crate boundaries do not imply full-model APIs or frozen abstractions.
-Phase 2 is reopened for the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md);
-[lower-risk Linux experiments](results/2026-11-11-phase2-low-risk/README.md) now
-include reconstruction latent reuse. These are provisional candidates, not final
-dual-platform acceptance or implementation of every proposed optimization.
+Phase 2 is reopened for the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md).
+The retained implementation passes the Linux and Apple controlled timing and
+host-memory audits, while the separate comparable live-memory criterion remains
+open. Experimental fused interpolation is deferred; it is not production code.
 
 ## Decision: one model, two runtime adapters
 

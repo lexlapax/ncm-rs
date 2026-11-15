@@ -13,6 +13,11 @@ both platform gates before advancing to the next phase; do not finish the whole
 CUDA project before starting Apple work. GPU feasibility and artifact work precede
 committing to a detailed delivery estimate.
 
+The current expanded candidate has passing Linux and Apple 78-cell controlled
+audits and qualified outputs. The separate comparable live-memory requirement,
+final evidence audit and publication remain open; see the [current completion
+checklist](results/2026-11-11-phase2-optimization/completion-audit.md).
+
 ## Phase 0 — research, structure, and review (complete)
 
 Deliver the workspace, provenance, architecture proposal, compatibility inventory,
