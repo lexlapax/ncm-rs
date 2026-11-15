@@ -4,6 +4,11 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **GELU scalar reuse diagnostic prepared:** isolate reuse of the three
+  immutable scalar arrays created per call in exact GELU; no production change.
+  Check Linux-first binding, then real Metal equivalence and timings before any
+  integration. [Plan](docs/results/2026-11-11-phase2-optimization/mlx-gelu-scalars-plan-v1.md).
+
 - **System-wide Metal trace captured an outlier:** one 1.617 ms B4 block
   overlaps 0.848 ms of other-process GPU intervals; the target main thread was
   blocked 1.450 ms. Three near-median trials have no recorded other-process GPU
