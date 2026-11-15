@@ -31,7 +31,12 @@ three pairs but the p95 increased in one, and several other scopes regressed
 or varied markedly. CPU activity samples showed corespotlightd up to 147.2%,
 mediaanalysisd up to 58.5% and WindowServer up to 39.7%; these are sampled
 process CPU percentages, not evidence of GPU overlap or causation. Thermal
-status reported no warnings. This noisy, mixed result does not establish a
+status reported no warnings. The 2-second samples overlapped each benchmark
+process (six samples each); peak combined CPU for Spotlight/media indexing
+processes was 0.0/23.5, 147.2/0.8 and 51.8/58.5 percent for current/candidate
+in pairs 1, 2 and 3. These sparse samples cannot establish which individual
+trials were affected, and all paired timings are retained. This noisy, mixed
+result does not establish a
 useful full-codec improvement or explain the prior tail. Do not integrate the
 candidate or claim the existing Apple gate passed.
 

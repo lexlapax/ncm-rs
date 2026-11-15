@@ -7,7 +7,8 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 - **Unmasked attention deferred:** Linux/CUDA and full Metal checks pass;
   trained qualification passes 642 traces and 2,500 decisions. Three paired
   Metal processes show mixed timings and sampled desktop activity, so no runtime
-  change or gate pass is claimed. The `macstudio` SSH host entry works; do not
+  change or gate pass is claimed. The ledger/checklist and per-process sampled
+  activity are reconciled. The `macstudio` SSH host entry works; do not
   override its identity agent. [Evidence](docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-metal-v1.md).
 
 - **Apple all-cell sensitivity:** both retained controls' 58 timing cells and
@@ -70,7 +71,7 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
   outcomes match, but this is not a Python oracle or exhaustive proof. An initial
   shared-Cargo-target comparison was rejected as inconclusive. [Review](docs/results/2026-11-11-phase2-optimization/upstream-alignment-review-v1.md).
 
-- **Evidence reconciliation:** the current 32-entry experiment ledger and
+- **Evidence reconciliation:** the current 34-entry experiment ledger and
   completion checklist now distinguish historical runs from current Linux
   78/78 and Apple initial/control 78/78 and 76/78. Final acceptance remains
   open; the user was asked whether to choose a separately predeclared quiet

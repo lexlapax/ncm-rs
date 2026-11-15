@@ -237,6 +237,13 @@
       "status": "deferred; not integrated; full-codec diagnostic mixed and first-use/cache costs remain unresolved",
       "finding": "Metal edge cases and 642 trained traces pass; B4 block median improves across three pairs, while B2 block and reconstruction regress in two pairs.",
       "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-gelu-codec-experiment-v1.md"
+    },
+    {
+      "id": "mlx-unmasked-attention",
+      "hypothesis": "Pass no mask for unmasked bidirectional attention instead of constructing a scalar zero mask, retaining explicit masks.",
+      "status": "isolated candidate deferred; Linux and Metal correctness pass, full-codec diagnostic mixed, final Apple gate remains open",
+      "finding": "CUDA checks pass with identical qualified Linux binaries. Metal checks and 642 traces / 2,500 decisions pass; three paired B4 block median ratios 0.965/0.975/0.987 but p95 ratios 0.980/0.974/1.056 and other scopes mixed amid sampled desktop activity. No production change.",
+      "evidence": "docs/results/2026-11-11-phase2-optimization/mlx-attention-nomask-metal-v1.md"
     }
   ]
 }
