@@ -1,4 +1,4 @@
-"""Compare old and prepared-RoPE Metal binaries in fresh alternating processes."""
+"""Compare baseline and candidate Metal generators in fresh alternating processes."""
 import argparse
 import json
 import math
@@ -19,6 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--baseline', required=True, type=Path)
     parser.add_argument('--candidate', required=True, type=Path)
+    parser.add_argument('--candidate-source', type=Path, help='isolated candidate generator source to fingerprint')
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
@@ -34,6 +35,8 @@ def main():
                old, new]
     watched += list((ROOT / 'crates').rglob('*.rs')) + list((ROOT / 'crates').rglob('Cargo.toml'))
     watched += [p for p in ARTIFACT.rglob('*') if p.is_file()]
+    if args.candidate_source:
+        watched.append(args.candidate_source.resolve())
     before = {str(p): digest(p) for p in watched}
     out.mkdir(parents=True)
     manifest = {'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
