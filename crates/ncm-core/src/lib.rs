@@ -214,6 +214,25 @@ pub trait GeneratorBackend: CodecBackend {
         self.reshape(&self.permute(x, &[0, 2, 1, 3])?, &[batch, seq, width])
     }
     fn concat_f32(&self, xs: &[Self::Tensor], axis: usize) -> Result<Self::Tensor>;
+    /// Prepare immutable model-owned rotary tables for repeated attention blocks.
+    /// The default retains the ordinary half-width cosine and sine arrays.
+    fn prepare_rope_tables(
+        &self,
+        cos: &Self::Tensor,
+        sin: &Self::Tensor,
+    ) -> Result<[Self::Tensor; 2]> {
+        Ok([cos.clone(), sin.clone()])
+    }
+    /// Apply tables returned by this backend's `prepare_rope_tables`.
+    /// The default uses the ordinary split-half operation.
+    fn rope_prepared(
+        &self,
+        x: &Self::Tensor,
+        cos: &Self::Tensor,
+        sin: &Self::Tensor,
+    ) -> Result<Self::Tensor> {
+        self.rope(x, cos, sin)
+    }
     /// Split-half rotary embedding with explicit [sequence, head_width/2]
     /// cosine/sine arrays; positions are supplied by the model.
     fn rope(
