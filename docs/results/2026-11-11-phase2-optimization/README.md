@@ -1,13 +1,6 @@
 # Additional Phase 2 optimization — baseline checkpoint
 
-**In progress, not final acceptance.** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
-remains open. The current candidate passes the [Linux initial and fixed control](tiny-borrow-linux-gate-v1.md)
-78/78. Its [Apple initial matrix](tiny-borrow-apple-gate-v1.md) passes 78/78,
-but its predeclared control is 76/78: batch-4 decoder-block p95 remains open
-against both comparators. Full hardware checks and trained qualifications pass;
-no gate or numerical limit is waived. [Completion audit](completion-audit.md),
-[experiment ledger](experiments.json), and [block-tail diagnostic](mlx-block-segments-v1.md)
-track the current state. Phase 3 remains out of scope.
+**In progress, not final acceptance.** The approved [five-step contract](../../PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates) remains open. The current runtime passes the Linux initial and controlled 78/78 gates and the [Apple 18-process controlled 78/78 gate](apple-gate18-results-v1.md), with the initial Apple B4 tail failure retained. The separate live-memory comparability question and higher B4 encode peak remain unresolved. Full hardware checks and trained qualifications pass; no gate or numerical limit is waived. [Completion audit](completion-audit.md) and [experiment ledger](experiments.json) retain the history. Phase 3 remains out of scope.
 
 The following sections preserve the historical baseline checkpoint, not the
 status of the current implementation. Subsequent [lower-risk candidates](../2026-11-11-phase2-low-risk/README.md),

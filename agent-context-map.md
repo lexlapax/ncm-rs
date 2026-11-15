@@ -4,18 +4,12 @@ Last updated: 2026-11-14 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Apple live-memory comparability unresolved:** retained B4 post-block active
-  snapshots reach 1.058744× prior Rust and 1.162296× Python, beyond the 1.05
-  live-memory band if comparable. Object liveness/cleanup are not established;
-  this is neither a gate pass nor failure. A matched [follow-up](docs/results/2026-11-11-phase2-optimization/mlx-live-memory-plan-v1.md) is prepared. [Review](docs/results/2026-11-11-phase2-optimization/mlx-active-snapshot-review-v1.md).
-
-- **Apple 18-process control authorized:** user confirmed the Mac is ready;
-  run the fresh matrix and unconditional full control with unchanged criteria.
-  A separate post-pass [CPU/resource comparison](docs/results/2026-11-11-phase2-optimization/apple-resources-plan-v1.md) is prepared.
-  [Plan](docs/results/2026-11-11-phase2-optimization/apple-gate18-plan-v1.md).
-  The controlled 78-cell audit passed on the Mac; resource and live-memory
-  evidence remain pending. The matched memory runner validates gate inputs
-  and records source, binaries and activity before measuring.
+- **Apple 18-process control passed 78/78** after the initial B4 tail failure;
+  quality passed, and the separate 45-process CPU comparison is validated.
+  Matched live-memory probes show a 1.058744 immediate B4 block ratio, settling
+  near parity after a barrier; B4 encode peak active bytes are 1.20127× prior
+  Rust. The 1.05 steady-state live criterion and peak explanation remain open;
+  Phase 2 is not complete. [Evidence and activity](docs/results/2026-11-11-phase2-optimization/apple-gate18-results-v1.md).
 
 - **Same-process unmasked attention deferred:** output comparisons pass but
   B4 block medians are mixed (0.985/0.977/1.007); no runtime change or gate
