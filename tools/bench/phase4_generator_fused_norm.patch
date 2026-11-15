@@ -1,0 +1,11 @@
+--- a/crates/ncm-model/src/generator.rs
++++ b/crates/ncm-model/src/generator.rs
+@@ -525,7 +525,7 @@
+     let linear =
+         |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
+     let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
+-        b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
++        b.layer_norm_accelerated(x, &affine.weight, Some(&affine.bias), 1e-6)
+     };
+     let mut x = b.concat_f32(&[prefix.clone(), target.clone()], 1)?;
+     for block in blocks {
