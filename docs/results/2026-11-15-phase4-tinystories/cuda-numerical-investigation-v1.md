@@ -21,3 +21,19 @@ LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/
 ```
 
 The library search paths above are local to these commands. Other installations should supply a compatible native cuDNN 9 development linker name at build time and its runtime libraries at execution time; the tested numbers do not qualify a different version. The `cuda-cudnn` feature is opt-in, and `CandleBackend::cuda_cudnn` must be selected explicitly by an application. The ordinary `cuda` feature and `CandleBackend::cuda` keep their existing behavior.
+
+## Expanded natural-input CUDA trace
+
+Five independent Rust development sample files, seeds 100–104, supplied 16 rows apiece. Their sampled code sequences were forced into both generators; the corresponding generated raw token IDs were also used as codec encoder inputs. Thus the 80 codec inputs are generated model output, not an independent natural-text corpus, and the generator comparison is teacher-forced rather than a stochastic-seed identity test. All 51,280 encoded codec codes, 10,240 decoded output IDs, and 51,200 per-level generator argmaxes matched pinned Python. All captured floating-point values across 28 named tensors per run were within the unchanged Phase 2 accumulated diagnostic band (`atol=5e-4`, `rtol=2e-4`). This expands the earlier 16-row trace and does not imply exhaustive input or cuDNN-version coverage.
+
+Across 61,440 generator-head and final-decoder argmax rows, 14 generator rows had a Python top-two gap no greater than twice the maximum absolute Python/Rust logit difference in that entire tensor; none changed argmax. This deliberately conservative bound identifies possible near ties, not a prediction that these rows should differ. The minimum observed top-two gap was `3.2424927e-5`. The analysis is reproducible with `tools/reference/tinystories_near_ties.py`; its output `reports/phase4-tinystories-natural-trace-v1/near-ties.json` has SHA-256 `93f341e81cce91727548446b7aa704e2f6bcced92afd2694547bd8d35cca1005`, and an independent invocation reproduced it byte-for-byte.
+
+| Development seed | Python trace SHA-256 | Rust comparison SHA-256 |
+| ---: | --- | --- |
+| 100 | `bf56325a8cd2b2e25056e86730c6617c9e48115126dbf9885b020d08ee27f6f6` | `097efce794040457804cc95a0a5c8fc4e362792abdc3d2a9af3752576274e748` |
+| 101 | `6538f0dca83cea11be1e205426d3edccf32acd2225f857d612a9511ae7fcc8b9` | `d7d78dc08f88eefe7266157f341a2e83d3265fd2de27482e5b506e1db66b89bc` |
+| 102 | `4b7e5857ed5d6e77c9dd9295db4e1480ed45fd29ae6125237f831c72cb40a0b1` | `a7cf645c108392a6007273dd6076273b9a9874e434cd8735fcf17a8e0958404f` |
+| 103 | `bcd9e06d42df1bd3ad375b06c7b1c0c2ced416fb9d3faae42c93d42450effab6` | `97da206a45b6bec58e6a3f217543b4e8513e283bf9b327838bc092a958d227ec` |
+| 104 | `b519ef14a41d6c98031586b03084d2b7ab3055a3fdb6b316a03f82cdaad75ec1` | `d4fb53903e91029cc4afc65a74b2903b54ada2a8c97439545c14411cd12af956` |
+
+Each run used `tools/reference/tinystories_trace.py --sample reports/phase4-tinystories-development-v2/rust-<seed>.json --count 16 --natural-codec-input` with the pinned `--upstream` and `--source` arguments and a new output directory, followed by the `cuda-cudnn` build of `tinystories_teacher_probe` against that trace. The trace script SHA-256 was `b80fe52ea6f6d3ebc9e567681d3993e3491b6d3d3a0dfb46e5552720c6946aba`. Full trace, input-file identities and comparison summaries are retained under ignored `reports/phase4-tinystories-natural-trace-v1/`.

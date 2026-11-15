@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--sample', type=Path, help='development samples supplying fixed code rows')
     parser.add_argument('--count', type=int, default=16)
+    parser.add_argument('--natural-codec-input', action='store_true',
+                        help='use the sample file raw IDs for the codec trace')
     args = parser.parse_args()
     if args.output.exists() or args.output.is_symlink():
         raise ValueError('output must not exist')
@@ -66,8 +68,16 @@ def main():
         combined = torch.tensor(rows, dtype=torch.long, device='cuda')
         forced = list(combined.split(levels, dim=1))
     prefix = torch.zeros((batch, 1), dtype=torch.long, device='cuda')
-    # Synthetic codec IDs cover ordinary IDs and special tokens; not natural text quality.
-    inputs = (torch.arange(batch * 128, device='cuda').reshape(batch, 128) * 29 % 8192).long()
+    if args.natural_codec_input:
+        if args.sample is None:
+            raise ValueError('natural codec inputs require a sample file')
+        input_rows = json.loads(args.sample.read_bytes())['raw_ids'][:batch]
+        if len(input_rows) != batch or any(len(row) != 128 or any(type(v) is not int or not 0 <= v < 8192 for v in row) for row in input_rows):
+            raise ValueError('invalid sampled codec input IDs')
+        inputs = torch.tensor(input_rows, dtype=torch.long, device='cuda')
+    else:
+        # Synthetic codec IDs cover ordinary IDs and special tokens.
+        inputs = (torch.arange(batch * 128, device='cuda').reshape(batch, 128) * 29 % 8192).long()
     calls = [0]
     def forced_sample(logits, temperature, top_k, top_p):
         level = calls[0] + 1
@@ -102,6 +112,7 @@ def main():
               'torch': torch.__version__, 'cuda_device': torch.cuda.get_device_name(0),
               'tf32': False, 'sdpa': 'math', 'batch': batch,
               'mode': 'teacher forced fixed code indices; sampling not evaluated',
+              'codec_inputs': 'sample raw IDs' if args.natural_codec_input else 'synthetic IDs',
               'sample_sha256': digest_file(args.sample) if args.sample else None,
               'trace_sha256': digest_file(args.output / 'trace.safetensors'),
               'tensors': sorted(traces)}
