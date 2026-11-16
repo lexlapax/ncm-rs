@@ -20,7 +20,11 @@ over these 256 rows with NumPy `default_rng(20261116)` gave 95% percentile
 intervals of 32.913–36.287, 11.320–14.269 and 26.351–29.579 ROUGE points,
 and 20.418–21.434 words. These describe the small development sample, not a
 held-out confidence interval or a quality margin. Perplexity uncertainty has
-not been estimated on the development sample.
+not been estimated on the development sample. The bootstrap command was:
+
+```sh
+PYTHONPATH=.reference/phase4-eval-deps .reference/venv/bin/python -c 'import json,numpy as np; d=json.load(open("reports/phase4-xsum-quality-python-dev-seed42-rouge.json")); rng=np.random.default_rng(20261116); idx=rng.integers(0,256,size=(10000,256)); vals={k:np.array([100*r["rouge"][k] for r in d["rows"]]) for k in ("rouge1","rouge2","rougeL")}; vals["words"]=np.array([len(r["hypothesis"].split()) for r in d["rows"]]); print({k:[round(float(z),3) for z in np.quantile(v[idx].mean(axis=1),[.025,.975])] for k,v in vals.items()})'
+```
 
 The scorer's decoded text agreed with the pinned upstream `HFTokenizer` for
 all 256 outputs, and a direct independent aggregation using the upstream
@@ -102,6 +106,25 @@ The generator accepts `--upstream .reference/upstream-ncm`,
 Run `tools/reference/xsum_quality_score.py` with both shard directories, the
 same data and upstream paths, `--stop 256`, and `--with-ppl` for the full
 metric. Run Python through `.reference/venv/bin/python` with `OMP_NUM_THREADS=1`.
+The following commands generated the seed-42 development batches and the
+seed-314159 comparison, respectively. The seed-42 shard-0 directory already
+contained the two restart-validated batches when the first command resumed it.
+Choose new output directories for a fresh reproduction; these retained paths
+may now contain later full-run batches and will reject a smaller stop boundary.
+
+```sh
+OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/xsum_quality_generate.py --upstream .reference/upstream-ncm --source artifacts/upstream/xsum-phase4 --data artifacts/canonical/text-phase4-v1/xsum.json --output reports/phase4-xsum-quality-python-smoke-s0 --shard 0 --seed 42 --stop 256 > reports/phase4-xsum-quality-python-dev-s0.log 2>&1
+OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/xsum_quality_generate.py --upstream .reference/upstream-ncm --source artifacts/upstream/xsum-phase4 --data artifacts/canonical/text-phase4-v1/xsum.json --output reports/phase4-xsum-quality-python-dev-s1 --shard 1 --seed 42 --stop 256 > reports/phase4-xsum-quality-python-dev-s1.log 2>&1
+OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/xsum_quality_generate.py --upstream .reference/upstream-ncm --source artifacts/upstream/xsum-phase4 --data artifacts/canonical/text-phase4-v1/xsum.json --output reports/phase4-xsum-quality-python-dev-seed314159-s0 --shard 0 --seed 314159 --stop 256 > reports/phase4-xsum-quality-python-dev-seed314159-s0.log 2>&1
+OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/xsum_quality_generate.py --upstream .reference/upstream-ncm --source artifacts/upstream/xsum-phase4 --data artifacts/canonical/text-phase4-v1/xsum.json --output reports/phase4-xsum-quality-python-dev-seed314159-s1 --shard 1 --seed 314159 --stop 256 > reports/phase4-xsum-quality-python-dev-seed314159-s1.log 2>&1
+```
+
+The version-2 full development scores were obtained with:
+
+```sh
+OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/xsum_quality_score.py --shard0 reports/phase4-xsum-quality-python-smoke-s0 --shard1 reports/phase4-xsum-quality-python-dev-s1 --data artifacts/canonical/text-phase4-v1/xsum.json --upstream .reference/upstream-ncm --output reports/phase4-xsum-quality-python-dev-seed42-full-v2.json --stop 256 --with-ppl > reports/phase4-xsum-quality-python-dev-seed42-full-v2.log 2>&1
+OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/xsum_quality_score.py --shard0 reports/phase4-xsum-quality-rust-dev-v2-s0 --shard1 reports/phase4-xsum-quality-rust-dev-v2-s1 --data artifacts/canonical/text-phase4-v1/xsum.json --upstream .reference/upstream-ncm --output reports/phase4-xsum-quality-rust-dev-v2-full.json --stop 256 --with-ppl > reports/phase4-xsum-quality-rust-dev-v2-full.log 2>&1
+```
 
 The first Rust quality-tool build failed because the linker could not find
 `libcudnn.so`; its log is `reports/phase4-xsum-rust-quality-build-v1.log`.
