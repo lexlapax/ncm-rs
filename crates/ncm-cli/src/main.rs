@@ -188,12 +188,16 @@ fn xsum_prefixes(inputs: &[Vec<u32>]) -> Result<Vec<u32>> {
 }
 
 #[cfg(feature = "cuda-cudnn")]
-fn sample_xsum(artifact: Artifact, inputs: &[Vec<u32>]) -> Result<serde_json::Value> {
+fn sample_xsum(
+    artifact: Artifact,
+    inputs: &[Vec<u32>],
+    cfg_scale: f64,
+) -> Result<serde_json::Value> {
     let prefixes = xsum_prefixes(inputs)?;
     let backend = ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?;
     let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
     drop(artifact);
-    let generated = model.generate_top1_device(&prefixes, inputs.len())?;
+    let generated = model.generate_top1_cfg_device(&prefixes, inputs.len(), cfg_scale)?;
     let codes = backend.read_indices(&generated.codes)?;
     if codes.len() != inputs.len() * 200 || generated.ids.len() != inputs.len() * 48 {
         return Err("invalid XSum backend output shape".into());
@@ -218,11 +222,12 @@ fn dispatch_xsum(
     device: &str,
     artifact: Artifact,
     inputs: &[Vec<u32>],
+    cfg_scale: f64,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs);
+    let _ = (&artifact, inputs, cfg_scale);
     match device {
         #[cfg(feature = "cuda-cudnn")]
-        "cuda-cudnn" => sample_xsum(artifact, inputs),
+        "cuda-cudnn" => sample_xsum(artifact, inputs, cfg_scale),
         _ => Err("XSum requires the explicit cuda-cudnn device in this build; no fallback".into()),
     }
 }
@@ -276,9 +281,8 @@ fn main_impl() -> Result<()> {
             "generate" | "reconstruct" | "sample-tinystories" | "sample-xsum"
         )
         || (args[1] == "sample-tinystories" && args.len() != 6)
-        || (args[1] == "sample-xsum" && args.len() != 5)
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn INPUT_JSON".into());
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn INPUT_JSON [CFG_SCALE]".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)
@@ -302,7 +306,8 @@ fn main_impl() -> Result<()> {
     }
     let inputs: Vec<Vec<u32>> = serde_json::from_slice(&bytes)?;
     let result = if args[1] == "sample-xsum" {
-        dispatch_xsum(&args[3], artifact, &inputs)?
+        let cfg_scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
+        dispatch_xsum(&args[3], artifact, &inputs, cfg_scale)?
     } else if let Some(seed) = sample_seed {
         dispatch_tinystories(&args[3], artifact, &inputs, seed)?
     } else {

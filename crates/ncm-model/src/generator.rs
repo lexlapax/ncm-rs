@@ -1063,7 +1063,8 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let result = self.run_internal(prefix_tokens, Some(forced_codes), batch, trace, true)?;
+        let result =
+            self.run_internal(prefix_tokens, Some(forced_codes), batch, trace, true, None)?;
         Ok(XsumTeacherOutput {
             codes: result.codes,
             logits: result.logits,
@@ -1087,7 +1088,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let output = self.run_internal(prefix_tokens, None, batch, trace, true)?;
+        let output = self.run_internal(prefix_tokens, None, batch, trace, true, None)?;
         // Selection is independent between rows. Limit the explicit FP32 host
         // readback to four rows instead of materializing the full batch.
         let mut ids = Vec::with_capacity(batch * 48);
@@ -1120,7 +1121,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let output = self.run_internal(prefix_tokens, None, batch, trace, true)?;
+        let output = self.run_internal(prefix_tokens, None, batch, trace, true, None)?;
         self.finish_device(output)
     }
 
@@ -1134,7 +1135,47 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let output = self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, false)?;
+        let output =
+            self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, false, None)?;
+        self.finish_device(output)
+    }
+
+    /// Generate top-1 codes with the pinned upstream classifier-free guidance
+    /// schedule. A positive scale uses a doubled document/null batch; exact
+    /// head ties remain unsupported. Scale zero uses ordinary generation.
+    pub fn generate_top1_cfg_device(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+    ) -> Result<XsumGenerated<B>> {
+        if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
+            return Err(Error::Input("invalid XSum CFG scale".into()));
+        }
+        if scale == 0.0 {
+            return self.generate_top1_device(prefix_tokens, batch);
+        }
+        if !(1..=64).contains(&batch) || batch.checked_mul(512) != Some(prefix_tokens.len()) {
+            return Err(Error::Input("XSum CFG expects 1..=64 prefixes".into()));
+        }
+        let mut prefixes = Vec::with_capacity(batch * 1024);
+        prefixes.extend_from_slice(prefix_tokens);
+        for _ in 0..batch {
+            prefixes.push(50256);
+            prefixes.extend(std::iter::repeat_n(50257, 511));
+        }
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let output = self.run_internal(
+            &prefixes,
+            None,
+            batch * 2,
+            &mut crate::NoTrace,
+            false,
+            Some((batch, scale)),
+        )?;
         self.finish_device(output)
     }
 
@@ -1159,6 +1200,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
         need_greedy: bool,
+        cfg: Option<(usize, f64)>,
     ) -> Result<XsumRun<B>> {
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
@@ -1242,6 +1284,13 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
             let selected = if let Some(codes) = &forced {
                 b.narrow_indices(codes, 1, offset, length)?
+            } else if let Some((original_batch, scale)) = cfg {
+                let t = scale * (level as f64 / (levels.len() - 1).max(1) as f64);
+                let conditioned = b.narrow(&logits, 0, 0, original_batch)?;
+                let null = b.narrow(&logits, 0, original_batch, original_batch)?;
+                let guided = b.sub(&b.scale(&conditioned, 1.0 + t)?, &b.scale(&null, t)?)?;
+                let selected = b.unique_max_4096(&guided)?;
+                b.concat_indices(&[selected.clone(), selected], 0)?
             } else {
                 b.unique_max_4096(&logits)?
             };
@@ -1269,6 +1318,14 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             ));
         }
         let latent = cumulative.expect("validated levels");
+        let (codes, latent) = if let Some((original_batch, _)) = cfg {
+            (
+                b.narrow_indices(&codes, 0, 0, original_batch)?,
+                b.narrow(&latent, 0, 0, original_batch)?,
+            )
+        } else {
+            (codes, latent)
+        };
         let (logits, greedy_ids) = if need_greedy {
             let (logits, ids) = self
                 .codec
