@@ -22,5 +22,7 @@ pub mod ops;
 pub mod resample;
 #[cfg(feature = "cpu")]
 mod runtime;
+#[cfg(feature = "cuda")]
+mod unique_top1;
 #[cfg(feature = "cpu")]
 pub use runtime::CandleBackend;

@@ -890,6 +890,12 @@ pub struct XsumTeacherOutput<B: ncm_core::GeneratorBackend> {
     pub greedy_ids: B::Indices,
 }
 
+/// XSum generated codes and final IDs after the explicit CPU FP64 penalties.
+pub struct XsumGenerated<B: ncm_core::GeneratorBackend> {
+    pub codes: B::Indices,
+    pub ids: Vec<u32>,
+}
+
 impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
         let inspection = crate::XsumGeneratorInspection::from_artifact(artifact)?;
@@ -1000,18 +1006,62 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        self.run_internal(prefix_tokens, Some(forced_codes), batch, trace)
+    }
+
+    /// Generate with the pinned temperature-1, top-k-1, top-p-0, CFG-0
+    /// configuration when each maximum is unique. Exact ties fail explicitly:
+    /// upstream's sort order for ties is device dependent. The backend must
+    /// explicitly implement unique-maximum selection; there is no fallback.
+    pub fn generate_top1_traced(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<XsumGenerated<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let output = self.run_internal(prefix_tokens, None, batch, trace)?;
+        // Selection is independent between rows. Limit the explicit FP32 host
+        // readback to four rows instead of materializing the full batch.
+        let mut ids = Vec::with_capacity(batch * 48);
+        for start in (0..batch).step_by(4) {
+            let count = (batch - start).min(4);
+            let chunk = self.backend.narrow(&output.logits, 0, start, count)?;
+            ids.extend(crate::select_xsum_tokens_cpu(
+                &self.backend.read_f32(&chunk)?,
+                &self.token_allowance,
+                count,
+                48,
+            )?);
+        }
+        Ok(XsumGenerated {
+            codes: output.codes,
+            ids,
+        })
+    }
+
+    fn run_internal(
+        &self,
+        prefix_tokens: &[u32],
+        forced_codes: Option<&[u32]>,
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<XsumTeacherOutput<B>> {
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
         if !(1..=128).contains(&batch)
             || batch.checked_mul(512) != Some(prefix_tokens.len())
-            || batch.checked_mul(total) != Some(forced_codes.len())
+            || forced_codes.is_some_and(|codes| batch.checked_mul(total) != Some(codes.len()))
             || prefix_tokens.iter().any(|&v| v >= 50304)
             || prefix_tokens
                 .as_chunks::<512>()
                 .0
                 .iter()
                 .any(|row| row.iter().all(|&v| v == 50257))
-            || forced_codes.iter().any(|&v| v >= 4096)
+            || forced_codes.is_some_and(|codes| codes.iter().any(|&v| v >= 4096))
         {
             return Err(Error::Input(
                 "invalid XSum prefix, forced codes or batch".into(),
@@ -1021,7 +1071,10 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         let prefix_ids = b.upload_indices(prefix_tokens, &[batch, 512])?;
         let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
         let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
-        let codes = b.upload_indices(forced_codes, &[batch, total])?;
+        let forced = forced_codes
+            .map(|codes| b.upload_indices(codes, &[batch, total]))
+            .transpose()?;
+        let mut selected_levels = Vec::with_capacity(levels.len());
         let mut cumulative: Option<B::Tensor> = None;
         let mut offset = 0;
         for (level, &length) in levels.iter().enumerate() {
@@ -1071,9 +1124,18 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             let score = b.scale(&score, 1.0 / f64::from(head.mean_squared_norm))?;
             let logits = b.scale(&score, f64::from(head.inverse_temperature))?;
             trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
-            let selected = b.narrow_indices(&codes, 1, offset, length)?;
+            let selected = if let Some(codes) = &forced {
+                b.narrow_indices(codes, 1, offset, length)?
+            } else {
+                b.unique_max_4096(&logits)?
+            };
             offset += length;
-            let embedding = b.embedding(book, &selected)?;
+            selected_levels.push(selected.clone());
+            let embedding = if forced.is_some() {
+                b.embedding(book, &selected)?
+            } else {
+                b.sampled_embedding_4096(book, &selected)?
+            };
             let contribution = self
                 .codec
                 .refine(&self.codec.upsample(&embedding, level)?, level)?;
@@ -1083,6 +1145,12 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             };
             trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
             cumulative = Some(sum);
+        }
+        let codes = b.concat_indices(&selected_levels, 1)?;
+        if forced.is_none() && b.read_indices(&codes)?.iter().any(|&value| value >= 4096) {
+            return Err(Error::Backend(
+                "tied or nonfinite XSum head maximum is unsupported".into(),
+            ));
         }
         let (logits, greedy_ids) = self
             .codec

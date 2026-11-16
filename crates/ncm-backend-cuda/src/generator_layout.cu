@@ -1,4 +1,39 @@
 #include <math_constants.h>
+
+// Unique finite maximum per 4096-way row. Exact ties and nonfinite values are
+// rejected with a sentinel; no ordering claim is made for upstream tied sorts.
+extern "C" __global__ void ncm_unique_max_4096(const float* logits, unsigned int* output) {
+    const unsigned int t = threadIdx.x, row = blockIdx.x;
+    const float* values = logits + row * 4096;
+    __shared__ float maxima[256];
+    __shared__ unsigned int indices[256], counts[256], bad;
+    if (t == 0) bad = 0;
+    __syncthreads();
+    float best = -CUDART_INF_F;
+    unsigned int index = 0, count = 0;
+    for (unsigned int j = 0; j < 16; ++j) {
+        unsigned int i = t * 16 + j;
+        float value = values[i];
+        if (!isfinite(value)) atomicOr(&bad, 1);
+        if (value > best) { best = value; index = i; count = 1; }
+        else if (value == best) { ++count; }
+    }
+    maxima[t] = best; indices[t] = index; counts[t] = count;
+    __syncthreads();
+    for (unsigned int stride = 128; stride > 0; stride >>= 1) {
+        if (t < stride) {
+            if (maxima[t + stride] > maxima[t]) {
+                maxima[t] = maxima[t + stride];
+                indices[t] = indices[t + stride];
+                counts[t] = counts[t + stride];
+            } else if (maxima[t + stride] == maxima[t]) {
+                counts[t] += counts[t + stride];
+            }
+        }
+        __syncthreads();
+    }
+    if (t == 0) output[row] = bad || counts[0] != 1 ? 0xffffffffU : indices[0];
+}
 // FP32 layout copies only: no arithmetic on tensor values. The Rust caller
 // validates batch <= 128, sequence <= 768, heads == 8 and head width == 64.
 extern "C" __global__ void ncm_pack_qkv_8x64(const float* input, float* output,

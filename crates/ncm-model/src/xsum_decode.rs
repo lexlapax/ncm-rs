@@ -90,4 +90,16 @@ mod tests {
         assert!(select_xsum_tokens_cpu(&[0.0], &[-1.0], 1, 1).is_err());
         assert!(select_xsum_tokens_cpu(&[f32::INFINITY], &[1.0], 1, 1).is_err());
     }
+
+    #[test]
+    fn independent_batch_chunks_match_whole_batch() {
+        let values: Vec<f32> = (0..5 * 3 * 7)
+            .map(|i| ((i * 17 % 31) as f32 - 15.0) / 7.0)
+            .collect();
+        let allowance = [1.0 / 7.0; 7];
+        let whole = select_xsum_tokens_cpu(&values, &allowance, 5, 3).unwrap();
+        let mut chunked = select_xsum_tokens_cpu(&values[..4 * 3 * 7], &allowance, 4, 3).unwrap();
+        chunked.extend(select_xsum_tokens_cpu(&values[4 * 3 * 7..], &allowance, 1, 3).unwrap());
+        assert_eq!(whole, chunked);
+    }
 }

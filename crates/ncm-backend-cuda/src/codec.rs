@@ -397,6 +397,19 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             ))
         }
     }
+    fn unique_max_4096(&self, logits: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        {
+            crate::unique_top1::unique_max(self, logits).map_err(|e| Error::Backend(e.to_string()))
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            let _ = logits;
+            Err(Error::Backend(
+                "native unique top-1 selection is unsupported".into(),
+            ))
+        }
+    }
     fn pack_qkv(
         &self,
         x: &Tensor,

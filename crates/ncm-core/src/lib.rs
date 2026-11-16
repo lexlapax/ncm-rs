@@ -122,6 +122,13 @@ pub trait CodecBackend: WeightBackend {
 /// Additional operations needed by the eager generator. Implementations retain
 /// the same FP32, device and immutable-value guarantees as `CodecBackend`.
 pub trait GeneratorBackend: CodecBackend {
+    /// Select unique finite maxima from 4096-way rows. Ties and nonfinite rows
+    /// produce u32::MAX, which must be checked before returning a result.
+    fn unique_max_4096(&self, _logits: &Self::Tensor) -> Result<Self::Indices> {
+        Err(Error::Backend(
+            "native unique top-1 selection is unsupported".into(),
+        ))
+    }
     /// Experimental 4096-way categorical draw with one supplied random word
     /// per row. Each full 32-bit word represents a uniform in [0,1). Invalid rows must
     /// return u32::MAX, which the caller must reject before returning results.
