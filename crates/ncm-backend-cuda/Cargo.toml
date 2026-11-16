@@ -165,3 +165,7 @@ required-features = ["cuda-cudnn"]
 [[example]]
 name = "xsum_shared_history_capture"
 required-features = ["cuda-cudnn"]
+
+[[example]]
+name = "xsum_shared_logits_sampler_probe"
+required-features = ["cuda-cudnn"]

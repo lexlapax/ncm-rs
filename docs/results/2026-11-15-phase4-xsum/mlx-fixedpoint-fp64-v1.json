@@ -1,0 +1,48 @@
+{
+  "differences": {
+    "cuda": [
+      {
+        "actual": 2164,
+        "fp64": 2165,
+        "position": 144,
+        "row": 25
+      }
+    ],
+    "fixedpoint": [],
+    "metal_old": [
+      {
+        "actual": 2300,
+        "fp64": 2301,
+        "position": 2,
+        "row": 14
+      },
+      {
+        "actual": 2801,
+        "fp64": 2802,
+        "position": 15,
+        "row": 7
+      },
+      {
+        "actual": 3624,
+        "fp64": 3625,
+        "position": 20,
+        "row": 14
+      },
+      {
+        "actual": 2938,
+        "fp64": 2943,
+        "position": 58,
+        "row": 0
+      }
+    ]
+  },
+  "draws": 6400,
+  "input_sha256": {
+    "reports/phase4-xsum-mlx-fixedpoint-captured-v1/result.json": "d93238f12ede0ac2a9535c6e9bb8c651f9bc3cf829f49f863ae0aeeec146e2ec",
+    "reports/phase4-xsum-mlx-stochastic-cuda-probe-v1.json": "f9e9aa42b6bcd4b8fd405e50c9689b11f0f3871bf1ec69c0535ef29b2d2c7f08",
+    "reports/phase4-xsum-shared-history-captured-v1/result.json": "62d6997d5737c182ddbe9a2d47f8c0a5f2b9b9b011d354df7650a1129b60b30d",
+    "reports/phase4-xsum-shared-history-cuda-v1/logits.safetensors": "c57f4f6c9a88e0f4d247dc7bc6fa6cb525e3c87945205fa33b0535af2de74018"
+  },
+  "schema_version": 1,
+  "scope": "independent FP64 inverse CDF on saved CUDA logits and same words"
+}
