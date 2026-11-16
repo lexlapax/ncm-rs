@@ -1,0 +1,72 @@
+--- a/crates/ncm-backend-mlx/src/qk_rope.rs
++++ b/crates/ncm-backend-mlx/src/qk_rope.rs
+@@ -16 +16,9 @@
+-    float sum = simd_sum(a * a + b * b);
++    float sum = 0.0f;
++    if (threads_per_simdgroup == 32u && params[2] == 0u) {
++        sum = simd_sum(a * a + b * b);
++    } else {
++        for (uint i = 0u; i < 64u; ++i) {
++            float v = x[base + i];
++            sum += v * v;
++        }
++    }
+@@ -32,0 +41,11 @@
++) -> crate::ops::Result<Array> {
++    apply_inner(x, weight, cos, sin, eps, false)
++}
++
++fn apply_inner(
++    x: &Array,
++    weight: &Array,
++    cos: &Array,
++    sin: &Array,
++    eps: f64,
++    force_scalar: bool,
+@@ -58 +77,8 @@
+-    let params = Array::from_slice(&[u32::try_from(rows)?, u32::try_from(*seq)?], &[2]);
++    let params = Array::from_slice(
++        &[
++            u32::try_from(rows)?,
++            u32::try_from(*seq)?,
++            u32::from(force_scalar),
++        ],
++        &[3],
++    );
+@@ -71,2 +97,2 @@
+-    // SIMD group handles a distinct width-64 row. This experiment assumes a
+-    // 32-lane SIMD width and is not qualified on other devices.
++    // threadgroup handles a distinct width-64 row. The fast reduction is used
++    // only for a 32-lane SIMD group; other widths sum the row independently.
+@@ -89,0 +116,31 @@
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn scalar_width_fallback_matches_fast_width() {
++        mlx_rs::with_device(mlx_rs::Device::gpu(), || -> crate::ops::Result<()> {
++            let values: Vec<f32> = (0..16 * 3 * 64)
++                .map(|i| ((i * 73 % 1009) as f32 - 504.) / 80.)
++                .collect();
++            let x = Array::from_slice(&values, &[16, 1, 3, 64]);
++            let weight = Array::from_slice(&[1.0f32; 64], &[64]);
++            let cosine = Array::from_slice(&[0.8f32; 96], &[3, 32]);
++            let sine = Array::from_slice(&[0.6f32; 96], &[3, 32]);
++            let fast = apply_inner(&x, &weight, &cosine, &sine, 1e-6, false)?;
++            let scalar = apply_inner(&x, &weight, &cosine, &sine, 1e-6, true)?;
++            fast.eval()?;
++            scalar.eval()?;
++            for (&a, &b) in fast
++                .try_as_slice::<f32>()?
++                .iter()
++                .zip(scalar.try_as_slice::<f32>()?)
++            {
++                assert!((a - b).abs() <= 1e-5 + 1e-4 * a.abs());
++            }
++            Ok(())
++        })
++        .unwrap();
++    }
++}
