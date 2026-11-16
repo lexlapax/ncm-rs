@@ -83,7 +83,10 @@ def main():
     parser.add_argument('--batches', type=int, nargs='+', choices=(1, 4, 32), default=list(BATCHES))
     parser.add_argument('--cudnn-dir', type=Path, help='native cuDNN libraries for the explicitly built strict candidate')
     parser.add_argument('--profile', choices=('v1', 'v2'), default='v1')
+    parser.add_argument('--stochastic-seed', type=int, help='compare stochastic sampling with independent runtime RNGs')
     args = parser.parse_args()
+    if args.stochastic_seed is not None and not 0 <= args.stochastic_seed < 2**64:
+        raise SystemExit('stochastic seed must be an unsigned 64-bit integer')
     artifact, artifact_sha = ((ARTIFACT, '5df37749e64418c586472a4678600603992357b9bc5e3611da307918e13b237e')
                               if args.profile == 'v1' else
                               (ROPE_ARTIFACT, '8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4'))
@@ -113,7 +116,9 @@ def main():
                 'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'artifact_profile': args.profile,
                 'batches': args.batches, 'warmup_per_process': 5, 'trials_per_process': 30, 'processes_per_runtime_batch': args.repetitions,
                 'scope': 'eager generate and synchronized code/ID host readback; excludes load',
-                'sampling': 'temperature 1, top-k 1, top-p 0, CFG 0; native rejects exact ties',
+                'sampling': ('temperature 1, top-k 0, top-p 1, CFG 0; independent runtime RNGs' if args.stochastic_seed is not None
+                             else 'temperature 1, top-k 1, top-p 0, CFG 0'),
+                'stochastic_seed': args.stochastic_seed,
                 'python_cleanup': 'explicit garbage collection and synchronization after every batch, timed separately',
                 'rust_backend': 'strict cuDNN' if cudnn_dir else 'default CUDA',
                 'input_sha256': digest(INPUTS), 'cudnn_sha256': {p.name: digest(p) for p in cudnn_files},
@@ -135,9 +140,11 @@ def main():
                     stem=f'{runtime}-b{batch}-r{rep}'
                     if runtime == 'rust':
                         command=[str(BENCH), str(artifact), str(INPUTS), str(batch), 'device', '30']
+                        if args.stochastic_seed is not None: command += ['0', str(args.stochastic_seed)]
                     else:
                         command=[str(REFERENCE), str(ROOT/'tools/reference/xsum_perf_screen.py'),
                                  '--upstream',str(ROOT/'.reference/upstream-ncm'), '--source',str(SOURCE), '--inputs',str(INPUTS), '--batch',str(batch), '--no-stage-sync', '--trials','30', '--collect-garbage']
+                        if args.stochastic_seed is not None: command += ['--stochastic-seed', str(args.stochastic_seed)]
                     env=os.environ.copy(); env['OMP_NUM_THREADS']='1'; env['TOKENIZERS_PARALLELISM']='false'
                     if runtime == 'rust' and cudnn_dir: env['LD_LIBRARY_PATH'] = str(cudnn_dir)
                     with (out/(stem+'.stdout')).open('xb') as stdout, (out/(stem+'.stderr')).open('xb') as stderr:
@@ -157,6 +164,9 @@ def main():
                     (out/(stem+'.json')).write_text(json.dumps(result, sort_keys=True)+'\n')
                     if result['batch'] != batch or result['warmups'] != 5 or len(result['trials_seconds']) != 30:
                         raise ValueError(f'{stem} has incomplete trials')
+                    seed_key = 'seed' if runtime == 'rust' else 'stochastic_seed'
+                    if result.get(seed_key) != args.stochastic_seed or result.get('cfg_scale') != 0.0:
+                        raise ValueError(f'{stem} sampling settings differ')
                     if runtime == 'python' and len(result.get('cleanup_seconds', [])) != 30:
                         raise ValueError(f'{stem} has incomplete cleanup timings')
                     if runtime == 'rust' and result.get('backend') != ('strict-cudnn' if cudnn_dir else 'cuda'):
@@ -165,10 +175,13 @@ def main():
                     ids = result['ids'] if runtime == 'rust' else [x for row in result['ids'] for x in row]
                     if len(codes) != batch * 200 or len(ids) != batch * 48:
                         raise ValueError(f'{stem} output shape differs')
+                    if any(type(x) is not int or not 0 <= x < 4096 for x in codes) or any(type(x) is not int or not 0 <= x < 50304 for x in ids):
+                        raise ValueError(f'{stem} output values differ')
                     signature = (codes, ids)
-                    if batch in expected_outputs and expected_outputs[batch] != signature:
-                        raise ValueError(f'{stem} output differs from the paired runtime')
-                    expected_outputs[batch] = signature
+                    key = (batch, runtime if args.stochastic_seed is not None else 'paired')
+                    if key in expected_outputs and expected_outputs[key] != signature:
+                        raise ValueError(f'{stem} output differs from the expected result')
+                    expected_outputs[key] = signature
                     print(stem, 'complete', flush=True)
     finally:
         if process is not None: terminate_group(process)
