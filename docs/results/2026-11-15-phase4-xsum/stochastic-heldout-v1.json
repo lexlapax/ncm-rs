@@ -1,0 +1,120 @@
+{
+  "bootstrap_upper_95": {
+    "generation_perplexity": 10.602785974676461,
+    "mean_words": 0.5414062500000014,
+    "rouge1": 0.966294322676305,
+    "rouge2": 0.7389804846741836,
+    "rougeL": 1.168911137218544
+  },
+  "margins": {
+    "generation_perplexity": 12.52,
+    "mean_words": 0.3,
+    "rouge1": 0.62,
+    "rouge2": 0.64,
+    "rougeL": 0.62
+  },
+  "observed_degradation": {
+    "generation_perplexity": -8.651308005705602,
+    "mean_words": 0.1398437500000007,
+    "rouge1": 0.24255092102218256,
+    "rouge2": 0.1694381662211626,
+    "rougeL": 0.4094053852446713
+  },
+  "passes": {
+    "generation_perplexity": true,
+    "mean_words": false,
+    "rouge1": false,
+    "rouge2": false,
+    "rougeL": false
+  },
+  "protocol_sha256": "2e9d5edd74770b2e3345198fef6c97318d37a3682111fd113bf0993cff594070",
+  "python_score_sha256": [
+    "598c1451a521589b71d9c34cfd103cfb91ea4c1bace63b27b521adcf89239ee2",
+    "4de93b69ec809b4204447418eaa5587dea21600637a6399108344f9376b4a8c0",
+    "750e9e836c5cefd00cb3ef3b3378b791f36a87696b0b573dd0dcc226ab616a29",
+    "0d3c8e243ae8f15875bddadbb4ab858624444af920ae8556e6c5963d210368b0",
+    "815735bcf9ba46266baeea6fb1910c0f3ab622cc3f30496a8ab05c2e5ca44b8d"
+  ],
+  "python_seed_metrics": [
+    {
+      "generation_perplexity": 176.303690236867,
+      "mean_words": 20.16015625,
+      "rouge1": 31.845960687198406,
+      "rouge2": 10.308885118061713,
+      "rougeL": 25.201259964911504
+    },
+    {
+      "generation_perplexity": 218.18716456161906,
+      "mean_words": 20.34765625,
+      "rouge1": 31.166013337484248,
+      "rouge2": 9.74958160771459,
+      "rougeL": 23.913023768799835
+    },
+    {
+      "generation_perplexity": 179.33663111915044,
+      "mean_words": 20.1640625,
+      "rouge1": 30.999698364583573,
+      "rouge2": 9.706390843125492,
+      "rougeL": 23.630385682569315
+    },
+    {
+      "generation_perplexity": 195.72954584827494,
+      "mean_words": 20.44140625,
+      "rouge1": 31.117753069501674,
+      "rouge2": 9.524133471772183,
+      "rougeL": 24.402320365588896
+    },
+    {
+      "generation_perplexity": 211.08650815021997,
+      "mean_words": 20.69140625,
+      "rouge1": 30.804875550037337,
+      "rouge2": 9.59873821512335,
+      "rougeL": 24.517460085031797
+    }
+  ],
+  "rust_score_sha256": [
+    "6259769c68b252fe9c9757b4db7e6baa63a79ba7cd3023a5a5571cfe1fa43e09",
+    "ab2cdcf1f1e058b559c11ee89d0bc129d8f1189b5841998180208fc9d4a99212",
+    "0a47233bc1c25826e4ae0aa3e07d5e2b8acea69cfb5921c2367073523e5bb393",
+    "251fd23c2e8c38141854f107f5bd3b0ac6cd98629c12a9f93e3351215dea6552",
+    "352dc2e75e11c85dab2c61c215e17f3b847ec821dcdfd1602e967dafcc940111"
+  ],
+  "rust_seed_metrics": [
+    {
+      "generation_perplexity": 189.40412247703736,
+      "mean_words": 20.50390625,
+      "rouge1": 30.624445109903924,
+      "rouge2": 9.741356374866546,
+      "rougeL": 23.735469709770456
+    },
+    {
+      "generation_perplexity": 198.1739344653497,
+      "mean_words": 20.53515625,
+      "rouge1": 31.125425803254885,
+      "rouge2": 9.17790508178761,
+      "rougeL": 23.826665455056173
+    },
+    {
+      "generation_perplexity": 187.18146848939355,
+      "mean_words": 20.19140625,
+      "rouge1": 31.284928815892922,
+      "rouge2": 9.922716483444386,
+      "rougeL": 24.403033834727704
+    },
+    {
+      "generation_perplexity": 180.4263902509945,
+      "mean_words": 20.6875,
+      "rouge1": 30.87986730902041,
+      "rouge2": 9.701117062048258,
+      "rougeL": 24.22258748754133
+    },
+    {
+      "generation_perplexity": 182.20108420482842,
+      "mean_words": 20.5859375,
+      "rouge1": 30.80687936562217,
+      "rouge2": 9.497443422544729,
+      "rougeL": 23.42966645358231
+    }
+  ],
+  "schema_version": 1
+}
