@@ -1,0 +1,6 @@
+--- a/crates/ncm-backend-mlx/src/qk_rope.rs
++++ b/crates/ncm-backend-mlx/src/qk_rope.rs
+@@ -34 +33,0 @@
+-#[allow(unsafe_code)]
+@@ -44,0 +44 @@
++#[allow(unsafe_code)]
