@@ -3,12 +3,14 @@
 mod blocks;
 mod codec;
 mod generator;
+mod xsum_decode;
 pub use blocks::{NoTrace, TraceSink, codebook_distances};
 pub use codec::{Decoded, Encoded};
 pub use generator::{
     Generated, Generator, GeneratorConfig, GeneratorWeights, TinyStoriesGeneratorInspection,
     TinyStoriesTeacher,
 };
+pub use xsum_decode::select_xsum_tokens_cpu;
 
 use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;
