@@ -1,0 +1,96 @@
+--- a/crates/ncm-backend-mlx/src/lib.rs
++++ b/crates/ncm-backend-mlx/src/lib.rs
+@@ -11,0 +12,2 @@
++mod gelu;
++#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -289,0 +290,3 @@
++            if matches!(x.0.shape(), [batch, _, 3072] if *batch >= 16) {
++                return crate::gelu::apply(&x.0);
++            }
+--- /dev/null
++++ b/crates/ncm-backend-mlx/src/gelu.rs
+@@ -0,0 +1,49 @@
++//! Experimental exact-erf GELU for contiguous generator activations.
++use mlx_rs::{
++    Array, Dtype,
++    fast::{MetalKernel, MetalKernelApplyOptions, MetalKernelOptions, MetalKernelOutput},
++};
++
++const SOURCE: &str = r#"
++    uint i = thread_position_in_grid.x;
++    if (i >= count[0]) return;
++    float v = x[i];
++    output[i] = (v * 0.5f) * (1.0f + erf(v / 1.4142135623730951f));
++"#;
++
++#[allow(unsafe_code)]
++pub(crate) fn apply(x: &Array) -> crate::ops::Result<Array> {
++    if x.dtype() != Dtype::Float32 || x.shape().len() != 3 || x.shape().contains(&0) {
++        return Err("GELU requires a nonempty rank-three FP32 input".into());
++    }
++    let count = u32::try_from(x.size())?;
++    let count_array = Array::from_slice(&[count], &[1]);
++    let kernel = MetalKernel::new(
++        "ncm_generator_gelu",
++        &["x", "count"],
++        &["output"],
++        SOURCE,
++        MetalKernelOptions {
++            ensure_row_contiguous: true,
++            ..Default::default()
++        },
++    )?;
++    // SAFETY: MLX materializes row-contiguous inputs; the checked count bounds
++    // each read and output write, and each grid thread owns one element.
++    let mut output = unsafe {
++        kernel.apply(
++            &[x, &count_array],
++            &[MetalKernelOutput {
++                shape: x.shape().to_vec(),
++                dtype: Dtype::Float32,
++            }],
++            (count as usize, 1, 1),
++            (256, 1, 1),
++            MetalKernelApplyOptions::default(),
++        )?
++    };
++    if output.len() != 1 {
++        return Err("unexpected GELU output count".into());
++    }
++    Ok(output.remove(0))
++}
+--- a/crates/ncm-backend-mlx/tests/codec_components.rs
++++ b/crates/ncm-backend-mlx/tests/codec_components.rs
+@@ -5,0 +6,30 @@
++
++#[test]
++fn generator_gelu_matches_eager_expression() {
++    let backend = MlxBackend::gpu().unwrap();
++    let mut values: Vec<f32> = (0..16 * 9 * 3072)
++        .map(|i| ((i * 73 % 1009) as f32 - 504.) / 80.)
++        .collect();
++    values[..5].copy_from_slice(&[0., -0., f32::INFINITY, f32::NEG_INFINITY, f32::NAN]);
++    let input = backend.upload_f32(&values, &[16, 9, 3072]).unwrap();
++    let actual = backend.read_f32(&backend.gelu(&input).unwrap()).unwrap();
++    let expected = mlx_rs::with_device(mlx_rs::Device::gpu(), || {
++        let x = mlx_rs::Array::from_slice(&values, &[16, 9, 3072]);
++        let y = x.multiply(mlx_rs::Array::from_f32(0.5))?.multiply(
++            mlx_rs::ops::erf(x.divide(mlx_rs::Array::from_f32(std::f32::consts::SQRT_2))?)?
++                .add(mlx_rs::Array::from_f32(1.))?,
++        )?;
++        y.eval()?;
++        Ok::<_, Box<dyn std::error::Error>>(y.try_as_slice::<f32>()?.to_vec())
++    })
++    .unwrap();
++    assert_eq!(actual.len(), expected.len());
++    for (&a, &e) in actual.iter().zip(&expected) {
++        assert!(
++            (a.is_nan() && e.is_nan())
++                || a.to_bits() == e.to_bits()
++                || (a.is_finite() && e.is_finite() && (a - e).abs() <= 1e-5 + 1e-4 * e.abs()),
++            "{a:?} vs {e:?}"
++        );
++    }
++}
