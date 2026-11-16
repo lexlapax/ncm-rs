@@ -84,6 +84,16 @@ rows. Version 1 and its results remain retained, not overwritten.
 The Rust development version-2 full result is
 `reports/phase4-xsum-quality-rust-dev-v2-full.json` (SHA-256
 `a49db6347bdad137c161d3fa6d702ebe216e477631455a44e9ce7d461093ef49`).
+The explicit comparison below reported zero code, ID, text and per-row ROUGE
+differences and equal aggregate metrics on those development results. Its
+output SHA-256 is `090714881203eab501b1e44d9ee78dc2a759417655e5779e56671370c7a75241`.
+Two additional CPU-only synthetic tests check the comparison's exact-output
+rule, code-difference reporting and rejection of mismatched inputs.
+
+```sh
+.reference/venv/bin/python tools/reference/xsum_quality_compare.py --python reports/phase4-xsum-quality-python-dev-seed42-full-v2.json --rust reports/phase4-xsum-quality-rust-dev-v2-full.json --output reports/phase4-xsum-quality-dev-comparison-v1.json
+PYTHONPATH=tools/reference .reference/venv/bin/python -m unittest -v test_xsum_quality_compare
+```
 
 The generator accepts `--upstream .reference/upstream-ncm`,
 `--source artifacts/upstream/xsum-phase4`,
