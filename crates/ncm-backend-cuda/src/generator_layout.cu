@@ -34,6 +34,39 @@ extern "C" __global__ void ncm_unique_max_4096(const float* logits, unsigned int
     }
     if (t == 0) output[row] = bad || counts[0] != 1 ? 0xffffffffU : indices[0];
 }
+
+// First finite maximum for the pinned 4096-way PyTorch CUDA radix-sort path.
+// It preserves the lowest original index on equal keys, including signed zeros.
+extern "C" __global__ void ncm_xsum_reference_top1_4096(const float* logits, unsigned int* output) {
+    const unsigned int t = threadIdx.x, row = blockIdx.x;
+    const float* values = logits + row * 4096;
+    __shared__ float maxima[256];
+    __shared__ unsigned int indices[256], bad;
+    if (t == 0) bad = 0;
+    __syncthreads();
+    float best = -CUDART_INF_F;
+    unsigned int index = t * 16;
+    for (unsigned int j = 0; j < 16; ++j) {
+        unsigned int i = t * 16 + j;
+        float value = values[i];
+        if (!isfinite(value)) atomicOr(&bad, 1);
+        if (value > best) { best = value; index = i; }
+    }
+    maxima[t] = best; indices[t] = index;
+    __syncthreads();
+    for (unsigned int stride = 128; stride > 0; stride >>= 1) {
+        if (t < stride) {
+            if (maxima[t + stride] > maxima[t]) {
+                maxima[t] = maxima[t + stride];
+                indices[t] = indices[t + stride];
+            } else if (maxima[t + stride] == maxima[t]) {
+                indices[t] = min(indices[t], indices[t + stride]);
+            }
+        }
+        __syncthreads();
+    }
+    if (t == 0) output[row] = bad ? 0xffffffffU : indices[0];
+}
 // FP32 layout copies only: no arithmetic on tensor values. The Rust caller
 // validates batch <= 128, sequence <= 768, heads == 8 and head width == 64.
 extern "C" __global__ void ncm_pack_qkv_8x64(const float* input, float* output,

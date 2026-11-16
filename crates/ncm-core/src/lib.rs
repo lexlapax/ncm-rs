@@ -151,6 +151,14 @@ pub trait GeneratorBackend: CodecBackend {
             "native unique top-1 selection is unsupported".into(),
         ))
     }
+    /// Select the first finite maximum using the pinned XSum CUDA reference
+    /// ordering. This is an opt-in implementation detail of that reference
+    /// profile, not a general guarantee about PyTorch or other backends.
+    fn xsum_reference_top1_4096(&self, _logits: &Self::Tensor) -> Result<Self::Indices> {
+        Err(Error::Backend(
+            "XSum reference tie selection is unsupported".into(),
+        ))
+    }
     /// Experimental 4096-way categorical draw with one supplied random word
     /// per row. Each full 32-bit word represents a uniform in [0,1). Invalid rows must
     /// return u32::MAX, which the caller must reject before returning results.

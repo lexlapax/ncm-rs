@@ -913,6 +913,7 @@ pub struct XsumTeacher<B: ncm_core::GeneratorBackend> {
     geometry: Vec<LevelGeometry<B::Tensor>>,
     token_allowance: Vec<f32>,
     device_allowance: B::Tensor,
+    reference_ties: bool,
     request_lock: std::sync::Mutex<()>,
 }
 
@@ -942,7 +943,8 @@ struct XsumSampling {
 impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
         let inspection = crate::XsumGeneratorInspection::from_artifact(artifact)?;
-        let backend = if inspection.rope_tables.is_some() {
+        let reference_ties = inspection.rope_tables.is_some();
+        let backend = if reference_ties {
             backend.xsum_reference_backend()?
         } else {
             backend
@@ -1046,6 +1048,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
             geometry,
             token_allowance: inspection.token_allowance,
             device_allowance,
+            reference_ties,
             request_lock: std::sync::Mutex::new(()),
         })
     }
@@ -1080,9 +1083,9 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
     }
 
     /// Generate with the pinned temperature-1, top-k-1, top-p-0, CFG-0
-    /// configuration when each maximum is unique. Exact ties fail explicitly:
-    /// upstream's sort order for ties is device dependent. The backend must
-    /// explicitly implement unique-maximum selection; there is no fallback.
+    /// configuration. The pinned CUDA reference profile uses its documented
+    /// first-index tie ordering; the earlier profile rejects exact ties. The
+    /// backend must explicitly implement selection; there is no fallback.
     pub fn generate_top1_traced(
         &self,
         prefix_tokens: &[u32],
@@ -1146,8 +1149,8 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
     }
 
     /// Generate top-1 codes with the pinned upstream classifier-free guidance
-    /// schedule. A positive scale uses a doubled document/null batch; exact
-    /// head ties remain unsupported. Scale zero uses ordinary generation.
+    /// schedule. A positive scale uses a doubled document/null batch. Tie
+    /// behavior follows the selected profile. Scale zero uses ordinary generation.
     pub fn generate_top1_cfg_device(
         &self,
         prefix_tokens: &[u32],
@@ -1363,7 +1366,11 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                             .collect();
                         b.categorical_4096(scores, &b.upload_indices(&words, &[rows, length])?)?
                     } else {
-                        b.unique_max_4096(scores)?
+                        if self.reference_ties {
+                            b.xsum_reference_top1_4096(scores)?
+                        } else {
+                            b.unique_max_4096(scores)?
+                        }
                     };
                 if cfg.is_some() {
                     b.concat_indices(&[selected.clone(), selected], 0)?
@@ -1392,6 +1399,8 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         if forced.is_none() && b.read_indices(&codes)?.iter().any(|&value| value >= 4096) {
             let reason = if sampling.as_ref().is_some_and(|s| s.random.is_some()) {
                 "invalid XSum categorical sampling logits"
+            } else if self.reference_ties {
+                "nonfinite XSum reference head logits are unsupported"
             } else {
                 "tied or nonfinite XSum head maximum is unsupported"
             };

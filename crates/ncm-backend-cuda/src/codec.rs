@@ -460,6 +460,25 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             ))
         }
     }
+    fn xsum_reference_top1_4096(&self, logits: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        {
+            if !self.xsum_reference {
+                return Err(Error::Backend(
+                    "XSum reference tie selection requires its reference backend".into(),
+                ));
+            }
+            crate::unique_top1::xsum_reference_top1(self, logits)
+                .map_err(|e| Error::Backend(e.to_string()))
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            let _ = logits;
+            Err(Error::Backend(
+                "XSum reference tie selection is unsupported".into(),
+            ))
+        }
+    }
     fn xsum_penalty_fp64(&self, logits: &Tensor, allowance: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {

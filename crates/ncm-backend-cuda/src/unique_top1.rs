@@ -1,4 +1,4 @@
-//! Unique finite 4096-way maxima for the restricted XSum top-1 path.
+//! Finite 4096-way maxima for the restricted XSum top-1 paths.
 use candle_core::cuda_backend::{
     CudaStorageSlice,
     cudarc::driver::{LaunchConfig, PushKernelArg},
@@ -10,7 +10,7 @@ struct Select {
 }
 impl CustomOp1 for Select {
     fn name(&self) -> &'static str {
-        "ncm-unique-max-4096"
+        "ncm-top1-4096"
     }
     fn cpu_fwd(&self, _: &CpuStorage, _: &Layout) -> Result<(CpuStorage, Shape)> {
         candle_core::bail!("CUDA unique top-1 operation cannot run on CPU")
@@ -18,10 +18,10 @@ impl CustomOp1 for Select {
     #[allow(unsafe_code)]
     fn cuda_fwd(&self, scores: &CudaStorage, layout: &Layout) -> Result<(CudaStorage, Shape)> {
         let [batch, length, vocab] = layout.dims() else {
-            candle_core::bail!("unique top-1 logits must be rank 3")
+            candle_core::bail!("top-1 logits must be rank 3")
         };
         if !(1..=128).contains(batch) || !(1..=128).contains(length) || *vocab != 4096 {
-            candle_core::bail!("unsupported unique top-1 shape")
+            candle_core::bail!("unsupported top-1 shape")
         }
         let rows = batch * length;
         let (lo, hi) = layout
@@ -29,12 +29,12 @@ impl CustomOp1 for Select {
             .ok_or_else(|| candle_core::Error::Msg("scores must be contiguous".into()))?;
         let source = scores.as_cuda_slice::<f32>()?;
         if hi.checked_sub(lo) != Some(rows * 4096) || hi > source.len() {
-            candle_core::bail!("unique top-1 storage bounds mismatch")
+            candle_core::bail!("top-1 storage bounds mismatch")
         }
         let source = source.slice(lo..hi);
         let device = &scores.device;
         // SAFETY: shapes and storage lengths are checked; each block writes
-        // exactly one result, including a sentinel for invalid or tied rows.
+        // exactly one result, including a sentinel for invalid rows.
         let mut output = unsafe { device.alloc::<u32>(rows) }.map_err(candle_core::Error::wrap)?;
         let stream = device.cuda_stream();
         let mut launch = stream.launch_builder(&self.function);
@@ -61,13 +61,21 @@ impl CustomOp1 for Select {
 }
 
 pub fn unique_max(backend: &crate::CandleBackend, logits: &Tensor) -> Result<Tensor> {
+    select(backend, logits, "ncm_unique_max_4096")
+}
+
+pub fn xsum_reference_top1(backend: &crate::CandleBackend, logits: &Tensor) -> Result<Tensor> {
+    select(backend, logits, "ncm_xsum_reference_top1_4096")
+}
+
+fn select(backend: &crate::CandleBackend, logits: &Tensor, kernel: &'static str) -> Result<Tensor> {
     if !backend.device().is_cuda() || !logits.device().same_device(backend.device()) {
         candle_core::bail!("explicit matching CUDA device required")
     }
     let device = backend.device().as_cuda_device()?;
     let function = device
         .get_or_load_custom_func(
-            "ncm_unique_max_4096",
+            kernel,
             "ncm-generator-layout-v1",
             crate::generator_layout::PTX,
         )?
