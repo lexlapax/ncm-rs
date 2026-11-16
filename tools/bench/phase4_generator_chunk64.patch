@@ -1,0 +1,118 @@
+--- a/crates/ncm-core/src/lib.rs
++++ b/crates/ncm-core/src/lib.rs
+@@ -124,0 +125,4 @@
++    /// Largest internal generation chunk, bounded by the caller's batch.
++    fn generation_chunk_size(&self, batch: usize) -> usize {
++        batch
++    }
+--- a/crates/ncm-model/src/generator.rs
++++ b/crates/ncm-model/src/generator.rs
+@@ -690,3 +690,2 @@
+-        let b = &self.backend;
+-        let levels = self.codec.config().levels();
+-        let mut random = SplitMix64(seed);
++        let (initial_words, level_words) =
++            generation_words(seed, batch, self.codec.config().levels());
+@@ -699,2 +698,2 @@
+-        for _ in 0..batch {
+-            let threshold = ((random.next() >> 11) as f64 / 9007199254740992.0) * sum;
++        for word in initial_words {
++            let threshold = ((word >> 11) as f64 / 9007199254740992.0) * sum;
+@@ -711,0 +711,38 @@
++        let b = &self.backend;
++        let chunk = b.generation_chunk_size(batch);
++        if chunk == 0 || chunk > batch {
++            return Err(Error::Backend("invalid generator chunk size".into()));
++        }
++        if chunk == batch {
++            return self.sample_seeded_chunk(prefix, &initial, &level_words, 0);
++        }
++        let (mut codes, mut logits, mut ids) = (Vec::new(), Vec::new(), Vec::new());
++        for offset in (0..batch).step_by(chunk) {
++            let end = (offset + chunk).min(batch);
++            let result = self.sample_seeded_chunk(
++                &prefix[offset..end],
++                &initial[offset..end],
++                &level_words,
++                offset,
++            )?;
++            codes.push(result.codes);
++            logits.push(result.logits);
++            ids.push(result.ids);
++        }
++        Ok(Generated {
++            codes: b.concat_indices(&codes, 0)?,
++            logits: b.concat_f32(&logits, 0)?,
++            ids: b.concat_indices(&ids, 0)?,
++        })
++    }
++
++    fn sample_seeded_chunk(
++        &self,
++        prefix: &[u32],
++        initial: &[u32],
++        level_words: &[Vec<u32>],
++        row_offset: usize,
++    ) -> Result<Generated<B>> {
++        let batch = prefix.len();
++        let b = &self.backend;
++        let levels = self.codec.config().levels();
+@@ -715 +752 @@
+-        let mut selected = b.upload_indices(&initial, &[batch, 1])?;
++        let mut selected = b.upload_indices(initial, &[batch, 1])?;
+@@ -753,4 +790,5 @@
+-            let words: Vec<u32> = (0..batch * length)
+-                .map(|_| (random.next() >> 32) as u32)
+-                .collect();
+-            let words = b.upload_indices(&words, &[batch, length])?;
++            let start = row_offset * length;
++            let words = b.upload_indices(
++                &level_words[level][start..start + batch * length],
++                &[batch, length],
++            )?;
+@@ -873,0 +912,15 @@
++// Generate original level-major random words before splitting rows.
++fn generation_words(seed: u64, batch: usize, levels: &[usize]) -> (Vec<u64>, Vec<Vec<u32>>) {
++    let mut random = SplitMix64(seed);
++    let initial = (0..batch).map(|_| random.next()).collect();
++    let levels = levels[1..]
++        .iter()
++        .map(|&length| {
++            (0..batch * length)
++                .map(|_| (random.next() >> 32) as u32)
++                .collect()
++        })
++        .collect();
++    (initial, levels)
++}
++
+@@ -1058,0 +1112,23 @@
++
++    #[test]
++    fn chunked_generation_retains_level_major_random_words() {
++        let levels = [1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128];
++        for batch in [1, 64, 65, 127, 128] {
++            let (initial, words) = generation_words(42, batch, &levels);
++            let mut reference = SplitMix64(42);
++            for word in initial {
++                assert_eq!(word, reference.next());
++            }
++            for (&length, actual) in levels[1..].iter().zip(&words) {
++                let expected: Vec<_> = (0..batch * length)
++                    .map(|_| (reference.next() >> 32) as u32)
++                    .collect();
++                let mut reassembled = Vec::new();
++                for start in (0..batch).step_by(64) {
++                    let end = (start + 64).min(batch);
++                    reassembled.extend_from_slice(&actual[start * length..end * length]);
++                }
++                assert_eq!(reassembled, expected);
++            }
++        }
++    }
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -395,0 +396,3 @@
++    fn generation_chunk_size(&self, batch: usize) -> usize {
++        batch.min(64)
++    }
