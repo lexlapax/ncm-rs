@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 
 from run_phase3_mlx_bench import digest, monitor, run
+from phase4_mlx_gpu_activity import monitor_gpu
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT = ROOT / 'artifacts/canonical/tinystories-phase4-v1'
@@ -23,6 +24,8 @@ def main():
                         help='isolated candidate source to fingerprint; may be repeated')
     parser.add_argument('--batches', type=int, nargs='+', choices=(32, 128), default=(32, 128),
                         help='batches to measure; default is both')
+    parser.add_argument('--gpu-activity', action='store_true',
+                        help='sample system-wide registry counters; diagnostic results may be perturbed')
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
     if len(set(args.batches)) != len(args.batches):
@@ -35,7 +38,8 @@ def main():
     if out.exists() or not old.is_file() or not new.is_file() or old == new:
         raise ValueError('need distinct binaries and a new output directory')
     watched = [Path(__file__).resolve(), ROOT / 'tools/bench/run_phase3_mlx_bench.py',
-               ROOT / 'tools/bench/phase3_process.py', ROOT / 'Cargo.toml', ROOT / 'Cargo.lock',
+               ROOT / 'tools/bench/phase3_process.py', ROOT / 'tools/bench/phase4_mlx_gpu_activity.py',
+               ROOT / 'Cargo.toml', ROOT / 'Cargo.lock',
                ROOT / '.reference/mlx-native/lib/libmlx.dylib', ROOT / '.reference/mlx-native/lib/mlx.metallib',
                old, new]
     watched += list((ROOT / 'crates').rglob('*.rs')) + list((ROOT / 'crates').rglob('Cargo.toml'))
@@ -47,18 +51,30 @@ def main():
                 'watched_sha256': before, 'runs': [], 'batches': list(args.batches), 'warmups': 5, 'trials': 30,
                 'policy': 'process-local 4096 MiB cache; output drop and GPU barrier included',
                 'scope': 'single-process exploratory old/new comparison; no Python gate',
-                'limitations': ['CPU activity sampled every two seconds; GPU activity not measured.',
+                'limitations': ['CPU activity sampled every two seconds.',
+                                ('GPU registry snapshots are system-wide, not per-process GPU time; '
+                                 'sampling can perturb timing.' if args.gpu_activity else 'GPU activity not measured.'),
                                 'No exclusive reservation or clock/power changes.']}
     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     stop, errors = threading.Event(), []
     thread = threading.Thread(target=monitor, args=(stop, out / 'activity.jsonl', errors))
     thread.start()
+    gpu_errors = []
+    gpu_thread = None
+    gpu_ready = threading.Event()
+    if args.gpu_activity:
+        gpu_thread = threading.Thread(target=monitor_gpu, args=(stop, out / 'gpu-activity.jsonl', gpu_errors, gpu_ready))
+        gpu_thread.start()
     try:
+        if args.gpu_activity and (not gpu_ready.wait(15) or gpu_errors):
+            raise RuntimeError('GPU activity observer failed to start')
         for batch, order in [(32, [('baseline', old), ('candidate', new)]),
                              (128, [('candidate', new), ('baseline', old)])]:
             if batch not in args.batches:
                 continue
             for label, binary in order:
+                if gpu_errors:
+                    raise RuntimeError('GPU activity observer failed')
                 stem = f'{label}-b{batch}'
                 command = [str(binary), str(ARTIFACT), str(batch), '4096']
                 manifest['runs'].append({'name': stem, 'command': command})
@@ -81,10 +97,15 @@ def main():
     finally:
         stop.set()
         thread.join(timeout=15)
+        if gpu_thread is not None:
+            gpu_thread.join(timeout=15)
         manifest['stable_inputs_and_sources'] = before == {str(p): digest(p) for p in watched}
         manifest['telemetry_errors'] = errors
+        manifest['gpu_telemetry_errors'] = gpu_errors
+        manifest['gpu_activity_enabled'] = args.gpu_activity
         (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-    if errors or thread.is_alive() or not manifest['stable_inputs_and_sources']:
+    if (errors or gpu_errors or thread.is_alive() or (gpu_thread is not None and gpu_thread.is_alive())
+            or not manifest['stable_inputs_and_sources']):
         raise RuntimeError('incomplete telemetry or changed source')
     print('exploratory comparison complete', flush=True)
 
