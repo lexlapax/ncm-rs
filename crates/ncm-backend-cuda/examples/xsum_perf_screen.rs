@@ -69,11 +69,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device_selection = args.len() >= 5;
     let batch: usize = args[3].parse()?;
     let rows: Vec<Vec<u32>> = serde_json::from_slice(&std::fs::read(&args[2])?)?;
-    if !(1..=32).contains(&batch)
+    if !(1..=128).contains(&batch)
         || rows.len() < batch
         || rows[..batch].iter().any(|r| r.len() != 512)
     {
-        return Err("need 1..=32 rows of 512 tokens".into());
+        return Err("need 1..=128 rows of 512 tokens".into());
     }
     let input: Vec<u32> = rows[..batch].iter().flatten().copied().collect();
     let backend = CandleBackend::cuda_cudnn(0)?;

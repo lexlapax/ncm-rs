@@ -26,8 +26,8 @@ def main():
     ap.add_argument('--trials', type=int, choices=(5, 30), default=5)
     ap.add_argument('--collect-garbage', action='store_true')
     args = ap.parse_args()
-    if not 1 <= args.batch <= 32 or not torch.cuda.is_available():
-        raise ValueError('batch 1..32 and CUDA required')
+    if not 1 <= args.batch <= 128 or not torch.cuda.is_available():
+        raise ValueError('batch 1..128 and CUDA required')
     rev = subprocess.check_output(['git', '-C', str(args.upstream), 'rev-parse', 'HEAD'], text=True).strip()
     dirty = subprocess.check_output(['git', '-C', str(args.upstream), 'status', '--porcelain'], text=True).strip()
     if rev != UPSTREAM or dirty:
