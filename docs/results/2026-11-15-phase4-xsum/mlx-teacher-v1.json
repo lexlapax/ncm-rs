@@ -1,0 +1,133 @@
+{
+  "generator.final_logits": {
+    "accumulated_band_outside": 0,
+    "elements": 4829184,
+    "max_abs": 0.0000743865966796875,
+    "rms": 8.370026287319434e-6
+  },
+  "generator.greedy_ids": {
+    "differences": 0,
+    "elements": 96
+  },
+  "generator.level_00.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 32768,
+    "max_abs": 0.000095367431640625,
+    "rms": 6.390421221914024e-6
+  },
+  "generator.level_01.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 49152,
+    "max_abs": 0.000034332275390625,
+    "rms": 3.786152930436891e-6
+  },
+  "generator.level_02.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 81920,
+    "max_abs": 0.0000762939453125,
+    "rms": 6.081668133946974e-6
+  },
+  "generator.level_03.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 114688,
+    "max_abs": 0.0000762939453125,
+    "rms": 6.780198799640082e-6
+  },
+  "generator.level_04.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 163840,
+    "max_abs": 0.000091552734375,
+    "rms": 8.045099232356974e-6
+  },
+  "generator.level_05.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 212992,
+    "max_abs": 0.0003662109375,
+    "rms": 0.000013204439331338913
+  },
+  "generator.level_06.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 262144,
+    "max_abs": 0.0003662109375,
+    "rms": 0.00002675200814322833
+  },
+  "generator.level_07.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 327680,
+    "max_abs": 0.00048828125,
+    "rms": 0.00004697050299442694
+  },
+  "generator.level_08.logits": {
+    "accumulated_band_outside": 0,
+    "argmax_differences": 0,
+    "elements": 393216,
+    "max_abs": 0.001129150390625,
+    "rms": 0.00004672382414826666
+  },
+  "generator.penalized_ids": {
+    "differences": 0,
+    "elements": 96
+  },
+  "reconstruction.level_00": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 1.7285346984863281e-6,
+    "rms": 2.3516836300646696e-7
+  },
+  "reconstruction.level_01": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 1.7881393432617188e-6,
+    "rms": 2.3723531957664728e-7
+  },
+  "reconstruction.level_02": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 1.7881393432617188e-6,
+    "rms": 2.5062511771774743e-7
+  },
+  "reconstruction.level_03": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 2.384185791015625e-6,
+    "rms": 3.2090253041932794e-7
+  },
+  "reconstruction.level_04": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 5.125999450683594e-6,
+    "rms": 5.263479422838194e-7
+  },
+  "reconstruction.level_05": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 8.314847946166992e-6,
+    "rms": 8.029995287445823e-7
+  },
+  "reconstruction.level_06": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 0.000011920928955078125,
+    "rms": 1.1776851731622723e-6
+  },
+  "reconstruction.level_07": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 0.000016808509826660156,
+    "rms": 1.7008516206974951e-6
+  },
+  "reconstruction.level_08": {
+    "accumulated_band_outside": 0,
+    "elements": 36864,
+    "max_abs": 0.000016808509826660156,
+    "rms": 1.7068906255397195e-6
+  }
+}
