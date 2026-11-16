@@ -37,6 +37,23 @@ OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/
 .reference/venv/bin/python tools/bench/audit_phase4_xsum_progress.py --shard 0
 ```
 
-The last command is a read-only progress aid, not the final
-quality comparator. Full Rust generation, held-out and full scoring, and the
-frozen-rule comparison remain pending.
+The second shard subsequently stopped after 77 completed batches (2,464
+rows) when batch 77, containing dataset indices 4,929–4,991, returned the
+explicit `tied or nonfinite XSum head maximum is unsupported` error. The
+complete first shard plus those 2,464 rows matched Python on every checked
+code and ID: 8,131 rows in total. The failed log remains at
+`reports/phase4-xsum-quality-rust-full-s1.log`; `worker.stderr` in the shard
+directory retains the backend error. Source and binary hashes still match the
+recorded manifest. A targeted CUDA trace found a finite exact Rust tie at
+dataset row 4,937, generator level 1, position 4, between codes 3,182 and
+3,690 (both FP32 bits `1091999070`). A separate pinned-Python CUDA trace on
+the same 32-row batch found distinct scores with FP32 bits `1091999069` and
+`1091999068` and selected 3,182; all Python codes reproduced the saved
+reference batch. The input, trace source, output and logs are retained under
+`reports/phase4-xsum-tie-probe-v1/`. This shows a Rust rounding tie, not an
+upstream tie; choosing an arbitrary tie break is not justified. This failure
+is not a quality pass, and the frozen rule has not changed.
+
+The last command is a read-only progress aid, not the final quality comparator.
+Full Rust generation, held-out and full scoring, and the frozen-rule comparison
+remain pending.
