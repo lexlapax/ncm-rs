@@ -315,3 +315,58 @@ fn tinystories_has_a_separate_exact_inventory_and_budget() {
     save(sudoku_dir.path(), &sudoku);
     assert!(Artifact::load(sudoku_dir.path()).is_err());
 }
+
+#[test]
+fn xsum_profile_accepts_only_its_explicit_bundles_and_budget() {
+    let (dir, mut manifest) = fixture();
+    manifest.profile = "xsum-inference-v1".into();
+    let training = fs::read(dir.path().join("training.safetensors")).unwrap();
+    fs::write(dir.path().join("inference.safetensors"), &training).unwrap();
+    manifest.files.insert(
+        "inference.safetensors".into(),
+        FileRecord {
+            bytes: training.len() as u64,
+            sha256: sha256(&training),
+        },
+    );
+    let original = &manifest.tensors["training.safetensors"][0];
+    manifest.tensors.insert(
+        "inference.safetensors".into(),
+        vec![TensorRecord {
+            name: original.name.clone(),
+            shape: original.shape.clone(),
+            dtype: original.dtype,
+            bytes: original.bytes,
+            sha256: original.sha256.clone(),
+        }],
+    );
+    fs::write(dir.path().join("tokenizer-manifest.json"), b"{}").unwrap();
+    manifest.files.insert(
+        "tokenizer-manifest.json".into(),
+        FileRecord {
+            bytes: 2,
+            sha256: sha256(b"{}"),
+        },
+    );
+    fs::write(dir.path().join("tokenizer.LICENSE"), b"notice").unwrap();
+    manifest.files.insert(
+        "tokenizer.LICENSE".into(),
+        FileRecord {
+            bytes: 6,
+            sha256: sha256(b"notice"),
+        },
+    );
+    save(dir.path(), &manifest);
+    let full = Artifact::load(dir.path()).unwrap();
+    let inference = Artifact::load_inference(dir.path()).unwrap();
+    assert_eq!(full.manifest().profile, "xsum-inference-v1");
+    assert!(inference.file("training.safetensors").is_err());
+    assert!(!inference.file("inference.safetensors").unwrap().is_empty());
+    manifest.files.get_mut("config.json").unwrap().bytes = 384 * 1024 * 1024 + 1;
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+    manifest.files.get_mut("config.json").unwrap().bytes = 2;
+    manifest.files.remove("inference.safetensors");
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+}

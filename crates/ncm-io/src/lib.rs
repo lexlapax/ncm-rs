@@ -22,6 +22,9 @@ const MAX_TOTAL: u64 = 512 * 1024 * 1024;
 // limits are profile-specific and do not relax the existing Sudoku bounds.
 const TINYSTORIES_MAX_FILE: u64 = 384 * 1024 * 1024;
 const TINYSTORIES_MAX_TOTAL: u64 = 640 * 1024 * 1024;
+// Pinned XSum files total about 628 MiB; keep its limits independent of other profiles.
+const XSUM_MAX_FILE: u64 = 384 * 1024 * 1024;
+const XSUM_MAX_TOTAL: u64 = 640 * 1024 * 1024;
 const FILES: [&str; 6] = [
     "codec.safetensors",
     "generator.safetensors",
@@ -36,6 +39,17 @@ const BUNDLES: [&str; 3] = [
     "training.safetensors",
 ];
 const TINYSTORIES_FILES: [&str; 9] = [
+    "codec.safetensors",
+    "generator.safetensors",
+    "training.safetensors",
+    "inference.safetensors",
+    "config.json",
+    "tokenizer.json",
+    "tokenizer-manifest.json",
+    "tokenizer.LICENSE",
+    "provenance.json",
+];
+const XSUM_FILES: [&str; 9] = [
     "codec.safetensors",
     "generator.safetensors",
     "training.safetensors",
@@ -307,6 +321,12 @@ impl Artifact {
                     &TINYSTORIES_BUNDLES,
                     TINYSTORIES_MAX_FILE,
                     TINYSTORIES_MAX_TOTAL,
+                ),
+                "xsum-inference-v1" => (
+                    &XSUM_FILES,
+                    &TINYSTORIES_BUNDLES,
+                    XSUM_MAX_FILE,
+                    XSUM_MAX_TOTAL,
                 ),
                 _ => return Err(invalid("unsupported schema, profile or source pins")),
             };

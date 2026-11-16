@@ -72,6 +72,10 @@ Sudoku profile, manifest hashes provide integrity rather than authentication;
 use a trusted manifest digest and trusted, stable directory. The pinned local
 export and its digest are recorded in [the Phase 4 contract](PHASE4-TEXT.md).
 
+## XSum inspection profile
+
+`tools/reference/xsum_artifact.py` exports the pinned XSum checkpoint and qualified GPT-2 tokenizer as `xsum-inference-v1`, preserving token allowance metadata and training-only tensors. The separate loader profile permits at most 384 MiB per file and 640 MiB total and enforces the exact nine-file inventory. The pinned export, reproduction and host-only checks are recorded in the [XSum artifact report](results/2026-11-15-phase4-xsum/artifact-export-v1.md). Artifact inspection and tokenizer fixture checks do not imply XSum model inference or GPU support.
+
 ## Proposed general runtime layout
 
 ```text
