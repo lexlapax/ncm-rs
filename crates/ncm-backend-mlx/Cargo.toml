@@ -106,3 +106,7 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_stochastic_model_probe"
 required-features = ["mlx"]
+
+[[example]]
+name = "xsum_shared_history_probe"
+required-features = ["mlx"]
