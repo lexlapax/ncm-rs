@@ -43,10 +43,12 @@ Prescaling Q/K alone, and prescaling plus softmax division, eliminated the
 explicit failure in the affected batch but selected 3,690, changing three
 codes and five raw IDs against the saved Python batch. Combining the
 layer-normalization and RMS diagnostics with attention had the same result.
-The further exploratory combination using captured Python rotary tables and
-separate rotary operations also completed but still changed those three
-codes and five IDs. These candidates are rejected as complete fixes. No
-production source or artifact was changed by the temporary diagnostic builds.
+A further exploratory build combining captured Python rotary tables and
+separate rotary operations failed to link because cuDNN was not on its linker
+path. The following run accidentally reused the previous executable, so it
+does not establish a result for that rotary candidate. The earlier completed
+candidates are rejected as complete fixes. No production source or artifact
+was changed by the temporary diagnostic builds.
 
 CUDA diagnostics, input captures, scripts, build logs, candidate sources and
 results are retained locally in `reports/phase4-xsum-tie-probe-v1/`; this
