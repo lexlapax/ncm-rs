@@ -1,0 +1,94 @@
+{
+  "activity_samples": 1274,
+  "activity_sha256": "5134649c3d370e104fc6841c0fa0b4b43aa044e40a9429bea61784ba283757d4",
+  "batches": {
+    "1": {
+      "python": {
+        "median_sampled_peak_mib": 990,
+        "sampled_peak_mib_per_process": [
+          990,
+          990,
+          990
+        ],
+        "samples_per_process": [
+          11,
+          10,
+          10
+        ]
+      },
+      "rust": {
+        "median_sampled_peak_mib": 838,
+        "sampled_peak_mib_per_process": [
+          838,
+          838,
+          838
+        ],
+        "samples_per_process": [
+          6,
+          7,
+          7
+        ]
+      }
+    },
+    "32": {
+      "python": {
+        "median_sampled_peak_mib": 6214,
+        "sampled_peak_mib_per_process": [
+          6214,
+          6214,
+          6214
+        ],
+        "samples_per_process": [
+          193,
+          194,
+          188
+        ]
+      },
+      "rust": {
+        "median_sampled_peak_mib": 3080,
+        "sampled_peak_mib_per_process": [
+          3080,
+          3080,
+          3080
+        ],
+        "samples_per_process": [
+          163,
+          161,
+          158
+        ]
+      }
+    },
+    "4": {
+      "python": {
+        "median_sampled_peak_mib": 1624,
+        "sampled_peak_mib_per_process": [
+          1624,
+          1624,
+          1624
+        ],
+        "samples_per_process": [
+          28,
+          28,
+          28
+        ]
+      },
+      "rust": {
+        "median_sampled_peak_mib": 1062,
+        "sampled_peak_mib_per_process": [
+          1062,
+          1062,
+          1062
+        ],
+        "samples_per_process": [
+          21,
+          21,
+          21
+        ]
+      }
+    }
+  },
+  "failed_memory_queries": 0,
+  "manifest_sha256": "9f27d8ee9316901d08ce7343356d63ac020ed8c4002254c51de603cb008b5094",
+  "process_events_sha256": "f8d282687feadd2deeb8478161da0ae1072624468cec418d3874d2138c3e9a5d",
+  "scope": "sampled NVIDIA driver memory of benchmark process only; peaks can be missed"
+}
