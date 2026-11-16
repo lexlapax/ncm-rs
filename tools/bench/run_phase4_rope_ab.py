@@ -19,9 +19,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--baseline', required=True, type=Path)
     parser.add_argument('--candidate', required=True, type=Path)
-    parser.add_argument('--candidate-source', type=Path, help='isolated candidate generator source to fingerprint')
+    parser.add_argument('--candidate-source', type=Path, action='append', default=[],
+                        help='isolated candidate source to fingerprint; may be repeated')
+    parser.add_argument('--batches', type=int, nargs='+', choices=(32, 128), default=(32, 128),
+                        help='batches to measure; default is both')
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
+    if len(set(args.batches)) != len(args.batches):
+        parser.error('batches must be unique')
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise ValueError('Apple Silicon required')
     if any(os.environ.get(k) for k in ('DYLD_INSERT_LIBRARIES', 'MallocStackLogging', 'MallocStackLoggingNoCompact')):
@@ -35,12 +40,11 @@ def main():
                old, new]
     watched += list((ROOT / 'crates').rglob('*.rs')) + list((ROOT / 'crates').rglob('Cargo.toml'))
     watched += [p for p in ARTIFACT.rglob('*') if p.is_file()]
-    if args.candidate_source:
-        watched.append(args.candidate_source.resolve())
+    watched += [source.resolve() for source in args.candidate_source]
     before = {str(p): digest(p) for p in watched}
     out.mkdir(parents=True)
     manifest = {'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                'watched_sha256': before, 'runs': [], 'warmups': 5, 'trials': 30,
+                'watched_sha256': before, 'runs': [], 'batches': list(args.batches), 'warmups': 5, 'trials': 30,
                 'policy': 'process-local 4096 MiB cache; output drop and GPU barrier included',
                 'scope': 'single-process exploratory old/new comparison; no Python gate',
                 'limitations': ['CPU activity sampled every two seconds; GPU activity not measured.',
@@ -52,6 +56,8 @@ def main():
     try:
         for batch, order in [(32, [('baseline', old), ('candidate', new)]),
                              (128, [('candidate', new), ('baseline', old)])]:
+            if batch not in args.batches:
+                continue
             for label, binary in order:
                 stem = f'{label}-b{batch}'
                 command = [str(binary), str(ARTIFACT), str(batch), '4096']
