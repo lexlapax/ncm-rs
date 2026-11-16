@@ -41,7 +41,8 @@ def main():
         raise ValueError('unexpected reference')
     hashes = {str(p): digest(p) for p in files}
     out.mkdir(parents=True)
-    command = [str(args.python.resolve()), str(files[3]), '--artifact', str(artifact), '--inputs', str(files[0]),
+    # Preserve the venv launcher path: resolving its symlink bypasses pyvenv.cfg.
+    command = [str(args.python.absolute()), str(files[3]), '--artifact', str(artifact), '--inputs', str(files[0]),
                '--batch', '32', '--output', str(out / 'adapter.json')]
     result = subprocess.run(command, cwd=ROOT, capture_output=True, timeout=600, check=False)
     (out / 'stdout.txt').write_bytes(result.stdout)
