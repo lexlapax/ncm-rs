@@ -58,15 +58,15 @@ def main():
                  and all(len(row) == 48 for row in actual['ids']))
     if any(digest(p) != hashes[str(p)] for p in files):
         raise ValueError('input changed during comparison')
-    for extra in (['1'], ['0', '42']):
+    for extra in (['1'], ['1', '42']):
         rejected = subprocess.run(command + extra, cwd=ROOT, capture_output=True, timeout=30, check=False)
         if (rejected.returncode == 0 or rejected.stdout
-                or b'only CFG 0 and top-1 selection' not in rejected.stderr):
+                or b'only CFG 0' not in rejected.stderr):
             raise AssertionError('unsupported Metal sampling mode was not rejected explicitly')
     summary = {'schema_version': 1, 'command': command, 'source_sha256': hashes,
                'output_sha256': digest(output / 'stdout.json'), 'shapes_ok': shapes_ok,
                'code_differences': code_diffs, 'id_differences': id_diffs,
-               'unsupported_cfg_and_stochastic_rejected': True,
+               'unsupported_positive_cfg_rejected': True,
                'scope': '32 real input passages; single correctness comparison, not performance'}
     (output / 'result.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')
     print(json.dumps(summary, sort_keys=True))

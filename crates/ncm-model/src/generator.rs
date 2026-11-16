@@ -1116,6 +1116,32 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         self.finish_cpu(output, batch)
     }
 
+    /// Seeded CFG-0 sampling with explicitly requested CPU FP64 final selection.
+    /// The request-local random stream is the same as `sample_seeded_device`.
+    pub fn sample_seeded_cpu(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        seed: u64,
+    ) -> Result<XsumGenerated<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let output = self.run_internal(
+            prefix_tokens,
+            None,
+            batch,
+            &mut crate::NoTrace,
+            false,
+            Some(XsumSampling {
+                cfg: None,
+                random: Some(SplitMix64(seed)),
+            }),
+        )?;
+        self.finish_cpu(output, batch)
+    }
+
     fn finish_cpu(&self, output: XsumRun<B>, batch: usize) -> Result<XsumGenerated<B>> {
         // Selection is independent between rows. Limit the explicit FP32 host
         // readback to four rows instead of materializing the full batch.
