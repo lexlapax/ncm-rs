@@ -40,6 +40,7 @@ def main():
     parser.add_argument('--reference', type=Path, required=True)
     parser.add_argument('--reference-sha256', required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--batch', type=int, choices=(16, 128), default=128)
     args = parser.parse_args()
     if args.output_dir.exists() or digest(args.reference) != args.reference_sha256:
         raise ValueError('output directory must be new and reference hash must match')
@@ -53,9 +54,10 @@ def main():
     prepare_device()
     model = TinyGenerator(args.artifact)
     ref = tensors(args.reference.read_bytes())
-    raw = ref['cascade.3']
-    if raw.shape != (128, 128, 384) or ref['residual.conv'].shape != raw.shape or ref['refined'].shape != raw.shape:
+    source = ref['cascade.3']
+    if source.shape != (128, 128, 384) or ref['residual.conv'].shape != source.shape or ref['refined'].shape != source.shape:
         raise ValueError('unexpected CUDA reference shapes')
+    raw = source[:args.batch]
     x = mx.array(raw)
     w = model.codec.w['vq.quant_resi.0.weight']
     bias = model.codec.w['vq.quant_resi.0.bias']
@@ -89,14 +91,15 @@ def main():
         blend = np.asarray(0.5 * x + 0.5 * value)
         capture = args.output_dir / f'{name}.safetensors'
         save_tensors(capture, {'cascade.3': raw, 'refined': blend})
-        results[name] = {'conv': compare(value, ref['residual.conv']), 'blend': compare(blend, ref['refined']),
+        results[name] = {'conv': compare(value, ref['residual.conv'][:args.batch]),
+                         'blend': compare(blend, ref['refined'][:args.batch]),
                          'median_ms': statistics.median(times) * 1000, 'trials_seconds': times,
                          'capture_sha256': digest(capture)}
     after = {str(p): digest(p) for p in watched}
     if before != after:
         raise ValueError('source or inputs changed')
     with (args.output_dir / 'summary.json').open('x') as out:
-        json.dump({'input_sha256': before, 'atol': 5e-4, 'rtol': 2e-4, 'results': results,
+        json.dump({'input_sha256': before, 'batch': args.batch, 'atol': 5e-4, 'rtol': 2e-4, 'results': results,
                    'scope': 'same-input operator screen, 3 warmups and 5 synchronized calls; not a model gate'},
                   out, indent=2, sort_keys=True, allow_nan=False)
         out.write('\n')
