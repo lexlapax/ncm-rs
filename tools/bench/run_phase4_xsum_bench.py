@@ -104,7 +104,7 @@ def main():
                 'batches': args.batches, 'warmup_per_process': 5, 'trials_per_process': 30, 'processes_per_runtime_batch': args.repetitions,
                 'scope': 'eager generate and synchronized code/ID host readback; excludes load',
                 'sampling': 'temperature 1, top-k 1, top-p 0, CFG 0; native rejects exact ties',
-                'python_cleanup': 'previous GPU outputs released outside generation timing',
+                'python_cleanup': 'explicit garbage collection and synchronization after every batch, timed separately',
                 'rust_backend': 'strict cuDNN' if cudnn_dir else 'default CUDA',
                 'input_sha256': digest(INPUTS), 'cudnn_sha256': {p.name: digest(p) for p in cudnn_files},
                 'order': 'alternating runtime per batch/repetition', 'telemetry': 'nvidia-smi approximately once per second',
@@ -126,7 +126,7 @@ def main():
                         command=[str(BENCH), str(ARTIFACT), str(INPUTS), str(batch), 'device', '30']
                     else:
                         command=[str(REFERENCE), str(ROOT/'tools/reference/xsum_perf_screen.py'),
-                                 '--upstream',str(ROOT/'.reference/upstream-ncm'), '--source',str(SOURCE), '--inputs',str(INPUTS), '--batch',str(batch), '--no-stage-sync', '--trials','30']
+                                 '--upstream',str(ROOT/'.reference/upstream-ncm'), '--source',str(SOURCE), '--inputs',str(INPUTS), '--batch',str(batch), '--no-stage-sync', '--trials','30', '--collect-garbage']
                     env=os.environ.copy(); env['OMP_NUM_THREADS']='1'; env['TOKENIZERS_PARALLELISM']='false'
                     if runtime == 'rust' and cudnn_dir: env['LD_LIBRARY_PATH'] = str(cudnn_dir)
                     with (out/(stem+'.stdout')).open('xb') as stdout, (out/(stem+'.stderr')).open('xb') as stderr:
@@ -146,6 +146,8 @@ def main():
                     (out/(stem+'.json')).write_text(json.dumps(result, sort_keys=True)+'\n')
                     if result['batch'] != batch or result['warmups'] != 5 or len(result['trials_seconds']) != 30:
                         raise ValueError(f'{stem} has incomplete trials')
+                    if runtime == 'python' and len(result.get('cleanup_seconds', [])) != 30:
+                        raise ValueError(f'{stem} has incomplete cleanup timings')
                     if runtime == 'rust' and result.get('backend') != ('strict-cudnn' if cudnn_dir else 'cuda'):
                         raise ValueError(f'{stem} backend does not match the requested candidate')
                     codes = result['codes'] if runtime == 'rust' else [x for row in result['codes'] for x in row]

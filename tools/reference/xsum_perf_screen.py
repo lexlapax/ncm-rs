@@ -2,6 +2,7 @@
 import argparse
 import ast
 import contextlib
+import gc
 import json
 import subprocess
 import sys
@@ -23,6 +24,7 @@ def main():
     ap.add_argument('--batch', type=int, required=True)
     ap.add_argument('--no-stage-sync', action='store_true')
     ap.add_argument('--trials', type=int, choices=(5, 30), default=5)
+    ap.add_argument('--collect-garbage', action='store_true')
     args = ap.parse_args()
     if not 1 <= args.batch <= 32 or not torch.cuda.is_available():
         raise ValueError('batch 1..32 and CUDA required')
@@ -64,7 +66,7 @@ def main():
     exec(decoder, scope)
     del codec_state, generator_state
     prefix = torch.tensor(rows, device='cuda', dtype=torch.long)
-    samples, decoder_samples, signature = [], [], None
+    samples, decoder_samples, cleanup_samples, signature = [], [], [], None
     warmups = 5 if args.trials == 30 else 2
     torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats()
@@ -87,17 +89,25 @@ def main():
             if signature is not None and signature != current:
                 raise ValueError('generation changed between trials')
             signature = current
-            del codes, levels, ids, logits
+            del codes, levels, ids, logits, _
+            if args.collect_garbage:
+                cleanup_start = time.perf_counter()
+                gc.collect()
+                torch.cuda.synchronize()
+                cleanup_elapsed = time.perf_counter() - cleanup_start
             if trial >= warmups:
                 samples.append(elapsed)
                 if not args.no_stage_sync:
                     decoder_samples.append(decoder_elapsed)
+                if args.collect_garbage:
+                    cleanup_samples.append(cleanup_elapsed)
     for name, (size, sha) in INPUTS.items():
         verify_input(args.source / name, size, sha)
     if digest_file(evaluator) != 'e1eb550123ec76601d1af9c59c2bb7a81d5ca683a662948fcb4d8164dd510c4a':
         raise ValueError('evaluator source changed')
     print(json.dumps({'batch': args.batch, 'warmups': warmups, 'trials_seconds': samples,
                       'decoder_seconds': decoder_samples,
+                      'cleanup_seconds': cleanup_samples,
                       'scope': 'generation, FP64 final selection and code/ID host readback; load excluded; optional decoder synchronization',
                       'status': 'exploratory', 'backend': 'pinned Python CUDA',
                       'codes': signature[0], 'ids': signature[1],
