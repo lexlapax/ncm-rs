@@ -1,0 +1,43 @@
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -11,0 +12 @@
++#[cfg(panic = "unwind")]
+@@ -16,0 +18,30 @@
++}
++
++#[cfg(panic = "unwind")]
++fn guarded_compiler_init<T>(init: impl FnOnce() -> T + std::panic::UnwindSafe) -> ops::Result<T> {
++    std::panic::catch_unwind(init).map_err(|_| "GELU compiler initialization failed".into())
++}
++
++fn new_gelu_compiler() -> ops::Result<CompiledGelu> {
++    #[cfg(panic = "unwind")]
++    {
++        guarded_compiler_init(|| {
++            Box::new(mlx_rs::transforms::compile::compile(gelu_graph, Some(true))) as CompiledGelu
++        })
++    }
++    #[cfg(not(panic = "unwind"))]
++    {
++        Err("compiled GELU requires panic unwinding".into())
++    }
++}
++
++#[cfg(all(test, panic = "unwind"))]
++mod compiler_init_tests {
++    use super::guarded_compiler_init;
++
++    #[test]
++    fn compiler_initialization_panic_becomes_an_error() {
++        let result = guarded_compiler_init(|| -> () { panic!("simulated compiler failure") });
++        assert!(result.is_err());
++        assert_eq!(guarded_compiler_init(|| 7).unwrap(), 7);
++    }
+@@ -308,3 +339,4 @@
+-                let compiled = slot.get_or_insert_with(|| {
+-                    Box::new(mlx_rs::transforms::compile::compile(gelu_graph, Some(true)))
+-                });
++                if slot.is_none() {
++                    *slot = Some(new_gelu_compiler()?);
++                }
++                let compiled = slot.as_mut().ok_or("GELU compiler unavailable")?;
