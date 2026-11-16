@@ -1,0 +1,26 @@
+{
+  "code_differences": 284,
+  "command": [
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/ncm",
+    "sample-xsum",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final",
+    "mlx",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-mlx-cli-inputs-v1/prefixes.json",
+    "0",
+    "42"
+  ],
+  "id_differences": 106,
+  "output_sha256": "1fbf85c77a52e079ab54be21d41b7a15139947786ecf4beef9195c481aed16ae",
+  "schema_version": 1,
+  "scope": "32 real input passages; same SplitMix64 words, not stochastic quality or performance",
+  "shapes_ok": true,
+  "source_sha256": {
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final/manifest.json": "8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/crates/ncm-cli/src/main.rs": "c3b573345f0a3311c53eb195c3a5fb9cbf6c13ed8beb9e00ef4069392000b7cc",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-mlx-cli-inputs-v1/prefixes.json": "a9c0da895804e5146191993ae27db4c921d1b08b21594cb6eaa63777748019cf",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-mlx-stochastic-inputs-v1/reference.json": "f9e9aa42b6bcd4b8fd405e50c9689b11f0f3871bf1ec69c0535ef29b2d2c7f08",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/target/release/ncm": "53409cc00032e3512847c629b1b6313ec95350c55f40a3554722346da6be5b53",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/bench/check_xsum_mlx_stochastic.py": "25f72d86835996a349372d65b202a6b23c2e2bdfb59fcc750cbe2ca936dcd306"
+  },
+  "unsupported_positive_cfg_rejected": true
+}
