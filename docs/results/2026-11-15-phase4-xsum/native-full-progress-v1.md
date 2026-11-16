@@ -26,3 +26,24 @@ OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/
 Do not treat the matching output IDs in this partial capture as a full XSum
 quality pass. Full scoring, investigation of every intermediate-code
 difference, repeated performance checks and the MLX gate remain pending.
+
+Both shards subsequently completed and passed their source/library postflight.
+Across all 11,334 rows, all 544,032 raw IDs match Python; exactly one of
+2,266,800 intermediate codes differs. Shard 1 has no code or ID differences,
+including the formerly failing batch. The two recorded manifest hashes are
+`8250d6b1b41d991057327ab8b205a84a7f2eabd70485c8770d21f0b474c49539` and
+`375cec5e2d1b4c840be1fb2ee6ef9b78af188971653d242238c9a8f0a9bbf5dd`.
+
+A real-CUDA replay restored the saved Python random state and reproduced every
+saved Python code. At row 2,690, level 6 position 20, Python's scores for
+codes 568 and 2,617 are exactly tied (both FP32 bits `1057373626`); its sort
+selected 568. The native Rust replay reproduced every saved Rust code and raw
+ID, with corresponding scores `1057373627` and `1057373628`, selecting
+2,617. Both selected scores are finite. The difference is therefore a
+one-FP32-step Rust ordering at an exact Python maximum tie; all final IDs on
+that row match. This evidence explains the recorded choice but does not define
+universal tie ordering. Logs and trace inputs are retained in
+`reports/phase4-xsum-tie-probe-v1/`.
+
+The full output capture is complete, but scored ROUGE and GPT-2 perplexity,
+the frozen-rule comparison, repeated performance and MLX remain pending.
