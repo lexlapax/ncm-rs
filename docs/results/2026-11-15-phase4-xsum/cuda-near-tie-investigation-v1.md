@@ -111,6 +111,12 @@ matched with the system cuBLAS libraries. These runs do not establish full
 quality or performance. Replacing the captured rotary tables with a native
 reciprocal-then-multiply calculation still failed at the original tie. No
 production source or artifact was changed by the temporary diagnostic builds.
+A subsequent exploratory build generalized the diagnostic group-normalization
+batch size and used the 1 MiB preference for all 768-by-768 projections,
+rather than only two batch-specific row counts. It matched all codes and raw
+IDs on the same eight full batches plus the three-row final shard-1 batch:
+259 rows in total. This still uses locally captured tables and has not passed
+the full quality or performance gates.
 
 CUDA diagnostics, input captures, scripts, build logs, candidate sources and
 results are retained locally in `reports/phase4-xsum-tie-probe-v1/`; this
