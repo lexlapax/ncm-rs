@@ -136,6 +136,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         teacher.generate_top1_traced(&prefix, 2, &mut capture)?
     };
+    let cpu = teacher.generate_top1_cpu(&prefix, 2)?;
+    if backend.read_indices(&cpu.codes)? != backend.read_indices(&output.codes)?
+        || cpu.ids != output.ids
+    {
+        return Err("untraced CPU-final generation differs from traced generation".into());
+    }
     if args.len() == 4 {
         let fast = teacher.generate_top1_device(&prefix, 2)?;
         if backend.read_indices(&fast.codes)? != backend.read_indices(&output.codes)?

@@ -1,13 +1,14 @@
 //! JSON-array inference on an explicitly selected backend.
-#[cfg(feature = "cuda-cudnn")]
-use ncm_core::CodecBackend;
 #[cfg(any(
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
 ))]
 use ncm_core::GeneratorBackend;
 use ncm_io::Artifact;
-#[cfg(feature = "cuda-cudnn")]
+#[cfg(any(
+    feature = "cuda-cudnn",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
 use ncm_model::XsumTeacher;
 #[cfg(any(
     feature = "cpu",
@@ -172,7 +173,10 @@ fn dispatch_tinystories(
     }
 }
 
-#[cfg(feature = "cuda-cudnn")]
+#[cfg(any(
+    feature = "cuda-cudnn",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
 fn xsum_prefixes(inputs: &[Vec<u32>]) -> Result<Vec<u32>> {
     if inputs.is_empty()
         || inputs.len() > 128
@@ -203,8 +207,20 @@ fn sample_xsum(
     } else {
         model.generate_top1_cfg_device(&prefixes, inputs.len(), cfg_scale)?
     };
+    xsum_output(&backend, generated, inputs.len())
+}
+
+#[cfg(any(
+    feature = "cuda-cudnn",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
+fn xsum_output<B: ncm_core::GeneratorBackend>(
+    backend: &B,
+    generated: ncm_model::XsumGenerated<B>,
+    batch: usize,
+) -> Result<serde_json::Value> {
     let codes = backend.read_indices(&generated.codes)?;
-    if codes.len() != inputs.len() * 200 || generated.ids.len() != inputs.len() * 48 {
+    if codes.len() != batch * 200 || generated.ids.len() != batch * 48 {
         return Err("invalid XSum backend output shape".into());
     }
     let codes: Vec<_> = codes
@@ -223,6 +239,24 @@ fn sample_xsum(
     Ok(serde_json::json!({"codes": codes, "ids": ids}))
 }
 
+#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+fn sample_xsum_mlx(
+    artifact: Artifact,
+    inputs: &[Vec<u32>],
+    cfg_scale: f64,
+    seed: Option<u64>,
+) -> Result<serde_json::Value> {
+    if cfg_scale != 0.0 || seed.is_some() {
+        return Err("XSum Metal currently supports only CFG 0 and top-1 selection".into());
+    }
+    let prefixes = xsum_prefixes(inputs)?;
+    let backend = ncm_backend_mlx::MlxBackend::gpu()?;
+    let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
+    drop(artifact);
+    let generated = model.generate_top1_cpu(&prefixes, inputs.len())?;
+    xsum_output(&backend, generated, inputs.len())
+}
+
 fn dispatch_xsum(
     device: &str,
     artifact: Artifact,
@@ -234,7 +268,9 @@ fn dispatch_xsum(
     match device {
         #[cfg(feature = "cuda-cudnn")]
         "cuda-cudnn" => sample_xsum(artifact, inputs, cfg_scale, seed),
-        _ => Err("XSum requires the explicit cuda-cudnn device in this build; no fallback".into()),
+        #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+        "mlx" => sample_xsum_mlx(artifact, inputs, cfg_scale, seed),
+        _ => Err("XSum requested device is unavailable in this build; no fallback".into()),
     }
 }
 
@@ -289,7 +325,7 @@ fn main_impl() -> Result<()> {
         || (args[1] == "sample-tinystories" && args.len() != 6)
         || (args.len() == 7 && args[1] != "sample-xsum")
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]]".into());
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]]".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)

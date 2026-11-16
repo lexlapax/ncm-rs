@@ -1097,6 +1097,26 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
         let output = self.run_internal(prefix_tokens, None, batch, trace, true, None)?;
+        self.finish_cpu(output, batch)
+    }
+
+    /// Untraced top-1 generation with explicitly requested CPU FP64 final selection.
+    /// This avoids relying on device FP64 and does not silently change backends.
+    pub fn generate_top1_cpu(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+    ) -> Result<XsumGenerated<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let output =
+            self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, false, None)?;
+        self.finish_cpu(output, batch)
+    }
+
+    fn finish_cpu(&self, output: XsumRun<B>, batch: usize) -> Result<XsumGenerated<B>> {
         // Selection is independent between rows. Limit the explicit FP32 host
         // readback to four rows instead of materializing the full batch.
         let mut ids = Vec::with_capacity(batch * 48);
