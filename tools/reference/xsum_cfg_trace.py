@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--cfg-scale', type=float, required=True)
+    parser.add_argument('--prefix-json', type=Path, help='explicit padded input rows')
+    parser.add_argument('--decisions-only', action='store_true')
     args = parser.parse_args()
     if not 0.0 < args.cfg_scale <= 100.0:
         raise ValueError('positive finite CFG scale required')
@@ -60,14 +62,28 @@ def main():
     model.eval()
     traces = {}
     def save(name, value):
+        if args.decisions_only and name not in ('generator.prefix_ids', 'generator.selected_codes',
+                                                'generator.penalized_ids'):
+            return
         traces[name] = value.detach().cpu().contiguous().clone()
     levels = list(codec.vq.levels)
-    batch = 2
+    rows = None
+    if args.prefix_json:
+        rows = json.loads(args.prefix_json.read_bytes())
+        if (not isinstance(rows, list) or not 1 <= len(rows) <= 32
+                or any(not isinstance(row, list) or len(row) != 512
+                       or any(type(v) is not int or not 0 <= v < 50304 for v in row)
+                       or all(v == 50257 for v in row) for row in rows)):
+            raise ValueError('invalid padded prefixes')
+    batch = len(rows) if rows is not None else 2
     selected = []
     upstream_sample = model._sample_level_raw
-    prefix = torch.full((batch, 512), 50257, dtype=torch.long, device='cuda')
-    for row, length in enumerate((24, 497)):
-        prefix[row, :length] = (torch.arange(length, device='cuda') * (29 + row * 2) + 3) % 50256
+    if rows is not None:
+        prefix = torch.tensor(rows, dtype=torch.long, device='cuda')
+    else:
+        prefix = torch.full((batch, 512), 50257, dtype=torch.long, device='cuda')
+        for row, length in enumerate((24, 497)):
+            prefix[row, :length] = (torch.arange(length, device='cuda') * (29 + row * 2) + 3) % 50256
     calls = [0]
     def traced_sample(logits, temperature, top_k, top_p):
         level = calls[0]
@@ -107,7 +123,11 @@ def main():
     save_file(traces, str(args.output / 'trace.safetensors'))
     report = {'upstream': rev, 'sources': {k: v[1] for k, v in INPUTS.items()},
               'torch': torch.__version__, 'cuda_device': torch.cuda.get_device_name(0),
-              'tf32': False, 'sdpa': 'math', 'seed': 42, 'batch': batch, 'prefix_lengths': [24, 497],
+              'tf32': False, 'sdpa': 'math', 'seed': 42, 'batch': batch,
+              'prefix_lengths': ([(sum(v != 50257 for v in row)) for row in rows]
+                                 if rows is not None else [24, 497]),
+              'prefix_sha256': digest_file(args.prefix_json) if args.prefix_json else None,
+              'decisions_only': args.decisions_only,
               'mode': 'upstream temperature 1, top-k 1, top-p 0 guided selection',
               'cfg_scale': args.cfg_scale,
               'trace_sha256': digest_file(args.output / 'trace.safetensors'), 'tensors': sorted(traces)}

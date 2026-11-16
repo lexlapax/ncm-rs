@@ -58,13 +58,20 @@ impl TraceSink<CandleBackend> for StageTiming<'_> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if !(4..=6).contains(&args.len())
+    if !(4..=7).contains(&args.len())
         || args.get(4).is_some_and(|s| s != "device")
-        || args.get(5).is_some_and(|s| s != "30")
+        || args.get(5).is_some_and(|s| s != "5" && s != "30")
     {
-        return Err("usage: xsum_perf_screen ARTIFACT INPUT_JSON BATCH [device [30]]".into());
+        return Err(
+            "usage: xsum_perf_screen ARTIFACT INPUT_JSON BATCH [device [5|30 [CFG_SCALE]]]".into(),
+        );
     }
-    let measured = if args.len() == 6 { 30 } else { 5 };
+    let measured = if args.get(5).is_some_and(|s| s == "30") {
+        30
+    } else {
+        5
+    };
+    let cfg_scale: f64 = args.get(6).map_or(Ok(0.0), |s| s.parse())?;
     let warmups = if measured == 30 { 5 } else { 2 };
     let device_selection = args.len() >= 5;
     let batch: usize = args[3].parse()?;
@@ -92,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             decoder_done: None,
         };
         let output = if device_selection {
-            model.generate_top1_device(&input, batch)?
+            model.generate_top1_cfg_device(&input, batch, cfg_scale)?
         } else {
             model.generate_top1_traced(&input, batch, &mut trace)?
         };
@@ -121,7 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         serde_json::json!({"batch":batch,"warmups":warmups,"trials_seconds":samples,
         "decoder_seconds":decoder_samples,
         "scope":"generation, FP64 final selection and code/ID host readback; load excluded; CPU mode has an extra decoder synchronization",
-        "status":"exploratory","backend":"strict-cudnn", "selection":if device_selection {"device"} else {"cpu"}, "cuda_default_pool":pool_stats,
+        "status":"exploratory","backend":"strict-cudnn", "selection":if device_selection {"device"} else {"cpu"}, "cfg_scale":cfg_scale, "cuda_default_pool":pool_stats,
         "pool_scope":"default async CUDA pool only; high water includes load and excludes other allocations", "codes":codes,"ids":ids})
     );
     Ok(())
