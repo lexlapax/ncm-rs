@@ -54,8 +54,7 @@ output, including the block input, first normalization, Q/K/V projection,
 rotary outputs and attention. The subsequent attention projection output
 had 11,556,758 differing bit patterns out of 12,681,216 (maximum absolute difference
 1.20e-6). The same difference persisted with Python's cuBLAS libraries and
-with the fused-bias projection disabled. The diagnostic does not yet identify
-the reason for that projection difference. A subsequent isolated comparison
+with the fused-bias projection disabled. A subsequent isolated comparison
 showed identical projection inputs and weights: PyTorch's fused linear matched
 its saved output, whereas separate matrix multiply plus bias reproduced the
 Rust differences. cuBLASLt logs show that Python selected a split-K algorithm
@@ -75,8 +74,32 @@ embedding was bit-identical but the first reconstructed latent differed in
 551,893 of 589,824 bit patterns, maximum absolute difference 2.39e-6. The
 subsequent pooled latent differed in 70,168 of 73,728 bit patterns, maximum
 absolute difference 5.48e-7. These are diagnostic results on one batch, not a
-production fix. No production source or artifact was changed by the temporary
-diagnostic builds.
+production fix.
+
+Follow-up captures show that the first learned upsampling convolution is
+bit-identical and group normalization is the first differing operation in
+that cascade. On its identical input, a diagnostic CUDA implementation of
+the pinned [PyTorch group normalization](https://github.com/pytorch/pytorch/blob/v2.15.0/aten/src/ATen/native/cuda/group_norm_kernel.cu)
+reduction matched all 147,456 captured outputs bit-for-bit. A combined
+candidate including that normalization reproduced all 6,400 codes and 1,536
+raw IDs in the rejected batch; its upsampling, cumulative reconstruction and
+pooled latent also matched. This is one batch, not a full quality pass.
+Group normalization alone still failed on a tie. Group normalization plus
+GELU, and that combination plus attention or attention and captured rotary
+operations, each changed three codes and five IDs. The full candidate also
+matched the batch with the original attention path restored. Restoring either
+the original rotary tables or the original fused rotary operation in that
+candidate changed three codes and five IDs. These observations are specific
+to the tested combinations and do not prove individual changes are necessary
+for every possible solution.
+
+A short unpaired screen of the broader successful diagnostic, on the failed
+batch with two warmups and five measured trials, took 5.126–5.183 seconds per
+batch and reached 1,060,512 KiB peak process RSS. It used captured reference
+rotary tables and shape-specific diagnostic kernels. The previous Python
+batch-32 comparison used different inputs and conditions, so these numbers
+are not a performance gate. No production source or artifact was changed by
+the temporary diagnostic builds.
 
 CUDA diagnostics, input captures, scripts, build logs, candidate sources and
 results are retained locally in `reports/phase4-xsum-tie-probe-v1/`; this
@@ -89,8 +112,8 @@ CUDA device):
 reports/phase4-xsum-tie-probe-v1/rope-pytorch-order
 ```
 
-Next isolate the first reconstruction difference on the same captured batch
-and check whether its correction preserves quality and runtime performance. Any
+Next design a maintainable candidate with explicit rotary-table provenance,
+then check broader quality and matched runtime performance. Any
 production fix must preserve the upstream algorithm, be tested on the actual
 failed batch and broader quality set, and retain the required speed and memory
 advantages. Full Rust generation, quality scoring and both XSum runtime gates
