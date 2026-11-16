@@ -40,6 +40,16 @@ not monitored. Raw reports and source/binary/input hashes are under
 The full current-source quality and three-process performance comparisons,
 broader stochastic qualification and MLX remain pending.
 
+The subsequent full tie-enabled CUDA capture completed all 11,334 rows. Every
+raw output ID matches Python; the only intermediate-code difference is the
+previously investigated row-2,690 tie. Both shard source and linked-library
+checks passed. Their manifest SHA-256 values are
+`ae580e8ac25b59c2b782f3aeade72daf24ffbe8f4bd637d882f671607bfb2240` and
+`393be26641af3531fef4d14d5129a314e090c52fbe92a9cb2202d9edf448bd2f`, in
+`reports/phase4-xsum-reference-tie-full-v1-s{0,1}/`. Full and held-out scoring
+and the current-source three-process performance run are in progress or pending;
+the capture alone is not a quality or complete runtime gate.
+
 Reproduce the synthetic comparison with `tools/reference/xsum_tie_reference.py
 --output NEW_REFERENCE` under the pinned Python environment, followed by the
 strict-cuDNN `xsum_tie_probe NEW_REFERENCE/reference.safetensors` with the
