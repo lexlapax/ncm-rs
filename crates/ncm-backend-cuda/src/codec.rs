@@ -253,9 +253,23 @@ impl CodecBackend for CandleBackend {
         op!(self, [q, k, v], {
             #[cfg(feature = "cuda")]
             if self.device().is_cuda() {
-                let (_, _, _, width) = q.dims4()?;
+                let (batch, heads, seq, width) = q.dims4()?;
                 if width == 0 {
                     candle_core::bail!("attention width is zero")
+                }
+                if width == 64
+                    && (1..=128).contains(&batch)
+                    && (512..=768).contains(&seq)
+                    && (1..=16).contains(&heads)
+                    && let Some(m) = mask
+                    && matches!(m.dims(), [mb,1,mq,mk] if (*mb==1||*mb==batch) && *mq==seq && *mk==seq)
+                    && k.dims() == [batch, heads, seq, width]
+                    && v.dims() == [batch, heads, seq, width]
+                {
+                    self.check_tensor(m, DType::F32)?;
+                    let scores = q.contiguous()?.matmul(&k.contiguous()?.transpose(2, 3)?)?;
+                    return crate::masked_softmax::apply(self, &scores, m)?
+                        .matmul(&v.contiguous()?);
                 }
                 let scores = (q.contiguous()?.matmul(&k.contiguous()?.transpose(2, 3)?)?
                     / (width as f64).sqrt())?;

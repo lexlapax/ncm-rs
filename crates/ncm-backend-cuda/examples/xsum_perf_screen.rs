@@ -5,6 +5,36 @@ use ncm_io::Artifact;
 use ncm_model::{TraceSink, XsumTeacher};
 use std::time::Instant;
 
+// SAFETY: the CUDA context is bound to this thread, the pool is CUDA-owned,
+// and each synchronous attribute query writes one live u64.
+#[allow(unsafe_code)]
+fn pool(backend: &CandleBackend) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+    use candle_core::cuda_backend::cudarc::driver::sys;
+    use sys::CUmemPool_attribute::*;
+    let device = backend.device().as_cuda_device()?;
+    device.cuda_stream().context().bind_to_thread()?;
+    let mut handle = std::ptr::null_mut();
+    unsafe {
+        sys::cuDeviceGetDefaultMemPool(&mut handle, device.cuda_stream().context().cu_device())
+            .result()?;
+    }
+    let mut values = std::collections::BTreeMap::new();
+    for (name, attribute) in [
+        ("used_current", CU_MEMPOOL_ATTR_USED_MEM_CURRENT),
+        ("used_peak", CU_MEMPOOL_ATTR_USED_MEM_HIGH),
+        ("reserved_current", CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT),
+        ("reserved_peak", CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH),
+    ] {
+        let mut value = 0_u64;
+        unsafe {
+            sys::cuMemPoolGetAttribute(handle, attribute, (&mut value as *mut u64).cast())
+                .result()?;
+        }
+        values.insert(name, value);
+    }
+    Ok(serde_json::json!(values))
+}
+
 struct StageTiming<'a> {
     backend: &'a CandleBackend,
     start: Instant,
@@ -83,13 +113,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+    backend.device().synchronize()?;
+    let pool_stats = pool(&backend)?;
     let (codes, ids) = signature.ok_or("no measured output")?;
     println!(
         "{}",
         serde_json::json!({"batch":batch,"warmups":warmups,"trials_seconds":samples,
         "decoder_seconds":decoder_samples,
         "scope":"generation, FP64 final selection and code/ID host readback; load excluded; CPU mode has an extra decoder synchronization",
-        "status":"exploratory","backend":"strict-cudnn", "selection":if device_selection {"device"} else {"cpu"}, "codes":codes,"ids":ids})
+        "status":"exploratory","backend":"strict-cudnn", "selection":if device_selection {"device"} else {"cpu"}, "cuda_default_pool":pool_stats,
+        "pool_scope":"default async CUDA pool only; high water includes load and excludes other allocations", "codes":codes,"ids":ids})
     );
     Ok(())
 }

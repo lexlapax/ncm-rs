@@ -206,3 +206,37 @@ extern "C" __global__ void ncm_xsum_penalty_finish(const double* partial,const u
         counts[(size_t)row*vocab+chosen]++;
     }
 }
+
+// Warp-wise softmax follows the reduction order of candle-kernels 0.11.1,
+// which credits ggml's llama.cpp ggml-cuda.cu at d59bd97065cd7ded6c4ecab54b1d5e0b1b11e318.
+// Upstream MIT notices are retained in third-party/candle-MIT.txt and
+// third-party/llama-cpp-MIT.txt.
+// Scale and broadcast-mask addition are fused into the two input reads.
+extern "C" __global__ void ncm_masked_softmax_64(const float* scores,const float* mask,
+                                                float* output,unsigned heads,unsigned seq,
+                                                unsigned mask_batch) {
+    const unsigned row=blockIdx.x,lane=threadIdx.x;
+    const unsigned batch=row/(heads*seq), query=row%seq;
+    const unsigned mask_row=((mask_batch==1?0:batch)*seq+query)*seq;
+    const unsigned score_row=row*seq;
+    float maximum=-CUDART_INF_F;
+    for(unsigned col=lane;col<seq;col+=32) {
+        float scaled=__fadd_rn(__fmul_rn(scores[score_row+col],0.125f),0.0f);
+        float value=__fadd_rn(scaled,mask[mask_row+col]);
+        maximum=fmaxf(maximum,value);
+    }
+    for(int shift=16;shift>0;shift>>=1)
+        maximum=fmaxf(maximum,__shfl_xor_sync(0xffffffff,maximum,shift,32));
+    float sum=0.0f;
+    for(unsigned col=lane;col<seq;col+=32) {
+        float scaled=__fadd_rn(__fmul_rn(scores[score_row+col],0.125f),0.0f);
+        float value=__fadd_rn(scaled,mask[mask_row+col]);
+        float e=expf(value-maximum);
+        sum+=e;
+        output[score_row+col]=e;
+    }
+    for(int shift=16;shift>0;shift>>=1)
+        sum+=__shfl_xor_sync(0xffffffff,sum,shift,32);
+    float inverse=float(1.0/double(sum));
+    for(unsigned col=lane;col<seq;col+=32) output[score_row+col]*=inverse;
+}

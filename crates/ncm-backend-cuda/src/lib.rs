@@ -16,6 +16,8 @@ mod cudnn_convolution;
 mod fused_projection;
 #[cfg(feature = "cuda")]
 mod generator_layout;
+#[cfg(feature = "cuda")]
+pub mod masked_softmax;
 #[cfg(feature = "cpu")]
 pub mod ops;
 #[cfg(feature = "cpu")]

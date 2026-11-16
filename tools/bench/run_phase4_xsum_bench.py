@@ -75,8 +75,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--repetitions', type=int, default=3, choices=(1, 3))
+    parser.add_argument('--batches', type=int, nargs='+', choices=(1, 4, 32), default=list(BATCHES))
     parser.add_argument('--cudnn-dir', type=Path, help='native cuDNN libraries for the explicitly built strict candidate')
     args = parser.parse_args()
+    if len(set(args.batches)) != len(args.batches): raise SystemExit('duplicate batches are not permitted')
     forbidden = ('LD_PRELOAD', 'LD_AUDIT', 'CUDA_INJECTION64_PATH', 'CUDA_VISIBLE_DEVICES',
                  'CUDA_LAUNCH_BLOCKING', 'CUBLAS_WORKSPACE_CONFIG', 'NCM_PHASE3_LT_PROFILE',
                  'NVIDIA_TF32_OVERRIDE', 'PYTORCH_ALLOC_CONF', 'PYTORCH_CUDA_ALLOC_CONF')
@@ -99,7 +101,7 @@ def main():
     paths = [ROOT / name for name in SOURCES] + [BENCH, ARTIFACT / 'manifest.json', INPUTS] + [SOURCE / 'config.yaml']
     manifest = {'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in paths},
                 'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                'batches': BATCHES, 'warmup_per_process': 5, 'trials_per_process': 30, 'processes_per_runtime_batch': args.repetitions,
+                'batches': args.batches, 'warmup_per_process': 5, 'trials_per_process': 30, 'processes_per_runtime_batch': args.repetitions,
                 'scope': 'eager generate and synchronized code/ID host readback; excludes load',
                 'sampling': 'temperature 1, top-k 1, top-p 0, CFG 0; native rejects exact ties',
                 'python_cleanup': 'previous GPU outputs released outside generation timing',
@@ -116,7 +118,7 @@ def main():
     process = None
     expected_outputs = {}
     try:
-        for j, batch in enumerate(BATCHES):
+        for j, batch in enumerate(args.batches):
             for rep in range(args.repetitions):
                 for runtime in (('rust', 'python') if (j+rep)%2 == 0 else ('python', 'rust')):
                     stem=f'{runtime}-b{batch}-r{rep}'
