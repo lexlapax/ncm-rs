@@ -1,10 +1,14 @@
 //! JSON-array inference on an explicitly selected backend.
+#[cfg(feature = "cuda-cudnn")]
+use ncm_core::CodecBackend;
 #[cfg(any(
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
 ))]
 use ncm_core::GeneratorBackend;
 use ncm_io::Artifact;
+#[cfg(feature = "cuda-cudnn")]
+use ncm_model::XsumTeacher;
 #[cfg(any(
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
@@ -168,6 +172,61 @@ fn dispatch_tinystories(
     }
 }
 
+#[cfg(feature = "cuda-cudnn")]
+fn xsum_prefixes(inputs: &[Vec<u32>]) -> Result<Vec<u32>> {
+    if inputs.is_empty()
+        || inputs.len() > 128
+        || inputs.iter().any(|row| {
+            row.len() != 512
+                || row.iter().any(|&token| token >= 50304)
+                || row.iter().all(|&token| token == 50257)
+        })
+    {
+        return Err("XSum expects 1..=128 valid 512-token padded prefixes".into());
+    }
+    Ok(inputs.iter().flatten().copied().collect())
+}
+
+#[cfg(feature = "cuda-cudnn")]
+fn sample_xsum(artifact: Artifact, inputs: &[Vec<u32>]) -> Result<serde_json::Value> {
+    let prefixes = xsum_prefixes(inputs)?;
+    let backend = ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?;
+    let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
+    drop(artifact);
+    let generated = model.generate_top1_device(&prefixes, inputs.len())?;
+    let codes = backend.read_indices(&generated.codes)?;
+    if codes.len() != inputs.len() * 200 || generated.ids.len() != inputs.len() * 48 {
+        return Err("invalid XSum backend output shape".into());
+    }
+    let codes: Vec<_> = codes
+        .as_chunks::<200>()
+        .0
+        .iter()
+        .map(<[u32; 200]>::as_slice)
+        .collect();
+    let ids: Vec<_> = generated
+        .ids
+        .as_chunks::<48>()
+        .0
+        .iter()
+        .map(<[u32; 48]>::as_slice)
+        .collect();
+    Ok(serde_json::json!({"codes": codes, "ids": ids}))
+}
+
+fn dispatch_xsum(
+    device: &str,
+    artifact: Artifact,
+    inputs: &[Vec<u32>],
+) -> Result<serde_json::Value> {
+    let _ = (&artifact, inputs);
+    match device {
+        #[cfg(feature = "cuda-cudnn")]
+        "cuda-cudnn" => sample_xsum(artifact, inputs),
+        _ => Err("XSum requires the explicit cuda-cudnn device in this build; no fallback".into()),
+    }
+}
+
 fn dispatch(
     device: &str,
     command: &str,
@@ -214,18 +273,19 @@ fn main_impl() -> Result<()> {
     if !(5..=6).contains(&args.len())
         || !matches!(
             args[1].as_str(),
-            "generate" | "reconstruct" | "sample-tinystories"
+            "generate" | "reconstruct" | "sample-tinystories" | "sample-xsum"
         )
         || (args[1] == "sample-tinystories" && args.len() != 6)
+        || (args[1] == "sample-xsum" && args.len() != 5)
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED".into());
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn INPUT_JSON".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)
     } else {
         None
     };
-    let artifact = if sample_seed.is_some() {
+    let artifact = if sample_seed.is_some() || args[1] == "sample-xsum" {
         Artifact::load_inference(&args[2])?
     } else {
         Artifact::load(&args[2])?
@@ -241,7 +301,9 @@ fn main_impl() -> Result<()> {
         return Err("input exceeds 1 MiB".into());
     }
     let inputs: Vec<Vec<u32>> = serde_json::from_slice(&bytes)?;
-    let result = if let Some(seed) = sample_seed {
+    let result = if args[1] == "sample-xsum" {
+        dispatch_xsum(&args[3], artifact, &inputs)?
+    } else if let Some(seed) = sample_seed {
         dispatch_tinystories(&args[3], artifact, &inputs, seed)?
     } else {
         let batch_size = args.get(5).map_or(Ok(128), |s| s.parse::<usize>())?;
@@ -272,5 +334,24 @@ mod tests {
             tinystories_prefixes(&vec![vec![0]; 128]).unwrap().len(),
             128
         );
+    }
+}
+
+#[cfg(all(test, feature = "cuda-cudnn"))]
+mod xsum_tests {
+    use super::xsum_prefixes;
+
+    #[test]
+    fn xsum_prefixes_require_bounded_nonempty_padded_rows() {
+        assert!(xsum_prefixes(&[]).is_err());
+        assert!(xsum_prefixes(&[vec![0; 511]]).is_err());
+        assert!(xsum_prefixes(&[vec![50257; 512]]).is_err());
+        let mut valid = vec![50257; 512];
+        valid[0] = 50256;
+        assert_eq!(xsum_prefixes(&[valid.clone()]).unwrap(), valid);
+        let mut invalid = valid.clone();
+        invalid[0] = 50304;
+        assert!(xsum_prefixes(&[invalid]).is_err());
+        assert!(xsum_prefixes(&vec![valid; 129]).is_err());
     }
 }
