@@ -1,0 +1,91 @@
+--- a/crates/ncm-core/src/lib.rs
++++ b/crates/ncm-core/src/lib.rs
+@@ -115,0 +116,9 @@
++    /// First refinement convolution, with the same semantics as padded conv1d.
++    fn first_refinement_conv1d(
++        &self,
++        x: &Self::Tensor,
++        weight: &Self::Tensor,
++        bias: &Self::Tensor,
++    ) -> Result<Self::Tensor> {
++        self.conv1d(x, weight, bias, 1, 1, false)
++    }
+--- a/crates/ncm-model/src/blocks.rs
++++ b/crates/ncm-model/src/blocks.rs
+@@ -133,8 +133,7 @@
+-        let conv = b.conv1d(
+-            x,
+-            self.weight(&format!("{name}.weight"))?,
+-            self.weight(&format!("{name}.bias"))?,
+-            1,
+-            1,
+-            false,
+-        )?;
++        let weight = self.weight(&format!("{name}.weight"))?;
++        let bias = self.weight(&format!("{name}.bias"))?;
++        let conv = if level == 0 {
++            b.first_refinement_conv1d(x, weight, bias)?
++        } else {
++            b.conv1d(x, weight, bias, 1, 1, false)?
++        };
+--- a/crates/ncm-backend-mlx/src/ops.rs
++++ b/crates/ncm-backend-mlx/src/ops.rs
+@@ -60,0 +61,10 @@
++}
++pub fn first_refinement_three_gemm(x: &Array, w: &Array, bias: &Array) -> Result<Array> {
++    let padded = ops::pad(x, &[(0, 0), (1, 1), (0, 0)], None, None)?;
++    let mut parts = Vec::with_capacity(3);
++    for k in 0..3 {
++        let source = padded.try_index((.., k..k + 128, ..))?;
++        let kernel = w.try_index((.., .., k))?.transpose_axes(&[1, 0])?;
++        parts.push(source.matmul(kernel)?);
++    }
++    Ok(parts[0].add(&parts[1])?.add(&parts[2])?.add(bias)?)
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -375,0 +376,16 @@
++    fn first_refinement_conv1d(
++        &self,
++        x: &MlxTensor,
++        weight: &MlxTensor,
++        bias: &MlxTensor,
++    ) -> Result<MlxTensor> {
++        if matches!(x.0.shape(), [batch, 128, 384] if *batch >= 16)
++            && weight.0.shape() == [384, 384, 3]
++            && bias.0.shape() == [384]
++        {
++            return self.array_op(&[x, weight, bias], || {
++                ops::first_refinement_three_gemm(&x.0, &weight.0, &bias.0)
++            });
++        }
++        self.conv1d(x, weight, bias, 1, 1, false)
++    }
+--- a/crates/ncm-backend-mlx/tests/codec_components.rs
++++ b/crates/ncm-backend-mlx/tests/codec_components.rs
+@@ -5,0 +6,26 @@
++
++#[test]
++fn first_refinement_three_gemm_matches_convolution() {
++    let b = MlxBackend::gpu().unwrap();
++    let weights: Vec<f32> = (0..384 * 384 * 3)
++        .map(|i| ((i * 13 % 113) as f32 - 56.) / 4096.)
++        .collect();
++    let w = b.upload_f32(&weights, &[384, 384, 3]).unwrap();
++    let bias = b.upload_f32(&[0.01; 384], &[384]).unwrap();
++    for batch in [1, 16] {
++        let values: Vec<f32> = (0..batch * 128 * 384)
++            .map(|i| ((i * 73 % 1009) as f32 - 504.) / 4096.)
++            .collect();
++        let x = b.upload_f32(&values, &[batch, 128, 384]).unwrap();
++        let actual = b
++            .read_f32(&b.first_refinement_conv1d(&x, &w, &bias).unwrap())
++            .unwrap();
++        let expected = b
++            .read_f32(&b.conv1d(&x, &w, &bias, 1, 1, false).unwrap())
++            .unwrap();
++        assert_eq!(actual.len(), expected.len());
++        for (&a, &e) in actual.iter().zip(&expected) {
++            assert!((a - e).abs() <= 1e-5 + 1e-4 * e.abs(), "{a} vs {e}");
++        }
++    }
++}

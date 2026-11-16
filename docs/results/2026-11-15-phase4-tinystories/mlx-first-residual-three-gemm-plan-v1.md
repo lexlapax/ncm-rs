@@ -1,0 +1,7 @@
+# Isolated first-residual three-matrix candidate
+
+The [same-input operator screen](mlx-residual-variants-screen-v1.md) found a three-matrix formulation of the existing kernel-size-three convolution improved the examined CUDA-relative and FP64 diagnostics, and was faster in a short operator screen. This isolated patch applies that same equation only to the first codec refinement on MLX for FP32 `[batch >= 16, 128, 384]` input with the matching `[384, 384, 3]` weight and bias. Other refinements and shapes retain the existing operation; the default trait method preserves the existing CUDA convolution. No weights, upstream pin or tolerance change.
+
+Formatting, core/model check, clean patch replay and focused real-CUDA pinned Sudoku generator golden plus strict-cuDNN retained TinyStories batch pass. CUDA log `reports/phase4-residual-three-gemm-cuda-v1.log` SHA-256 `3457637793c7313c186ae8bb80f694602310b1306b683ff5d47213150cd001dd`. This focused check is not a full CUDA gate.
+
+Next: test the real-Metal operation against the existing composition, compare fixed-code generator and reconstruction traces against both pinned CUDA and the adapted MLX reference, then check samples and end-to-end timing/memory. The Python operator screen does not prove the Rust path compiles, reproduces its arithmetic, preserves decisions or improves end-to-end quality/performance. Full platform gates, stochastic quality, memory and repeated Python comparison are pending.
