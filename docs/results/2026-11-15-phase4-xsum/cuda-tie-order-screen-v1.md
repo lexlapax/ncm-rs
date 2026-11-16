@@ -23,3 +23,23 @@ the captured JSON in `reports/phase4-xsum-tie-order-screen-v1/result.json`
 hashes to `8d4221872e0830f4e3b4d78eaad0753cc9dfba77c5ae87460c37e11689c3e6c8`.
 The screen used synthetic data and did not fingerprint linked libraries or
 monitor desktop activity; it is not a performance measurement or full gate.
+
+## Pinned implementation follow-up
+
+The exact PyTorch build source was subsequently inspected at commit
+`d0f2af8b66b20da4baa50644c0cd3f887a2eae2e`. Its
+[CUDA sort dispatch](https://github.com/pytorch/pytorch/blob/d0f2af8b66b20da4baa50644c0cd3f887a2eae2e/aten/src/ATen/native/cuda/Sort.cpp)
+uses the small-sort path for 4096 entries; its
+[sort kernel](https://github.com/pytorch/pytorch/blob/d0f2af8b66b20da4baa50644c0cd3f887a2eae2e/aten/src/ATen/native/cuda/SortUtils.cuh)
+uses CUB `BlockRadixSort`. NVIDIA documents that
+[BlockRadixSort is stable and treats signed zeros as equivalent](https://nvidia.github.io/cccl/unstable/cub/api/classcub_1_1BlockRadixSort.html).
+Together with PyTorch's index initialization, this supports first-index ties
+for the pinned CUDA 4096-way path, not a general `torch.sort` guarantee.
+Four additional real-CUDA cases with positive and negative zero selected the
+lowest index; their result hash is
+`895228612e9c3e53dd02a77919ba6341b1390466a45ec4de4d7d1ff97482a2e2`.
+The four downloaded pinned source files and signed-zero probe remain under
+`reports/phase4-xsum-tie-order-screen-v1/` and
+`reports/phase4-xsum-signed-zero-ties-v1/`. These observations justify preparing
+a narrowly scoped implementation and tests; they do not change the current
+selector, oracle or acceptance status.
