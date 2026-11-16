@@ -525,17 +525,19 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
     let linear =
         |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
     let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
-        b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
+        if batch < 16 {
+            b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
+        } else {
+            b.layer_norm_accelerated(x, &affine.weight, Some(&affine.bias), 1e-6)
+        }
     };
     let mut x = b.concat_f32(&[prefix.clone(), target.clone()], 1)?;
     for block in blocks {
         let normalized = norm(&block.ln_1, &x)?;
         let qkv = linear(&block.qkv, &normalized)?;
         let [q, k, v] = b.split_qkv(&qkv, batch, seq, heads, head)?;
-        let q = b.rms_norm(&q, &block.q_norm, 1e-6)?;
-        let k = b.rms_norm(&k, &block.k_norm, 1e-6)?;
-        let q = b.rope(&q, &geometry.cosine, &geometry.sine)?;
-        let k = b.rope(&k, &geometry.cosine, &geometry.sine)?;
+        let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
+        let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
         let attn = b.attention(&q, &k, &v, Some(&geometry.mask))?;
         let attn = b.merge_heads(&attn, batch, seq, heads, head)?;
         x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;

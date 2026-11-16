@@ -2,7 +2,83 @@
 #[path = "../../../tests/support/codec.rs"]
 mod support;
 use ncm_backend_mlx::MlxBackend;
-use ncm_core::{CodecBackend, WeightBackend};
+use ncm_core::{CodecBackend, GeneratorBackend, WeightBackend};
+
+#[test]
+fn fused_qk_rms_rope_matches_composition() {
+    let b = MlxBackend::gpu().unwrap();
+    let weights: Vec<f32> = (0..64).map(|i| 0.5 + i as f32 / 64.).collect();
+    let w = b.upload_f32(&weights, &[64]).unwrap();
+    let angles: Vec<f32> = (0..9 * 32).map(|i| i as f32 / 137.).collect();
+    let cos = b
+        .upload_f32(
+            &angles.iter().map(|x| x.cos()).collect::<Vec<_>>(),
+            &[9, 32],
+        )
+        .unwrap();
+    let sin = b
+        .upload_f32(
+            &angles.iter().map(|x| x.sin()).collect::<Vec<_>>(),
+            &[9, 32],
+        )
+        .unwrap();
+    for batch in [1, 16] {
+        let mut values: Vec<f32> = (0..batch * 12 * 9 * 64)
+            .map(|i| ((i * 73 % 1009) as f32 - 504.) / 80.)
+            .collect();
+        values[..64].fill(0.);
+        let x = b.upload_f32(&values, &[batch, 12, 9, 64]).unwrap();
+        let actual = b
+            .read_f32(&b.rms_rope(&x, &w, &cos, &sin, 1e-6).unwrap())
+            .unwrap();
+        let expected = b
+            .read_f32(
+                &b.rope(&b.rms_norm(&x, &w, 1e-6).unwrap(), &cos, &sin)
+                    .unwrap(),
+            )
+            .unwrap();
+        assert_eq!(actual.len(), expected.len());
+        for (i, (&a, &e)) in actual.iter().zip(&expected).enumerate() {
+            assert!(
+                (a - e).abs() <= 1e-5 + 1e-4 * e.abs(),
+                "batch={batch} index={i}: {a} vs {e}"
+            );
+        }
+        if batch == 16 {
+            assert!(b.rms_rope(&x, &w, &cos, &sin, 0.).is_err());
+        }
+    }
+}
+
+#[test]
+fn generator_gelu_matches_eager_expression() {
+    let backend = MlxBackend::gpu().unwrap();
+    let mut values: Vec<f32> = (0..16 * 9 * 3072)
+        .map(|i| ((i * 73 % 1009) as f32 - 504.) / 80.)
+        .collect();
+    values[..5].copy_from_slice(&[0., -0., f32::INFINITY, f32::NEG_INFINITY, f32::NAN]);
+    let input = backend.upload_f32(&values, &[16, 9, 3072]).unwrap();
+    let actual = backend.read_f32(&backend.gelu(&input).unwrap()).unwrap();
+    let expected = mlx_rs::with_device(mlx_rs::Device::gpu(), || {
+        let x = mlx_rs::Array::from_slice(&values, &[16, 9, 3072]);
+        let y = x.multiply(mlx_rs::Array::from_f32(0.5))?.multiply(
+            mlx_rs::ops::erf(x.divide(mlx_rs::Array::from_f32(std::f32::consts::SQRT_2))?)?
+                .add(mlx_rs::Array::from_f32(1.))?,
+        )?;
+        y.eval()?;
+        Ok::<_, Box<dyn std::error::Error>>(y.try_as_slice::<f32>()?.to_vec())
+    })
+    .unwrap();
+    assert_eq!(actual.len(), expected.len());
+    for (&a, &e) in actual.iter().zip(&expected) {
+        assert!(
+            (a.is_nan() && e.is_nan())
+                || a.to_bits() == e.to_bits()
+                || (a.is_finite() && e.is_finite() && (a - e).abs() <= 1e-5 + 1e-4 * e.abs()),
+            "{a:?} vs {e:?}"
+        );
+    }
+}
 
 #[test]
 fn metal_codec_components() {

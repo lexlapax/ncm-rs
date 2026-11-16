@@ -11,4 +11,6 @@ mod codec;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 pub mod ops;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+mod qk_rope;
+#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 pub use codec::{MlxBackend, MlxTensor};

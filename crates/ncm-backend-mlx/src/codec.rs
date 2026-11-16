@@ -6,6 +6,46 @@ use mlx_rs::{
     with_stream,
 };
 use ncm_core::{CodecBackend, Error, Result, WeightBackend};
+use std::{cell::RefCell, rc::Rc};
+type CompiledGelu =
+    Box<dyn FnMut(&[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception>>;
+#[cfg(panic = "unwind")]
+fn gelu_graph(inputs: &[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception> {
+    let (x, half, sqrt_two, one) = (&inputs[0], &inputs[1], &inputs[2], &inputs[3]);
+    Ok(vec![x.multiply(half)?.multiply(
+        mlx_rs::ops::erf(x.divide(sqrt_two)?)?.add(one)?,
+    )?])
+}
+
+#[cfg(panic = "unwind")]
+fn guarded_compiler_init<T>(init: impl FnOnce() -> T + std::panic::UnwindSafe) -> ops::Result<T> {
+    std::panic::catch_unwind(init).map_err(|_| "GELU compiler initialization failed".into())
+}
+
+fn new_gelu_compiler() -> ops::Result<CompiledGelu> {
+    #[cfg(panic = "unwind")]
+    {
+        guarded_compiler_init(|| {
+            Box::new(mlx_rs::transforms::compile::compile(gelu_graph, Some(true))) as CompiledGelu
+        })
+    }
+    #[cfg(not(panic = "unwind"))]
+    {
+        Err("compiled GELU requires panic unwinding".into())
+    }
+}
+
+#[cfg(all(test, panic = "unwind"))]
+mod compiler_init_tests {
+    use super::guarded_compiler_init;
+
+    #[test]
+    fn compiler_initialization_panic_becomes_an_error() {
+        let result = guarded_compiler_init(|| -> () { panic!("simulated compiler failure") });
+        assert!(result.is_err());
+        assert_eq!(guarded_compiler_init(|| 7).unwrap(), 7);
+    }
+}
 
 /// Opaque immutable array: callers cannot inject foreign-device graphs or mutate storage.
 #[derive(Clone)]
@@ -16,6 +56,7 @@ pub struct MlxTensor(Array);
 #[derive(Clone)]
 pub struct MlxBackend {
     stream: Stream,
+    compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -44,7 +85,10 @@ fn check(x: &MlxTensor, dtype: Dtype) -> Result<()> {
 impl MlxBackend {
     pub fn gpu() -> Result<Self> {
         let stream = Stream::try_default_on_device(&Device::gpu()).map_err(error)?;
-        let backend = Self { stream };
+        let backend = Self {
+            stream,
+            compiled_gelu: Rc::new(RefCell::new(None)),
+        };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
         backend.evaluate(&[backend.add(&one, &one)?])?;
@@ -287,6 +331,27 @@ impl CodecBackend for MlxBackend {
     }
     fn gelu(&self, x: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x], || {
+            if matches!(x.0.shape(), [batch, _, 3072] if *batch >= 16) {
+                let mut slot = self
+                    .compiled_gelu
+                    .try_borrow_mut()
+                    .map_err(|_| "GELU compiler reentered")?;
+                if slot.is_none() {
+                    *slot = Some(new_gelu_compiler()?);
+                }
+                let compiled = slot.as_mut().ok_or("GELU compiler unavailable")?;
+                let inputs = [
+                    x.0.clone(),
+                    Array::from_f32(0.5),
+                    Array::from_f32(std::f32::consts::SQRT_2),
+                    Array::from_f32(1.),
+                ];
+                let mut result = compiled(&inputs)?;
+                if result.len() != 1 {
+                    return Err("invalid compiled GELU result".into());
+                }
+                return Ok(result.remove(0));
+            }
             Ok(x.0.multiply(Array::from_f32(0.5))?.multiply(
                 mlx_rs::ops::erf(x.0.divide(Array::from_f32(std::f32::consts::SQRT_2))?)?
                     .add(Array::from_f32(1.))?,
@@ -393,6 +458,21 @@ impl CodecBackend for MlxBackend {
 }
 
 impl ncm_core::GeneratorBackend for MlxBackend {
+    fn rms_rope(
+        &self,
+        x: &MlxTensor,
+        weight: &MlxTensor,
+        cos: &MlxTensor,
+        sin: &MlxTensor,
+        eps: f64,
+    ) -> Result<MlxTensor> {
+        if matches!(x.0.shape(), [batch, _, _, 64] if *batch >= 16) {
+            return self.array_op(&[x, weight, cos, sin], || {
+                crate::qk_rope::apply(&x.0, &weight.0, &cos.0, &sin.0, eps)
+            });
+        }
+        self.rope(&self.rms_norm(x, weight, eps)?, cos, sin)
+    }
     fn sampled_embedding_4096(&self, weight: &MlxTensor, indices: &MlxTensor) -> Result<MlxTensor> {
         check(weight, Dtype::Float32)?;
         check(indices, Dtype::Uint32)?;

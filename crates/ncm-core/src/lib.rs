@@ -222,4 +222,15 @@ pub trait GeneratorBackend: CodecBackend {
         cos: &Self::Tensor,
         sin: &Self::Tensor,
     ) -> Result<Self::Tensor>;
+    /// Apply RMS normalization followed by split-half rotary embedding.
+    fn rms_rope(
+        &self,
+        x: &Self::Tensor,
+        weight: &Self::Tensor,
+        cos: &Self::Tensor,
+        sin: &Self::Tensor,
+        eps: f64,
+    ) -> Result<Self::Tensor> {
+        self.rope(&self.rms_norm(x, weight, eps)?, cos, sin)
+    }
 }
