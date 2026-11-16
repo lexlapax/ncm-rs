@@ -50,6 +50,16 @@ checks passed. Their manifest SHA-256 values are
 and the current-source three-process performance run are in progress or pending;
 the capture alone is not a quality or complete runtime gate.
 
+Full and held-out scoring has since passed the frozen quality rule: all output
+IDs, decoded texts, per-row ROUGE and aggregate metrics match Python. Full
+ROUGE-1/2/L is 34.9236/12.7078/27.9258 and GPT-2 perplexity is 82.6234;
+held-out rows 256–11,333 score 34.9312/12.7069/27.9256 and 82.6764. The full
+and held-out comparison JSON files under `reports/` hash to
+`6c109f0c726d9f40e2e6ce125e2c82c448cd487e997b89e30a6c39177fdd4391` and
+`66038ace8f7c67c4c2d9844add596b63a8bf0e5065b75b781eb2be79b04ea2c7`.
+The one intermediate-code disagreement remains the investigated Python tie;
+the current-source repeated performance run and MLX remain pending.
+
 Reproduce the synthetic comparison with `tools/reference/xsum_tie_reference.py
 --output NEW_REFERENCE` under the pinned Python environment, followed by the
 strict-cuDNN `xsum_tie_probe NEW_REFERENCE/reference.safetensors` with the
