@@ -868,6 +868,235 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
     }
 }
 
+/// Fixed-code XSum teacher trace. This does not implement sampling or final penalties.
+pub struct XsumTeacher<B: ncm_core::GeneratorBackend> {
+    codec: crate::Codec<B>,
+    backend: B,
+    input: Affine<B::Tensor>,
+    query: B::Tensor,
+    level_embedding: B::Tensor,
+    final_norm: Affine<B::Tensor>,
+    blocks: Box<[GeneratorBlock<B::Tensor>]>,
+    heads: Box<[TinyHead<B::Tensor>]>,
+    geometry: Vec<LevelGeometry<B::Tensor>>,
+    token_allowance: Vec<f32>,
+    request_lock: std::sync::Mutex<()>,
+}
+
+/// Raw teacher-forced output; `greedy_ids` do not include XSum penalties.
+pub struct XsumTeacherOutput<B: ncm_core::GeneratorBackend> {
+    pub codes: B::Indices,
+    pub logits: B::Tensor,
+    pub greedy_ids: B::Indices,
+}
+
+impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
+    pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
+        let inspection = crate::XsumGeneratorInspection::from_artifact(artifact)?;
+        let codec = crate::Codec::from_artifact(backend.clone(), artifact)?;
+        let bytes = artifact
+            .file("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        let mut scales = Vec::with_capacity(9);
+        for i in 0..9 {
+            let tensor = tensors
+                .tensor(&format!("lm_heads.{i}.log_inv_T"))
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let raw: [u8; 4] = tensor
+                .data()
+                .try_into()
+                .map_err(|_| Error::Weights("invalid head scale".into()))?;
+            scales.push(f32::from_le_bytes(raw).exp());
+        }
+        let mut weights = BTreeMap::new();
+        for name in tensors.names() {
+            if name == "lvl_1L" || name == "attn_mask_for_masking" || name.ends_with(".log_inv_T") {
+                continue;
+            }
+            let tensor = tensors
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let values: Vec<f32> = tensor
+                .data()
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|x| f32::from_le_bytes(*x))
+                .collect();
+            weights.insert(
+                name.to_owned(),
+                backend.upload_f32(&values, tensor.shape())?,
+            );
+        }
+        let input = take_affine(&mut weights, "transformer.wte")?;
+        let query = take(&mut weights, "l0_queries")?;
+        let level_embedding = take(&mut weights, "transformer.wle.weight")?;
+        let final_norm = take_affine(&mut weights, "transformer.ln_f")?;
+        let mut blocks = Vec::with_capacity(12);
+        for i in 0..12 {
+            let p = format!("transformer.blocks.{i}");
+            blocks.push(GeneratorBlock {
+                ln_1: take_affine(&mut weights, &format!("{p}.ln_1"))?,
+                qkv: take_affine(&mut weights, &format!("{p}.attn.c_attn"))?,
+                q_norm: take(&mut weights, &format!("{p}.attn.q_norm.weight"))?,
+                k_norm: take(&mut weights, &format!("{p}.attn.k_norm.weight"))?,
+                attention_projection: take_affine(&mut weights, &format!("{p}.attn.c_proj"))?,
+                ln_2: take_affine(&mut weights, &format!("{p}.ln_2"))?,
+                mlp_in: take_affine(&mut weights, &format!("{p}.mlp.c_fc"))?,
+                mlp_out: take_affine(&mut weights, &format!("{p}.mlp.c_proj"))?,
+            });
+        }
+        let mut heads = Vec::with_capacity(9);
+        for (i, inverse_temperature) in scales.into_iter().enumerate() {
+            let book = codec.weight(&format!("vq.embeddings.{i}.weight"))?;
+            let norm = backend.sum_last(&backend.square(book)?)?;
+            let total = backend.sum_last(&backend.reshape(&norm, &[1, 4096])?)?;
+            let mean = backend.read_f32(&backend.scale(&total, 1.0 / 4096.0)?)?[0].max(1e-12);
+            if !mean.is_finite() {
+                return Err(Error::Weights("invalid XSum codebook norm".into()));
+            }
+            heads.push(TinyHead {
+                projection: take(&mut weights, &format!("lm_heads.{i}.proj.weight"))?,
+                squared_norm: backend.reshape(&norm, &[1, 1, 4096])?,
+                mean_squared_norm: mean,
+                inverse_temperature,
+            });
+        }
+        if !weights.is_empty() {
+            return Err(Error::Weights("unbound XSum generator tensor".into()));
+        }
+        let geometry = prepare_geometry(&backend, codec.config().levels(), 512, 768, 12, 100000)?;
+        Ok(Self {
+            codec,
+            backend,
+            input,
+            query,
+            level_embedding,
+            final_norm,
+            blocks: blocks.into_boxed_slice(),
+            heads: heads.into_boxed_slice(),
+            geometry,
+            token_allowance: inspection.token_allowance,
+            request_lock: std::sync::Mutex::new(()),
+        })
+    }
+}
+
+impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
+    pub fn token_allowance(&self) -> &[f32] {
+        &self.token_allowance
+    }
+
+    /// Run fixed code IDs through all nine levels with explicit prefix padding.
+    pub fn run_traced(
+        &self,
+        prefix_tokens: &[u32],
+        forced_codes: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<XsumTeacherOutput<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let levels = self.codec.config().levels();
+        let total: usize = levels.iter().sum();
+        if !(1..=128).contains(&batch)
+            || batch.checked_mul(512) != Some(prefix_tokens.len())
+            || batch.checked_mul(total) != Some(forced_codes.len())
+            || prefix_tokens.iter().any(|&v| v >= 50304)
+            || prefix_tokens
+                .as_chunks::<512>()
+                .0
+                .iter()
+                .any(|row| row.iter().all(|&v| v == 50257))
+            || forced_codes.iter().any(|&v| v >= 4096)
+        {
+            return Err(Error::Input(
+                "invalid XSum prefix, forced codes or batch".into(),
+            ));
+        }
+        let b = &self.backend;
+        let prefix_ids = b.upload_indices(prefix_tokens, &[batch, 512])?;
+        let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
+        let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
+        let codes = b.upload_indices(forced_codes, &[batch, total])?;
+        let mut cumulative: Option<B::Tensor> = None;
+        let mut offset = 0;
+        for (level, &length) in levels.iter().enumerate() {
+            let latent = if level == 0 {
+                let zeros =
+                    b.upload_f32(&vec![0.0; batch * length * 384], &[batch, length, 384])?;
+                b.add(&self.query, &zeros)?
+            } else {
+                b.area1d(cumulative.as_ref().expect("preceding levels"), length)?
+            };
+            let target = b.project_bias(&latent, &self.input.weight, &self.input.bias)?;
+            let target = b.add(&target, &b.narrow(&self.level_embedding, 0, level, 1)?)?;
+            let seq = 512 + length;
+            let mut padding = Vec::with_capacity(batch * seq);
+            for row in prefix_tokens.as_chunks::<512>().0 {
+                padding.extend(
+                    row.iter()
+                        .map(|&v| if v == 50257 { f32::NEG_INFINITY } else { 0.0 }),
+                );
+                padding.extend(std::iter::repeat_n(0.0, length));
+            }
+            let padding = b.upload_f32(&padding, &[batch, 1, 1, seq])?;
+            let base = &self.geometry[level];
+            let geometry = LevelGeometry {
+                mask: b.add(&base.mask, &padding)?,
+                cosine: base.cosine.clone(),
+                sine: base.sine.clone(),
+            };
+            let hidden = decode_transformer(
+                b,
+                &self.blocks,
+                &self.final_norm,
+                &geometry,
+                &prefix,
+                &target,
+                512,
+                12,
+                768,
+                length,
+            )?;
+            let head = &self.heads[level];
+            let z = b.project(&hidden, &head.projection)?;
+            let book = self
+                .codec
+                .weight(&format!("vq.embeddings.{level}.weight"))?;
+            let score = b.sub(&b.scale(&b.project(&z, book)?, 2.0)?, &head.squared_norm)?;
+            let score = b.scale(&score, 1.0 / f64::from(head.mean_squared_norm))?;
+            let logits = b.scale(&score, f64::from(head.inverse_temperature))?;
+            trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
+            let selected = b.narrow_indices(&codes, 1, offset, length)?;
+            offset += length;
+            let embedding = b.embedding(book, &selected)?;
+            let contribution = self
+                .codec
+                .refine(&self.codec.upsample(&embedding, level)?, level)?;
+            let sum = match cumulative {
+                Some(ref old) => b.add(old, &contribution)?,
+                None => contribution,
+            };
+            trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
+            cumulative = Some(sum);
+        }
+        let (logits, greedy_ids) = self
+            .codec
+            .decode_latent_outputs(&cumulative.expect("validated levels"), &mut crate::NoTrace)?;
+        trace.tensor("generator.final_logits", &logits)?;
+        trace.indices("generator.greedy_ids", &greedy_ids)?;
+        Ok(XsumTeacherOutput {
+            codes,
+            logits,
+            greedy_ids,
+        })
+    }
+}
+
 // Explicit portable request-local RNG, not a claim of PyTorch seed equivalence.
 struct SplitMix64(u64);
 impl SplitMix64 {

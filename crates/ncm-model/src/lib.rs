@@ -9,7 +9,7 @@ pub use blocks::{NoTrace, TraceSink, codebook_distances};
 pub use codec::{Decoded, Encoded};
 pub use generator::{
     Generated, Generator, GeneratorConfig, GeneratorWeights, TinyStoriesGeneratorInspection,
-    TinyStoriesTeacher,
+    TinyStoriesTeacher, XsumTeacher, XsumTeacherOutput,
 };
 pub use xsum_decode::select_xsum_tokens_cpu;
 pub use xsum_generator::XsumGeneratorInspection;

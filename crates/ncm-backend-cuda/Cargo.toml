@@ -129,3 +129,7 @@ required-features = ["cuda"]
 [[example]]
 name = "xsum_cascade_probe"
 required-features = ["cuda-cudnn"]
+
+[[example]]
+name = "xsum_teacher_probe"
+required-features = ["cuda-cudnn"]
