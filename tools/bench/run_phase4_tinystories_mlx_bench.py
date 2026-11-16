@@ -10,12 +10,17 @@ import threading
 from pathlib import Path
 
 from run_phase3_mlx_bench import digest, monitor, run
+from phase4_mlx_gpu_activity import monitor_gpu
 
 ROOT = Path(__file__).resolve().parents[2]
 ARTIFACT = ROOT / 'artifacts/canonical/tinystories-phase4-v1'
 PYTHON = ROOT / '.reference/mlx-venv/bin/python'
 BINARY = ROOT / 'target/release/examples/tinystories_sample_bench'
 BATCHES = (1, 4, 32, 128)
+
+
+def runtime_order(batch, repetition):
+    return ('rust', 'python') if (BATCHES.index(batch) + repetition) % 2 == 0 else ('python', 'rust')
 
 
 def main():
@@ -32,6 +37,8 @@ def main():
                         help='batches to measure; default is all four')
     parser.add_argument('--rust-large-cache-mib', type=int,
                         help='explicit Rust process cache limit for batch 32 and 128')
+    parser.add_argument('--gpu-activity', action='store_true',
+                        help='sample system-wide GPU registry counters; diagnostic timings may be perturbed')
     args = parser.parse_args()
     if len(set(args.batches)) != len(args.batches):
         parser.error('batches must be unique')
@@ -72,7 +79,8 @@ def main():
         cwd=ROOT, text=True))
     core = Path(packages['core'])
     watched = [Path(__file__).resolve(), ROOT / 'tools/bench/run_phase3_mlx_bench.py',
-               ROOT / 'tools/bench/phase3_process.py', ROOT / 'tools/reference/phase4_tinystories_mlx.py',
+               ROOT / 'tools/bench/phase3_process.py', ROOT / 'tools/bench/phase4_mlx_gpu_activity.py',
+               ROOT / 'tools/reference/phase4_tinystories_mlx.py',
                ROOT / 'tools/reference/phase3_mlx_generator.py', ROOT / 'tools/reference/mlx_codec.py',
                ROOT / 'tools/reference/mlx_codec_assets.py', ROOT / 'tools/reference/mlx_operators.py',
                ROOT / '.reference/mlx-native/lib/libmlx.dylib', ROOT / '.reference/mlx-native/lib/mlx.metallib',
@@ -100,7 +108,9 @@ def main():
                                 (f'{args.rust_large_cache_mib} MiB' if args.rust_large_cache_mib is not None
                                  else 'default cache')
                                 if args.rust_lifecycle_policy else 'default cache and output lifetime'),
-                'limitations': ['CPU activity sampled every two seconds; GPU activity is not measured.',
+                'limitations': ['CPU activity sampled every two seconds.',
+                                ('GPU registry snapshots are system-wide, not per-process GPU time; '
+                                 'sampling can perturb timing.' if args.gpu_activity else 'GPU activity not measured.'),
                                 'No exclusive reservation, CPU affinity or GPU clock/power changes.',
                                 'RSS includes process startup and model loading.'], 'runs': []}
     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
@@ -108,10 +118,20 @@ def main():
     errors = []
     thread = threading.Thread(target=monitor, args=(stop, out / 'activity.jsonl', errors))
     thread.start()
+    gpu_errors = []
+    gpu_ready = threading.Event()
+    gpu_thread = None
+    if args.gpu_activity:
+        gpu_thread = threading.Thread(target=monitor_gpu, args=(stop, out / 'gpu-activity.jsonl', gpu_errors, gpu_ready))
+        gpu_thread.start()
     try:
-        for j, batch in enumerate(args.batches):
+        if args.gpu_activity and (not gpu_ready.wait(15) or gpu_errors):
+            raise RuntimeError('GPU activity observer failed to start')
+        for batch in args.batches:
             for rep in range(3):
-                for runtime in (('rust', 'python') if (j + rep) % 2 == 0 else ('python', 'rust')):
+                for runtime in runtime_order(batch, rep):
+                    if gpu_errors:
+                        raise RuntimeError('GPU activity observer failed')
                     stem = f'{runtime}-b{batch}-r{rep}'
                     report = out / f'{stem}.json'
                     if runtime == 'rust':
@@ -151,10 +171,15 @@ def main():
     finally:
         stop.set()
         thread.join(timeout=15)
+        if gpu_thread is not None:
+            gpu_thread.join(timeout=15)
         manifest['stable_inputs_and_sources'] = before == {str(p): digest(p) for p in watched}
         manifest['telemetry_errors'] = errors
+        manifest['gpu_telemetry_errors'] = gpu_errors
+        manifest['gpu_activity_enabled'] = args.gpu_activity
         (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
-    if errors or thread.is_alive() or not manifest['stable_inputs_and_sources']:
+    if (errors or gpu_errors or thread.is_alive() or (gpu_thread is not None and gpu_thread.is_alive())
+            or not manifest['stable_inputs_and_sources']):
         raise RuntimeError('incomplete telemetry or changed source')
     print('MLX comparison complete', flush=True)
 
