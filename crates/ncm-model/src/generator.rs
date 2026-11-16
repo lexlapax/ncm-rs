@@ -937,6 +937,11 @@ struct XsumRun<B: ncm_core::GeneratorBackend> {
 impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
         let inspection = crate::XsumGeneratorInspection::from_artifact(artifact)?;
+        let backend = if inspection.rope_tables.is_some() {
+            backend.xsum_reference_backend()?
+        } else {
+            backend
+        };
         let codec = crate::Codec::from_artifact(backend.clone(), artifact)?;
         let bytes = artifact
             .file("generator.safetensors")

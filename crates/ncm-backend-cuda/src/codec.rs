@@ -107,7 +107,8 @@ impl CodecBackend for CandleBackend {
                     })?;
                     if lock.is_none() {
                         let stream = self.device().as_cuda_device()?.cuda_stream();
-                        let h = crate::fused_projection::StrictLt::new(stream)?;
+                        let h =
+                            crate::fused_projection::StrictLt::new(stream, self.xsum_reference)?;
                         *lock = Some(std::sync::Arc::new(std::sync::Mutex::new(h)));
                     }
                     lock.as_ref()
@@ -204,6 +205,9 @@ impl CodecBackend for CandleBackend {
                         &zero
                     }
                 };
+                if self.xsum_reference && x.dims().last() == Some(&768) && eps == 1e-6 {
+                    return crate::xsum_layernorm::apply(self, x, weight, bias);
+                }
                 return candle_nn::ops::layer_norm(
                     &x.contiguous()?,
                     &weight.contiguous()?,
@@ -228,6 +232,9 @@ impl CodecBackend for CandleBackend {
                 if !eps.is_finite() || eps <= 0.0 {
                     candle_core::bail!("normalization epsilon must be positive and finite")
                 }
+                if self.xsum_reference && x.dims().last() == Some(&64) && eps == 1e-6 {
+                    return crate::xsum_rmsnorm::apply(self, x, weight);
+                }
                 return candle_nn::ops::rms_norm(
                     &x.contiguous()?,
                     &weight.contiguous()?,
@@ -238,10 +245,28 @@ impl CodecBackend for CandleBackend {
         })
     }
     fn group_norm(&self, x: &Tensor, groups: usize, eps: f64) -> Result<Tensor> {
-        op!(self, [x], { ops::group_norm(x, groups, eps) })
+        op!(self, [x], {
+            #[cfg(feature = "cuda")]
+            if self.xsum_reference
+                && x.dims().len() == 3
+                && (1..=128).contains(&x.dims()[0])
+                && x.dims()[1..] == [12, 384]
+                && groups == 8
+                && eps == 1e-5
+            {
+                return crate::xsum_groupnorm::apply(self, x);
+            }
+            ops::group_norm(x, groups, eps)
+        })
     }
     fn gelu(&self, x: &Tensor) -> Result<Tensor> {
-        op!(self, [x], { x.gelu_erf() })
+        op!(self, [x], {
+            #[cfg(feature = "cuda")]
+            if self.xsum_reference {
+                return crate::xsum_gelu::apply(self, x);
+            }
+            x.gelu_erf()
+        })
     }
     fn attention(
         &self,
@@ -386,6 +411,17 @@ impl CodecBackend for CandleBackend {
 }
 
 impl ncm_core::GeneratorBackend for CandleBackend {
+    fn xsum_reference_backend(&self) -> Result<Self> {
+        #[cfg(feature = "cuda-cudnn")]
+        if self.device().is_cuda() && self.strict_cudnn {
+            let mut backend = self.clone();
+            backend.xsum_reference = true;
+            return Ok(backend);
+        }
+        Err(Error::Backend(
+            "XSum rotary reference requires strict CUDA/cuDNN".into(),
+        ))
+    }
     fn sampled_embedding_4096(&self, weight: &Tensor, indices: &Tensor) -> Result<Tensor> {
         self.check_tensor(indices, DType::U32)
             .map_err(|e| Error::Backend(e.to_string()))?;
@@ -531,6 +567,9 @@ impl ncm_core::GeneratorBackend for CandleBackend {
         op!(self, [x, cos, sin], {
             #[cfg(feature = "cuda")]
             if self.device().is_cuda() {
+                if self.xsum_reference {
+                    return crate::xsum_rope::apply(self, x, cos, sin);
+                }
                 return candle_nn::rotary_emb::rope(
                     &x.contiguous()?,
                     &cos.contiguous()?,

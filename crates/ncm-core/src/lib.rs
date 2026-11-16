@@ -122,6 +122,16 @@ pub trait CodecBackend: WeightBackend {
 /// Additional operations needed by the eager generator. Implementations retain
 /// the same FP32, device and immutable-value guarantees as `CodecBackend`.
 pub trait GeneratorBackend: CodecBackend {
+    /// Construct the explicitly supported backend variant for the XSum rotary
+    /// reference profile. Backends must opt in; there is no device fallback.
+    fn xsum_reference_backend(&self) -> Result<Self>
+    where
+        Self: Sized,
+    {
+        Err(Error::Backend(
+            "XSum rotary reference backend is unsupported".into(),
+        ))
+    }
     /// Apply the pinned XSum FP64 penalties on the selected device. The output
     /// is `[batch,time]`; invalid rows use u32::MAX and must be rejected.
     /// Backends must implement this explicitly and may not silently fall back.

@@ -13,20 +13,24 @@ from pathlib import Path
 sys.path.insert(0, 'tools/reference')
 from xsum_quality_generate import DATA_SHA, ROOT, canonical, shard_batches
 from xsum_artifact import digest_file
+from xsum_linked_libraries import linked_libraries
 
 ARTIFACT = ROOT / 'artifacts/canonical/xsum-phase4-v2'
 ARTIFACT_SHA = '5df37749e64418c586472a4678600603992357b9bc5e3611da307918e13b237e'
+ROPE_ARTIFACT = ROOT / 'artifacts/canonical/xsum-inference-rope-v2-final'
+ROPE_ARTIFACT_SHA = '8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4'
 BINARY = ROOT / 'target/release/examples/xsum_quality_batches'
 CUDNN = ROOT / '.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib'
 
 
-def input_hashes():
-    binaries = [BINARY, ARTIFACT / 'manifest.json'] + sorted(CUDNN.glob('libcudnn*.so.9'))
+def input_hashes(artifact=ARTIFACT):
+    binaries = [BINARY, artifact / 'manifest.json'] + sorted(CUDNN.glob('libcudnn*.so.9'))
     if not BINARY.is_file() or not (CUDNN / 'libcudnn.so.9').is_file():
         raise ValueError('missing CUDA build or libraries')
     source_files = [Path(__file__).resolve(), ROOT / 'Cargo.toml', ROOT / 'Cargo.lock',
                     ROOT / 'tools/reference/xsum_quality_generate.py', ROOT / 'tools/reference/xsum_artifact.py',
-                    ROOT / 'tools/reference/tinystories_artifact.py',
+                    ROOT / 'tools/reference/tinystories_artifact.py', ROOT / 'tools/reference/xsum_rope_reference.py',
+                    ROOT / 'tools/reference/xsum_linked_libraries.py',
                     ROOT / 'crates/ncm-backend-cuda/Cargo.toml', ROOT / 'crates/ncm-backend-cuda/build.rs',
                     ROOT / 'crates/ncm-core/Cargo.toml', ROOT / 'crates/ncm-model/Cargo.toml',
                     ROOT / 'crates/ncm-io/Cargo.toml', ROOT / 'crates/ncm-backend-cuda/examples/xsum_quality_batches.rs']
@@ -79,21 +83,26 @@ def main():
     ap.add_argument('--output', type=Path, required=True)
     ap.add_argument('--shard', type=int, choices=(0, 1), required=True)
     ap.add_argument('--stop', type=int, default=11334)
+    ap.add_argument('--profile', choices=('v1', 'v2'), default='v1')
     args = ap.parse_args()
+    artifact, artifact_sha = ((ARTIFACT, ARTIFACT_SHA) if args.profile == 'v1'
+                              else (ROPE_ARTIFACT, ROPE_ARTIFACT_SHA))
     forbidden = ('LD_PRELOAD', 'LD_AUDIT', 'LD_LIBRARY_PATH', 'CUDA_INJECTION64_PATH', 'CUDA_VISIBLE_DEVICES',
                  'CUDA_DEVICE_ORDER', 'CUDA_LAUNCH_BLOCKING', 'CUBLAS_WORKSPACE_CONFIG', 'NVIDIA_TF32_OVERRIDE')
     if any(os.environ.get(name) for name in forbidden): raise ValueError('unsupported environment override')
     if args.output.is_symlink() or not args.output.resolve().is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('output must be under reports')
-    if args.data.is_symlink() or digest_file(args.data) != DATA_SHA or digest_file(ARTIFACT / 'manifest.json') != ARTIFACT_SHA:
+    if args.data.is_symlink() or digest_file(args.data) != DATA_SHA or digest_file(artifact / 'manifest.json') != artifact_sha:
         raise ValueError('dataset or artifact differs')
     data = json.loads(args.data.read_bytes())
     if data.get('profile') != 'xsum' or len(data.get('inputs', [])) != 11334: raise ValueError('bad data')
-    hashes = input_hashes()
+    hashes = input_hashes(artifact)
+    native_libraries = linked_libraries(BINARY, CUDNN)
     gpu = subprocess.check_output(['nvidia-smi', '--query-gpu=uuid,driver_version', '--format=csv,noheader,nounits'], text=True).strip().splitlines()
     if len(gpu) != 1: raise ValueError('exactly one GPU required')
     manifest = {'schema_version': 1, 'origin': 'rust-strict-cudnn', 'shard': args.shard, 'shards': 2,
-                'data_sha256': DATA_SHA, 'artifact_sha256': ARTIFACT_SHA, 'binary_and_source_sha256': hashes,
+                'data_sha256': DATA_SHA, 'artifact_sha256': artifact_sha, 'artifact_profile': args.profile,
+                'binary_and_source_sha256': hashes, 'native_libraries': native_libraries,
                 'gpu_identity_and_driver': gpu[0], 'batch_size': 32, 'temperature': 1.0,
                 'top_k': 1, 'top_p': 0.0, 'cfg': 0.0}
     out = args.output.resolve()
@@ -112,7 +121,7 @@ def main():
     if len(existing) == len(selected): return
     env = os.environ.copy(); env['LD_LIBRARY_PATH'] = str(CUDNN); env['OMP_NUM_THREADS'] = '1'
     with (out / 'worker.stderr').open('ab') as error:
-        process = subprocess.Popen([str(BINARY), str(ARTIFACT)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        process = subprocess.Popen([str(BINARY), str(artifact)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    stderr=error, env=env, start_new_session=True)
         try:
             for ordinal, indices in selected[len(existing):]:
@@ -136,7 +145,8 @@ def main():
                 os.killpg(process.pid, signal.SIGTERM)
                 try: process.wait(timeout=5)
                 except subprocess.TimeoutExpired: os.killpg(process.pid, signal.SIGKILL); process.wait()
-    if digest_file(args.data) != DATA_SHA or input_hashes() != hashes:
+    if (digest_file(args.data) != DATA_SHA or input_hashes(artifact) != hashes
+            or linked_libraries(BINARY, CUDNN) != native_libraries):
         raise ValueError('quality source changed during execution')
 
 

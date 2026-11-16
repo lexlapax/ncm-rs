@@ -4,6 +4,7 @@ use ncm_core::{Error, Result, WeightBackend};
 /// Explicit native device selection. CPU is a diagnostic path, never a fallback.
 pub struct CandleBackend {
     device: Device,
+    pub(crate) xsum_reference: bool,
     #[cfg(feature = "cuda-cudnn")]
     pub(crate) strict_cudnn: bool,
     #[cfg(feature = "cuda-cudnn")]
@@ -26,16 +27,22 @@ impl Clone for CandleBackend {
         {
             let mut cloned = Self::from_device(self.device.clone());
             cloned.strict_cudnn = self.strict_cudnn;
+            cloned.xsum_reference = self.xsum_reference;
             cloned
         }
         #[cfg(not(feature = "cuda-cudnn"))]
-        Self::from_device(self.device.clone())
+        {
+            let mut cloned = Self::from_device(self.device.clone());
+            cloned.xsum_reference = self.xsum_reference;
+            cloned
+        }
     }
 }
 impl CandleBackend {
     fn from_device(device: Device) -> Self {
         Self {
             device,
+            xsum_reference: false,
             #[cfg(feature = "cuda-cudnn")]
             strict_cudnn: false,
             #[cfg(feature = "cuda-cudnn")]
@@ -204,6 +211,14 @@ impl WeightBackend for CandleBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ncm_core::GeneratorBackend;
+
+    #[test]
+    fn xsum_reference_rejects_cpu_without_fallback() {
+        let backend = CandleBackend::cpu();
+        assert!(backend.xsum_reference_backend().is_err());
+    }
+
     #[test]
     fn backend_clone_does_not_retain_prepared_geometry() {
         let backend = CandleBackend::cpu();

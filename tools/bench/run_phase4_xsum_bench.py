@@ -11,10 +11,13 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'tools/reference'))
+from xsum_linked_libraries import linked_libraries
 BATCHES = (1, 4)
 REFERENCE = ROOT / '.reference/venv/bin/python'
 BENCH = ROOT / 'target/release/examples/xsum_perf_screen'
 ARTIFACT = ROOT / 'artifacts/canonical/xsum-phase4-v2'
+ROPE_ARTIFACT = ROOT / 'artifacts/canonical/xsum-inference-rope-v2-final'
 SOURCE = ROOT / 'artifacts/upstream/xsum-phase4'
 INPUTS = ROOT / 'reports/phase4-xsum-real-inputs-v1/prefixes.json'
 SOURCES = ['Cargo.toml', 'Cargo.lock', 'crates/ncm-core/Cargo.toml',
@@ -22,7 +25,9 @@ SOURCES = ['Cargo.toml', 'Cargo.lock', 'crates/ncm-core/Cargo.toml',
            'crates/ncm-backend-cuda/Cargo.toml', 'crates/ncm-backend-cuda/build.rs',
            'crates/ncm-backend-cuda/examples/xsum_perf_screen.rs',
            'tools/reference/xsum_perf_screen.py', 'tools/reference/xsum_artifact.py',
-           'tools/reference/tinystories_artifact.py', 'tools/bench/run_phase4_xsum_bench.py']
+           'tools/reference/tinystories_artifact.py', 'tools/reference/xsum_rope_reference.py',
+           'tools/reference/xsum_linked_libraries.py',
+           'tools/bench/run_phase4_xsum_bench.py']
 SOURCES += [str(p.relative_to(ROOT)) for root in ('crates/ncm-core/src', 'crates/ncm-model/src',
             'crates/ncm-io/src', 'crates/ncm-backend-cuda/src') for p in (ROOT/root).rglob('*') if p.is_file()]
 
@@ -77,7 +82,11 @@ def main():
     parser.add_argument('--repetitions', type=int, default=3, choices=(1, 3))
     parser.add_argument('--batches', type=int, nargs='+', choices=(1, 4, 32), default=list(BATCHES))
     parser.add_argument('--cudnn-dir', type=Path, help='native cuDNN libraries for the explicitly built strict candidate')
+    parser.add_argument('--profile', choices=('v1', 'v2'), default='v1')
     args = parser.parse_args()
+    artifact, artifact_sha = ((ARTIFACT, '5df37749e64418c586472a4678600603992357b9bc5e3611da307918e13b237e')
+                              if args.profile == 'v1' else
+                              (ROPE_ARTIFACT, '8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4'))
     if len(set(args.batches)) != len(args.batches): raise SystemExit('duplicate batches are not permitted')
     forbidden = ('LD_PRELOAD', 'LD_AUDIT', 'CUDA_INJECTION64_PATH', 'CUDA_VISIBLE_DEVICES',
                  'CUDA_LAUNCH_BLOCKING', 'CUBLAS_WORKSPACE_CONFIG', 'NCM_PHASE3_LT_PROFILE',
@@ -95,18 +104,20 @@ def main():
     if not args.cudnn_dir: raise SystemExit('strict cuDNN directory required')
     if digest(INPUTS) != 'a9c0da895804e5146191993ae27db4c921d1b08b21594cb6eaa63777748019cf': raise SystemExit('input prefixes differ')
     if not BENCH.is_file() or not Path('/usr/bin/time').is_file(): raise SystemExit('benchmark or /usr/bin/time missing')
-    if digest(ARTIFACT / 'manifest.json') != '5df37749e64418c586472a4678600603992357b9bc5e3611da307918e13b237e':
+    if digest(artifact / 'manifest.json') != artifact_sha:
         raise SystemExit('XSum artifact manifest differs from the pinned export')
     out.mkdir(parents=True)
-    paths = [ROOT / name for name in SOURCES] + [BENCH, ARTIFACT / 'manifest.json', INPUTS] + [SOURCE / 'config.yaml']
+    paths = [ROOT / name for name in SOURCES] + [BENCH, artifact / 'manifest.json', INPUTS] + [SOURCE / 'config.yaml']
+    native_libraries = linked_libraries(BENCH, cudnn_dir)
     manifest = {'source_sha256': {str(p.relative_to(ROOT)): digest(p) for p in paths},
-                'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+                'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(), 'artifact_profile': args.profile,
                 'batches': args.batches, 'warmup_per_process': 5, 'trials_per_process': 30, 'processes_per_runtime_batch': args.repetitions,
                 'scope': 'eager generate and synchronized code/ID host readback; excludes load',
                 'sampling': 'temperature 1, top-k 1, top-p 0, CFG 0; native rejects exact ties',
                 'python_cleanup': 'explicit garbage collection and synchronization after every batch, timed separately',
                 'rust_backend': 'strict cuDNN' if cudnn_dir else 'default CUDA',
                 'input_sha256': digest(INPUTS), 'cudnn_sha256': {p.name: digest(p) for p in cudnn_files},
+                'native_libraries': native_libraries,
                 'order': 'alternating runtime per batch/repetition', 'telemetry': 'nvidia-smi approximately once per second',
                 'clock_policy': 'unchanged', 'created_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                 'environment': {name: subprocess.check_output(command, cwd=ROOT, text=True).strip() for name, command in {
@@ -123,7 +134,7 @@ def main():
                 for runtime in (('rust', 'python') if (j+rep)%2 == 0 else ('python', 'rust')):
                     stem=f'{runtime}-b{batch}-r{rep}'
                     if runtime == 'rust':
-                        command=[str(BENCH), str(ARTIFACT), str(INPUTS), str(batch), 'device', '30']
+                        command=[str(BENCH), str(artifact), str(INPUTS), str(batch), 'device', '30']
                     else:
                         command=[str(REFERENCE), str(ROOT/'tools/reference/xsum_perf_screen.py'),
                                  '--upstream',str(ROOT/'.reference/upstream-ncm'), '--source',str(SOURCE), '--inputs',str(INPUTS), '--batch',str(batch), '--no-stage-sync', '--trials','30', '--collect-garbage']
@@ -168,6 +179,8 @@ def main():
     for path in cudnn_files:
         if digest(path) != manifest['cudnn_sha256'][path.name]:
             raise RuntimeError(f'cuDNN library changed during benchmark: {path}')
+    if linked_libraries(BENCH, cudnn_dir) != native_libraries:
+        raise RuntimeError('linked CUDA libraries changed during benchmark')
     print('complete', flush=True)
 
 if __name__ == '__main__': main()

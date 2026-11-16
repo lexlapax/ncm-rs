@@ -74,6 +74,30 @@ class QualityScoreChecks(unittest.TestCase):
                 self.assertEqual([row['index'] for row in rows], list(range(64)))
             with patch.object(score, 'rust_input_hashes', return_value={'test': 'changed'}):
                 with self.assertRaises(ValueError): score.checked_rows(directories, 64)
+            for directory in directories:
+                meta = directory / 'manifest.json'
+                manifest = json.loads(meta.read_text())
+                manifest.update({'artifact_profile': 'v2', 'artifact_sha256': score.ROPE_ARTIFACT_SHA,
+                                 'native_libraries': {'test': 'native'}})
+                meta.write_text(json.dumps(manifest))
+            with patch.object(score, 'rust_input_hashes', return_value={'test': 'digest'}) as hashes, \
+                    patch.object(score, 'linked_libraries', return_value={'test': 'native'}):
+                rows, _ = score.checked_rows(directories, 64)
+                self.assertEqual(len(rows), 64)
+                hashes.assert_called_once_with(score.ROPE_ARTIFACT)
+            meta = directories[1] / 'manifest.json'
+            manifest = json.loads(meta.read_text())
+            manifest['native_libraries'] = {'test': 'changed'}
+            meta.write_text(json.dumps(manifest))
+            with patch.object(score, 'rust_input_hashes', return_value={'test': 'digest'}), \
+                    patch.object(score, 'linked_libraries', return_value={'test': 'native'}):
+                with self.assertRaises(ValueError): score.checked_rows(directories, 64)
+            manifest['native_libraries'] = {'test': 'native'}
+            manifest['artifact_sha256'] = score.ARTIFACT_SHA
+            meta.write_text(json.dumps(manifest))
+            with patch.object(score, 'rust_input_hashes', return_value={'test': 'digest'}), \
+                    patch.object(score, 'linked_libraries', return_value={'test': 'native'}):
+                with self.assertRaises(ValueError): score.checked_rows(directories, 64)
 
 
 if __name__ == '__main__':

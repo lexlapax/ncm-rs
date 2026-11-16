@@ -27,6 +27,16 @@ mod runtime;
 #[cfg(feature = "cuda")]
 mod unique_top1;
 #[cfg(feature = "cuda")]
+mod xsum_gelu;
+#[cfg(feature = "cuda")]
+mod xsum_groupnorm;
+#[cfg(feature = "cuda")]
+mod xsum_layernorm;
+#[cfg(feature = "cuda")]
 mod xsum_penalty;
+#[cfg(feature = "cuda")]
+mod xsum_rmsnorm;
+#[cfg(feature = "cuda")]
+mod xsum_rope;
 #[cfg(feature = "cpu")]
 pub use runtime::CandleBackend;

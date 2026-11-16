@@ -13,7 +13,9 @@ from pathlib import Path
 
 from xsum_artifact import INPUTS, digest_file
 from xsum_quality_generate import DATA_SHA, EVALUATOR_SHA, UPSTREAM, read_record, shard_batches
-from xsum_quality_rust import ARTIFACT_SHA, input_hashes as rust_input_hashes, read_batch as read_rust_batch
+from xsum_quality_rust import (ARTIFACT, ARTIFACT_SHA, BINARY, CUDNN, ROPE_ARTIFACT, ROPE_ARTIFACT_SHA,
+                               input_hashes as rust_input_hashes, linked_libraries,
+                               read_batch as read_rust_batch)
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPS = ROOT / '.reference/phase4-xsum-rouge-v1'
@@ -102,10 +104,17 @@ def checked_rows(shard_dirs, stop):
                 raise ValueError('upstream quality manifest differs')
             reader = read_record
         elif origin == 'rust-strict-cudnn':
+            profile = manifest.get('artifact_profile', 'v1')
+            if profile not in ('v1', 'v2'):
+                raise ValueError('unsupported Rust quality profile')
+            artifact, artifact_sha = ((ARTIFACT, ARTIFACT_SHA) if profile == 'v1'
+                                      else (ROPE_ARTIFACT, ROPE_ARTIFACT_SHA))
             if rust_hashes is None:
-                rust_hashes = rust_input_hashes()
-            if manifest.get('artifact_sha256') != ARTIFACT_SHA or manifest.get('binary_and_source_sha256') != rust_hashes:
+                rust_hashes = rust_input_hashes(artifact)
+            if manifest.get('artifact_sha256') != artifact_sha or manifest.get('binary_and_source_sha256') != rust_hashes:
                 raise ValueError('Rust quality manifest differs')
+            if profile == 'v2' and manifest.get('native_libraries') != linked_libraries(BINARY, CUDNN):
+                raise ValueError('Rust native libraries differ')
             reader = read_rust_batch
         else:
             raise ValueError('unknown quality origin')

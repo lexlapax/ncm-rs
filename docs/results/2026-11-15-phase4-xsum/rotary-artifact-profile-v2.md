@@ -16,6 +16,8 @@ batch 77, the table-only v2 path completed but differed from Python on three
 codes and five raw IDs. The other numerical changes found in the
 [near-tie investigation](cuda-near-tie-investigation-v1.md) are not integrated.
 The full XSum CUDA quality run and MLX runtime remain pending.
+The later [native CUDA path](cuda-reference-native-v1.md) matched this failing
+batch and additional samples; full quality and performance gates remain open.
 
 A short exploratory comparison used the same batch-0 inputs and the same
 newly built Rust binary, with two warmups and five measured trials per profile

@@ -240,3 +240,142 @@ extern "C" __global__ void ncm_masked_softmax_64(const float* scores,const float
     float inverse=float(1.0/double(sum));
     for(unsigned col=lane;col<seq;col+=32) output[score_row+col]*=inverse;
 }
+
+// Normalization arithmetic adapted from PyTorch v2.15.0; see third-party/pytorch-BSD.txt.
+#include <stddef.h>
+struct Stats { float mean, sigma, count; };
+
+__device__ Stats online(float value, Stats s) {
+    float delta = value - s.mean;
+    float count = s.count + 1.0f;
+    float mean = s.mean + delta * (1.0f / count);
+    return {mean, s.sigma + delta * (value - mean), count};
+}
+
+__device__ Stats combine(Stats b, Stats a) {
+    float delta = b.mean - a.mean;
+    float count = a.count + b.count;
+    if (count <= 0.0f) return {0.0f, 0.0f, 0.0f};
+    float coef = 1.0f / count;
+    float na = a.count * coef, nb = b.count * coef;
+    return {na * a.mean + nb * b.mean,
+            a.sigma + b.sigma + delta * delta * a.count * nb, count};
+}
+
+extern "C" __global__ void ncm_pytorch_layernorm_768(const float* input, const float* gamma, const float* beta, float* output) {
+    constexpr int width = 768;
+    const int lane = threadIdx.x, warp = threadIdx.y, tid = lane + 32 * warp;
+    const float* row = input + size_t(blockIdx.x) * width;
+    __shared__ float shared[6];
+    Stats s{0.0f, 0.0f, 0.0f};
+    for (int vector = tid; vector < width / 4; vector += 128) {
+        #pragma unroll
+        for (int j = 0; j < 4; ++j) s = online(row[4 * vector + j], s);
+    }
+    for (int offset = 16; offset > 0; offset >>= 1) {
+        Stats other{__shfl_down_sync(0xffffffff, s.mean, offset),
+                    __shfl_down_sync(0xffffffff, s.sigma, offset),
+                    __shfl_down_sync(0xffffffff, s.count, offset)};
+        s = combine(s, other);
+    }
+    for (int offset = 2; offset > 0; offset >>= 1) {
+        if (lane == 0 && warp >= offset && warp < 2 * offset) {
+            int target = warp - offset;
+            shared[2 * target] = s.mean; shared[2 * target + 1] = s.sigma; shared[4 + target] = s.count;
+        }
+        __syncthreads();
+        if (lane == 0 && warp < offset) {
+            Stats other{shared[2 * warp], shared[2 * warp + 1], shared[4 + warp]};
+            s = combine(s, other);
+        }
+        __syncthreads();
+    }
+    if (lane == 0 && warp == 0) { shared[0] = s.mean; shared[1] = s.sigma / float(width); }
+    __syncthreads();
+    float mean = shared[0], inverse = rsqrtf(shared[1] + 1e-6f);
+    for (int vector = tid; vector < width / 4; vector += 128) {
+        #pragma unroll
+        for (int j = 0; j < 4; ++j) {
+            int col = 4 * vector + j;
+            output[size_t(blockIdx.x) * width + col] = gamma[col] * (inverse * (row[col] - mean)) + beta[col];
+        }
+    }
+}
+
+
+// Upstream-order RMS normalization, with separately rounded products.
+extern "C" __global__ void ncm_pytorch_rms64(const float* input, const float* weight, float* output, unsigned rows) {
+    unsigned lane = threadIdx.x, row = blockIdx.x * blockDim.y + threadIdx.y;
+    if (row >= rows) return;
+    float a = input[row * 64 + lane], b = input[row * 64 + lane + 32];
+    float sum = __fadd_rn(__fmul_rn(a,a), __fmul_rn(b,b));
+    for (unsigned offset = 16; offset > 0; offset >>= 1)
+        sum = __fadd_rn(sum, __shfl_down_sync(0xffffffff, sum, offset, 32));
+    sum = __shfl_sync(0xffffffff, sum, 0, 32);
+    float scale = rsqrtf(__fadd_rn(__fmul_rn(sum, 0.015625f), 1e-6f));
+    output[row * 64 + lane] = __fmul_rn(__fmul_rn(a,scale),weight[lane]);
+    output[row * 64 + lane + 32] = __fmul_rn(__fmul_rn(b,scale),weight[lane+32]);
+}
+
+
+struct GroupStats { float mean, m2, count; };
+
+__device__ GroupStats group_add(GroupStats a, float x) {
+    float count = a.count + 1, delta = x - a.mean, mean = a.mean + delta / count;
+    return {mean, a.m2 + delta * (x - mean), count};
+}
+
+__device__ GroupStats group_combine(GroupStats a, GroupStats b) {
+    if (a.count == 0) return b;
+    if (b.count == 0) return a;
+    float delta = b.mean - a.mean, count = a.count + b.count, ratio = b.count / count;
+    return {a.mean + delta * ratio, a.m2 + b.m2 + delta * delta * a.count * ratio, count};
+}
+
+__device__ GroupStats group_reduce(GroupStats a) {
+    for (int offset = 16; offset > 0; offset >>= 1) {
+        GroupStats b{__shfl_down_sync(0xffffffff, a.mean, offset),
+                     __shfl_down_sync(0xffffffff, a.m2, offset),
+                     __shfl_down_sync(0xffffffff, a.count, offset)};
+        a = group_combine(a, b);
+    }
+    return a;
+}
+
+extern "C" __global__ void ncm_pytorch_groupnorm(const float* x, float* y) {
+    constexpr int width = 576;
+    int t = threadIdx.x;
+    const float* input = x + size_t(blockIdx.x) * width;
+    GroupStats value{0, 0, 0};
+    for (int j = t; j < width / 4; j += blockDim.x)
+        for (int k = 0; k < 4; ++k) value = group_add(value, input[j * 4 + k]);
+    value = group_reduce(value);
+    __shared__ GroupStats warps[16];
+    if (t % 32 == 0) warps[t / 32] = value;
+    __syncthreads();
+    value = t < 16 ? warps[t] : GroupStats{0, 0, 0};
+    if (t < 32) value = group_reduce(value);
+    __shared__ float mean, inverse;
+    if (t == 0) {
+        mean = value.mean;
+        inverse = rsqrtf(value.m2 / value.count + 1e-5f);
+    }
+    __syncthreads();
+    for (int i = t; i < width; i += blockDim.x)
+        y[size_t(blockIdx.x) * width + i] = (input[i] - mean) * inverse;
+}
+
+extern "C" __global__ void ncm_pytorch_gelu(const float* x, float* y, unsigned n) {
+    unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) { float v = x[i]; y[i] = v * 0.5f * (1.f + erff(v * 0.7071067811865475244f)); }
+}
+extern "C" __global__ void ncm_xsum_reference_rope(const float* x, const float* c,
+                                                     const float* s, float* y,
+                                                     unsigned pairs, unsigned seq) {
+    unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= pairs) return;
+    unsigned row = i / 32, d = i % 32, pos = row % seq, k = row * 64 + d;
+    float a = x[k], b = x[k + 32], cv = c[pos * 32 + d], sv = s[pos * 32 + d];
+    y[k] = __fadd_rn(__fmul_rn(a, cv), __fmul_rn(-b, sv));
+    y[k + 32] = __fadd_rn(__fmul_rn(b, cv), __fmul_rn(a, sv));
+}
