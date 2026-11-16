@@ -110,3 +110,7 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_shared_history_probe"
 required-features = ["mlx"]
+
+[[example]]
+name = "xsum_fixedpoint_sampler_probe"
+required-features = ["mlx"]

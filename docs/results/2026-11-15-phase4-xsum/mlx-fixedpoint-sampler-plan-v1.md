@@ -1,0 +1,7 @@
+# Isolated XSum Metal fixed-point sampler experiment
+
+The [shared-history diagnostic](mlx-shared-history-v1.md) showed three of four original first divergences recur when Metal samples identical CUDA logits and random words. To test whether accumulation precision contributes, an isolated example replaces the existing sequential FP32 cumulative sums with unsigned integer sums of FP32 exponentials scaled by `2^48`. The 4,096-term sum is at most `2^60`. It computes `floor(total * random_word / 2^32)` using two 32-bit limbs; a 100,000-case independent Python integer check passed. The zero word selects the first positive FP32 weight.
+
+This is an experiment, not production code or an exact FP64 sampler: exponentials are still FP32, weights smaller than `2^-48` are truncated, and those differences could affect rare boundary draws. It will consume the same hash-verified 32-passage CUDA logits and random words as the [previous shared-history probe](mlx-shared-history-plan-v1.md), compare all 6,400 choices with the saved CUDA decisions and report every mismatch. A pass on this fixture alone would not qualify the approximation, justify a numerical-tolerance change or establish stochastic output quality. A failed candidate will remain visible. Linux validation precedes its first Metal run.
+
+Linux `tools/check.sh --cuda` passed before Metal testing, including 18 real-CUDA operator cases (`reports/phase4-xsum-fixedpoint-prep-linux-v1.log`). This does not compile the Mac-only experiment.
