@@ -10,9 +10,90 @@ struct Capture<'a> {
     reference: SafeTensors<'a>,
     words: Vec<Vec<u32>>,
     results: Vec<serde_json::Value>,
+    levels: Vec<serde_json::Value>,
+    reference_codes: Vec<u32>,
 }
 impl TraceSink<CandleBackend> for Capture<'_> {
     fn tensor(&mut self, name: &str, tensor: &candle_core::Tensor) -> ncm_core::Result<()> {
+        for level in 0..9 {
+            if name != format!("generator.level_{level:02}.logits") {
+                continue;
+            }
+            let expected = self
+                .reference
+                .tensor(name)
+                .map_err(|e| ncm_core::Error::Weights(e.to_string()))?;
+            let length = expected.shape()[1];
+            let native = self.backend.read_f32(tensor)?;
+            let expected_values: Vec<f32> = expected
+                .data()
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|v| f32::from_le_bytes(*v))
+                .collect();
+            if expected.dtype() != Dtype::F32
+                || native.len() != 8 * length * 4096
+                || expected_values.len() != native.len()
+                || native
+                    .iter()
+                    .chain(&expected_values)
+                    .any(|v| !v.is_finite())
+            {
+                return Err(ncm_core::Error::Weights("invalid level trace".into()));
+            }
+            let mut max_delta = 0.0f64;
+            let mut outside = 0usize;
+            let mut max_tv = 0.0f64;
+            let mut sum_tv = 0.0f64;
+            for (a, b) in native
+                .as_chunks::<4096>()
+                .0
+                .iter()
+                .zip(expected_values.as_chunks::<4096>().0)
+            {
+                let ma = a.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+                let mb = b.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+                let sa: f64 = a
+                    .iter()
+                    .map(|v| (f64::from(*v) - f64::from(ma)).exp())
+                    .sum();
+                let sb: f64 = b
+                    .iter()
+                    .map(|v| (f64::from(*v) - f64::from(mb)).exp())
+                    .sum();
+                let mut distance = 0.0;
+                for (&x, &y) in a.iter().zip(b) {
+                    let delta = (f64::from(x) - f64::from(y)).abs();
+                    max_delta = max_delta.max(delta);
+                    outside += usize::from(delta > 5e-4 + 2e-4 * f64::from(y).abs());
+                    distance += (((f64::from(x) - f64::from(ma)).exp() / sa)
+                        - ((f64::from(y) - f64::from(mb)).exp() / sb))
+                        .abs();
+                }
+                let tv = distance * 0.5;
+                max_tv = max_tv.max(tv);
+                sum_tv += tv;
+            }
+            let word_tensor = self
+                .backend
+                .upload_indices(&self.words[level], &[8, length])?;
+            let choices = self
+                .backend
+                .read_indices(&self.backend.categorical_4096(tensor, &word_tensor)?)?;
+            let offset: usize = (0..level).map(|prior| self.words[prior].len() / 8).sum();
+            let changed = (0..8)
+                .flat_map(|row| (0..length).map(move |position| (row, position)))
+                .filter(|&(row, position)| {
+                    choices[row * length + position]
+                        != self.reference_codes[row * 200 + offset + position]
+                })
+                .count();
+            self.levels
+                .push(serde_json::json!({"level":level,"rows":8 * length,
+                "max_logit_delta":max_delta,"outside_band":outside,"max_tv":max_tv,
+                "mean_tv":sum_tv / (8 * length) as f64,"controlled_choice_differences":changed}));
+        }
         for (level, row, position) in [(5, 4, 25), (8, 3, 36)] {
             if name != format!("generator.level_{level:02}.logits") {
                 continue;
@@ -109,11 +190,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         reference,
         words,
         results: Vec::new(),
+        levels: Vec::new(),
+        reference_codes: codes.clone(),
     };
     teacher.run_traced(&prefix, &codes, 8, &mut capture)?;
-    if capture.results.len() != 2 {
+    if capture.results.len() != 2 || capture.levels.len() != 9 {
         return Err("missing target rows".into());
     }
-    println!("{}", serde_json::json!({"targets":capture.results}));
+    println!(
+        "{}",
+        serde_json::json!({"targets":capture.results,"levels":capture.levels})
+    );
     Ok(())
 }

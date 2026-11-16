@@ -25,6 +25,18 @@ distances to the nearest decision boundary were about 1.55e-7 and 7.11e-8,
 respectively. This identifies boundary sensitivity for those positions, not a
 general bound or proof of equivalent output quality. No tolerance was changed.
 
+A follow-up forced the Python-selected history and compared all 1,600
+conditional head distributions on those eight rows. All 6,553,600 logits were
+inside the unchanged `atol=5e-4, rtol=2e-4` diagnostic band; maximum absolute
+logit difference was 0.0003357. For each row, FP64 softmax probabilities were
+compared using total variation distance (half the L1 distance). The maximum was
+about `5.4694e-6` and the mean across positions about `6.4439e-7`. Two controlled
+draws chose different codes, at the positions described above. This compares
+distributions under identical prior codes; it does not prove behavior after
+generated histories diverge or qualify stochastic quality. The diagnostic JSON
+is `reports/phase4-xsum-stochastic-fulltrace-cfg0-v1/distribution-probe-v1.json`
+(SHA-256 `fc3a04a7e8f55f6797e0a965f15ce1c22a8788a639946a76f081a2a358f3df54`).
+
 The trace, CLI output and diagnostic results are under
 `reports/phase4-xsum-stochastic-reference-cfg{0,1}-v1/` and
 `reports/phase4-xsum-stochastic-fulltrace-cfg0-v1/`. The same-input sampler
