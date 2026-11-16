@@ -29,3 +29,17 @@ The capture, scorer and comparator follow the commands and frozen rule in
 directories and fresh output paths. The manifest records the source, binary,
 artifact, linked-library and GPU identity checked at capture and postflight.
 General head ties, wider sampling and the XSum MLX gate remain open.
+
+After the experimental categorical path changed the shared selection loop,
+the same full and held-out CFG-zero capture and scoring were repeated on that
+source. All 11,334 output rows and both quality metric sets again match Python;
+the sole intermediate-code difference is still row 2,690. The two new shard
+manifest hashes are
+`6d264b21365fd4b8857e81962e03c93be77fb2560e4858f0c75527af64ed0929` and
+`d07a016e340169161335da49f1c9ad0b79b19f353ebd19b22bb079f0aed0369b`;
+the full and held-out comparison hashes are
+`c654edcdaf2ccc373a8254cdb457a4d5f3e97fae6c75d7bf9d61591ebc0e25bb` and
+`01f01e42e0aaf2468c0fa9928d338cd443bd17ca8410657f02c3634a6e635b87`.
+The corresponding raw files are under
+`reports/phase4-xsum-quality-stochastic-source-v1-s{0,1}/` and comparison
+outputs in `reports/phase4-xsum-quality-stochastic-source-v1-comparison-*.json`.

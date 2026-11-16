@@ -24,11 +24,18 @@ def main():
     parser.add_argument('--prefix-json', type=Path, help='explicit padded input rows')
     parser.add_argument('--decisions-only', action='store_true')
     parser.add_argument('--controlled-seed', type=int, help='use controlled inverse-CDF draws')
+    parser.add_argument('--stochastic', action='store_true', help='use upstream categorical sampling')
+    parser.add_argument('--seed', type=int, default=42, help='upstream RNG seed')
     args = parser.parse_args()
-    if not 0.0 <= args.cfg_scale <= 100.0 or (args.cfg_scale == 0 and args.controlled_seed is None):
-        raise ValueError('positive CFG scale, or a controlled seed, required')
+    if (not 0.0 <= args.cfg_scale <= 100.0
+            or (args.cfg_scale == 0 and args.controlled_seed is None and not args.stochastic)):
+        raise ValueError('positive CFG scale or a stochastic mode required')
+    if args.stochastic and args.controlled_seed is not None:
+        raise ValueError('choose upstream or controlled sampling')
     if args.controlled_seed is not None and not 0 <= args.controlled_seed < 2**64:
         raise ValueError('controlled seed must be an unsigned 64-bit integer')
+    if not 0 <= args.seed < 2**64:
+        raise ValueError('seed must be an unsigned 64-bit integer')
     if args.output.exists() or args.output.is_symlink() or not torch.cuda.is_available():
         raise ValueError('new output and CUDA required')
     rev = subprocess.check_output(['git', '-C', str(args.upstream), 'rev-parse', 'HEAD'], text=True).strip()
@@ -122,10 +129,11 @@ def main():
     exec(decoder_code, scope)
     with torch.inference_mode(), sdpa_kernel(SDPBackend.MATH):
         save('generator.prefix_ids', prefix)
-        torch.manual_seed(42)
+        torch.manual_seed(args.seed)
+        stochastic = args.stochastic or args.controlled_seed is not None
         generated = model.generate(None, prefix, temperature=1.0,
-                                   top_k=0 if args.controlled_seed is not None else 1,
-                                   top_p=1.0 if args.controlled_seed is not None else 0.0,
+                                   top_k=0 if stochastic else 1,
+                                   top_p=1.0 if stochastic else 0.0,
                                    use_kv_cache=False, cfg_scale=args.cfg_scale)
         if calls[0] != len(levels) or not torch.equal(generated, torch.cat(selected, dim=1)):
             raise ValueError('generator codes changed')
@@ -147,13 +155,14 @@ def main():
     save_file(traces, str(args.output / 'trace.safetensors'))
     report = {'upstream': rev, 'sources': {k: v[1] for k, v in INPUTS.items()},
               'torch': torch.__version__, 'cuda_device': torch.cuda.get_device_name(0),
-              'tf32': False, 'sdpa': 'math', 'seed': 42, 'batch': batch,
+              'tf32': False, 'sdpa': 'math', 'seed': args.seed, 'batch': batch,
               'prefix_lengths': ([(sum(v != 50257 for v in row)) for row in rows]
                                  if rows is not None else [24, 497]),
               'prefix_sha256': digest_file(args.prefix_json) if args.prefix_json else None,
               'decisions_only': args.decisions_only,
               'mode': ('controlled inverse-CDF temperature 1, top-k 0, top-p 1'
                        if args.controlled_seed is not None else
+                       'upstream temperature 1, top-k 0, top-p 1' if args.stochastic else
                        'upstream temperature 1, top-k 1, top-p 0 guided selection'),
               'controlled_seed': args.controlled_seed,
               'cfg_scale': args.cfg_scale,

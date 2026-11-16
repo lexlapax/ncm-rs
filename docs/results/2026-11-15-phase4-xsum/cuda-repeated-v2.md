@@ -42,3 +42,15 @@ OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/
 
 This is not the complete XSum gate: updated-source full quality, broader
 guidance and tie coverage, and MLX remain open.
+
+After categorical sampling changed the shared generator loop, a separate
+single-process screen used two warmups and five trials per runtime at the same
+three batches. Rust/Python medians were 153.97/188.89, 555.04/680.19 and
+4321.82/5296.23 ms; peak process RSS was 1063.12/1861.25, 1062.48/1858.84 and
+1062.38/1864.37 MiB. Codes and IDs matched in each pair. This short current-source
+screen is not a replacement for three-process repeats; it had no activity
+telemetry. Raw timing and source/binary/input fingerprints are under
+`reports/phase4-xsum-final-top1-performance-v1/` and matched after collection.
+The subsequent current-source full/held-out quality pass is in
+[the quality report](native-quality-cfg-source-v1.md); broader guidance,
+general ties and MLX remain open.
