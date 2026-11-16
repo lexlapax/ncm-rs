@@ -1,0 +1,91 @@
+{
+  "bootstrap": {
+    "confidence": 0.95,
+    "replicates": 10000,
+    "seed": 20261116
+  },
+  "data_sha256": "cba412c100c1264a7a107b2df3bacd20bff5846325ce48fd5aa353b4726daa6a",
+  "development_rows": [
+    0,
+    256
+  ],
+  "development_score_sha256": [
+    "75cff19612de350b9f6f421af5b6d9a3b320cb2c1dffcbc1ade35816715407ee",
+    "3acb9219b24b56535ae9c3a131d0ede692e6057bd5e8b49af2dc01d83f2d51b5",
+    "d021fb3d7f761918593267d4f698eb4ef6ab00a196d1f0ed0e9be24de6ebf4cc",
+    "6be0b352e8964ad75d1f3c89a340144294ed788ca6acd8d595689e133c6c3aac",
+    "0f28e5cb5fc4e8089c2295dd84b5514f0e9d4335cc81405d35494e0c062e0f0e"
+  ],
+  "development_seed_metrics": [
+    {
+      "generation_perplexity": 195.00867024692104,
+      "mean_words": 20.4765625,
+      "rouge1": 31.730345419774576,
+      "rouge2": 10.524689033130707,
+      "rougeL": 25.35756794518113
+    },
+    {
+      "generation_perplexity": 193.51693176119525,
+      "mean_words": 20.4765625,
+      "rouge1": 31.883651440772347,
+      "rouge2": 10.079707430444024,
+      "rougeL": 24.917090078320346
+    },
+    {
+      "generation_perplexity": 179.47597554100824,
+      "mean_words": 20.7890625,
+      "rouge1": 31.136852668209475,
+      "rouge2": 10.110506918869639,
+      "rougeL": 24.699505075892894
+    },
+    {
+      "generation_perplexity": 192.3607215942531,
+      "mean_words": 20.4140625,
+      "rouge1": 31.40669266120414,
+      "rouge2": 10.005478911050993,
+      "rougeL": 24.64590893942398
+    },
+    {
+      "generation_perplexity": 188.20886312419117,
+      "mean_words": 20.57421875,
+      "rouge1": 31.78082002866301,
+      "rouge2": 9.635847532774468,
+      "rougeL": 24.62346111068287
+    }
+  ],
+  "development_seed_sd": {
+    "generation_perplexity": 6.256667239215384,
+    "mean_words": 0.14741630636673983,
+    "rouge1": 0.30873017589496654,
+    "rouge2": 0.3166704655874883,
+    "rougeL": 0.30730265420080494
+  },
+  "development_seeds": [
+    100,
+    101,
+    102,
+    103,
+    104
+  ],
+  "heldout_rows": [
+    256,
+    512
+  ],
+  "heldout_seeds": [
+    42,
+    0,
+    1,
+    2,
+    3
+  ],
+  "margins": {
+    "generation_perplexity": 12.52,
+    "mean_words": 0.3,
+    "rouge1": 0.62,
+    "rouge2": 0.64,
+    "rougeL": 0.62
+  },
+  "schema_version": 1,
+  "scorer_sha256": "74791183ba7b9e154af680fcf62bdb89db41c9f052dcd503b528893a4e3c28d4",
+  "status": "frozen"
+}
