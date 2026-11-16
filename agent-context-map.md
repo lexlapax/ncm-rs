@@ -1,6 +1,6 @@
 # Agent context map
 
-Last updated: 2026-11-15 UTC. Read first; load linked context lazily.
+Last updated: 2026-11-16 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
@@ -20,7 +20,7 @@ Last updated: 2026-11-15 UTC. Read first; load linked context lazily.
 
 - **XSum quality development:** the [256-row Python baseline and frozen held-out rule](docs/results/2026-11-15-phase4-xsum/quality-development-protocol-v1.md) record two identical upstream seeds, ROUGE and GPT-2 perplexity with direct upstream scorer agreement, and an exact-ID/zero-quality-drop rule established before held-out comparison. A two-batch upstream CUDA restart reproduced uninterrupted output byte-for-byte. After a retained linker-path failure and lint fix, the Rust CUDA batch runner matched all 51,200 codes, 12,288 IDs and scored metrics on 256 development rows. The full `tools/check.sh --cuda` passed with 18 real-device cases before the example's serialization-only lint fix; targeted lint, rebuild and revised CUDA development run passed afterward. The scorer's explicit row-range output uses documented schema 2 and matches its schema-1 development metrics. Next run the held-out and official full CUDA quality comparisons; CFG, tie behavior and broader performance reporting remain open. No held-out quality comparison or XSum MLX gate is claimed.
 
-- **XSum full CUDA quality in progress:** pinned-Python seed-42 generation is resuming from the retained development batches into the full 11,334-row dataset, one shard at a time; outputs and RNG state are saved per batch under `reports/phase4-xsum-quality-python-smoke-s0/` and `reports/phase4-xsum-quality-python-dev-s1/`. The new comparison tool passed on the 256-row development scores and its two synthetic negative-case tests; it reports intermediate-code differences and enforces the frozen exact-ID and zero-quality-drop rule. The full reference, Rust generation, held-out scoring and official metrics are still pending.
+- **XSum full CUDA quality in progress:** pinned-Python seed-42 generation is resuming from the retained development batches into the full 11,334-row dataset, one shard at a time; outputs and RNG state are saved per batch under `reports/phase4-xsum-quality-python-smoke-s0/` and `reports/phase4-xsum-quality-python-dev-s1/`. The first shard completed all 5,667 rows and its 178 batch receipts validated; the second shard is in progress. The new comparison tool passed on the 256-row development scores and its two synthetic negative-case tests; it reports intermediate-code differences and enforces the frozen exact-ID and zero-quality-drop rule. The full reference, Rust generation, held-out scoring and official metrics are still pending.
 
 - **XSum quality reproducibility:** the development protocol now includes the recorded generation, scoring, and bootstrap commands; its frozen rule and measured results are unchanged.
 
