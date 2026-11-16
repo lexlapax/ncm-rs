@@ -1,0 +1,27 @@
+--- a/crates/ncm-backend-mlx/examples/tinystories_lifecycle_bench.rs
++++ b/crates/ncm-backend-mlx/examples/tinystories_lifecycle_bench.rs
+@@ -7 +7,8 @@
+-use std::time::Instant;
++use std::time::{Instant, SystemTime, UNIX_EPOCH};
++
++fn wall_ns() -> Result<u64, Box<dyn std::error::Error>> {
++    Ok(SystemTime::now()
++        .duration_since(UNIX_EPOCH)?
++        .as_nanos()
++        .try_into()?)
++}
+@@ -33,0 +41 @@
++    let mut intervals = Vec::with_capacity(35);
+@@ -34,0 +43 @@
++        let begin_wall = wall_ns()?;
+@@ -36,0 +46 @@
++        let sample_done_wall = wall_ns()?;
+@@ -44,0 +55,5 @@
++        let end_wall = wall_ns()?;
++        if !(begin_wall <= sample_done_wall && sample_done_wall <= end_wall) {
++            return Err("wall clock moved backward during request".into());
++        }
++        intervals.push([begin_wall, sample_done_wall, end_wall]);
+@@ -54 +69 @@
+-        serde_json::json!({"batch":batch,"warmups":5,"trials_seconds":samples,"scope":"generation plus code and final-ID host readback; model loading excluded","rng":"SplitMix64 and inverse CDF, seed 42; not PyTorch's RNG","status":"exploratory","backend":"mlx", "cleanup":"drop outputs and evaluate GPU barrier within timing", "cache_limit_bytes":cache_limit,"previous_cache_limit_bytes":previous_cache_limit, "mlx_memory":{"active":memory::active_memory()?,"peak":memory::peak_memory()?,"cache":memory::cache_memory()?}})
++        serde_json::json!({"batch":batch,"warmups":5,"trials_seconds":samples,"request_wall_ns":intervals,"scope":"generation plus code and final-ID host readback; model loading excluded","rng":"SplitMix64 and inverse CDF, seed 42; not PyTorch's RNG","status":"diagnostic","backend":"mlx", "cleanup":"drop outputs and evaluate GPU barrier within timing", "cache_limit_bytes":cache_limit,"previous_cache_limit_bytes":previous_cache_limit, "mlx_memory":{"active":memory::active_memory()?,"peak":memory::peak_memory()?,"cache":memory::cache_memory()?}})
