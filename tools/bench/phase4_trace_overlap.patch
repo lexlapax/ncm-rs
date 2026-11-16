@@ -1,0 +1,100 @@
+diff --git a/crates/ncm-backend-mlx/examples/tinystories_teacher_probe.rs b/crates/ncm-backend-mlx/examples/tinystories_teacher_probe.rs
+index 6f801d9..6fe7a3c 100644
+--- a/crates/ncm-backend-mlx/examples/tinystories_teacher_probe.rs
++++ b/crates/ncm-backend-mlx/examples/tinystories_teacher_probe.rs
+@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
+ struct Capture<'a> {
+     backend: MlxBackend,
+     reference: SafeTensors<'a>,
++    adapted: SafeTensors<'a>,
+     stats: BTreeMap<String, serde_json::Value>,
+ }
+ impl TraceSink<MlxBackend> for Capture<'_> {
+@@ -82,6 +83,53 @@ impl TraceSink<MlxBackend> for Capture<'_> {
+             }
+             stats["argmax_differences"] = changed.into();
+         }
++        if name == "generator.final_logits"
++            || (name.starts_with("generator.level_") && name.ends_with(".logits"))
++        {
++            let adapted = self
++                .adapted
++                .tensor(name)
++                .map_err(|e| ncm_core::Error::Weights(e.to_string()))?;
++            if adapted.dtype() != Dtype::F32
++                || adapted.shape() != expected.shape()
++                || adapted.data().len() != expected.data().len()
++            {
++                return Err(ncm_core::Error::Weights(format!(
++                    "adapted trace shape mismatch {name}"
++                )));
++            }
++            let (mut both, mut rust_only, mut python_only, mut neither) =
++                (0usize, 0usize, 0usize, 0usize);
++            let mut different_bits = 0usize;
++            for ((x, raw_y), raw_z) in actual
++                .iter()
++                .zip(expected.data().as_chunks::<4>().0)
++                .zip(adapted.data().as_chunks::<4>().0)
++            {
++                let y = f32::from_le_bytes(*raw_y);
++                let z = f32::from_le_bytes(*raw_z);
++                if !z.is_finite() {
++                    return Err(ncm_core::Error::Weights(format!(
++                        "nonfinite adapted trace {name}"
++                    )));
++                }
++                let limit = 5e-4 + 2e-4 * f64::from(y).abs();
++                let rust_outside = (f64::from(*x) - f64::from(y)).abs() > limit;
++                let python_outside = (f64::from(z) - f64::from(y)).abs() > limit;
++                match (rust_outside, python_outside) {
++                    (true, true) => both += 1,
++                    (true, false) => rust_only += 1,
++                    (false, true) => python_only += 1,
++                    (false, false) => neither += 1,
++                }
++                different_bits += usize::from(x.to_bits() != z.to_bits());
++            }
++            stats["cross_runtime_overlap"] = serde_json::json!({
++                "both_outside": both, "rust_only_outside": rust_only,
++                "python_only_outside": python_only, "neither_outside": neither,
++                "rust_python_different_bits": different_bits,
++            });
++        }
+         self.stats.insert(name.into(), stats);
+         Ok(())
+     }
+@@ -120,11 +168,23 @@ impl TraceSink<MlxBackend> for Capture<'_> {
+ }
+ fn main() -> Result<(), Box<dyn std::error::Error>> {
+     let args: Vec<_> = std::env::args().collect();
+-    if args.len() != 3 {
+-        return Err("usage: tinystories_teacher_probe ARTIFACT PYTHON_TRACE".into());
++    if args.len() != 4 {
++        return Err("usage: tinystories_teacher_probe ARTIFACT CUDA_TRACE MLX_TRACE".into());
+     }
+     let data = std::fs::read(&args[2])?;
+     let reference = SafeTensors::deserialize(&data)?;
++    let adapted_data = std::fs::read(&args[3])?;
++    let adapted = SafeTensors::deserialize(&adapted_data)?;
++    for key in ["generator.forced_codes", "codec.input_ids"] {
++        let left = reference.tensor(key)?;
++        let right = adapted.tensor(key)?;
++        if left.dtype() != right.dtype()
++            || left.shape() != right.shape()
++            || left.data() != right.data()
++        {
++            return Err(format!("trace inputs differ: {key}").into());
++        }
++    }
+     let raw = reference.tensor("generator.forced_codes")?;
+     let [batch, total] = raw.shape() else {
+         return Err("invalid forced-code rank".into());
+@@ -146,6 +206,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
+     let mut capture = Capture {
+         backend,
+         reference,
++        adapted,
+         stats: BTreeMap::new(),
+     };
+     teacher.run_traced(&vec![0; batch], &codes, batch, &mut capture)?;
