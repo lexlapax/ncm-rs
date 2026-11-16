@@ -47,8 +47,36 @@ A further exploratory build combining captured Python rotary tables and
 separate rotary operations failed to link because cuDNN was not on its linker
 path. The following run accidentally reused the previous executable, so it
 does not establish a result for that rotary candidate. The earlier completed
-candidates are rejected as complete fixes. No production source or artifact
-was changed by the temporary diagnostic builds.
+candidates are rejected as complete fixes. After fixing the linker path, the
+rotary combination was built successfully and also changed three codes and
+five raw IDs. Its first block matched Python bit-for-bit through the attention
+output, including the block input, first normalization, Q/K/V projection,
+rotary outputs and attention. The subsequent attention projection output
+had 11,556,758 differing bit patterns out of 12,681,216 (maximum absolute difference
+1.20e-6). The same difference persisted with Python's cuBLAS libraries and
+with the fused-bias projection disabled. The diagnostic does not yet identify
+the reason for that projection difference. A subsequent isolated comparison
+showed identical projection inputs and weights: PyTorch's fused linear matched
+its saved output, whereas separate matrix multiply plus bias reproduced the
+Rust differences. cuBLASLt logs show that Python selected a split-K algorithm
+with a 1 MiB workspace preference; the existing Rust wrapper selected a
+non-split algorithm with a 4 MiB preference. Using the 1 MiB preference made
+this particular projection bit-identical, but applying it globally also
+changed earlier projection outputs and did not fix the batch.
+
+On identical captured input, a diagnostic CUDA GELU using the same order as
+[PyTorch's CUDA implementation](https://github.com/pytorch/pytorch/blob/main/aten/src/ATen/native/cuda/ActivationGeluKernel.cu)
+matched all 50,724,864 output bit patterns. Combining this with the other
+reference-order diagnostics and a shape-specific projection preference made
+all 12 first-level transformer block outputs bit-identical. It still changed
+three codes and five raw IDs on the complete batch. At the next level, the
+first input differed only in the generated target portion; the first sampled
+embedding was bit-identical but the first reconstructed latent differed in
+551,893 of 589,824 bit patterns, maximum absolute difference 2.39e-6. The
+subsequent pooled latent differed in 70,168 of 73,728 bit patterns, maximum
+absolute difference 5.48e-7. These are diagnostic results on one batch, not a
+production fix. No production source or artifact was changed by the temporary
+diagnostic builds.
 
 CUDA diagnostics, input captures, scripts, build logs, candidate sources and
 results are retained locally in `reports/phase4-xsum-tie-probe-v1/`; this
@@ -61,8 +89,8 @@ CUDA device):
 reports/phase4-xsum-tie-probe-v1/rope-pytorch-order
 ```
 
-Next compare subsequent transformer operations and levels on the same
-captured batch to find where the remaining decision drift enters. Any
+Next isolate the first reconstruction difference on the same captured batch
+and check whether its correction preserves quality and runtime performance. Any
 production fix must preserve the upstream algorithm, be tested on the actual
 failed batch and broader quality set, and retain the required speed and memory
 advantages. Full Rust generation, quality scoring and both XSum runtime gates
