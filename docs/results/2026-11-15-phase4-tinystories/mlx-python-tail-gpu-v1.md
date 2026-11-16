@@ -1,0 +1,22 @@
+# Request-aligned Python MLX GPU diagnostic
+
+The opt-in [diagnostic](mlx-python-tail-markers-plan-v1.md) ran three alternating fresh batch-128 processes per runtime on the available Mac. Python had five warmups and 30 measured requests per process; wall timestamps surrounded each synchronized generation/readback request. The existing observer sampled system-wide GPU registry data about every two seconds. Rust used the production binary and the same 4,096 MiB process-local lifecycle policy as the performance comparison. This instrumented run is diagnostic, not a replacement performance gate.
+
+| Runtime / process | Median ms | p95 ms | Maximum ms | Requests over 4 s |
+| --- | ---: | ---: | ---: | ---: |
+| Python 0 | 2240.5 | 2300.2 | 2346.6 | 0 |
+| Python 1 | 2224.7 | 2269.7 | 2275.2 | 0 |
+| Python 2 | 2683.9 | 17933.6 | 17951.4 | 8 |
+| Rust 0 | 1692.4 | 1854.6 | 1855.6 | 0 |
+| Rust 1 | 1672.3 | 1785.2 | 1792.9 | 0 |
+| Rust 2 | 1700.0 | 1838.7 | 1842.9 | 0 |
+
+Python's slow episode began during its fifth warmup and comprised eight measured requests. Four consecutive plateau requests took 17.84–17.95 seconds. All 34 GPU snapshots whose end timestamps fell within those four requests reported 39% device utilization and 12–15% renderer utilization; the later recovery requests coincided with reported device utilization rising through 77–100%. The registry's last-submitter snapshot identified the Python process in 24 of the 34 plateau snapshots and WindowServer in 10. This is a system-wide snapshot, not a measurement of GPU time attributable to either process. Its averaging window and the meaning of the exact 39% plateau are uncalibrated.
+
+During those same four requests, the registry's `Alloc system memory` field was 41.18–41.47 GiB and `In use system memory` was 3.29–7.19 GiB. For 15 later, normal requests, the corresponding sampled ranges were 41.40–41.42 GiB and 10.93–19.50 GiB. These are global registry fields; their residency semantics and sampling windows have not been established. CPU `ps` snapshots aligned approximately through the observed wall/monotonic offset showed a Chrome helper reaching 131.4% CPU in one plateau snapshot, but it was not continuously elevated and this does not establish causation.
+
+The host-side gaps between the last two warmups and the first nine measured requests were 0.09–0.49 ms, so this episode did not follow a two-second gap between host requests. A separate [MLX residency issue](https://github.com/ml-explore/mlx/issues/4609) reports increased latency after GPU idle and a [merged optional refresh](https://github.com/ml-explore/mlx/pull/4633); the present evidence does not show that mechanism, rule out GPU-internal idle periods, or justify changing the runtime or system settings. The similar earlier Rust plateau had no aligned GPU data, so a common cause is still unproven.
+
+All 90 Python measured-request intervals passed ordering and the existing 20 ms wall-versus-monotonic duration check; the maximum discrepancy was 0.193 ms. Each request had at least one GPU snapshot. CPU and GPU observers each collected 251 snapshots without reported errors; watched source and inputs remained stable. The smoke check produced identical marked/unmarked codes and IDs. Registry and CPU polling, plus wall-clock reads, can perturb timing; CPU snapshots have no individual collection bracket, and the observed wall/monotonic offset varied by about 5.3 ms across the run. A later single system snapshot reported no thermal warning and 50% free memory, but was outside the plateau and cannot explain it.
+
+Retained copied evidence `reports/phase4-pymarkers-gpu-v1/`: summary SHA-256 `6942d8835eb9abfcbe1b3165352cd94261818dd26fdb2079734b6be0dec0fbc2`, manifest `bbad59ba7fd31896b450dadbb365344acef8958cd9c9a38779ce7756a1dbf155`, CPU activity `b7aa5ef91070b545500f988ce27bcecd4b6f7285e8a8df76a5266e2d3bcde625`, GPU activity `b402bfbc76e299569834cb2fd31e19a65b0fd5b64009ef4a0aa427a9effe4343`. Locally generated per-process Python alignments have hashes `ee6721dab6a16a6d072a72c65a7998972572135c9cf056cbde827edb54d83285`, `7689a7ad134c76d0a5d5dadb0cabb4e8573dce7b2c1678b93c37bce3e77949a5`, and `aba7d4aa9a0a5821fcab9bd8a958eab7061c6a84d18adddbaa04af19b8f4ffb5`. These observations narrow the investigation; they do not establish a root cause or a fix.
