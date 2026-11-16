@@ -50,7 +50,7 @@ def canonical(value):
 
 
 def read_record(path, expected, ordinal):
-    if path.is_symlink() or not path.is_file():
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 4 * 1024 * 1024:
         raise ValueError('quality batch must be a regular file')
     envelope = json.loads(path.read_bytes())
     if type(envelope) is not dict or set(envelope) != {'record', 'sha256'}:
@@ -116,7 +116,7 @@ def main():
     if len(funcs) != 1:
         raise ValueError('expected one decoder function')
     decoder = compile(ast.fix_missing_locations(ast.Module(body=funcs, type_ignores=[])), str(evaluator), 'exec')
-    manifest = {'schema_version': 1, 'upstream': rev, 'data_sha256': DATA_SHA,
+    manifest = {'schema_version': 1, 'origin': 'pinned-upstream-cuda', 'upstream': rev, 'data_sha256': DATA_SHA,
                 'sources': {k: v[1] for k, v in INPUTS.items()}, 'evaluator_sha256': EVALUATOR_SHA,
                 'generator_sha256': digest_file(Path(__file__)), 'seed': args.seed, 'shard': args.shard,
                 'shards': 2, 'batch_size': 32, 'temperature': 1.0, 'top_k': 1, 'top_p': 0.0,
