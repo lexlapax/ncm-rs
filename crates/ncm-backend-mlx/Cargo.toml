@@ -90,3 +90,7 @@ required-features = ["mlx"]
 [[example]]
 name = "tinystories_lifecycle_bench"
 required-features = ["mlx"]
+
+[[example]]
+name = "xsum_teacher_probe"
+required-features = ["mlx"]
