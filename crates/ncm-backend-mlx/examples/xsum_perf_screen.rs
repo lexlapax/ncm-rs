@@ -23,8 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prefix: Vec<u32> = rows[..batch].iter().flatten().copied().collect();
     let backend = MlxBackend::gpu()?;
     let artifact = Artifact::load_inference(&args[1])?;
-    let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
-    drop(artifact);
+    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
     let mut samples = Vec::with_capacity(5);
     let mut signature = None;
     for trial in 0..7 {

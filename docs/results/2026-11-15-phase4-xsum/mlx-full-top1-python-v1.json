@@ -1,0 +1,19 @@
+{
+  "code_differences": 9,
+  "code_rows": [
+    4937,
+    9813,
+    10009,
+    10015
+  ],
+  "decoded_token_rows": [],
+  "id_differences": 6,
+  "id_rows": [
+    4883,
+    4937
+  ],
+  "metal_manifest_sha256": "b0e6efa956268e3e424ac5a37a11f60b860bcedf8b2c1ac7661a2f4dc4d91923",
+  "reference_sha256": "9e8c211611890833aab2cd4582ffbce13decdac26de92b53e5eab9f86fc3f76d",
+  "rows": 11334,
+  "scope": "raw code and ID equality plus equality of IDs passed to the pinned text decoder"
+}

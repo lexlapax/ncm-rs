@@ -1,0 +1,22 @@
+{
+  "code_differences": 10,
+  "code_rows": [
+    2690,
+    4937,
+    9813,
+    10009,
+    10015
+  ],
+  "cuda_manifest_sha256": [
+    "ae580e8ac25b59c2b782f3aeade72daf24ffbe8f4bd637d882f671607bfb2240",
+    "393be26641af3531fef4d14d5129a314e090c52fbe92a9cb2202d9edf448bd2f"
+  ],
+  "id_differences": 6,
+  "id_rows": [
+    4883,
+    4937
+  ],
+  "metal_manifest_sha256": "b0e6efa956268e3e424ac5a37a11f60b860bcedf8b2c1ac7661a2f4dc4d91923",
+  "rows": 11334,
+  "scope": "top-1 generated codes and IDs; equal IDs imply the same deterministic text and score only under the retained evaluator"
+}

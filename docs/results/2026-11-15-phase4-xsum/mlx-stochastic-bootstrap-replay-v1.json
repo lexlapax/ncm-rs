@@ -1,0 +1,18 @@
+{
+  "bounds": {
+    "generation_perplexity": 7.572003246957933,
+    "mean_words": 0.22851806640624994,
+    "rouge1": 0.2432193541368438,
+    "rouge2": 0.2243057323699778,
+    "rougeL": 0.2783423475630871
+  },
+  "bounds_exact": true,
+  "observed": {
+    "generation_perplexity": 0.5555841091837408,
+    "mean_words": 0.04550781249999858,
+    "rouge1": -0.12915778967160563,
+    "rouge2": -0.026809592703905594,
+    "rougeL": -0.05466251834286595
+  },
+  "observed_exact": true
+}

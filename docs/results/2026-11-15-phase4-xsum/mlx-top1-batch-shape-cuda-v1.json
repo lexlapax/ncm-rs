@@ -1,0 +1,66 @@
+{
+  "batches": {
+    "4864": {
+      "cuda_vs_python": {
+        "code_differences": 0,
+        "code_rows": [],
+        "id_differences": 0,
+        "id_rows": []
+      },
+      "metal_vs_cuda": {
+        "code_differences": 0,
+        "code_rows": [],
+        "id_differences": 1,
+        "id_rows": [
+          4883
+        ]
+      },
+      "metal_vs_python": {
+        "code_differences": 0,
+        "code_rows": [],
+        "id_differences": 1,
+        "id_rows": [
+          4883
+        ]
+      }
+    },
+    "4928": {
+      "cuda_vs_python": {
+        "code_differences": 0,
+        "code_rows": [],
+        "id_differences": 0,
+        "id_rows": []
+      },
+      "metal_vs_cuda": {
+        "code_differences": 3,
+        "code_rows": [
+          4937
+        ],
+        "id_differences": 5,
+        "id_rows": [
+          4937
+        ]
+      },
+      "metal_vs_python": {
+        "code_differences": 3,
+        "code_rows": [
+          4937
+        ],
+        "id_differences": 5,
+        "id_rows": [
+          4937
+        ]
+      }
+    }
+  },
+  "gpu_identity_and_driver": "GPU-180283f7-eafd-6501-7e06-eef40d304c41, 620.70.06",
+  "scope": "two contiguous batches; CUDA uses candidate loader, saved Python used interleaved batches",
+  "source_sha256": {
+    "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/text-phase4-v1/xsum.json": "cba412c100c1264a7a107b2df3bacd20bff5846325ce48fd5aa353b4726daa6a",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final/manifest.json": "8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-mlx-full-top1-captured-v1/manifest.json": "b0e6efa956268e3e424ac5a37a11f60b860bcedf8b2c1ac7661a2f4dc4d91923",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-quality-python-full-rouge-v1.json": "9e8c211611890833aab2cd4582ffbce13decdac26de92b53e5eab9f86fc3f76d",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/target/release/ncm": "fb041b8de8c3c16fb00bc4b8b5a63cada9932e2ea00331787ba6de836de696cc",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/tools/bench/check_xsum_top1_batch_shape.py": "314e5d5572046f42114ef4e8c53c9c7da66c6e2c429636b2463c8c97d154d3a8"
+  }
+}

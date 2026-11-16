@@ -118,3 +118,7 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_perf_screen"
 required-features = ["mlx"]
+
+[[example]]
+name = "xsum_top1_row_trace"
+required-features = ["mlx"]

@@ -1,0 +1,235 @@
+{
+  "batches": {
+    "1": {
+      "rust": {
+        "process_medians_ms": [
+          157.334298,
+          158.88617399999998,
+          159.23254949999998
+        ],
+        "pooled_median_ms": 158.6664535,
+        "median_of_process_medians_ms": 158.88617399999998,
+        "pooled_p95_ms": 160.41277300000002,
+        "rss_mib": [
+          1066.0546875,
+          1069.796875,
+          1063.9921875
+        ],
+        "device": [
+          {
+            "reserved_current": 637534208,
+            "reserved_peak": 704643072,
+            "used_current": 611710864,
+            "used_peak": 663470576
+          },
+          {
+            "reserved_current": 637534208,
+            "reserved_peak": 704643072,
+            "used_current": 611710864,
+            "used_peak": 663470576
+          },
+          {
+            "reserved_current": 637534208,
+            "reserved_peak": 704643072,
+            "used_current": 611710864,
+            "used_peak": 663470576
+          }
+        ]
+      },
+      "python": {
+        "process_medians_ms": [
+          191.44068150012572,
+          193.23094000014862,
+          192.78441599999496
+        ],
+        "pooled_median_ms": 192.31671249985993,
+        "median_of_process_medians_ms": 192.78441599999496,
+        "pooled_p95_ms": 194.4756759999109,
+        "rss_mib": [
+          1840.4921875,
+          1840.08984375,
+          1840.97265625
+        ],
+        "device": [
+          {
+            "peak_allocated_bytes": 784559104,
+            "peak_reserved_bytes": 861929472
+          },
+          {
+            "peak_allocated_bytes": 784559104,
+            "peak_reserved_bytes": 861929472
+          },
+          {
+            "peak_allocated_bytes": 784559104,
+            "peak_reserved_bytes": 861929472
+          }
+        ],
+        "cleanup_median_ms": 50.572821499827114,
+        "inclusive_median_ms": 242.99664950012811,
+        "inclusive_p95_ms": 251.15007700014758
+      }
+    },
+    "4": {
+      "rust": {
+        "process_medians_ms": [
+          577.961454,
+          577.8008345000001,
+          582.7391645
+        ],
+        "pooled_median_ms": 579.1278955,
+        "median_of_process_medians_ms": 577.961454,
+        "pooled_p95_ms": 583.945744,
+        "rss_mib": [
+          1064.02734375,
+          1068.03125,
+          1064.2734375
+        ],
+        "device": [
+          {
+            "reserved_current": 637534208,
+            "reserved_peak": 939524096,
+            "used_current": 611710864,
+            "used_peak": 823767312
+          },
+          {
+            "reserved_current": 637534208,
+            "reserved_peak": 939524096,
+            "used_current": 611710864,
+            "used_peak": 823767312
+          },
+          {
+            "reserved_current": 637534208,
+            "reserved_peak": 939524096,
+            "used_current": 611710864,
+            "used_peak": 823767312
+          }
+        ]
+      },
+      "python": {
+        "process_medians_ms": [
+          699.2787059998591,
+          704.3137655000464,
+          710.5329779999465
+        ],
+        "pooled_median_ms": 704.4709984998008,
+        "median_of_process_medians_ms": 704.3137655000464,
+        "pooled_p95_ms": 712.1673339997869,
+        "rss_mib": [
+          1839.57421875,
+          1840.4296875,
+          1840.2265625
+        ],
+        "device": [
+          {
+            "peak_allocated_bytes": 948909568,
+            "peak_reserved_bytes": 1526726656
+          },
+          {
+            "peak_allocated_bytes": 948909568,
+            "peak_reserved_bytes": 1526726656
+          },
+          {
+            "peak_allocated_bytes": 948909568,
+            "peak_reserved_bytes": 1526726656
+          }
+        ],
+        "cleanup_median_ms": 50.99457100004656,
+        "inclusive_median_ms": 755.5930519999947,
+        "inclusive_p95_ms": 764.4409080003243
+      }
+    },
+    "32": {
+      "rust": {
+        "process_medians_ms": [
+          4491.504522499999,
+          5220.778001,
+          4457.535597499999
+        ],
+        "pooled_median_ms": 4503.0834725,
+        "median_of_process_medians_ms": 4491.504522499999,
+        "pooled_p95_ms": 5760.646114,
+        "rss_mib": [
+          1063.72265625,
+          1063.71484375,
+          1067.859375
+        ],
+        "device": [
+          {
+            "reserved_current": 704643072,
+            "reserved_peak": 3053453312,
+            "used_current": 611710864,
+            "used_peak": 2308162448
+          },
+          {
+            "reserved_current": 704643072,
+            "reserved_peak": 3053453312,
+            "used_current": 611710864,
+            "used_peak": 2308162448
+          },
+          {
+            "reserved_current": 704643072,
+            "reserved_peak": 3053453312,
+            "used_current": 611710864,
+            "used_peak": 2308162448
+          }
+        ]
+      },
+      "python": {
+        "process_medians_ms": [
+          5489.12808099999,
+          5524.673483500237,
+          5465.686170000026
+        ],
+        "pooled_median_ms": 5493.210557000111,
+        "median_of_process_medians_ms": 5489.12808099999,
+        "pooled_p95_ms": 5822.0481060002385,
+        "rss_mib": [
+          1847.98046875,
+          1846.63671875,
+          1847.8203125
+        ],
+        "device": [
+          {
+            "peak_allocated_bytes": 2482242048,
+            "peak_reserved_bytes": 6339690496
+          },
+          {
+            "peak_allocated_bytes": 2482242048,
+            "peak_reserved_bytes": 6339690496
+          },
+          {
+            "peak_allocated_bytes": 2482242048,
+            "peak_reserved_bytes": 6339690496
+          }
+        ],
+        "cleanup_median_ms": 52.11348350007938,
+        "inclusive_median_ms": 5545.296514000256,
+        "inclusive_p95_ms": 5877.158442000109
+      }
+    }
+  },
+  "activity": {
+    "samples": 1273,
+    "failed_queries": 0,
+    "other_process_count_range": [
+      4,
+      4
+    ],
+    "other_process_memory_mib_range": [
+      359,
+      617
+    ],
+    "gpu_utilization_percent_range": [
+      0,
+      100
+    ],
+    "gpu_temperature_c_range": [
+      42.53,
+      72.81
+    ],
+    "sm_clock_mhz_range": [
+      210,
+      1965
+    ]
+  }
+}

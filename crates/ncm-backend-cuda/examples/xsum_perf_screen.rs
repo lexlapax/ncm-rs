@@ -86,8 +86,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input: Vec<u32> = rows[..batch].iter().flatten().copied().collect();
     let backend = CandleBackend::cuda_cudnn(0)?;
     let artifact = Artifact::load_inference(&args[1])?;
-    let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
-    drop(artifact);
+    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
     let mut samples = Vec::new();
     let mut decoder_samples = Vec::new();
     let mut signature = None;

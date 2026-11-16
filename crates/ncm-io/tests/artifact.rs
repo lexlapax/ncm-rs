@@ -83,6 +83,17 @@ fn valid_copied_load_and_undeclared_access() {
 }
 
 #[test]
+fn released_payload_cannot_be_accessed_or_released_twice() {
+    let (dir, _) = fixture();
+    let mut artifact = Artifact::load_inference(dir.path()).unwrap();
+    artifact.release_file("codec.safetensors").unwrap();
+    assert!(artifact.file("codec.safetensors").is_err());
+    assert!(artifact.release_file("codec.safetensors").is_err());
+    assert!(!artifact.file("generator.safetensors").unwrap().is_empty());
+    assert_eq!(artifact.manifest().tensors.len(), 3);
+}
+
+#[test]
 fn inference_view_validates_then_releases_training_state() {
     let (dir, _) = fixture();
     let artifact = Artifact::load_inference(dir.path()).unwrap();

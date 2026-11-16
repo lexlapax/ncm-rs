@@ -1,0 +1,14 @@
+{
+  "cuda_teacher_argmax": 3690,
+  "cuda_teacher_metal_logit": 9.411468505859375,
+  "cuda_teacher_metal_minus_python": 2.86102294921875e-06,
+  "cuda_teacher_python_logit": 9.411465644836426,
+  "global_position": 8,
+  "level": 1,
+  "level_position": 4,
+  "metal_code": 3690,
+  "python_rank_strict": 2,
+  "python_saved_code": 3182,
+  "row": 4937,
+  "scope": "batch-2 CUDA teacher with forced Python history; saved outputs used batch 32"
+}

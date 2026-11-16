@@ -1,0 +1,64 @@
+{
+  "differences": [
+    {
+      "cuda_id": 50256,
+      "cuda_top_two_gap": 7.350329542532563e-05,
+      "cuda_winner_minus_metal_id_score": 7.350329542532563e-05,
+      "metal_id": 3646,
+      "position": 40,
+      "prior_raw_id_differences": 0,
+      "row": 4883
+    },
+    {
+      "cuda_id": 50256,
+      "cuda_top_two_gap": 0.1083842108346289,
+      "cuda_winner_minus_metal_id_score": 2.5908300392329693,
+      "metal_id": 262,
+      "position": 34,
+      "prior_raw_id_differences": 0,
+      "row": 4937
+    },
+    {
+      "cuda_id": 257,
+      "cuda_top_two_gap": 0.03931476082652807,
+      "cuda_winner_minus_metal_id_score": 0.09253274067305028,
+      "metal_id": 531,
+      "position": 42,
+      "prior_raw_id_differences": 1,
+      "row": 4937
+    },
+    {
+      "cuda_id": 1941,
+      "cuda_top_two_gap": 0.30357003401149996,
+      "cuda_winner_minus_metal_id_score": 0.30357003401149996,
+      "metal_id": 737,
+      "position": 44,
+      "prior_raw_id_differences": 2,
+      "row": 4937
+    },
+    {
+      "cuda_id": 13,
+      "cuda_top_two_gap": 2.314585328102112,
+      "cuda_winner_minus_metal_id_score": 2.314585328102112,
+      "metal_id": 50256,
+      "position": 46,
+      "prior_raw_id_differences": 3,
+      "row": 4937
+    },
+    {
+      "cuda_id": 50256,
+      "cuda_top_two_gap": 0.33652572771097766,
+      "cuda_winner_minus_metal_id_score": 5.992266058921814,
+      "metal_id": 13,
+      "position": 47,
+      "prior_raw_id_differences": 4,
+      "row": 4937
+    }
+  ],
+  "rows": [
+    4883,
+    4937
+  ],
+  "scope": "CUDA fixed Python code history and CUDA prior token choices only; not Metal logits or a cause",
+  "trace_sha256": "42dc76b4ed384a76f3dc375890d86c0e33f8ad74a1e2b0753ba3c3f6524d1895"
+}

@@ -413,6 +413,13 @@ impl Artifact {
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
     }
+    /// Release a validated payload when no longer needed; subsequent access fails.
+    pub fn release_file(&mut self, name: &str) -> Result<()> {
+        self.payloads
+            .remove(name)
+            .map(drop)
+            .ok_or_else(|| invalid("undeclared or released artifact file"))
+    }
     /// Return validated owned backing storage, suitable for a copied backend loader.
     pub fn file(&self, name: &str) -> Result<&[u8]> {
         self.payloads

@@ -200,8 +200,7 @@ fn sample_xsum(
 ) -> Result<serde_json::Value> {
     let prefixes = xsum_prefixes(inputs)?;
     let backend = ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?;
-    let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
-    drop(artifact);
+    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
     let generated = if let Some(seed) = seed {
         model.sample_seeded_device(&prefixes, inputs.len(), cfg_scale, seed)?
     } else {
@@ -251,8 +250,7 @@ fn sample_xsum_mlx(
     }
     let prefixes = xsum_prefixes(inputs)?;
     let backend = ncm_backend_mlx::MlxBackend::gpu()?;
-    let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
-    drop(artifact);
+    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
     let generated = if let Some(seed) = seed {
         model.sample_seeded_cpu(&prefixes, inputs.len(), seed)?
     } else {

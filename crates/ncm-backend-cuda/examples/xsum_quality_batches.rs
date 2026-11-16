@@ -12,8 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let backend = CandleBackend::cuda_cudnn(0)?;
     let artifact = Artifact::load_inference(&args[1])?;
-    let model = XsumTeacher::from_artifact(backend.clone(), &artifact)?;
-    drop(artifact);
+    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
     let stdin = io::stdin();
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     for line in stdin.lock().lines() {

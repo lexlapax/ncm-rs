@@ -1,0 +1,48 @@
+{
+  "bootstrap_upper_97_5": {
+    "generation_perplexity": 7.965391093807604,
+    "mean_words": 0.22763916015624852,
+    "rouge1": 0.24406903227263782,
+    "rouge2": 0.2201092722040063,
+    "rougeL": 0.27338729680253077
+  },
+  "margins": {
+    "generation_perplexity": 12.52,
+    "mean_words": 0.3,
+    "rouge1": 0.62,
+    "rouge2": 0.64,
+    "rougeL": 0.62
+  },
+  "metal_score_sha256": [
+    "3315edd8002ca2964f4ef226585b52bff6599cc7add36e50f6c7d563cca99b6c",
+    "bc881b98d2f742f184cd0c007367836ef593a99375a140f161dd441b1d04510d",
+    "c679a664216912df268db2013d6002f5493e30e5c2751a295414f91dff02a6b6",
+    "0f2c85abe08a87499ad7645d763f3a2b8a9614bec424303329334c5cf4e63f4b",
+    "e15b24af11ffa084098ca44944066348969f228947918cfec40ec342bd64b2ea"
+  ],
+  "observed_degradation": {
+    "generation_perplexity": 0.7451922693009578,
+    "mean_words": 0.044921875,
+    "rouge1": -0.13637481782948768,
+    "rouge2": -0.032575285459618186,
+    "rougeL": -0.06275737302638618
+  },
+  "passes": {
+    "generation_perplexity": true,
+    "mean_words": true,
+    "rouge1": true,
+    "rouge2": true,
+    "rougeL": true
+  },
+  "protocol_sha256": "8ccd05295382f6ad33b17183a3f24e5d726da74a73fc1a7027eea81af10d5332",
+  "python_score_sha256": [
+    "32f3b6a3dd93dd2241ff8f9c73c31ed83e77cfaa90fbf45e3e9198b899ddb869",
+    "7385c0cb08a68de505710a5f97953b7d712b674f901711614e437d20adc49ce0",
+    "2dc86b113d73f6c6ef018d5671e29e279d4b40109a04c0bf937e3b67b817fb6a",
+    "b6d4e7aff9ed7bbede1734a6771cc1cf5b8289a5509bb00011bc758cf32485da",
+    "f2fbd4c8a5a0ff51827db24742ee7c00feaccc2b61c02349a5903a288bf1261e"
+  ],
+  "replay_sha256": "3483eda3a21df50417c3fc959a5544f803ff89b316d740c9ba26dd5f5b092587",
+  "schema_version": 1,
+  "scope": "additional Metal backend comparison using previously inspected Python follow-up outputs"
+}

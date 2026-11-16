@@ -1,0 +1,94 @@
+{
+  "activity_samples": 1273,
+  "activity_sha256": "9e6b8be7e2e9e4377695177509fd21bcac29ee932f6713c7c973a9e861fd3d25",
+  "batches": {
+    "1": {
+      "python": {
+        "median_sampled_peak_mib": 990,
+        "sampled_peak_mib_per_process": [
+          990,
+          990,
+          990
+        ],
+        "samples_per_process": [
+          9,
+          10,
+          9
+        ]
+      },
+      "rust": {
+        "median_sampled_peak_mib": 838,
+        "sampled_peak_mib_per_process": [
+          838,
+          838,
+          838
+        ],
+        "samples_per_process": [
+          6,
+          6,
+          6
+        ]
+      }
+    },
+    "32": {
+      "python": {
+        "median_sampled_peak_mib": 6214,
+        "sampled_peak_mib_per_process": [
+          6214,
+          6214,
+          6214
+        ],
+        "samples_per_process": [
+          188,
+          193,
+          188
+        ]
+      },
+      "rust": {
+        "median_sampled_peak_mib": 3080,
+        "sampled_peak_mib_per_process": [
+          3080,
+          3080,
+          3080
+        ],
+        "samples_per_process": [
+          155,
+          185,
+          157
+        ]
+      }
+    },
+    "4": {
+      "python": {
+        "median_sampled_peak_mib": 1624,
+        "sampled_peak_mib_per_process": [
+          1624,
+          1624,
+          1624
+        ],
+        "samples_per_process": [
+          27,
+          27,
+          27
+        ]
+      },
+      "rust": {
+        "median_sampled_peak_mib": 1062,
+        "sampled_peak_mib_per_process": [
+          1062,
+          1062,
+          1062
+        ],
+        "samples_per_process": [
+          21,
+          21,
+          21
+        ]
+      }
+    }
+  },
+  "failed_memory_queries": 0,
+  "manifest_sha256": "f3d20f3c53235d59272dcb05577f8c03eb848849fb704c1dc2403d7a24a539c2",
+  "process_events_sha256": "a451368c8c5c5952d75688c00b9c4146317b216cd5518811157c7ef89cb5b182",
+  "scope": "sampled NVIDIA driver memory of benchmark process only; peaks can be missed"
+}

@@ -169,3 +169,7 @@ required-features = ["cuda-cudnn"]
 [[example]]
 name = "xsum_shared_logits_sampler_probe"
 required-features = ["cuda-cudnn"]
+
+[[example]]
+name = "xsum_top1_row_trace"
+required-features = ["cuda-cudnn"]

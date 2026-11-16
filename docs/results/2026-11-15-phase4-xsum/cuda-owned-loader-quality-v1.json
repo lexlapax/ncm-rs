@@ -1,0 +1,16 @@
+{
+  "candidate_manifest_sha256": [
+    "81d20ec08779503bb1bd251720e41fa9dc95ea1732d54ca31a53f81a62f23180",
+    "602261e7399456bae7d15127f096308574c0e6f66075ec4045f057732dae851f"
+  ],
+  "code_rows": [],
+  "codes": 0,
+  "id_rows": [],
+  "ids": 0,
+  "reference_manifest_sha256": [
+    "ae580e8ac25b59c2b782f3aeade72daf24ffbe8f4bd637d882f671607bfb2240",
+    "393be26641af3531fef4d14d5129a314e090c52fbe92a9cb2202d9edf448bd2f"
+  ],
+  "rows": 11334,
+  "scope": "exact codes and IDs against previously scored CUDA capture; source/postflight logs remain separate"
+}

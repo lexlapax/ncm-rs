@@ -47,7 +47,7 @@ for row in activity:
     if len(gpu) == 7:
         try:
             utilization.append(int(gpu[1].strip()))
-            temperature.append(int(gpu[3].strip()))
+            temperature.append(float(gpu[3].strip()))
             clocks.append(int(gpu[5].strip()))
         except ValueError:
             pass

@@ -950,6 +950,32 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
             backend
         };
         let codec = crate::Codec::from_artifact(backend.clone(), artifact)?;
+        Self::from_checked_parts(backend, artifact, inspection, reference_ties, codec)
+    }
+
+    /// Build from an owned artifact, releasing codec host bytes after upload.
+    pub fn from_owned_artifact(backend: B, mut artifact: Artifact) -> Result<Self> {
+        let inspection = crate::XsumGeneratorInspection::from_artifact(&artifact)?;
+        let reference_ties = inspection.rope_tables.is_some();
+        let backend = if reference_ties {
+            backend.xsum_reference_backend()?
+        } else {
+            backend
+        };
+        let codec = crate::Codec::from_artifact(backend.clone(), &artifact)?;
+        artifact
+            .release_file("codec.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        Self::from_checked_parts(backend, &artifact, inspection, reference_ties, codec)
+    }
+
+    fn from_checked_parts(
+        backend: B,
+        artifact: &Artifact,
+        inspection: crate::XsumGeneratorInspection,
+        reference_ties: bool,
+        codec: crate::Codec<B>,
+    ) -> Result<Self> {
         let bytes = artifact
             .file("generator.safetensors")
             .map_err(|e| Error::Weights(e.to_string()))?;
