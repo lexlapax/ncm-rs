@@ -1,0 +1,7 @@
+# Equivalent MLX residual-convolution screen
+
+The first reconstruction residual convolution is an early CUDA/MLX divergence on the same captured input. A [sampled FP32 reduction screen](residual-reduction-screen-v1.md) did not find a simple bit-identical CUDA order; a [full FP64 comparison](mlx-residual-fp64-v1.md) shows that exact arithmetic alone would not ensure CUDA-band agreement.
+
+`tools/reference/phase4_mlx_residual_variants.py` prepares a limited real-Metal screen of the existing 1D convolution, the same one-dimensional equation expressed as a height-one 2D convolution, and a sum of three kernel-position matrix multiplies. Each receives the same 128-row CUDA-captured residual input and pinned weights, compares its convolution and blended output with the CUDA trace using the unchanged diagnostic band, and captures the blended result for possible FP64 assessment. Three warmups and five synchronized calls give only an operator-level screening time; this is not an end-to-end benchmark, memory gate or quality result. Source, artifact and reference are fingerprinted before/after; no production behavior changes.
+
+Python syntax check passes; real-Metal numerical and timing results are pending. A promising formulation would require full model correctness, quality, memory and platform validation. If none reduces the discrepancy without unacceptable cost, retain the existing implementation and evidence.
