@@ -58,7 +58,7 @@ impl GeneratorConfig {
         Ok(())
     }
 
-    fn shapes(&self, codec: &CodecConfig) -> BTreeMap<String, Vec<usize>> {
+    pub(crate) fn shapes(&self, codec: &CodecConfig) -> BTreeMap<String, Vec<usize>> {
         let mut shapes = BTreeMap::new();
         let d = self.n_embd;
         let mut linear = |name: &str, input, output| {

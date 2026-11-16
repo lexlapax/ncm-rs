@@ -1,0 +1,261 @@
+//! Host-only validation for the pinned XSum generator and token allowance.
+use crate::{artifact_config, generator::GeneratorConfig, has_nonfinite_f32_le};
+use ncm_core::{Error, Result};
+use ncm_io::Artifact;
+use safetensors::{Dtype, SafeTensors, tensor::TensorView};
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct ContextEncoder {
+    enabled: bool,
+    n_layer: usize,
+    vocab_size: usize,
+}
+
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct XsumModelConfig {
+    attn_pattern: String,
+    bias: bool,
+    context_length: usize,
+    ctx_encoder: ContextEncoder,
+    dropout: f64,
+    n_embd: usize,
+    n_head: usize,
+    n_layer: usize,
+    predict_level0: bool,
+    prefix_len: usize,
+    prefix_pad_token_id: usize,
+    query_level0: bool,
+    raw_token_prefix: bool,
+    rope_base: usize,
+    tie_heads_learn_scale: bool,
+    tie_heads_to_codebook: bool,
+    use_flex_attention: bool,
+    use_level_encoding: bool,
+    use_positional_encoding: bool,
+    use_qk_norm: bool,
+    use_rope: bool,
+    vocab_size: Vec<usize>,
+}
+
+#[derive(Deserialize)]
+struct Envelope {
+    model: XsumModelConfig,
+}
+
+/// Fully host-checked generator tensor metadata and retained FP32 allowance.
+/// This does not construct a generator or perform any device upload.
+pub struct XsumGeneratorInspection {
+    pub tensor_count: usize,
+    pub token_allowance: Vec<f32>,
+}
+
+impl XsumGeneratorInspection {
+    pub fn from_artifact(artifact: &Artifact) -> Result<Self> {
+        let config_bytes = artifact
+            .file("config.json")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        crate::validate_artifact_profile(artifact, config_bytes)?;
+        let codec = artifact_config(config_bytes)?;
+        let config: Envelope = serde_json::from_slice(config_bytes)?;
+        let expected: XsumModelConfig = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/xsum-model-config-v1.json"
+        ))?;
+        if config.model != expected || artifact.manifest().profile != "xsum-inference-v1" {
+            return Err(Error::Config(
+                "unsupported XSum generator configuration".into(),
+            ));
+        }
+        let mut shapes = GeneratorConfig {
+            attn_pattern: "block_diagonal".into(),
+            bias: true,
+            context_length: 560,
+            dropout: 0.3,
+            n_embd: 768,
+            n_head: 12,
+            n_layer: 12,
+            prefix_len: 512,
+            query_level0: true,
+            raw_token_prefix: true,
+            rope_base: 100000,
+            tie_heads_to_codebook: false,
+            use_level_encoding: true,
+            use_positional_encoding: true,
+            use_qk_norm: true,
+            use_rope: true,
+            vocab_size: vec![4096; 9],
+        }
+        .shapes(&codec);
+        for i in 0..9 {
+            shapes.remove(&format!("lm_heads.{i}.weight"));
+            shapes.remove(&format!("lm_heads.{i}.bias"));
+            shapes.insert(format!("lm_heads.{i}.proj.weight"), vec![384, 768]);
+            shapes.insert(format!("lm_heads.{i}.log_inv_T"), vec![]);
+        }
+        let bytes = artifact
+            .file("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        if tensors.len() != shapes.len() + 2 {
+            return Err(Error::Weights(
+                "XSum generator tensor inventory differs".into(),
+            ));
+        }
+        for (name, shape) in &shapes {
+            let value = tensors
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            if value.dtype() != Dtype::F32
+                || value.shape() != shape
+                || has_nonfinite_f32_le(value.data())
+            {
+                return Err(Error::Weights(format!(
+                    "invalid XSum generator tensor {name}"
+                )));
+            }
+        }
+        for i in 0..9 {
+            let value = tensors
+                .tensor(&format!("lm_heads.{i}.log_inv_T"))
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let raw: [u8; 4] = value
+                .data()
+                .try_into()
+                .map_err(|_| Error::Weights("invalid head scale".into()))?;
+            let temperature = f32::from_le_bytes(raw).exp();
+            if !temperature.is_finite() || temperature <= 0.0 {
+                return Err(Error::Weights("invalid XSum head temperature".into()));
+            }
+        }
+        let level = tensors
+            .tensor("lvl_1L")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        validate_levels(&level, codec.levels())?;
+        let mask = tensors
+            .tensor("attn_mask_for_masking")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        validate_mask(&mask, codec.levels(), config.model.prefix_len)?;
+        let bytes = artifact
+            .file("inference.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let inference =
+            SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        if inference.len() != 1 {
+            return Err(Error::Weights("invalid XSum inference inventory".into()));
+        }
+        let allowance = inference
+            .tensor("token_unigram")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        if allowance.dtype() != Dtype::F32 || allowance.shape() != [50304] {
+            return Err(Error::Weights("invalid XSum allowance shape".into()));
+        }
+        let token_allowance: Vec<f32> = allowance
+            .data()
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|x| f32::from_le_bytes(*x))
+            .collect();
+        let sum: f64 = token_allowance.iter().map(|&p| f64::from(p)).sum();
+        if token_allowance.iter().any(|p| !p.is_finite() || *p < 0.0) || (sum - 1.0).abs() > 1e-6 {
+            return Err(Error::Weights("invalid XSum token allowance".into()));
+        }
+        Ok(Self {
+            tensor_count: shapes.len(),
+            token_allowance,
+        })
+    }
+}
+
+fn validate_levels(level: &TensorView<'_>, lengths: &[usize]) -> Result<()> {
+    let total: usize = lengths.iter().sum();
+    let expected = lengths
+        .iter()
+        .enumerate()
+        .flat_map(|(i, &len)| std::iter::repeat_n(i as i64, len));
+    if level.dtype() != Dtype::I64
+        || level.shape() != [1, total]
+        || !level
+            .data()
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .map(|x| i64::from_le_bytes(*x))
+            .eq(expected)
+    {
+        return Err(Error::Weights("incorrect XSum level buffer".into()));
+    }
+    Ok(())
+}
+
+fn validate_mask(mask: &TensorView<'_>, lengths: &[usize], prefix: usize) -> Result<()> {
+    let seq = prefix + lengths.iter().sum::<usize>();
+    if mask.dtype() != Dtype::F32 || mask.shape() != [1, 1, seq, seq] {
+        return Err(Error::Weights("invalid XSum attention mask".into()));
+    }
+    let mut levels = vec![usize::MAX; prefix];
+    for (i, &len) in lengths.iter().enumerate() {
+        levels.extend(std::iter::repeat_n(i, len));
+    }
+    for (i, raw) in mask.data().as_chunks::<4>().0.iter().enumerate() {
+        let (row, col) = (i / seq, i % seq);
+        let allowed = col < prefix || (row >= prefix && levels[row] == levels[col]);
+        let expected = if allowed {
+            0f32.to_bits()
+        } else {
+            f32::NEG_INFINITY.to_bits()
+        };
+        if u32::from_le_bytes(*raw) != expected {
+            return Err(Error::Weights("incorrect XSum attention mask".into()));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{XsumModelConfig, validate_levels, validate_mask};
+    use safetensors::{Dtype, tensor::TensorView};
+
+    #[test]
+    fn level_and_attention_buffers_reject_corruption() {
+        let levels: Vec<u8> = [0_i64, 0, 1]
+            .into_iter()
+            .flat_map(i64::to_le_bytes)
+            .collect();
+        let level = TensorView::new(Dtype::I64, vec![1, 3], &levels).unwrap();
+        validate_levels(&level, &[2, 1]).unwrap();
+        assert!(validate_levels(&level, &[1, 2]).is_err());
+        let sequence = [usize::MAX, usize::MAX, 0, 0, 1];
+        let mut bytes = Vec::new();
+        for row in 0..5 {
+            for col in 0..5 {
+                let allowed = col < 2 || (row >= 2 && sequence[row] == sequence[col]);
+                bytes.extend(if allowed { 0f32 } else { f32::NEG_INFINITY }.to_le_bytes());
+            }
+        }
+        let mask = TensorView::new(Dtype::F32, vec![1, 1, 5, 5], &bytes).unwrap();
+        validate_mask(&mask, &[2, 1], 2).unwrap();
+        bytes[4 * 2..4 * 3].copy_from_slice(&0f32.to_le_bytes());
+        let bad = TensorView::new(Dtype::F32, vec![1, 1, 5, 5], &bytes).unwrap();
+        assert!(validate_mask(&bad, &[2, 1], 2).is_err());
+    }
+
+    #[test]
+    fn model_config_is_strict_and_detects_semantic_changes() {
+        let raw = include_str!("../../../tests/fixtures/xsum-model-config-v1.json");
+        let expected: XsumModelConfig = serde_json::from_str(raw).unwrap();
+        let mut changed = raw.replace(
+            "\"prefix_pad_token_id\": 50257",
+            "\"prefix_pad_token_id\": 50256",
+        );
+        let other: XsumModelConfig = serde_json::from_str(&changed).unwrap();
+        assert_ne!(expected, other);
+        changed = raw.replacen("\"bias\": true", "\"bias\": true, \"bias\": true", 1);
+        assert!(serde_json::from_str::<XsumModelConfig>(&changed).is_err());
+        changed = raw.replacen("\"bias\": true", "\"bias\": true, \"unknown\": false", 1);
+        assert!(serde_json::from_str::<XsumModelConfig>(&changed).is_err());
+    }
+}

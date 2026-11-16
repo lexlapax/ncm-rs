@@ -1,0 +1,38 @@
+{
+  "attn_pattern": "block_diagonal",
+  "bias": true,
+  "context_length": 560,
+  "ctx_encoder": {
+    "enabled": false,
+    "n_layer": 4,
+    "vocab_size": 50304
+  },
+  "dropout": 0.3,
+  "n_embd": 768,
+  "n_head": 12,
+  "n_layer": 12,
+  "predict_level0": false,
+  "prefix_len": 512,
+  "prefix_pad_token_id": 50257,
+  "query_level0": true,
+  "raw_token_prefix": true,
+  "rope_base": 100000,
+  "tie_heads_learn_scale": true,
+  "tie_heads_to_codebook": true,
+  "use_flex_attention": false,
+  "use_level_encoding": true,
+  "use_positional_encoding": true,
+  "use_qk_norm": true,
+  "use_rope": true,
+  "vocab_size": [
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096,
+    4096
+  ]
+}

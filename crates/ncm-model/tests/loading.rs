@@ -155,3 +155,13 @@ fn real_tinystories_generator_inventory_and_unigram_preflight() {
     assert_eq!(checked.tensor_count, 195);
     assert_eq!(checked.initial_distribution.len(), 4096);
 }
+
+#[test]
+#[ignore = "requires the local canonical XSum artifact"]
+fn real_xsum_generator_inventory_and_allowance_preflight() {
+    let path = std::env::var_os("NCM_XSUM_ARTIFACT").expect("NCM_XSUM_ARTIFACT is required");
+    let artifact = ncm_io::Artifact::load_inference(path).unwrap();
+    let checked = ncm_model::XsumGeneratorInspection::from_artifact(&artifact).unwrap();
+    assert_eq!(checked.tensor_count, 192);
+    assert_eq!(checked.token_allowance.len(), 50304);
+}
