@@ -1030,7 +1030,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         for start in (0..batch).step_by(4) {
             let count = (batch - start).min(4);
             let chunk = self.backend.narrow(&output.logits, 0, start, count)?;
-            ids.extend(crate::select_xsum_tokens_cpu(
+            ids.extend(crate::xsum_decode::select_xsum_chunk_parallel(
                 &self.backend.read_f32(&chunk)?,
                 &self.token_allowance,
                 count,
