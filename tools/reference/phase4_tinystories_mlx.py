@@ -125,11 +125,15 @@ def main():
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--bench', action='store_true')
     parser.add_argument('--wall-markers', action='store_true', help='diagnostic request timestamps')
+    parser.add_argument('--diagnostic-cache-mib', type=int, help='diagnostic process-local free-cache limit')
     args = parser.parse_args()
     if (args.output.exists() or not 1 <= args.batch <= 128
+            or (args.diagnostic_cache_mib is not None and not 1 <= args.diagnostic_cache_mib <= 16384)
             or (args.adapted_trace is not None and (args.reference is None or args.adapted_trace.exists()))):
         raise ValueError('output must be new and batch in 1..128')
     prepare_device()
+    previous_cache_limit = (mx.set_cache_limit(args.diagnostic_cache_mib * 1024 * 1024)
+                            if args.diagnostic_cache_mib is not None else None)
     model = TinyGenerator(args.artifact)
     reference = tensors(args.reference.read_bytes()) if args.reference else None
     stats = {}
@@ -176,6 +180,9 @@ def main():
               'peak': mx.get_peak_memory(), 'cache': mx.get_cache_memory()}}
     if args.wall_markers:
         report['request_wall_ns'] = request_wall_ns
+    if args.diagnostic_cache_mib is not None:
+        report['diagnostic_cache_limit_bytes'] = args.diagnostic_cache_mib * 1024 * 1024
+        report['previous_cache_limit_bytes'] = previous_cache_limit
     if args.adapted_trace is not None:
         reference.update(adapted)
         save_tensors(args.adapted_trace, reference)

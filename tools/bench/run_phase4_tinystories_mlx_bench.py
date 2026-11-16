@@ -41,9 +41,14 @@ def main():
                         help='sample system-wide GPU registry counters; diagnostic timings may be perturbed')
     parser.add_argument('--python-wall-markers', action='store_true',
                         help='include diagnostic Python request wall timestamps (requires GPU activity)')
+    parser.add_argument('--diagnostic-python-cache-mib', type=int,
+                        help='diagnostic Python process-local free-cache limit (requires GPU activity)')
     args = parser.parse_args()
     if args.python_wall_markers and not args.gpu_activity:
         parser.error('Python wall markers require GPU activity sampling')
+    if args.diagnostic_python_cache_mib is not None and (
+            not args.gpu_activity or not 1 <= args.diagnostic_python_cache_mib <= 16384):
+        parser.error('diagnostic Python cache limit requires GPU activity and must be 1..=16384 MiB')
     if len(set(args.batches)) != len(args.batches):
         parser.error('batches must be unique')
     if args.rust_large_cache_mib is not None and (not args.rust_lifecycle_policy
@@ -106,6 +111,7 @@ def main():
                 'platform': platform.platform(), 'python_packages': packages,
                 'warmups': 5, 'trials': 30, 'repetitions': 3, 'batches': args.batches,
                 'python_wall_markers': args.python_wall_markers,
+                'diagnostic_python_cache_mib': args.diagnostic_python_cache_mib,
                 'diagnostic_only': args.gpu_activity,
                 'scope': 'generation plus synchronized code/ID host readback; excludes load',
                 'sampling': 'different Rust SplitMix64 and Python MLX random streams',
@@ -151,12 +157,17 @@ def main():
                                    '--artifact', str(ARTIFACT), '--batch', str(batch), '--bench', '--output', str(report)]
                         if args.python_wall_markers:
                             command.append('--wall-markers')
+                        if args.diagnostic_python_cache_mib is not None:
+                            command.extend(['--diagnostic-cache-mib', str(args.diagnostic_python_cache_mib)])
                     manifest['runs'].append({'name': stem, 'command': command})
                     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
                     run(command, stem, out)
                     if runtime == 'rust':
                         report.write_bytes((out / f'{stem}.stdout').read_bytes())
                     result = json.loads(report.read_bytes())
+                    if (runtime == 'python' and args.diagnostic_python_cache_mib is not None and
+                            result.get('diagnostic_cache_limit_bytes') != args.diagnostic_python_cache_mib * 1024 * 1024):
+                        raise ValueError(f'Python cache limit missing or incorrect: {stem}')
                     values = result['trials_seconds']
                     if (result['batch'] != batch or result['warmups'] != 5 or len(values) != 30
                             or any(not math.isfinite(x) or x <= 0 for x in values)):
