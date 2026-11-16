@@ -1,0 +1,30 @@
+--- a/crates/ncm-backend-mlx/Cargo.toml
++++ b/crates/ncm-backend-mlx/Cargo.toml
+@@ -92,0 +93,4 @@
++
++[[example]]
++name = "compiled_gelu_abort_probe"
++required-features = ["mlx"]
+--- /dev/null
++++ b/crates/ncm-backend-mlx/examples/compiled_gelu_abort_probe.rs
+@@ -0,0 +1,20 @@
++//! Diagnostic-only rejection check for the compiled GELU path under panic=abort.
++use ncm_backend_mlx::MlxBackend;
++use ncm_core::{CodecBackend, WeightBackend};
++
++fn main() -> Result<(), Box<dyn std::error::Error>> {
++    if !cfg!(panic = "abort") {
++        return Err("probe requires panic=abort".into());
++    }
++    let backend = MlxBackend::gpu()?;
++    let input = backend.upload_f32(&vec![0.; 16 * 3072], &[16, 1, 3072])?;
++    let message = match backend.gelu(&input) {
++        Ok(_) => return Err("compiled path unexpectedly succeeded".into()),
++        Err(error) => error.to_string(),
++    };
++    if !message.contains("compiled GELU requires panic unwinding") {
++        return Err(format!("unexpected error: {message}").into());
++    }
++    println!("{{\"abort_build_rejected_compiled_path\":true}}");
++    Ok(())
++}
