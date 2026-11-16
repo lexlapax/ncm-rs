@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let words: Vec<u32> = (0..8 * length).map(|_| next_word(&mut state)).collect();
         let logits = backend.upload_f32(&logits, &[8, *length, 4096])?;
         let words = backend.upload_indices(&words, &[8, *length])?;
-        let actual = backend.read_indices(&backend.categorical_4096(&logits, &words)?)?;
+        let actual = backend.read_indices(&backend.xsum_categorical_4096(&logits, &words)?)?;
         for row in 0..8 {
             for position in 0..*length {
                 let native = actual[row * length + position];

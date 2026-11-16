@@ -172,6 +172,17 @@ pub trait GeneratorBackend: CodecBackend {
             "native categorical sampling is unsupported".into(),
         ))
     }
+    /// XSum-specific 4096-way categorical draw. Backends explicitly opt in;
+    /// unsupported devices fail rather than silently selecting another path.
+    fn xsum_categorical_4096(
+        &self,
+        _logits: &Self::Tensor,
+        _uniforms: &Self::Indices,
+    ) -> Result<Self::Indices> {
+        Err(Error::Backend(
+            "XSum categorical sampling is unsupported".into(),
+        ))
+    }
     /// Embed sampled 4096-way codes without indexing out of bounds when a
     /// sampler has returned its invalid-row sentinel. The original indices
     /// must remain unchanged so the caller can reject the sentinel before

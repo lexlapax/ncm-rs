@@ -80,7 +80,7 @@ impl TraceSink<MlxBackend> for Capture<'_> {
                 .upload_indices(&self.words[level], &[8, length])?;
             let choices = self
                 .backend
-                .read_indices(&self.backend.categorical_4096(tensor, &word_tensor)?)?;
+                .read_indices(&self.backend.xsum_categorical_4096(tensor, &word_tensor)?)?;
             let offset: usize = (0..level).map(|prior| self.words[prior].len() / 8).sum();
             let changed = (0..8)
                 .flat_map(|row| (0..length).map(move |position| (row, position)))
@@ -122,12 +122,14 @@ impl TraceSink<MlxBackend> for Capture<'_> {
                 .fold(0.0f32, f32::max);
             let word = self.words[level][row * length + position];
             let word_tensor = self.backend.upload_indices(&[word], &[1, 1])?;
-            let reference_choice = self
-                .backend
-                .read_indices(&self.backend.categorical_4096(&reference, &word_tensor)?)?[0];
+            let reference_choice = self.backend.read_indices(
+                &self
+                    .backend
+                    .xsum_categorical_4096(&reference, &word_tensor)?,
+            )?[0];
             let native_choice = self
                 .backend
-                .read_indices(&self.backend.categorical_4096(&native, &word_tensor)?)?[0];
+                .read_indices(&self.backend.xsum_categorical_4096(&native, &word_tensor)?)?[0];
             self.results.push(
                 serde_json::json!({"level":level,"row":row,"position":position,
                 "word":word,"max_logit_delta":max_delta,"reference_choice":reference_choice,

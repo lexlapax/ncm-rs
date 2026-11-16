@@ -504,6 +504,16 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         .map(MlxTensor)
         .map_err(error)
     }
+    fn xsum_categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
+        check(logits, Dtype::Float32)?;
+        check(uniforms, Dtype::Uint32)?;
+        with_stream(&self.stream, || {
+            crate::xsum_categorical::draw(&logits.0, &uniforms.0)
+        })
+        .map(MlxTensor)
+        .map_err(error)
+    }
+
     fn categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
         check(logits, Dtype::Float32)?;
         check(uniforms, Dtype::Uint32)?;

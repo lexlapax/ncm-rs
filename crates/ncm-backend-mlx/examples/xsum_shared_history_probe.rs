@@ -74,10 +74,10 @@ impl TraceSink<MlxBackend> for Capture<'_> {
         let saved_logits = self.backend.upload_f32(&cuda, &[32, len, 4096])?;
         let same = self
             .backend
-            .read_indices(&self.backend.categorical_4096(&saved_logits, &words)?)?;
+            .read_indices(&self.backend.xsum_categorical_4096(&saved_logits, &words)?)?;
         let forced = self
             .backend
-            .read_indices(&self.backend.categorical_4096(tensor, &words)?)?;
+            .read_indices(&self.backend.xsum_categorical_4096(tensor, &words)?)?;
         let offset: usize = self.words[..level].iter().map(|x| x.len() / 32).sum();
         let mut same_count = 0usize;
         let mut forced_count = 0usize;

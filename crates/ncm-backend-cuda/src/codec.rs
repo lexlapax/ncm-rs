@@ -447,6 +447,9 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             ))
         }
     }
+    fn xsum_categorical_4096(&self, logits: &Tensor, uniforms: &Tensor) -> Result<Tensor> {
+        self.categorical_4096(logits, uniforms)
+    }
     fn unique_max_4096(&self, logits: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {

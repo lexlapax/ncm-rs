@@ -1404,20 +1404,21 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                     None
                 };
                 let scores = guided.as_ref().unwrap_or(&logits);
-                let selected =
-                    if let Some(random) = sampling.as_mut().and_then(|s| s.random.as_mut()) {
-                        let rows = cfg.map_or(batch, |(original_batch, _)| original_batch);
-                        let words: Vec<u32> = (0..rows * length)
-                            .map(|_| (random.next() >> 32) as u32)
-                            .collect();
-                        b.categorical_4096(scores, &b.upload_indices(&words, &[rows, length])?)?
+                let selected = if let Some(random) =
+                    sampling.as_mut().and_then(|s| s.random.as_mut())
+                {
+                    let rows = cfg.map_or(batch, |(original_batch, _)| original_batch);
+                    let words: Vec<u32> = (0..rows * length)
+                        .map(|_| (random.next() >> 32) as u32)
+                        .collect();
+                    b.xsum_categorical_4096(scores, &b.upload_indices(&words, &[rows, length])?)?
+                } else {
+                    if self.reference_ties {
+                        b.xsum_reference_top1_4096(scores)?
                     } else {
-                        if self.reference_ties {
-                            b.xsum_reference_top1_4096(scores)?
-                        } else {
-                            b.unique_max_4096(scores)?
-                        }
-                    };
+                        b.unique_max_4096(scores)?
+                    }
+                };
                 if cfg.is_some() {
                     b.concat_indices(&[selected.clone(), selected], 0)?
                 } else {
