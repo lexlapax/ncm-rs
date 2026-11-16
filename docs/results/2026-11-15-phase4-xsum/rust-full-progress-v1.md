@@ -7,6 +7,13 @@ batches of shard 0 covered 4,256 rows and matched the pinned Python reference
 on all 851,200 codes and 204,288 raw IDs. This is a partial progress check,
 not a full quality comparison or a Linux gate.
 
+The first shard subsequently completed all 5,667 rows. The read-only progress
+audit checked all 178 batches against Python and found zero differences among
+1,133,400 codes and 272,016 raw IDs. Its ordered batch inventory SHA-256,
+computed using the method in the Python reference record, is
+`faea501c63c4afe9b60eb5e0dde5cf5e5a3dde57d03da0078d63a8d053b5481e`.
+The second shard is still running; this is not a full quality pass.
+
 Rust shard outputs are retained under
 `reports/phase4-xsum-quality-rust-dev-v2-s0/` and
 `reports/phase4-xsum-quality-rust-dev-v2-s1/`; the full Python reference and
