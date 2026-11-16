@@ -175,15 +175,23 @@ impl<B: CodecBackend> Codec<B> {
         trace: &mut impl TraceSink<B>,
     ) -> Result<(B::Tensor, B::Indices)> {
         let b = &self.backend;
+        let logits = self.decode_latent_logits(latent, trace)?;
+        let ids = b.select_last(&logits, true)?;
+        trace.indices("ids", &ids)?;
+        Ok((logits, ids))
+    }
+    pub(crate) fn decode_latent_logits(
+        &self,
+        latent: &B::Tensor,
+        trace: &mut impl TraceSink<B>,
+    ) -> Result<B::Tensor> {
         trace.tensor("decoder.input", latent)?;
         let hidden = self.decoder_block_traced(latent, trace)?;
         let hidden = self.norm("decoder.ln_f", &hidden, false, trace)?;
         let logits = self.linear("decoder.output_layer", &hidden, false, trace)?;
         trace.tensor("decoder.output", &logits)?;
         trace.tensor("logits", &logits)?;
-        let ids = b.select_last(&logits, true)?;
-        trace.indices("ids", &ids)?;
-        Ok((logits, ids))
+        Ok(logits)
     }
     /// Encode and decode without a host roundtrip of the intermediate codes.
     /// Reuse the quantized latent already accumulated by encode. Both returned

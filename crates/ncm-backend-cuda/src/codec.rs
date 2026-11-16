@@ -410,6 +410,20 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             ))
         }
     }
+    fn xsum_penalty_fp64(&self, logits: &Tensor, allowance: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        {
+            crate::xsum_penalty::select(self, logits, allowance)
+                .map_err(|e| Error::Backend(e.to_string()))
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            let _ = (logits, allowance);
+            Err(Error::Backend(
+                "device XSum FP64 selection is unsupported".into(),
+            ))
+        }
+    }
     fn pack_qkv(
         &self,
         x: &Tensor,

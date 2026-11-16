@@ -880,6 +880,7 @@ pub struct XsumTeacher<B: ncm_core::GeneratorBackend> {
     heads: Box<[TinyHead<B::Tensor>]>,
     geometry: Vec<LevelGeometry<B::Tensor>>,
     token_allowance: Vec<f32>,
+    device_allowance: B::Tensor,
     request_lock: std::sync::Mutex<()>,
 }
 
@@ -894,6 +895,11 @@ pub struct XsumTeacherOutput<B: ncm_core::GeneratorBackend> {
 pub struct XsumGenerated<B: ncm_core::GeneratorBackend> {
     pub codes: B::Indices,
     pub ids: Vec<u32>,
+}
+struct XsumRun<B: ncm_core::GeneratorBackend> {
+    codes: B::Indices,
+    logits: B::Tensor,
+    greedy_ids: Option<B::Indices>,
 }
 
 impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
@@ -973,6 +979,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
             return Err(Error::Weights("unbound XSum generator tensor".into()));
         }
         let geometry = prepare_geometry(&backend, codec.config().levels(), 512, 768, 12, 100000)?;
+        let device_allowance = backend.upload_f32(&inspection.token_allowance, &[50304])?;
         Ok(Self {
             codec,
             backend,
@@ -984,6 +991,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
             heads: heads.into_boxed_slice(),
             geometry,
             token_allowance: inspection.token_allowance,
+            device_allowance,
             request_lock: std::sync::Mutex::new(()),
         })
     }
@@ -1006,7 +1014,14 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        self.run_internal(prefix_tokens, Some(forced_codes), batch, trace)
+        let result = self.run_internal(prefix_tokens, Some(forced_codes), batch, trace, true)?;
+        Ok(XsumTeacherOutput {
+            codes: result.codes,
+            logits: result.logits,
+            greedy_ids: result
+                .greedy_ids
+                .ok_or_else(|| Error::Backend("missing XSum greedy trace".into()))?,
+        })
     }
 
     /// Generate with the pinned temperature-1, top-k-1, top-p-0, CFG-0
@@ -1023,7 +1038,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let output = self.run_internal(prefix_tokens, None, batch, trace)?;
+        let output = self.run_internal(prefix_tokens, None, batch, trace, true)?;
         // Selection is independent between rows. Limit the explicit FP32 host
         // readback to four rows instead of materializing the full batch.
         let mut ids = Vec::with_capacity(batch * 48);
@@ -1043,13 +1058,59 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         })
     }
 
+    /// Generate with the restricted top-1 settings and explicitly use the
+    /// backend's device FP64 penalty implementation. Unsupported backends fail;
+    /// this method never silently switches to the CPU selector.
+    pub fn generate_top1_device_traced(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<XsumGenerated<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let output = self.run_internal(prefix_tokens, None, batch, trace, true)?;
+        self.finish_device(output)
+    }
+
+    /// Untraced device generation; skips the unused raw-greedy output.
+    pub fn generate_top1_device(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+    ) -> Result<XsumGenerated<B>> {
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let output = self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, false)?;
+        self.finish_device(output)
+    }
+
+    fn finish_device(&self, output: XsumRun<B>) -> Result<XsumGenerated<B>> {
+        let selected = self
+            .backend
+            .xsum_penalty_fp64(&output.logits, &self.device_allowance)?;
+        let ids = self.backend.read_indices(&selected)?;
+        if ids.iter().any(|&id| id >= 50304) {
+            return Err(Error::Backend("invalid XSum device penalty input".into()));
+        }
+        Ok(XsumGenerated {
+            codes: output.codes,
+            ids,
+        })
+    }
+
     fn run_internal(
         &self,
         prefix_tokens: &[u32],
         forced_codes: Option<&[u32]>,
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
-    ) -> Result<XsumTeacherOutput<B>> {
+        need_greedy: bool,
+    ) -> Result<XsumRun<B>> {
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
         if !(1..=128).contains(&batch)
@@ -1074,6 +1135,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         let forced = forced_codes
             .map(|codes| b.upload_indices(codes, &[batch, total]))
             .transpose()?;
+        let has_padding = prefix_tokens.contains(&50257);
         let mut selected_levels = Vec::with_capacity(levels.len());
         let mut cumulative: Option<B::Tensor> = None;
         let mut offset = 0;
@@ -1088,18 +1150,23 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             let target = b.project_bias(&latent, &self.input.weight, &self.input.bias)?;
             let target = b.add(&target, &b.narrow(&self.level_embedding, 0, level, 1)?)?;
             let seq = 512 + length;
-            let mut padding = Vec::with_capacity(batch * seq);
-            for row in prefix_tokens.as_chunks::<512>().0 {
-                padding.extend(
-                    row.iter()
-                        .map(|&v| if v == 50257 { f32::NEG_INFINITY } else { 0.0 }),
-                );
-                padding.extend(std::iter::repeat_n(0.0, length));
-            }
-            let padding = b.upload_f32(&padding, &[batch, 1, 1, seq])?;
             let base = &self.geometry[level];
+            let mask = if has_padding {
+                let mut padding = Vec::with_capacity(batch * seq);
+                for row in prefix_tokens.as_chunks::<512>().0 {
+                    padding.extend(
+                        row.iter()
+                            .map(|&v| if v == 50257 { f32::NEG_INFINITY } else { 0.0 }),
+                    );
+                    padding.extend(std::iter::repeat_n(0.0, length));
+                }
+                let padding = b.upload_f32(&padding, &[batch, 1, 1, seq])?;
+                b.add(&base.mask, &padding)?
+            } else {
+                base.mask.clone()
+            };
             let geometry = LevelGeometry {
-                mask: b.add(&base.mask, &padding)?,
+                mask,
                 cosine: base.cosine.clone(),
                 sine: base.sine.clone(),
             };
@@ -1152,12 +1219,24 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 "tied or nonfinite XSum head maximum is unsupported".into(),
             ));
         }
-        let (logits, greedy_ids) = self
-            .codec
-            .decode_latent_outputs(&cumulative.expect("validated levels"), &mut crate::NoTrace)?;
+        let latent = cumulative.expect("validated levels");
+        let (logits, greedy_ids) = if need_greedy {
+            let (logits, ids) = self
+                .codec
+                .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
+            (logits, Some(ids))
+        } else {
+            (
+                self.codec
+                    .decode_latent_logits(&latent, &mut crate::NoTrace)?,
+                None,
+            )
+        };
         trace.tensor("generator.final_logits", &logits)?;
-        trace.indices("generator.greedy_ids", &greedy_ids)?;
-        Ok(XsumTeacherOutput {
+        if let Some(ids) = &greedy_ids {
+            trace.indices("generator.greedy_ids", ids)?;
+        }
+        Ok(XsumRun {
             codes,
             logits,
             greedy_ids,

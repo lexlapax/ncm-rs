@@ -115,8 +115,8 @@ fn indices(
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 3 {
-        return Err("usage: xsum_top1_probe ARTIFACT REFERENCE".into());
+    if !(3..=4).contains(&args.len()) || args.get(3).is_some_and(|s| s != "device") {
+        return Err("usage: xsum_top1_probe ARTIFACT REFERENCE [device]".into());
     }
     let data = std::fs::read(&args[2])?;
     let reference = SafeTensors::deserialize(&data)?;
@@ -131,7 +131,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         reference,
         stats: BTreeMap::new(),
     };
-    let output = teacher.generate_top1_traced(&prefix, 2, &mut capture)?;
+    let output = if args.len() == 4 {
+        teacher.generate_top1_device_traced(&prefix, 2, &mut capture)?
+    } else {
+        teacher.generate_top1_traced(&prefix, 2, &mut capture)?
+    };
+    if args.len() == 4 {
+        let fast = teacher.generate_top1_device(&prefix, 2)?;
+        if backend.read_indices(&fast.codes)? != backend.read_indices(&output.codes)?
+            || fast.ids != output.ids
+        {
+            return Err("untraced device generation differs from traced generation".into());
+        }
+    }
     let actual_codes = backend.read_indices(&output.codes)?;
     capture.stats.insert(
         "generator.codes".into(),

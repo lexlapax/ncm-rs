@@ -122,6 +122,18 @@ pub trait CodecBackend: WeightBackend {
 /// Additional operations needed by the eager generator. Implementations retain
 /// the same FP32, device and immutable-value guarantees as `CodecBackend`.
 pub trait GeneratorBackend: CodecBackend {
+    /// Apply the pinned XSum FP64 penalties on the selected device. The output
+    /// is `[batch,time]`; invalid rows use u32::MAX and must be rejected.
+    /// Backends must implement this explicitly and may not silently fall back.
+    fn xsum_penalty_fp64(
+        &self,
+        _logits: &Self::Tensor,
+        _allowance: &Self::Tensor,
+    ) -> Result<Self::Indices> {
+        Err(Error::Backend(
+            "device XSum FP64 selection is unsupported".into(),
+        ))
+    }
     /// Select unique finite maxima from 4096-way rows. Ties and nonfinite rows
     /// produce u32::MAX, which must be checked before returning a result.
     fn unique_max_4096(&self, _logits: &Self::Tensor) -> Result<Self::Indices> {

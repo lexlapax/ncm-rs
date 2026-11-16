@@ -21,6 +21,8 @@ def main():
     ap.add_argument('--source', type=Path, required=True)
     ap.add_argument('--inputs', type=Path, required=True)
     ap.add_argument('--batch', type=int, required=True)
+    ap.add_argument('--no-stage-sync', action='store_true')
+    ap.add_argument('--trials', type=int, choices=(5, 30), default=5)
     args = ap.parse_args()
     if not 1 <= args.batch <= 32 or not torch.cuda.is_available():
         raise ValueError('batch 1..32 and CUDA required')
@@ -63,19 +65,21 @@ def main():
     del codec_state, generator_state
     prefix = torch.tensor(rows, device='cuda', dtype=torch.long)
     samples, decoder_samples, signature = [], [], None
+    warmups = 5 if args.trials == 30 else 2
     torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats()
     with torch.inference_mode(), sdpa_kernel(SDPBackend.MATH):
         torch.manual_seed(42)
-        for trial in range(7):
+        for trial in range(warmups + args.trials):
             torch.cuda.synchronize()
             start = time.perf_counter()
             codes = model.generate(None, prefix, temperature=1.0, top_k=1, top_p=0.0,
                                    use_kv_cache=False, cfg_scale=0.0)
             _, levels = codec.vq.idx_to_zhats(codes, return_zlevels=True)
             logits = codec.decoder(levels[-1])
-            torch.cuda.synchronize()
-            decoder_elapsed = time.perf_counter() - start
+            if not args.no_stage_sync:
+                torch.cuda.synchronize()
+                decoder_elapsed = time.perf_counter() - start
             ids = scope['pick_tokens'](logits)
             current = (codes.tolist(), ids.tolist())
             torch.cuda.synchronize()
@@ -84,12 +88,17 @@ def main():
                 raise ValueError('generation changed between trials')
             signature = current
             del codes, levels, ids, logits
-            if trial >= 2:
+            if trial >= warmups:
                 samples.append(elapsed)
-                decoder_samples.append(decoder_elapsed)
-    print(json.dumps({'batch': args.batch, 'warmups': 2, 'trials_seconds': samples,
+                if not args.no_stage_sync:
+                    decoder_samples.append(decoder_elapsed)
+    for name, (size, sha) in INPUTS.items():
+        verify_input(args.source / name, size, sha)
+    if digest_file(evaluator) != 'e1eb550123ec76601d1af9c59c2bb7a81d5ca683a662948fcb4d8164dd510c4a':
+        raise ValueError('evaluator source changed')
+    print(json.dumps({'batch': args.batch, 'warmups': warmups, 'trials_seconds': samples,
                       'decoder_seconds': decoder_samples,
-                      'scope': 'generation, FP64 final selection and code/ID host readback; load excluded; extra decoder synchronization',
+                      'scope': 'generation, FP64 final selection and code/ID host readback; load excluded; optional decoder synchronization',
                       'status': 'exploratory', 'backend': 'pinned Python CUDA',
                       'codes': signature[0], 'ids': signature[1],
                       'peak_allocated_bytes': torch.cuda.max_memory_allocated(),

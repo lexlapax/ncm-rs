@@ -28,9 +28,15 @@ impl TraceSink<CandleBackend> for StageTiming<'_> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 4 {
-        return Err("usage: xsum_perf_screen ARTIFACT INPUT_JSON BATCH".into());
+    if !(4..=6).contains(&args.len())
+        || args.get(4).is_some_and(|s| s != "device")
+        || args.get(5).is_some_and(|s| s != "30")
+    {
+        return Err("usage: xsum_perf_screen ARTIFACT INPUT_JSON BATCH [device [30]]".into());
     }
+    let measured = if args.len() == 6 { 30 } else { 5 };
+    let warmups = if measured == 30 { 5 } else { 2 };
+    let device_selection = args.len() >= 5;
     let batch: usize = args[3].parse()?;
     let rows: Vec<Vec<u32>> = serde_json::from_slice(&std::fs::read(&args[2])?)?;
     if !(1..=32).contains(&batch)
@@ -47,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut samples = Vec::new();
     let mut decoder_samples = Vec::new();
     let mut signature = None;
-    for trial in 0..7 {
+    for trial in 0..warmups + measured {
         backend.device().synchronize()?;
         let start = Instant::now();
         let mut trace = StageTiming {
@@ -55,7 +61,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             start,
             decoder_done: None,
         };
-        let output = model.generate_top1_traced(&input, batch, &mut trace)?;
+        let output = if device_selection {
+            model.generate_top1_device(&input, batch)?
+        } else {
+            model.generate_top1_traced(&input, batch, &mut trace)?
+        };
         let codes = backend.read_indices(&output.codes)?;
         let seconds = start.elapsed().as_secs_f64();
         if codes.len() != batch * 200 || output.ids.len() != batch * 48 {
@@ -66,18 +76,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             return Err("generation changed between trials".into());
         }
         signature = Some(current);
-        if trial >= 2 {
+        if trial >= warmups {
             samples.push(seconds);
-            decoder_samples.push(trace.decoder_done.ok_or("missing decoder timing")?);
+            if !device_selection {
+                decoder_samples.push(trace.decoder_done.ok_or("missing decoder timing")?);
+            }
         }
     }
     let (codes, ids) = signature.ok_or("no measured output")?;
     println!(
         "{}",
-        serde_json::json!({"batch":batch,"warmups":2,"trials_seconds":samples,
+        serde_json::json!({"batch":batch,"warmups":warmups,"trials_seconds":samples,
         "decoder_seconds":decoder_samples,
-        "scope":"generation, FP64 final selection and code/ID host readback; load excluded; extra decoder synchronization",
-        "status":"exploratory","backend":"strict-cudnn", "codes":codes,"ids":ids})
+        "scope":"generation, FP64 final selection and code/ID host readback; load excluded; CPU mode has an extra decoder synchronization",
+        "status":"exploratory","backend":"strict-cudnn", "selection":if device_selection {"device"} else {"cpu"}, "codes":codes,"ids":ids})
     );
     Ok(())
 }
