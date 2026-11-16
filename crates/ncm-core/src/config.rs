@@ -124,7 +124,7 @@ impl CodecConfig {
         Self::validate(serde_json::from_slice(bytes)?)
     }
     pub fn validate(raw: RawCodecConfig) -> Result<Self> {
-        Self::validate_with_width(raw, 256)
+        Self::validate_with_width(raw, 256, 1)
     }
     /// Explicit pinned TinyStories codec profile; does not widen Sudoku bounds.
     pub fn validate_tinystories(raw: RawCodecConfig) -> Result<Self> {
@@ -140,9 +140,29 @@ impl CodecConfig {
                 "unsupported TinyStories codec profile".into(),
             ));
         }
-        Self::validate_with_width(raw, 384)
+        Self::validate_with_width(raw, 384, 1)
     }
-    fn validate_with_width(raw: RawCodecConfig, max_width: usize) -> Result<Self> {
+    /// Explicit pinned XSum codec profile with a four-position initial level.
+    pub fn validate_xsum(raw: RawCodecConfig) -> Result<Self> {
+        let expected_levels = [4, 6, 10, 14, 20, 26, 32, 40, 48];
+        if raw.in_vocab_size != 50304
+            || raw.context_length != 48
+            || raw.embed_dim != 384
+            || raw.n_layers != 6
+            || raw.vqvae_vocab_size != [4096; 9]
+            || raw.vector_quantizer_config.levels.manual_levels != expected_levels
+            || !raw.vector_quantizer_config.learned_l1_cascade_norm
+            || !raw.vector_quantizer_config.learned_l1_cascade_norm_final
+        {
+            return Err(Error::Config("unsupported XSum codec profile".into()));
+        }
+        Self::validate_with_width(raw, 384, 4)
+    }
+    fn validate_with_width(
+        raw: RawCodecConfig,
+        max_width: usize,
+        first_level: usize,
+    ) -> Result<Self> {
         let q = &raw.vector_quantizer_config;
         let levels = &q.levels.manual_levels;
         let require = |valid, message: &str| {
@@ -226,10 +246,11 @@ impl CodecConfig {
         require(
             q.levels.use_manual_levels
                 && (2..=32).contains(&levels.len())
-                && levels.first() == Some(&1)
+                && levels.first() == Some(&first_level)
+                && raw.context_length.is_multiple_of(first_level)
                 && levels.last() == Some(&raw.context_length)
                 && levels.windows(2).all(|w| w[0] < w[1]),
-            "levels must increase from one to context length",
+            "levels must increase from the profile first level to context length",
         )?;
         require(
             raw.vqvae_vocab_size.len() == levels.len()
@@ -249,7 +270,7 @@ impl CodecConfig {
                 && q.quant_resi.ratio > 1e-6,
             "unsupported residual refinement",
         )?;
-        let mut remaining = raw.context_length;
+        let mut remaining = raw.context_length / first_level;
         let mut strides = Vec::new();
         while remaining > 1 {
             let mut factor = q.learned_l1_cascade_base.min(remaining);

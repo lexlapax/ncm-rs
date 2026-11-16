@@ -125,3 +125,7 @@ required-features = ["cuda"]
 [[example]]
 name = "tinystories_memory"
 required-features = ["cuda"]
+
+[[example]]
+name = "xsum_cascade_probe"
+required-features = ["cuda-cudnn"]

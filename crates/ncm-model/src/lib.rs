@@ -163,6 +163,18 @@ fn artifact_config(bytes: &[u8]) -> Result<CodecConfig> {
             }
             CodecConfig::validate_tinystories(envelope.tokenizer.vqvae)
         }
+        "xsum" => {
+            let pre: XsumPreTokenizer = serde_json::from_value(envelope.tokenizer.pre_tokenizer)?;
+            if pre.name != "hf"
+                || pre.tokenizer != "hf"
+                || pre.model_id != "gpt2"
+                || pre.special_tokens.eos_token != "<|endoftext|>"
+                || pre.special_tokens.pad_token != "<|pad|>"
+            {
+                return Err(Error::Config("unsupported XSum tokenizer".into()));
+            }
+            CodecConfig::validate_xsum(envelope.tokenizer.vqvae)
+        }
         _ => Err(Error::Config(
             "unsupported codec artifact task/tokenizer".into(),
         )),
@@ -173,6 +185,7 @@ fn validate_artifact_profile(artifact: &Artifact, bytes: &[u8]) -> Result<()> {
     let envelope: Envelope = serde_json::from_slice(bytes)?;
     let expected = match envelope.task.as_str() {
         "tinystories" => "tinystories-inference-v1".to_owned(),
+        "xsum" => "xsum-inference-v1".to_owned(),
         _ => format!("{}-inspection-v1", envelope.task),
     };
     if artifact.manifest().profile != expected {
@@ -221,6 +234,14 @@ struct TinyStoriesPreTokenizer {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct XsumPreTokenizer {
+    name: String,
+    tokenizer: String,
+    model_id: String,
+    special_tokens: TinyStoriesSpecialTokens,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct TinyStoriesSpecialTokens {
     eos_token: String,
     pad_token: String,
@@ -230,6 +251,23 @@ struct TinyStoriesSpecialTokens {
 mod tests {
     use super::{artifact_config, has_nonfinite_f32_le};
     use serde_json::{Value, json};
+
+    #[test]
+    fn xsum_envelope_accepts_only_its_pinned_tokenizer_and_codec_profile() {
+        let codec: Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/xsum-codec-config-v1.json"
+        ))
+        .unwrap();
+        let mut envelope = json!({"task":"xsum", "tokenizer": {
+            "pre_tokenizer": {"name":"hf", "tokenizer":"hf", "model_id":"gpt2",
+                "special_tokens":{"eos_token":"<|endoftext|>", "pad_token":"<|pad|>"}},
+            "vqvae":codec}, "checkpoints":{}, "data":{}, "eval":{}, "generation":{}, "model":{}});
+        let parsed = artifact_config(&serde_json::to_vec(&envelope).unwrap()).unwrap();
+        assert_eq!(parsed.levels()[0], 4);
+        assert_eq!(parsed.strides(), [4, 3]);
+        envelope["tokenizer"]["pre_tokenizer"]["model_id"] = "other".into();
+        assert!(artifact_config(&serde_json::to_vec(&envelope).unwrap()).is_err());
+    }
 
     #[test]
     fn finite_scan_covers_groups_tails_and_ieee_edge_cases() {

@@ -90,7 +90,7 @@ impl<B: CodecBackend> Codec<B> {
         self.check_latent(
             x,
             if up {
-                1
+                self.config.levels()[0]
             } else {
                 self.config.raw().context_length
             },
