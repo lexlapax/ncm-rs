@@ -1,0 +1,32 @@
+{
+  "adapter_sha256": "77b0564be333dd47dc18f482b437c0ce302974114b5cf83c9f92a74dc4444ea1",
+  "code_differences": 0,
+  "command": [
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/.reference/mlx-venv/bin/python",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/reference/phase4_xsum_mlx.py",
+    "--artifact",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final",
+    "--inputs",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-mlx-cli-inputs-v1/prefixes.json",
+    "--batch",
+    "32",
+    "--output",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-python-mlx-qualification-v2/adapter.json"
+  ],
+  "id_differences": 0,
+  "schema_version": 1,
+  "scope": "32 real passages; initial Python MLX reference qualification",
+  "shapes_ok": true,
+  "source_sha256": {
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final/manifest.json": "8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-mlx-cli-inputs-v1/prefixes.json": "a9c0da895804e5146191993ae27db4c921d1b08b21594cb6eaa63777748019cf",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-mlx-cli-inputs-v1/reference.json": "b2a20dbad883417406387726d799c8f79ecf814507f58d01bd05204e16775125",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/bench/check_xsum_mlx_python.py": "89545a6740b9a6a2ac9386bf5ab0dc393c0aeec3203e2dcca158d7dced46db38",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/reference/mlx_codec.py": "b1178355cb790120edefe62bdada3c8130d1339c5fe4b7ba7e7376867e85eb3c",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/reference/mlx_codec_assets.py": "86ccc10d583d7d7bcbea6b5b7e696a3c2c7da409c84f32501e670ddd25604fb9",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/reference/mlx_operators.py": "13e98e563f2204e41f16bafc5acbd1a86c47a014a1ca5998828563602d9887c0",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/reference/phase3_mlx_generator.py": "0443ab1b4e97af7a75bda3b9723f88fe4ab5467281791d65eed4a33f5b29cfe5",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/reference/phase4_xsum_mlx.py": "78f01d5bb73560a080b0253b226e8a19ad5419988b1a5156bd72b2880e72c17e",
+    "/Users/lexlapax/projects/lexlapax/ncm-rs/tools/reference/xsum_numpy_selection.py": "d85aba1589d61c8437699e8e49295d3bd8586c0c6bd3b38d3026f391af208c81"
+  }
+}

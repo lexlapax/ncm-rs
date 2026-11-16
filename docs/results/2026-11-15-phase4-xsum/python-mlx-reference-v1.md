@@ -1,0 +1,7 @@
+# XSum Python MLX reference: initial qualification
+
+The independent Python MLX top-1 adaptation at commit `c8150f8` matched the pinned Python CUDA reference on all 6,400 codes and 1,536 final IDs for 32 real XSum passages. Its NumPy FP64 output-penalty selector separately matched the AST-extracted upstream `pick_tokens` function on repeated-token and tie fixtures. The [source-bound result](python-mlx-reference-v1.json) has SHA-256 `f0e5c2e25927d2784a4a767145f8a891404bac3ea7f3ec8afe145bf1decfa95f`; the adapter output is `77b0564be333dd47dc18f482b437c0ce302974114b5cf83c9f92a74dc4444ea1`.
+
+The first qualification attempt failed before inference because the runner resolved the virtualenv launcher symlink and bypassed its environment; the corrected run preserves that path. Both attempts remain on Mac under `reports/phase4-xsum-python-mlx-qualification-v{1,2}/`; successful outputs are copied locally under `reports/phase4-xsum-python-mlx-qualification-captured-v2/`. Linux `tools/check.sh --cuda` passed after an isolated retry of an unrelated process-observer fixture, as described in the [preparation](mlx-performance-preparation-v1.md).
+
+This is an independently written same-device Python MLX adaptation, not original PyTorch on Metal. The 32-passage comparison qualifies it only for this bounded initial top-1 screen; it does not establish all inputs, stochastic sampling, full task quality or a performance result. Broader qualification and repeated latency/memory measurements remain necessary.
