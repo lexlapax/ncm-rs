@@ -1,6 +1,6 @@
 //! Isolated candidate probe: run its first residual on retained CUDA inputs.
 use ncm_backend_mlx::MlxBackend;
-use ncm_core::CodecBackend;
+use ncm_core::{CodecBackend, WeightBackend};
 use ncm_io::Artifact;
 use ncm_model::Codec;
 use safetensors::{Dtype, SafeTensors};
