@@ -458,6 +458,24 @@ impl CodecBackend for MlxBackend {
 }
 
 impl ncm_core::GeneratorBackend for MlxBackend {
+    fn xsum_reference_backend(&self) -> Result<Self> {
+        Ok(self.clone())
+    }
+
+    fn unique_max_4096(&self, logits: &MlxTensor) -> Result<MlxTensor> {
+        check(logits, Dtype::Float32)?;
+        with_stream(&self.stream, || crate::xsum_top1::select(&logits.0, true))
+            .map(MlxTensor)
+            .map_err(error)
+    }
+
+    fn xsum_reference_top1_4096(&self, logits: &MlxTensor) -> Result<MlxTensor> {
+        check(logits, Dtype::Float32)?;
+        with_stream(&self.stream, || crate::xsum_top1::select(&logits.0, false))
+            .map(MlxTensor)
+            .map_err(error)
+    }
+
     fn rms_rope(
         &self,
         x: &MlxTensor,

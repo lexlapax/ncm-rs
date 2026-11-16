@@ -94,3 +94,7 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_teacher_probe"
 required-features = ["mlx"]
+
+[[example]]
+name = "xsum_top1_probe"
+required-features = ["mlx"]
