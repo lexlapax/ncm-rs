@@ -98,8 +98,19 @@ batch with two warmups and five measured trials, took 5.126–5.183 seconds per
 batch and reached 1,060,512 KiB peak process RSS. It used captured reference
 rotary tables and shape-specific diagnostic kernels. The previous Python
 batch-32 comparison used different inputs and conditions, so these numbers
-are not a performance gate. No production source or artifact was changed by
-the temporary diagnostic builds.
+are not a performance gate. A later exploratory 256-row screen used the
+original attention path and compared saved Python shard-1 batch ordinals
+0–3 and 75–78, including the failed batch. All 51,200 codes and 12,288 raw
+IDs matched. Its binary SHA-256 was
+`ecad5c1d712828d4e97dafc284038ceb8e84dbcfc9d942f3a9eef950c1ff2bdb`;
+the local cosine and sine table SHA-256 values were
+`de9fc18c370a1b6f2da00e8128898eca664f9b51477480231eee309f95865a59`
+and `2fa31c28a2d106cd9d1f2d8232eccdb944e7ea419c9a56443d2bf5d4193eba81`.
+The screen used Python's native cuBLAS libraries; the failed batch alone also
+matched with the system cuBLAS libraries. These runs do not establish full
+quality or performance. Replacing the captured rotary tables with a native
+reciprocal-then-multiply calculation still failed at the original tie. No
+production source or artifact was changed by the temporary diagnostic builds.
 
 CUDA diagnostics, input captures, scripts, build logs, candidate sources and
 results are retained locally in `reports/phase4-xsum-tie-probe-v1/`; this
