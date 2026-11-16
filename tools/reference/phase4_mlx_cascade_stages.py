@@ -8,7 +8,7 @@ import mlx.core as mx
 import numpy as np
 
 from mlx_codec import prepare_device
-from mlx_codec_assets import tensors
+from mlx_codec_assets import save_tensors, tensors
 from phase4_tinystories_mlx import TinyGenerator
 
 
@@ -38,8 +38,11 @@ def main():
     parser.add_argument('--reference', type=Path, required=True)
     parser.add_argument('--reference-sha256', required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--capture', type=Path, help='optional same-input residual capture')
     args = parser.parse_args()
-    if args.output.exists() or digest(args.reference) != args.reference_sha256:
+    if (args.output.exists() or (args.capture is not None and
+            (args.capture.exists() or args.capture.resolve() == args.output.resolve())) or
+            digest(args.reference) != args.reference_sha256):
         raise ValueError('output must be new and reference hash must match')
     root = Path(__file__).resolve().parents[2]
     watched = [Path(__file__).resolve(), args.reference.resolve(),
@@ -67,13 +70,19 @@ def main():
     reference_input = mx.array(ref['cascade.3'])
     conv = model.codec.conv('vq.quant_resi.0', reference_input, padding=1)
     results['residual.conv'] = {'same_input': compare(conv, ref['residual.conv'])}
-    results['refined'] = {'same_input': compare(model.codec.phi(reference_input, 0), ref['refined']),
+    same_refined = model.codec.phi(reference_input, 0)
+    results['refined'] = {'same_input': compare(same_refined, ref['refined']),
                           'propagated': compare(model.codec.phi(x, 0), ref['refined'])}
     after = {str(p): digest(p) for p in watched}
     if before != after:
         raise ValueError('source or input changed during diagnostic')
+    capture_sha256 = None
+    if args.capture is not None:
+        save_tensors(args.capture, {'cascade.3': ref['cascade.3'], 'refined': np.asarray(same_refined)})
+        capture_sha256 = digest(args.capture)
     with args.output.open('x') as out:
         json.dump({'input_sha256': before, 'atol': 5e-4, 'rtol': 2e-4, 'results': results,
+                   'capture_sha256': capture_sha256,
                    'scope': 'same-input CUDA versus independent MLX cascade; diagnostic only'},
                   out, indent=2, sort_keys=True, allow_nan=False)
         out.write('\n')
