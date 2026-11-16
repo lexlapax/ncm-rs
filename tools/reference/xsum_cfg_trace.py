@@ -23,9 +23,12 @@ def main():
     parser.add_argument('--cfg-scale', type=float, required=True)
     parser.add_argument('--prefix-json', type=Path, help='explicit padded input rows')
     parser.add_argument('--decisions-only', action='store_true')
+    parser.add_argument('--controlled-seed', type=int, help='use controlled inverse-CDF draws')
     args = parser.parse_args()
-    if not 0.0 < args.cfg_scale <= 100.0:
-        raise ValueError('positive finite CFG scale required')
+    if not 0.0 <= args.cfg_scale <= 100.0 or (args.cfg_scale == 0 and args.controlled_seed is None):
+        raise ValueError('positive CFG scale, or a controlled seed, required')
+    if args.controlled_seed is not None and not 0 <= args.controlled_seed < 2**64:
+        raise ValueError('controlled seed must be an unsigned 64-bit integer')
     if args.output.exists() or args.output.is_symlink() or not torch.cuda.is_available():
         raise ValueError('new output and CUDA required')
     rev = subprocess.check_output(['git', '-C', str(args.upstream), 'rev-parse', 'HEAD'], text=True).strip()
@@ -85,13 +88,32 @@ def main():
         for row, length in enumerate((24, 497)):
             prefix[row, :length] = (torch.arange(length, device='cuda') * (29 + row * 2) + 3) % 50256
     calls = [0]
+    random_state = [args.controlled_seed]
+    def next_word():
+        mask = 2**64 - 1
+        random_state[0] = (random_state[0] + 0x9e3779b97f4a7c15) & mask
+        z = random_state[0]
+        z = ((z ^ (z >> 30)) * 0xbf58476d1ce4e5b9) & mask
+        z = ((z ^ (z >> 27)) * 0x94d049bb133111eb) & mask
+        return (z ^ (z >> 31)) >> 32
     def traced_sample(logits, temperature, top_k, top_p):
         level = calls[0]
         save(f'generator.level_{level:02d}.logits', logits)
         if tuple(logits.shape) != (batch, levels[level], 4096):
             raise ValueError('unexpected generator head shape')
         calls[0] += 1
-        codes = upstream_sample(logits, temperature, top_k, top_p)
+        if args.controlled_seed is None:
+            codes = upstream_sample(logits, temperature, top_k, top_p)
+        else:
+            if temperature != 1.0 or top_k != 0 or top_p != 1.0:
+                raise ValueError('unexpected controlled sampling settings')
+            flat = logits.detach().to(device='cpu', dtype=torch.float64).reshape(-1, 4096)
+            cdf = torch.softmax(flat, dim=-1).cumsum(dim=-1)
+            draws = torch.tensor([next_word() / 2**32 for _ in range(flat.shape[0])],
+                                 dtype=torch.float64).unsqueeze(-1)
+            codes = torch.searchsorted(cdf, draws, right=True).reshape(batch, levels[level]).to(logits.device)
+            if (codes >= 4096).any():
+                raise ValueError('invalid controlled sample')
         selected.append(codes)
         return codes
     model._sample_level_raw = traced_sample
@@ -101,7 +123,9 @@ def main():
     with torch.inference_mode(), sdpa_kernel(SDPBackend.MATH):
         save('generator.prefix_ids', prefix)
         torch.manual_seed(42)
-        generated = model.generate(None, prefix, temperature=1.0, top_k=1, top_p=0.0,
+        generated = model.generate(None, prefix, temperature=1.0,
+                                   top_k=0 if args.controlled_seed is not None else 1,
+                                   top_p=1.0 if args.controlled_seed is not None else 0.0,
                                    use_kv_cache=False, cfg_scale=args.cfg_scale)
         if calls[0] != len(levels) or not torch.equal(generated, torch.cat(selected, dim=1)):
             raise ValueError('generator codes changed')
@@ -128,7 +152,10 @@ def main():
                                  if rows is not None else [24, 497]),
               'prefix_sha256': digest_file(args.prefix_json) if args.prefix_json else None,
               'decisions_only': args.decisions_only,
-              'mode': 'upstream temperature 1, top-k 1, top-p 0 guided selection',
+              'mode': ('controlled inverse-CDF temperature 1, top-k 0, top-p 1'
+                       if args.controlled_seed is not None else
+                       'upstream temperature 1, top-k 1, top-p 0 guided selection'),
+              'controlled_seed': args.controlled_seed,
               'cfg_scale': args.cfg_scale,
               'trace_sha256': digest_file(args.output / 'trace.safetensors'), 'tensors': sorted(traces)}
     with (args.output / 'report.json').open('x') as out:

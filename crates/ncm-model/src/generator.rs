@@ -934,6 +934,11 @@ struct XsumRun<B: ncm_core::GeneratorBackend> {
     greedy_ids: Option<B::Indices>,
 }
 
+struct XsumSampling {
+    cfg: Option<(usize, f64)>,
+    random: Option<SplitMix64>,
+}
+
 impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
         let inspection = crate::XsumGeneratorInspection::from_artifact(artifact)?;
@@ -1174,7 +1179,62 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             batch * 2,
             &mut crate::NoTrace,
             false,
-            Some((batch, scale)),
+            Some(XsumSampling {
+                cfg: Some((batch, scale)),
+                random: None,
+            }),
+        )?;
+        self.finish_device(output)
+    }
+
+    /// Experimental sampling at temperature 1, top-k 0 and top-p 1 using request-local
+    /// SplitMix64 draws. This does not reproduce PyTorch's random stream.
+    /// Positive CFG follows the same upstream document/null schedule as the
+    /// top-1 path; other sampling settings are not implemented.
+    pub fn sample_seeded_device(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        seed: u64,
+    ) -> Result<XsumGenerated<B>> {
+        if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
+            return Err(Error::Input("invalid XSum CFG scale".into()));
+        }
+        let cfg = if scale > 0.0 {
+            if !(1..=64).contains(&batch) || batch.checked_mul(512) != Some(prefix_tokens.len()) {
+                return Err(Error::Input("XSum CFG expects 1..=64 prefixes".into()));
+            }
+            Some((batch, scale))
+        } else {
+            None
+        };
+        let mut doubled = Vec::new();
+        let (prefixes, internal_batch) = if cfg.is_some() {
+            doubled.reserve(batch * 1024);
+            doubled.extend_from_slice(prefix_tokens);
+            for _ in 0..batch {
+                doubled.push(50256);
+                doubled.extend(std::iter::repeat_n(50257, 511));
+            }
+            (doubled.as_slice(), batch * 2)
+        } else {
+            (prefix_tokens, batch)
+        };
+        let _request = self
+            .request_lock
+            .lock()
+            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
+        let output = self.run_internal(
+            prefixes,
+            None,
+            internal_batch,
+            &mut crate::NoTrace,
+            false,
+            Some(XsumSampling {
+                cfg,
+                random: Some(SplitMix64(seed)),
+            }),
         )?;
         self.finish_device(output)
     }
@@ -1200,8 +1260,9 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
         need_greedy: bool,
-        cfg: Option<(usize, f64)>,
+        mut sampling: Option<XsumSampling>,
     ) -> Result<XsumRun<B>> {
+        let cfg = sampling.as_ref().and_then(|options| options.cfg);
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
         if !(1..=128).contains(&batch)
@@ -1284,15 +1345,31 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
             let selected = if let Some(codes) = &forced {
                 b.narrow_indices(codes, 1, offset, length)?
-            } else if let Some((original_batch, scale)) = cfg {
-                let t = scale * (level as f64 / (levels.len() - 1).max(1) as f64);
-                let conditioned = b.narrow(&logits, 0, 0, original_batch)?;
-                let null = b.narrow(&logits, 0, original_batch, original_batch)?;
-                let guided = b.sub(&b.scale(&conditioned, 1.0 + t)?, &b.scale(&null, t)?)?;
-                let selected = b.unique_max_4096(&guided)?;
-                b.concat_indices(&[selected.clone(), selected], 0)?
             } else {
-                b.unique_max_4096(&logits)?
+                let guided = if let Some((original_batch, scale)) = cfg {
+                    let t = scale * (level as f64 / (levels.len() - 1).max(1) as f64);
+                    let conditioned = b.narrow(&logits, 0, 0, original_batch)?;
+                    let null = b.narrow(&logits, 0, original_batch, original_batch)?;
+                    Some(b.sub(&b.scale(&conditioned, 1.0 + t)?, &b.scale(&null, t)?)?)
+                } else {
+                    None
+                };
+                let scores = guided.as_ref().unwrap_or(&logits);
+                let selected =
+                    if let Some(random) = sampling.as_mut().and_then(|s| s.random.as_mut()) {
+                        let rows = cfg.map_or(batch, |(original_batch, _)| original_batch);
+                        let words: Vec<u32> = (0..rows * length)
+                            .map(|_| (random.next() >> 32) as u32)
+                            .collect();
+                        b.categorical_4096(scores, &b.upload_indices(&words, &[rows, length])?)?
+                    } else {
+                        b.unique_max_4096(scores)?
+                    };
+                if cfg.is_some() {
+                    b.concat_indices(&[selected.clone(), selected], 0)?
+                } else {
+                    selected
+                }
             };
             offset += length;
             selected_levels.push(selected.clone());
@@ -1313,9 +1390,12 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         }
         let codes = b.concat_indices(&selected_levels, 1)?;
         if forced.is_none() && b.read_indices(&codes)?.iter().any(|&value| value >= 4096) {
-            return Err(Error::Backend(
-                "tied or nonfinite XSum head maximum is unsupported".into(),
-            ));
+            let reason = if sampling.as_ref().is_some_and(|s| s.random.is_some()) {
+                "invalid XSum categorical sampling logits"
+            } else {
+                "tied or nonfinite XSum head maximum is unsupported"
+            };
+            return Err(Error::Backend(reason.into()));
         }
         let latent = cumulative.expect("validated levels");
         let (codes, latent) = if let Some((original_batch, _)) = cfg {

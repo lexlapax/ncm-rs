@@ -26,9 +26,12 @@ def main():
     ap.add_argument('--trials', type=int, choices=(5, 30), default=5)
     ap.add_argument('--collect-garbage', action='store_true')
     ap.add_argument('--cfg-scale', type=float, default=0.0)
+    ap.add_argument('--stochastic-seed', type=int)
     args = ap.parse_args()
     if not 1 <= args.batch <= 128 or not 0.0 <= args.cfg_scale <= 100.0 or not torch.cuda.is_available():
         raise ValueError('batch 1..128 and CUDA required')
+    if args.stochastic_seed is not None and not 0 <= args.stochastic_seed < 2**64:
+        raise ValueError('seed must be an unsigned 64-bit integer')
     rev = subprocess.check_output(['git', '-C', str(args.upstream), 'rev-parse', 'HEAD'], text=True).strip()
     dirty = subprocess.check_output(['git', '-C', str(args.upstream), 'status', '--porcelain'], text=True).strip()
     if rev != UPSTREAM or dirty:
@@ -74,9 +77,13 @@ def main():
     with torch.inference_mode(), sdpa_kernel(SDPBackend.MATH):
         torch.manual_seed(42)
         for trial in range(warmups + args.trials):
+            if args.stochastic_seed is not None:
+                torch.manual_seed(args.stochastic_seed)
             torch.cuda.synchronize()
             start = time.perf_counter()
-            codes = model.generate(None, prefix, temperature=1.0, top_k=1, top_p=0.0,
+            codes = model.generate(None, prefix, temperature=1.0,
+                                   top_k=0 if args.stochastic_seed is not None else 1,
+                                   top_p=1.0 if args.stochastic_seed is not None else 0.0,
                                    use_kv_cache=False, cfg_scale=args.cfg_scale)
             _, levels = codec.vq.idx_to_zhats(codes, return_zlevels=True)
             logits = codec.decoder(levels[-1])
@@ -106,7 +113,8 @@ def main():
         verify_input(args.source / name, size, sha)
     if digest_file(evaluator) != 'e1eb550123ec76601d1af9c59c2bb7a81d5ca683a662948fcb4d8164dd510c4a':
         raise ValueError('evaluator source changed')
-    print(json.dumps({'batch': args.batch, 'cfg_scale': args.cfg_scale, 'warmups': warmups, 'trials_seconds': samples,
+    print(json.dumps({'batch': args.batch, 'cfg_scale': args.cfg_scale,
+                      'stochastic_seed': args.stochastic_seed, 'warmups': warmups, 'trials_seconds': samples,
                       'decoder_seconds': decoder_samples,
                       'cleanup_seconds': cleanup_samples,
                       'scope': 'generation, FP64 final selection and code/ID host readback; load excluded; optional decoder synchronization',

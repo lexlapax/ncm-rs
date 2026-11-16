@@ -145,3 +145,11 @@ required-features = ["cuda-cudnn"]
 [[example]]
 name = "xsum_quality_batches"
 required-features = ["cuda-cudnn"]
+
+[[example]]
+name = "xsum_categorical_probe"
+required-features = ["cuda-cudnn"]
+
+[[example]]
+name = "xsum_stochastic_model_probe"
+required-features = ["cuda-cudnn"]
