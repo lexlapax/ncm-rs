@@ -30,5 +30,18 @@ OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/
 PYTHONPATH=tools/reference .reference/venv/bin/python -c 'from pathlib import Path; import xsum_quality_score as q; rows,m=q.checked_rows([Path("reports/phase4-xsum-quality-python-smoke-s0"),Path("reports/phase4-xsum-quality-python-dev-s1")],11334); print("validated rows",len(rows),"range",rows[0]["index"],rows[-1]["index"],"invalid tokenizer IDs",sum(t>=50258 for r in rows for t in r["raw_ids"]))'
 ```
 
-The Rust run, full and held-out scores, and comparison are pending. Dataset,
-checkpoint and raw generated outputs remain outside Git.
+The CPU-only reference ROUGE pass on all 11,334 rows returned ROUGE-1/2/L of
+34.9236/12.7078/27.9258 and a mean of 20.6573 words. Restricting the same
+per-row scores to held-out indices 256–11,333 yields 34.9312/12.7069/27.9256
+and 20.6512 words on 11,078 rows. The pinned GPT-2 perplexity for this full
+reference has not yet been run; these are reference metrics, not a Rust
+comparison or a complete quality gate. The output SHA-256 is
+`9e8c211611890833aab2cd4582ffbce13decdac26de92b53e5eab9f86fc3f76d`.
+
+```sh
+OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/xsum_quality_score.py --shard0 reports/phase4-xsum-quality-python-smoke-s0 --shard1 reports/phase4-xsum-quality-python-dev-s1 --data artifacts/canonical/text-phase4-v1/xsum.json --upstream .reference/upstream-ncm --output reports/phase4-xsum-quality-python-full-rouge-v1.json --stop 11334 > reports/phase4-xsum-quality-python-full-rouge-v1.log 2>&1
+python3 -c 'import json; x=json.load(open("reports/phase4-xsum-quality-python-full-rouge-v1.json")); z=x["rows"][256:]; print("full",x["metrics"]); print("heldout",{**{k:100*sum(r["rouge"][k] for r in z)/len(z) for k in ("rouge1","rouge2","rougeL")},"mean_words":sum(len(r["hypothesis"].split()) for r in z)/len(z)},"n",len(z))'
+```
+
+The Rust run, full and held-out perplexity scores, and comparison are pending.
+Dataset, checkpoint and raw generated outputs remain outside Git.

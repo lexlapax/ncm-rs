@@ -24,6 +24,8 @@ Last updated: 2026-11-16 UTC. Read first; load linked context lazily.
 
 - **XSum quality reproducibility:** the development protocol now includes the recorded generation, scoring, and bootstrap commands; its frozen rule and measured results are unchanged.
 
+- **XSum Python full-reference metrics:** [the completed reference capture](docs/results/2026-11-15-phase4-xsum/python-full-reference-v1.md) now includes CPU-scored full-set ROUGE-1/2/L 34.9236/12.7078/27.9258 and mean 20.6573 words, plus held-out ROUGE and length. Full-set perplexity and all Rust held-out quality comparisons are still pending.
+
 - **XSum capacity preparation:** [the exploratory timing bounds, source-verified 128-row fixture and sequential screen runner](docs/results/2026-11-15-phase4-xsum/cuda-capacity-preparation-v1.md) are prepared for a later real-device larger-batch screen. Formatting, Python syntax, targeted Rust lint and release build pass; no batch above 32 or capacity-runner CUDA execution has been claimed. Do not interrupt the current quality run for this screen.
 
 - **XSum structure review:** [the XSum-specific follow-up](docs/results/2026-11-15-phase4-xsum/rust-structure-review-v1.md) supplements the earlier workspace-wide declaration audit with model, configuration, result and CUDA operation ownership and logical tensor sizes. A possible duplicate code readback and stale comments are recorded for after source-bound quality scoring; no unmeasured optimization was made.
