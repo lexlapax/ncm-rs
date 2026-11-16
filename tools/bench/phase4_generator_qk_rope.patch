@@ -1,0 +1,191 @@
+--- a/crates/ncm-core/src/lib.rs
++++ b/crates/ncm-core/src/lib.rs
+@@ -225 +225,12 @@
+-}
++    /// Apply RMS normalization followed by split-half rotary embedding.
++    fn rms_rope(
++        &self,
++        x: &Self::Tensor,
++        weight: &Self::Tensor,
++        cos: &Self::Tensor,
++        sin: &Self::Tensor,
++        eps: f64,
++    ) -> Result<Self::Tensor> {
++        self.rope(&self.rms_norm(x, weight, eps)?, cos, sin)
++    }
++}
+--- a/crates/ncm-model/src/generator.rs
++++ b/crates/ncm-model/src/generator.rs
+@@ -539,4 +539,2 @@
+-        let q = b.rms_norm(&q, &block.q_norm, 1e-6)?;
+-        let k = b.rms_norm(&k, &block.k_norm, 1e-6)?;
+-        let q = b.rope(&q, &geometry.cosine, &geometry.sine)?;
+-        let k = b.rope(&k, &geometry.cosine, &geometry.sine)?;
++        let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
++        let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
+--- a/crates/ncm-backend-mlx/src/lib.rs
++++ b/crates/ncm-backend-mlx/src/lib.rs
+@@ -13,0 +14,2 @@
++mod qk_rope;
++#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -428,0 +429,15 @@
++    fn rms_rope(
++        &self,
++        x: &MlxTensor,
++        weight: &MlxTensor,
++        cos: &MlxTensor,
++        sin: &MlxTensor,
++        eps: f64,
++    ) -> Result<MlxTensor> {
++        if matches!(x.0.shape(), [batch, _, _, 64] if *batch >= 16) {
++            return self.array_op(&[x, weight, cos, sin], || {
++                crate::qk_rope::apply(&x.0, &weight.0, &cos.0, &sin.0, eps)
++            });
++        }
++        self.rope(&self.rms_norm(x, weight, eps)?, cos, sin)
++    }
+--- /dev/null
++++ b/crates/ncm-backend-mlx/src/qk_rope.rs
+@@ -0,0 +1,89 @@
++//! Experimental fused RMS normalization and split-half RoPE for width 64.
++use mlx_rs::{
++    Array, Dtype,
++    fast::{MetalKernel, MetalKernelApplyOptions, MetalKernelOptions, MetalKernelOutput},
++};
++
++const SOURCE: &str = r#"
++    uint tid = thread_position_in_grid.x;
++    uint row = tid / 32u;
++    uint lane = tid % 32u;
++    if (row >= params[0]) return;
++    uint pos = row % params[1];
++    uint base = row * 64u;
++    float a = x[base + lane];
++    float b = x[base + lane + 32u];
++    float sum = simd_sum(a * a + b * b);
++    float inv = rsqrt(sum / 64.0f + epsilon[0]);
++    float lo = (a * inv) * weight[lane];
++    float hi = (b * inv) * weight[lane + 32u];
++    float c = cosine[pos * 32u + lane];
++    float s = sine[pos * 32u + lane];
++    output[base + lane] = lo * c - hi * s;
++    output[base + lane + 32u] = hi * c + lo * s;
++"#;
++
++#[allow(unsafe_code)]
++pub(crate) fn apply(
++    x: &Array,
++    weight: &Array,
++    cos: &Array,
++    sin: &Array,
++    eps: f64,
++) -> crate::ops::Result<Array> {
++    let [batch, heads, seq, width] = x.shape() else {
++        return Err("RMS RoPE requires rank four".into());
++    };
++    if *batch <= 0
++        || *heads <= 0
++        || *seq <= 0
++        || *width != 64
++        || weight.shape() != [64]
++        || cos.shape() != [*seq, 32]
++        || sin.shape() != [*seq, 32]
++        || [x, weight, cos, sin]
++            .iter()
++            .any(|a| a.dtype() != Dtype::Float32)
++        || !eps.is_finite()
++        || eps <= 0.
++        || eps > f32::MAX as f64
++    {
++        return Err("invalid RMS RoPE input".into());
++    }
++    let rows = usize::try_from(*batch)?
++        .checked_mul(usize::try_from(*heads)?)
++        .and_then(|v| v.checked_mul(usize::try_from(*seq).ok()?))
++        .ok_or("RMS RoPE size overflow")?;
++    let threads = i32::try_from(rows.checked_mul(32).ok_or("RMS RoPE size overflow")?)?;
++    let params = Array::from_slice(&[u32::try_from(rows)?, u32::try_from(*seq)?], &[2]);
++    let epsilon = Array::from_slice(&[eps as f32], &[1]);
++    let kernel = MetalKernel::new(
++        "ncm_qk_rms_rope",
++        &["x", "weight", "cosine", "sine", "params", "epsilon"],
++        &["output"],
++        SOURCE,
++        MetalKernelOptions {
++            ensure_row_contiguous: true,
++            ..Default::default()
++        },
++    )?;
++    // SAFETY: checked dimensions bound all reads and writes; one 32-thread
++    // SIMD group handles a distinct width-64 row. This experiment assumes a
++    // 32-lane SIMD width and is not qualified on other devices.
++    let mut output = unsafe {
++        kernel.apply(
++            &[x, weight, cos, sin, &params, &epsilon],
++            &[MetalKernelOutput {
++                shape: x.shape().to_vec(),
++                dtype: Dtype::Float32,
++            }],
++            (threads, 1, 1),
++            (32, 1, 1),
++            MetalKernelApplyOptions::default(),
++        )?
++    };
++    if output.len() != 1 {
++        return Err("unexpected RMS RoPE output count".into());
++    }
++    Ok(output.remove(0))
++}
+--- a/crates/ncm-backend-mlx/tests/codec_components.rs
++++ b/crates/ncm-backend-mlx/tests/codec_components.rs
+@@ -5 +5,47 @@
+-use ncm_core::{CodecBackend, WeightBackend};
++use ncm_core::{CodecBackend, GeneratorBackend, WeightBackend};
++
++#[test]
++fn fused_qk_rms_rope_matches_composition() {
++    let b = MlxBackend::gpu().unwrap();
++    let weights: Vec<f32> = (0..64).map(|i| 0.5 + i as f32 / 64.).collect();
++    let w = b.upload_f32(&weights, &[64]).unwrap();
++    let angles: Vec<f32> = (0..9 * 32).map(|i| i as f32 / 137.).collect();
++    let cos = b
++        .upload_f32(
++            &angles.iter().map(|x| x.cos()).collect::<Vec<_>>(),
++            &[9, 32],
++        )
++        .unwrap();
++    let sin = b
++        .upload_f32(
++            &angles.iter().map(|x| x.sin()).collect::<Vec<_>>(),
++            &[9, 32],
++        )
++        .unwrap();
++    for batch in [1, 16] {
++        let mut values: Vec<f32> = (0..batch * 12 * 9 * 64)
++            .map(|i| ((i * 73 % 1009) as f32 - 504.) / 80.)
++            .collect();
++        values[..64].fill(0.);
++        let x = b.upload_f32(&values, &[batch, 12, 9, 64]).unwrap();
++        let actual = b
++            .read_f32(&b.rms_rope(&x, &w, &cos, &sin, 1e-6).unwrap())
++            .unwrap();
++        let expected = b
++            .read_f32(
++                &b.rope(&b.rms_norm(&x, &w, 1e-6).unwrap(), &cos, &sin)
++                    .unwrap(),
++            )
++            .unwrap();
++        assert_eq!(actual.len(), expected.len());
++        for (i, (&a, &e)) in actual.iter().zip(&expected).enumerate() {
++            assert!(
++                (a - e).abs() <= 1e-5 + 1e-4 * e.abs(),
++                "batch={batch} index={i}: {a} vs {e}"
++            );
++        }
++        if batch == 16 {
++            assert!(b.rms_rope(&x, &w, &cos, &sin, 0.).is_err());
++        }
++    }
++}
