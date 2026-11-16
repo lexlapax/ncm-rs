@@ -25,3 +25,12 @@ pending after the current source-bound quality run; record each runtime's OOMs,
 actual batch sizes, outputs, memory and measurement scope without equating
 allocator counters. The prior 1/4/32 comparison remains tied to its original
 source commit and is not replaced by this preparation.
+
+The prepared `tools/bench/run_phase4_xsum_capacity.py` runs the 64- and
+128-row Rust and Python screens sequentially, retains each process's exit
+status and output, and records GPU activity and source hashes. Its results are
+exploratory: two warmups and five samples per process, not the repeated
+acceptance protocol. Failed jobs remain failures in the collection record.
+Only Python syntax and CLI help have been checked; the runner itself has not
+yet been exercised on CUDA. The release example was built successfully in
+`reports/phase4-xsum-capacity-build-v1.log`.

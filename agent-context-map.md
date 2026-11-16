@@ -24,7 +24,7 @@ Last updated: 2026-11-15 UTC. Read first; load linked context lazily.
 
 - **XSum quality reproducibility:** the development protocol now includes the recorded generation, scoring, and bootstrap commands; its frozen rule and measured results are unchanged.
 
-- **XSum capacity preparation:** [the exploratory timing bounds and a source-verified 128-row fixture](docs/results/2026-11-15-phase4-xsum/cuda-capacity-preparation-v1.md) are prepared for a later real-device larger-batch screen. Formatting, Python syntax and targeted Rust lint pass; no batch above 32 has been run or claimed to fit. Do not interrupt the current quality run for this screen.
+- **XSum capacity preparation:** [the exploratory timing bounds, source-verified 128-row fixture and sequential screen runner](docs/results/2026-11-15-phase4-xsum/cuda-capacity-preparation-v1.md) are prepared for a later real-device larger-batch screen. Formatting, Python syntax, targeted Rust lint and release build pass; no batch above 32 or capacity-runner CUDA execution has been claimed. Do not interrupt the current quality run for this screen.
 
 - **XSum structure review:** [the XSum-specific follow-up](docs/results/2026-11-15-phase4-xsum/rust-structure-review-v1.md) supplements the earlier workspace-wide declaration audit with model, configuration, result and CUDA operation ownership and logical tensor sizes. A possible duplicate code readback and stale comments are recorded for after source-bound quality scoring; no unmeasured optimization was made.
 
