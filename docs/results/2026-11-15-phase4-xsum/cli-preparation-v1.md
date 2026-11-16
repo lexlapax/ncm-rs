@@ -20,6 +20,14 @@ import was added and the test passed. Logs are
 `reports/phase4-xsum-cli-build-v1.log`, and
 `reports/phase4-xsum-cli-cpu-test-v{1,2}.log`.
 
+The release CLI was also invoked with the `cpu` device and a valid XSum input;
+it exited 1 with the explicit no-fallback error. The stdout and stderr are
+retained in `reports/phase4-xsum-cli-no-fallback-v1.{stdout,stderr}`. The
+prepared `tools/bench/check_xsum_cli.py` will compare one 32-row CUDA CLI
+result with the retained pinned-Python performance reference and bind the
+binary, inputs, artifact, native libraries and output hashes. Its syntax and
+CLI help have been checked; the helper and CLI have not yet run on CUDA.
+
 Real-CUDA CLI output comparison and end-to-end CLI performance/memory remain
 pending until the current source-bound full quality run finishes. These
 preparation checks do not establish the XSum Linux or MLX gate.
