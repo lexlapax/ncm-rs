@@ -187,6 +187,9 @@ fn validate_artifact_profile(artifact: &Artifact, bytes: &[u8]) -> Result<()> {
     let envelope: Envelope = serde_json::from_slice(bytes)?;
     let expected = match envelope.task.as_str() {
         "tinystories" => "tinystories-inference-v1".to_owned(),
+        "xsum" if artifact.manifest().profile == "xsum-inference-v2" => {
+            "xsum-inference-v2".to_owned()
+        }
         "xsum" => "xsum-inference-v1".to_owned(),
         _ => format!("{}-inspection-v1", envelope.task),
     };

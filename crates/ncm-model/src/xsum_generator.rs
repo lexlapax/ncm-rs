@@ -50,6 +50,7 @@ struct Envelope {
 pub struct XsumGeneratorInspection {
     pub tensor_count: usize,
     pub token_allowance: Vec<f32>,
+    pub rope_tables: Option<(Vec<f32>, Vec<f32>)>,
 }
 
 impl XsumGeneratorInspection {
@@ -63,7 +64,9 @@ impl XsumGeneratorInspection {
         let expected: XsumModelConfig = serde_json::from_str(include_str!(
             "../../../tests/fixtures/xsum-model-config-v1.json"
         ))?;
-        if config.model != expected || artifact.manifest().profile != "xsum-inference-v1" {
+        let profile = artifact.manifest().profile.as_str();
+        if config.model != expected || !matches!(profile, "xsum-inference-v1" | "xsum-inference-v2")
+        {
             return Err(Error::Config(
                 "unsupported XSum generator configuration".into(),
             ));
@@ -142,9 +145,34 @@ impl XsumGeneratorInspection {
             .map_err(|e| Error::Weights(e.to_string()))?;
         let inference =
             SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
-        if inference.len() != 1 {
+        if inference.len() != if profile == "xsum-inference-v2" { 3 } else { 1 } {
             return Err(Error::Weights("invalid XSum inference inventory".into()));
         }
+        let rope_tables = if profile == "xsum-inference-v2" {
+            let mut tables = Vec::with_capacity(2);
+            for (name, expected) in [
+                (
+                    "rope_cos",
+                    "f1376ecd82c6f574ade39abbdc95db403338b466306c02062a260079116c7ed6",
+                ),
+                (
+                    "rope_sin",
+                    "81716ee36cb0d78e78c093171a1751124c57467459608f5d810b3a163866e523",
+                ),
+            ] {
+                let tensor = inference
+                    .tensor(name)
+                    .map_err(|e| Error::Weights(e.to_string()))?;
+                tables.push(decode_rope_tensor(&tensor, expected)?);
+            }
+            let mut tables = tables.into_iter();
+            Some((
+                tables.next().expect("two tables"),
+                tables.next().expect("two tables"),
+            ))
+        } else {
+            None
+        };
         let allowance = inference
             .tensor("token_unigram")
             .map_err(|e| Error::Weights(e.to_string()))?;
@@ -165,8 +193,25 @@ impl XsumGeneratorInspection {
         Ok(Self {
             tensor_count: shapes.len(),
             token_allowance,
+            rope_tables,
         })
     }
+}
+
+fn decode_rope_tensor(tensor: &TensorView<'_>, expected: &str) -> Result<Vec<f32>> {
+    if tensor.dtype() != Dtype::F32
+        || tensor.shape() != [512, 32]
+        || ncm_io::sha256(tensor.data()) != expected
+    {
+        return Err(Error::Weights("invalid XSum rotary reference".into()));
+    }
+    Ok(tensor
+        .data()
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|v| f32::from_le_bytes(*v))
+        .collect())
 }
 
 fn validate_levels(level: &TensorView<'_>, lengths: &[usize]) -> Result<()> {
@@ -216,8 +261,17 @@ fn validate_mask(mask: &TensorView<'_>, lengths: &[usize], prefix: usize) -> Res
 
 #[cfg(test)]
 mod tests {
-    use super::{XsumModelConfig, validate_levels, validate_mask};
+    use super::{XsumModelConfig, decode_rope_tensor, validate_levels, validate_mask};
     use safetensors::{Dtype, tensor::TensorView};
+
+    #[test]
+    fn rotary_reference_rejects_shape_and_hash_changes() {
+        let bytes = vec![0u8; 512 * 32 * 4];
+        let correct_shape = TensorView::new(Dtype::F32, vec![512, 32], &bytes).unwrap();
+        assert!(decode_rope_tensor(&correct_shape, "not-the-pinned-hash").is_err());
+        let wrong_shape = TensorView::new(Dtype::F32, vec![256, 64], &bytes).unwrap();
+        assert!(decode_rope_tensor(&wrong_shape, &ncm_io::sha256(&bytes)).is_err());
+    }
 
     #[test]
     fn level_and_attention_buffers_reject_corruption() {

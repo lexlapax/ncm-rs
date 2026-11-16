@@ -322,7 +322,7 @@ impl Artifact {
                     TINYSTORIES_MAX_FILE,
                     TINYSTORIES_MAX_TOTAL,
                 ),
-                "xsum-inference-v1" => (
+                "xsum-inference-v1" | "xsum-inference-v2" => (
                     &XSUM_FILES,
                     &TINYSTORIES_BUNDLES,
                     XSUM_MAX_FILE,

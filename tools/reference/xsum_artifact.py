@@ -15,6 +15,7 @@ from safetensors.torch import load_file, save_file
 
 from tinystories_artifact import (REVISION, ROOT, TRAINING, UPSTREAM, digest_file,
                                   json_file, tensor_bytes, tensor_map, verify_input)
+from xsum_rope_reference import EXPECTED as ROPE_HASHES
 
 INPUTS = {
     'generator.pt': (354355211, 'f152f390253de886e46303654f01b9e7a2586e609ba3d6b5e86d5969903b1fd4'),
@@ -46,7 +47,22 @@ def checkpoint_parts(generator, tokenizer):
             'training.safetensors': training, 'inference.safetensors': inference}
 
 
-def export(source, tokenizer_asset, output):
+def reference_rope(directory):
+    """Read only the explicitly pinned rotary tensors, with no inferred fallback."""
+    payload = directory / 'rope.safetensors'
+    verify_input(payload, 131216, '5d205c1c42b467c00e10d03739e18b6433185bcc4c4f9b066d7c6be69ba8346a')
+    tensors = load_file(payload)
+    if set(tensors) != set(ROPE_HASHES):
+        raise ValueError('invalid rotary reference inventory')
+    for name, expected in ROPE_HASHES.items():
+        value = tensors[name]
+        if (value.dtype != torch.float32 or tuple(value.shape) != (512, 32)
+                or hashlib.sha256(tensor_bytes(value)).hexdigest() != expected):
+            raise ValueError(f'invalid pinned rotary tensor: {name}')
+    return {f'rope_{name}': value for name, value in tensors.items()}
+
+
+def export(source, tokenizer_asset, output, rope_reference=None):
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     for name, (size, expected) in INPUTS.items():
@@ -66,6 +82,9 @@ def export(source, tokenizer_asset, output):
         raise ValueError('wrong canonical GPT-2 tokenizer profile')
     watched = [Path(__file__).resolve(), Path(__file__).with_name('tinystories_artifact.py').resolve(),
                lock_path, manifest.resolve(), payload.resolve(), license_file.resolve()]
+    if rope_reference is not None:
+        watched.extend([(rope_reference / 'rope.safetensors').resolve(),
+                        Path(__file__).with_name('xsum_rope_reference.py').resolve()])
     before = {str(path): digest_file(path) for path in watched}
     config = yaml.safe_load((source / 'config.yaml').read_bytes())
     if config['task'] != 'xsum':
@@ -73,6 +92,10 @@ def export(source, tokenizer_asset, output):
     generator = torch.load(source / 'generator.pt', map_location='cpu', weights_only=True, mmap=True)
     tokenizer = torch.load(source / 'tokenizer.pt', map_location='cpu', weights_only=True, mmap=True)
     bundles = checkpoint_parts(generator, tokenizer)
+    profile = 'xsum-inference-v1'
+    if rope_reference is not None:
+        bundles['inference.safetensors'].update(reference_rope(rope_reference))
+        profile = 'xsum-inference-v2'
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix='.ncm-xsum-', dir=output.parent))
     try:
@@ -106,13 +129,19 @@ def export(source, tokenizer_asset, output):
             'source_sha256': {name: sha for name, (_, sha) in INPUTS.items()},
             'source_loading': 'torch.load(weights_only=True, mmap=True); no unrestricted retry',
             'code_license': 'MIT', 'weights_license': 'MIT', 'aliases': [],
-            'inference_metadata': ['token_unigram'],
+            'inference_metadata': (['token_unigram'] if rope_reference is None
+                                   else ['token_unigram', 'rope_cos', 'rope_sin']),
+            **({} if rope_reference is None else {
+                'rope_reference_sha256': before[str((rope_reference / 'rope.safetensors').resolve())],
+                'rope_reference_generator_sha256': before[str(Path(__file__).with_name('xsum_rope_reference.py').resolve())],
+            }),
             'training_state': 'EMA/count/hit buffers separated, not dropped',
-            'serialization': 'safetensors; unchanged upstream layouts/dtypes',
+            'serialization': ('safetensors; unchanged upstream layouts/dtypes' if rope_reference is None
+                              else 'safetensors; unchanged checkpoint tensors plus pinned rotary reference'),
         })
         files = {p.name: {'bytes': p.stat().st_size, 'sha256': digest_file(p)} for p in sorted(temporary.iterdir())}
         json_file(temporary / 'manifest.json', {
-            'schema_version': 1, 'profile': 'xsum-inference-v1', 'upstream_commit': UPSTREAM,
+            'schema_version': 1, 'profile': profile, 'upstream_commit': UPSTREAM,
             'checkpoint_repository': 'hazyresearch/ncm-checkpoints', 'checkpoint_revision': REVISION,
             'files': files, 'tensors': inventory,
         })
@@ -126,7 +155,7 @@ def export(source, tokenizer_asset, output):
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)
-    return {'profile': 'xsum-inference-v1', 'bundle_tensor_counts': {k: len(v) for k, v in bundles.items()},
+    return {'profile': profile, 'bundle_tensor_counts': {k: len(v) for k, v in bundles.items()},
             'manifest_sha256': digest_file(output / 'manifest.json'), 'bit_exact_roundtrip': True}
 
 
@@ -136,10 +165,11 @@ def main():
     parser.add_argument('--tokenizer-asset', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--rope-reference', type=Path)
     args = parser.parse_args()
     if args.report.exists() or args.report.is_symlink():
         parser.error('report already exists')
-    report = export(args.source, args.tokenizer_asset, args.output)
+    report = export(args.source, args.tokenizer_asset, args.output, args.rope_reference)
     json_file(args.report, report)
     print(json.dumps(report, sort_keys=True))
 

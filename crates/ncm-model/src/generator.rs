@@ -475,7 +475,31 @@ fn prepare_geometry<B: ncm_core::GeneratorBackend>(
     heads: usize,
     rope_base: usize,
 ) -> Result<Vec<LevelGeometry<B::Tensor>>> {
+    prepare_geometry_with_rope(b, levels, prefix_len, width, heads, rope_base, None)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_geometry_with_rope<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    levels: &[usize],
+    prefix_len: usize,
+    width: usize,
+    heads: usize,
+    rope_base: usize,
+    reference_rope: Option<(&[f32], &[f32])>,
+) -> Result<Vec<LevelGeometry<B::Tensor>>> {
     let head = width / heads;
+    if let Some((cosine, sine)) = reference_rope {
+        let required = prefix_len
+            .checked_mul(head / 2)
+            .ok_or_else(|| Error::Input("rotary reference size overflow".into()))?;
+        if cosine.len() != required
+            || sine.len() != required
+            || levels.iter().any(|&n| n > prefix_len)
+        {
+            return Err(Error::Weights("invalid rotary reference dimensions".into()));
+        }
+    }
     let mut result = Vec::with_capacity(levels.len());
     for &length in levels {
         let seq = prefix_len + length;
@@ -488,11 +512,19 @@ fn prepare_geometry<B: ncm_core::GeneratorBackend>(
         let mask = b.upload_f32(&mask, &[1, 1, seq, seq])?;
         let mut cosine = Vec::with_capacity(seq * head / 2);
         let mut sine = Vec::with_capacity(seq * head / 2);
-        for pos in (0..prefix_len).chain(0..length) {
-            for i in 0..head / 2 {
-                let freq = (pos as f32) / (rope_base as f32).powf(i as f32 / (head / 2) as f32);
-                cosine.push(freq.cos());
-                sine.push(freq.sin());
+        if let Some((reference_cosine, reference_sine)) = reference_rope {
+            for pos in (0..prefix_len).chain(0..length) {
+                let start = pos * (head / 2);
+                cosine.extend_from_slice(&reference_cosine[start..start + head / 2]);
+                sine.extend_from_slice(&reference_sine[start..start + head / 2]);
+            }
+        } else {
+            for pos in (0..prefix_len).chain(0..length) {
+                for i in 0..head / 2 {
+                    let freq = (pos as f32) / (rope_base as f32).powf(i as f32 / (head / 2) as f32);
+                    cosine.push(freq.cos());
+                    sine.push(freq.sin());
+                }
             }
         }
         result.push(LevelGeometry {
@@ -978,7 +1010,19 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
         if !weights.is_empty() {
             return Err(Error::Weights("unbound XSum generator tensor".into()));
         }
-        let geometry = prepare_geometry(&backend, codec.config().levels(), 512, 768, 12, 100000)?;
+        let reference_rope = inspection
+            .rope_tables
+            .as_ref()
+            .map(|(cos, sin)| (cos.as_slice(), sin.as_slice()));
+        let geometry = prepare_geometry_with_rope(
+            &backend,
+            codec.config().levels(),
+            512,
+            768,
+            12,
+            100000,
+            reference_rope,
+        )?;
         let device_allowance = backend.upload_f32(&inspection.token_allowance, &[50304])?;
         Ok(Self {
             codec,

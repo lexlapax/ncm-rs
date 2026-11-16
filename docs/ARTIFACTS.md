@@ -76,6 +76,8 @@ export and its digest are recorded in [the Phase 4 contract](PHASE4-TEXT.md).
 
 `tools/reference/xsum_artifact.py` exports the pinned XSum checkpoint and qualified GPT-2 tokenizer as `xsum-inference-v1`, preserving token allowance metadata and training-only tensors. The separate loader profile permits at most 384 MiB per file and 640 MiB total and enforces the exact nine-file inventory. The pinned export, reproduction and host-only checks are recorded in the [XSum artifact report](results/2026-11-15-phase4-xsum/artifact-export-v1.md). Artifact inspection and tokenizer fixture checks do not imply XSum model inference or GPU support.
 
+An opt-in `xsum-inference-v2` profile additionally carries two hash-pinned rotary reference tensors. Its format, limited CUDA comparison and unresolved quality failure are documented in the [experimental profile report](results/2026-11-15-phase4-xsum/rotary-artifact-profile-v2.md). The v1 profile remains supported; neither artifact profile on its own establishes the XSum runtime gate.
+
 ## Proposed general runtime layout
 
 ```text

@@ -1,9 +1,11 @@
 """Validate XSum's pinned inference inventory and training-state separation."""
 import unittest
+import tempfile
 
 import torch
+from safetensors.torch import save_file
 
-from xsum_artifact import checkpoint_parts
+from xsum_artifact import checkpoint_parts, reference_rope
 
 
 def checkpoints():
@@ -17,6 +19,26 @@ def checkpoints():
 
 
 class XSumArtifactTests(unittest.TestCase):
+    def test_pinned_rotary_reference(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[2]
+        reference = root / 'reports/phase4-xsum-rope-reference-v5'
+        if not reference.is_dir():
+            self.skipTest('pinned rotary reference has not been generated')
+        tables = reference_rope(reference)
+        self.assertEqual(set(tables), {'rope_cos', 'rope_sin'})
+        self.assertEqual(tuple(tables['rope_cos'].shape), (512, 32))
+
+    def test_rejects_noncanonical_rotary_reference(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[2]
+        (root / 'reports').mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=root / 'reports') as directory:
+            save_file({'cos': torch.zeros(512, 32), 'sin': torch.zeros(512, 32)},
+                      str(Path(directory) / 'rope.safetensors'))
+            with self.assertRaises(ValueError):
+                reference_rope(Path(directory))
+
     def test_preserves_allowance_and_training_state(self):
         generator, tokenizer = checkpoints()
         result = checkpoint_parts(generator, tokenizer)

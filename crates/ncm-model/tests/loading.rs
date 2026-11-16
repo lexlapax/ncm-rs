@@ -164,4 +164,11 @@ fn real_xsum_generator_inventory_and_allowance_preflight() {
     let checked = ncm_model::XsumGeneratorInspection::from_artifact(&artifact).unwrap();
     assert_eq!(checked.tensor_count, 192);
     assert_eq!(checked.token_allowance.len(), 50304);
+    if artifact.manifest().profile == "xsum-inference-v2" {
+        let (cosine, sine) = checked.rope_tables.as_ref().unwrap();
+        assert_eq!((cosine.len(), sine.len()), (512 * 32, 512 * 32));
+        assert_eq!((cosine[0], sine[0]), (1.0, 0.0));
+    } else {
+        assert!(checked.rope_tables.is_none());
+    }
 }

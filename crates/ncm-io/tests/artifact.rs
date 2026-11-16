@@ -362,6 +362,15 @@ fn xsum_profile_accepts_only_its_explicit_bundles_and_budget() {
     assert_eq!(full.manifest().profile, "xsum-inference-v1");
     assert!(inference.file("training.safetensors").is_err());
     assert!(!inference.file("inference.safetensors").unwrap().is_empty());
+    manifest.profile = "xsum-inference-v2".into();
+    save(dir.path(), &manifest);
+    assert_eq!(
+        Artifact::load_inference(dir.path())
+            .unwrap()
+            .manifest()
+            .profile,
+        "xsum-inference-v2"
+    );
     manifest.files.get_mut("config.json").unwrap().bytes = 384 * 1024 * 1024 + 1;
     save(dir.path(), &manifest);
     assert!(Artifact::load(dir.path()).is_err());
