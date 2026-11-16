@@ -1,0 +1,17 @@
+--- a/crates/ncm-core/src/lib.rs
++++ b/crates/ncm-core/src/lib.rs
+@@ -124,0 +125,4 @@
++    /// Optional execution boundary for generator-level scheduling.
++    fn generation_level_boundary(&self, _state: &Self::Tensor) -> Result<()> {
++        Ok(())
++    }
+--- a/crates/ncm-model/src/generator.rs
++++ b/crates/ncm-model/src/generator.rs
+@@ -728,0 +729 @@
++            b.generation_level_boundary(&sum)?;
+--- a/crates/ncm-backend-mlx/src/codec.rs
++++ b/crates/ncm-backend-mlx/src/codec.rs
+@@ -395,0 +396,3 @@
++    fn generation_level_boundary(&self, state: &MlxTensor) -> Result<()> {
++        self.evaluate(std::slice::from_ref(state))
++    }
