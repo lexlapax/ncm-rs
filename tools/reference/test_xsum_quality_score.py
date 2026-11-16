@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import xsum_quality_generate as generate
 import xsum_quality_score as score
@@ -51,6 +52,28 @@ class QualityScoreChecks(unittest.TestCase):
             with self.assertRaises(ValueError): score.checked_rows(directories, 64)
             batch.unlink()
             with self.assertRaises(ValueError): score.checked_rows(directories, 64)
+
+    def test_rust_shards_require_matching_source_receipts(self):
+        with tempfile.TemporaryDirectory(dir='reports') as temp:
+            directories = [Path(temp) / '0', Path(temp) / '1']
+            for shard, directory in enumerate(directories):
+                directory.mkdir()
+                manifest = {'schema_version': 1, 'origin': 'rust-strict-cudnn', 'shard': shard,
+                            'shards': 2, 'data_sha256': score.DATA_SHA, 'artifact_sha256': score.ARTIFACT_SHA,
+                            'binary_and_source_sha256': {'test': 'digest'}, 'batch_size': 32,
+                            'temperature': 1.0, 'top_k': 1, 'top_p': 0.0, 'cfg': 0.0,
+                            'gpu_identity_and_driver': 'test'}
+                (directory / 'manifest.json').write_text(json.dumps(manifest))
+                indices = list(range(shard, 64, 2))
+                record = {'ordinal': 0, 'indices': indices, 'codes': [[0] * 200 for _ in indices],
+                          'raw_ids': [[1] * 48 for _ in indices]}
+                envelope = {'record': record, 'sha256': hashlib.sha256(generate.canonical(record)).hexdigest()}
+                (directory / 'batch-00000.json').write_text(json.dumps(envelope))
+            with patch.object(score, 'rust_input_hashes', return_value={'test': 'digest'}):
+                rows, _ = score.checked_rows(directories, 64)
+                self.assertEqual([row['index'] for row in rows], list(range(64)))
+            with patch.object(score, 'rust_input_hashes', return_value={'test': 'changed'}):
+                with self.assertRaises(ValueError): score.checked_rows(directories, 64)
 
 
 if __name__ == '__main__':

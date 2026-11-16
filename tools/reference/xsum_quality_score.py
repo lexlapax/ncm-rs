@@ -13,6 +13,7 @@ from pathlib import Path
 
 from xsum_artifact import INPUTS, digest_file
 from xsum_quality_generate import DATA_SHA, EVALUATOR_SHA, UPSTREAM, read_record, shard_batches
+from xsum_quality_rust import ARTIFACT_SHA, input_hashes as rust_input_hashes, read_batch as read_rust_batch
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPS = ROOT / '.reference/phase4-xsum-rouge-v1'
@@ -77,6 +78,7 @@ def verify_scorer_files():
 def checked_rows(shard_dirs, stop):
     all_rows = {}
     manifests = []
+    rust_hashes = None
     for shard, directory in enumerate(shard_dirs):
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError('quality shard must be a regular directory')
@@ -84,21 +86,33 @@ def checked_rows(shard_dirs, stop):
         if metadata.is_symlink() or not metadata.is_file() or metadata.stat().st_size > 65536:
             raise ValueError('quality manifest missing')
         manifest = json.loads(metadata.read_bytes())
-        if (manifest.get('schema_version') != 1 or manifest.get('origin') != 'pinned-upstream-cuda' or manifest.get('shard') != shard or
-            manifest.get('shards') != 2 or manifest.get('upstream') != UPSTREAM or
-            manifest.get('data_sha256') != DATA_SHA or manifest.get('evaluator_sha256') != EVALUATOR_SHA or
-            manifest.get('sources') != {k: v[1] for k, v in INPUTS.items()} or
+        if (manifest.get('schema_version') != 1 or manifest.get('shard') != shard or
+            manifest.get('shards') != 2 or manifest.get('data_sha256') != DATA_SHA or
             manifest.get('batch_size') != 32 or manifest.get('temperature') != 1.0 or
             manifest.get('top_k') != 1 or manifest.get('top_p') != 0.0 or manifest.get('cfg') != 0.0 or
-            manifest.get('tf32') is not False or manifest.get('sdpa') != 'math' or
-            manifest.get('between_batch_gc') is not True or type(manifest.get('seed')) is not int or
-            not manifest.get('gpu_identity_and_driver') or
-            manifest.get('generator_sha256') != digest_file(ROOT / 'tools/reference/xsum_quality_generate.py')):
+            not manifest.get('gpu_identity_and_driver')):
             raise ValueError('quality manifest does not match pinned protocol')
+        origin = manifest.get('origin')
+        if origin == 'pinned-upstream-cuda':
+            if (manifest.get('upstream') != UPSTREAM or manifest.get('evaluator_sha256') != EVALUATOR_SHA or
+                manifest.get('sources') != {k: v[1] for k, v in INPUTS.items()} or
+                manifest.get('tf32') is not False or manifest.get('sdpa') != 'math' or
+                manifest.get('between_batch_gc') is not True or type(manifest.get('seed')) is not int or
+                manifest.get('generator_sha256') != digest_file(ROOT / 'tools/reference/xsum_quality_generate.py')):
+                raise ValueError('upstream quality manifest differs')
+            reader = read_record
+        elif origin == 'rust-strict-cudnn':
+            if rust_hashes is None:
+                rust_hashes = rust_input_hashes()
+            if manifest.get('artifact_sha256') != ARTIFACT_SHA or manifest.get('binary_and_source_sha256') != rust_hashes:
+                raise ValueError('Rust quality manifest differs')
+            reader = read_rust_batch
+        else:
+            raise ValueError('unknown quality origin')
         manifests.append(manifest)
         _, batches = shard_batches(shard, stop)
         for ordinal, indices in batches:
-            record = read_record(directory / f'batch-{ordinal:05}.json', indices, ordinal)
+            record = reader(directory / f'batch-{ordinal:05}.json', indices, ordinal)
             for idx, codes, ids in zip(indices, record['codes'], record['raw_ids']):
                 if idx in all_rows:
                     raise ValueError('duplicate quality row')
@@ -125,11 +139,12 @@ def main():
     parser.add_argument('--data', type=Path, required=True)
     parser.add_argument('--upstream', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--start', type=int, default=0)
     parser.add_argument('--stop', type=int, default=11334)
     parser.add_argument('--with-ppl', action='store_true')
     args = parser.parse_args()
-    if not 1 <= args.stop <= 11334 or not args.output.resolve().is_relative_to((ROOT / 'reports').resolve()):
-        raise ValueError('invalid stop or output')
+    if not 0 <= args.start < args.stop <= 11334 or not args.output.resolve().is_relative_to((ROOT / 'reports').resolve()):
+        raise ValueError('invalid row bounds or output')
     if args.output.exists() or args.output.is_symlink():
         raise ValueError('output already exists')
     for key in ('LD_PRELOAD', 'LD_AUDIT', 'CUDA_INJECTION64_PATH', 'CUDA_VISIBLE_DEVICES',
@@ -157,6 +172,7 @@ def main():
     data = json.loads(args.data.read_bytes())
     if data.get('profile') != 'xsum' or len(data.get('references', [])) != 11334: raise ValueError('invalid dataset')
     rows, manifests = checked_rows([args.shard0, args.shard1], args.stop)
+    rows = rows[args.start:]
     scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
     for row in rows:
         row['hypothesis'] = decode_ids(tokenizer, row['raw_ids'])
@@ -187,7 +203,8 @@ def main():
     if digest_file(args.data) != DATA_SHA: raise ValueError('dataset changed while scoring')
     for name, sha in MODEL_HASHES.items():
         if args.with_ppl or name != 'model.safetensors': verified_file(MODEL / name, sha)
-    result = {'schema_version': 1, 'scope': 'upstream Python XSum outputs', 'stop': args.stop,
+    result = {'schema_version': 2, 'scope': manifests[0]['origin'] + ' XSum outputs',
+              'start': args.start, 'stop': args.stop,
               'model_revision': '607a30d783dfa663caf39e06633721c8d4cfcd7e', 'versions': versions,
               'scorer_sha256': digest_file(Path(__file__)), 'shard_manifests': manifests,
               'metrics': metrics, 'rows': rows}
