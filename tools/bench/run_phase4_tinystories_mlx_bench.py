@@ -39,7 +39,11 @@ def main():
                         help='explicit Rust process cache limit for batch 32 and 128')
     parser.add_argument('--gpu-activity', action='store_true',
                         help='sample system-wide GPU registry counters; diagnostic timings may be perturbed')
+    parser.add_argument('--python-wall-markers', action='store_true',
+                        help='include diagnostic Python request wall timestamps (requires GPU activity)')
     args = parser.parse_args()
+    if args.python_wall_markers and not args.gpu_activity:
+        parser.error('Python wall markers require GPU activity sampling')
     if len(set(args.batches)) != len(args.batches):
         parser.error('batches must be unique')
     if args.rust_large_cache_mib is not None and (not args.rust_lifecycle_policy
@@ -101,6 +105,8 @@ def main():
                 'watched_sha256': before, 'qualification_sha256': args.qualification_sha256,
                 'platform': platform.platform(), 'python_packages': packages,
                 'warmups': 5, 'trials': 30, 'repetitions': 3, 'batches': args.batches,
+                'python_wall_markers': args.python_wall_markers,
+                'diagnostic_only': args.gpu_activity,
                 'scope': 'generation plus synchronized code/ID host readback; excludes load',
                 'sampling': 'different Rust SplitMix64 and Python MLX random streams',
                 'rust_policy': ('drop unused logits and evaluate GPU barrier within timing; '
@@ -143,6 +149,8 @@ def main():
                     else:
                         command = [str(PYTHON), str(ROOT / 'tools/reference/phase4_tinystories_mlx.py'),
                                    '--artifact', str(ARTIFACT), '--batch', str(batch), '--bench', '--output', str(report)]
+                        if args.python_wall_markers:
+                            command.append('--wall-markers')
                     manifest['runs'].append({'name': stem, 'command': command})
                     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
                     run(command, stem, out)

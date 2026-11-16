@@ -124,6 +124,7 @@ def main():
     parser.add_argument('--batch', type=int, default=1)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--bench', action='store_true')
+    parser.add_argument('--wall-markers', action='store_true', help='diagnostic request timestamps')
     args = parser.parse_args()
     if (args.output.exists() or not 1 <= args.batch <= 128
             or (args.adapted_trace is not None and (args.reference is None or args.adapted_trace.exists()))):
@@ -152,12 +153,19 @@ def main():
     if forced is not None and len(forced) != args.batch:
         raise ValueError('reference batch mismatch')
     trials = []
+    request_wall_ns = []
     for trial in range(35 if args.bench else 1):
         mx.synchronize()
+        begin_wall = time.time_ns() if args.wall_markers else None
         start = time.perf_counter()
         codes, ids = model.run(args.batch, args.seed, forced, observe if reference else None)
         codes_list, ids_list = codes.tolist(), ids.tolist()
         elapsed = time.perf_counter() - start
+        if args.wall_markers:
+            end_wall = time.time_ns()
+            if end_wall < begin_wall:
+                raise ValueError('wall clock moved backward during request')
+            request_wall_ns.append([begin_wall, end_wall, end_wall])
         if trial >= 5:
             trials.append(elapsed)
         del codes, ids
@@ -166,6 +174,8 @@ def main():
               'stats': stats, 'codes': codes_list, 'ids': ids_list, 'warmups': 5 if args.bench else 0,
               'trials_seconds': trials, 'mlx_memory': {'active': mx.get_active_memory(),
               'peak': mx.get_peak_memory(), 'cache': mx.get_cache_memory()}}
+    if args.wall_markers:
+        report['request_wall_ns'] = request_wall_ns
     if args.adapted_trace is not None:
         reference.update(adapted)
         save_tensors(args.adapted_trace, reference)
