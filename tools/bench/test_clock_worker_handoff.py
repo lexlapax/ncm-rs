@@ -92,6 +92,15 @@ class ClockHandoffTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.python = str(Path(sys.executable).resolve())
         self.image = file_identity(self.python)
+        # The fake workload needs a different executable inode from the worker.
+        # Otherwise the observer can mistake the worker's interpreter for the
+        # workload during exec and correctly reject its command line.
+        self.workload_python = self.root / 'workload-python'
+        shutil.copyfile(self.python, self.workload_python)
+        self.workload_python.chmod(0o700)
+        self.workload_image = file_identity(self.workload_python)
+        self.assertNotEqual((self.image['device'], self.image['inode']),
+                            (self.workload_image['device'], self.workload_image['inode']))
         self.taskset = file_identity(Path(shutil.which('taskset')).resolve())
         self.injection = file_identity(Path(shutil.which('true')).resolve())
         maps, _ = executable_maps(Path('/proc/self/maps').read_bytes())
@@ -112,11 +121,11 @@ class ClockHandoffTests(unittest.TestCase):
         jobs = plan_jobs(root/'previous', root/'binaries', root/'sequence', root=root,
                          repeats=6, workloads=('codec',), cpu=2, taskset=self.taskset['path'])
         for ordinal, job in enumerate(jobs, 1):
-            job['argv'] = [self.taskset['path'], '-c', '2', self.python, '-S', str(root/'workload.py'),
+            job['argv'] = [self.taskset['path'], '-c', '2', str(self.workload_python), '-S', str(root/'workload.py'),
                            str(root), 'success', str(ordinal), job['report']]
         prepared = dict(parent_argv=argv, env=env, role_image=self.image, taskset=self.taskset,
                         injection=self.injection, jobs=jobs,
-                        workloads={runtime: dict(command_path=self.python, image=deepcopy(self.image))
+                        workloads={runtime: dict(command_path=str(self.workload_python), image=deepcopy(self.workload_image))
                                    for runtime in ('previous','candidate','python')},
                         libraries={runtime: [deepcopy(self.libc)] for runtime in ('previous','candidate','python')})
         (root/'prepared.json').write_text(json.dumps(prepared))
