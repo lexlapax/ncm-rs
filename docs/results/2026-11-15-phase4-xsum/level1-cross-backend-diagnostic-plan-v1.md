@@ -101,3 +101,21 @@ not reach CUDA checks. The failure is retained in
 `reports/phase4-xsum-first-block-cuda-check-v1.log`; a full rerun is in progress.
 The full rerun passed, including 18 CUDA cases; its log SHA-256 is
 `8f6b5fcf4f3920f6e6f0aaf8d23b52575bc61fd9955d75b37f542191676eb13e`.
+
+The matching Metal check at `14e900c` passed, including 18 operator cases;
+its log SHA-256 is
+`214c3ce3830d795b6b81b123d3016049d668239aa73e2e34500edb2c750a283b`.
+The Metal trace SHA-256 is
+`f84c98e40865eaec2a8cc5270a9fcbc46119c5637e76073d538720fd5c84a133`;
+its local copy matches the Mac hash, inputs were unchanged, and all 25 prior
+Metal tensors match bit-for-bit. Selected IDs remain unchanged.
+
+For the prefix, transformer input was exactly equal; first layer normalization
+already differs in 158,444 elements, maximum `1.1921e-7`. The maximum prefix
+difference then is `2.3842e-7` after QKV projection, `4.6194e-7` after
+attention, `1.3113e-6` after the attention residual, and `1.5259e-5` after
+the entire first block. Target inputs already differed before this block.
+This suggests a bounded normalization comparison as a next experiment; it
+does not prove the downstream code near tie is caused by this operation.
+The exact Metal raw-ID gate is still failed. Full raw traces remain under
+ignored `reports/phase4-xsum-first-block-{cuda-v1,mlx-captured-v1}/`.
