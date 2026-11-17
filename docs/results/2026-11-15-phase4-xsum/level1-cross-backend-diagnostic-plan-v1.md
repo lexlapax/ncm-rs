@@ -346,6 +346,24 @@ local and Mac receipt copies match. These results localize this controlled
 crossing to the dot product, but the controlled CUDA calculation is not an
 exact replay of every retained reference logit and this is not a gate pass.
 
+At `88a9ce9`, the controlled probe also computed codebook squared norms on
+Metal. They matched 2,725/4,096 PyTorch CUDA norms exactly (maximum absolute
+difference `3.0518e-5`); applying the Metal norms and their mean scale to the
+controlled CUDA dot products still selected 3182 with margin `+9.5367e-7`.
+The receipt SHA-256 is
+`0fa7a3f859fd59cbd7d7265f0e248112f4c80aa5cf690dcaaa5742ca586d3130`,
+with matching local and Mac copies. These CUDA norms are PyTorch-derived and
+were not captured from the actual Rust CUDA backend, so this is controlled
+diagnostic evidence rather than exact runtime attribution.
+
+The same controlled CUDA head arithmetic was then run on the captured Metal
+split-head model projection. With the CUDA projection it chose 3182 at margin
+`+9.5367e-7`; with the Metal projection it chose 3690 at margin `-9.5367e-7`.
+The CUDA dot products for codes 3182/3690 were 23.597530365/23.695962906
+for the CUDA projection and 23.597530365/23.695968628 for the Metal projection.
+Thus upstream projection differences can independently change this decision,
+even with CUDA head arithmetic. This is one controlled row, not a quality gate.
+
 The controlled head probe tested equivalent Metal dot-product layouts. At
 `98c621a`, a sum of two 192-wide matrix products matched all 24,576 controlled
 CUDA dot products and selected code 3182 on the inspected row; flattened,
