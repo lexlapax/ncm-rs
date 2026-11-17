@@ -21,7 +21,8 @@ Each inference bundle contains FP32 `level0_unigram` `[8192]` and `token_unigram
 was observed *within* an inspected dictionary; this is not a cross-checkpoint alias
 claim. The small config declares stochastic sampling, frequency and adjacency
 penalties and an initial unigram; these require explicit qualification rather than
-assuming TinyStories behavior. No values, tokenizer behavior or quality were tested.
+assuming TinyStories behavior. The initial inventory did not test values,
+tokenizer behavior or quality; subsequent CPU preparation is described below.
 
 The observed config identities are small: 2,749 bytes / SHA-256
 `4db04299a87f7eb1627de0abb2f0b257e50e5ea0138edda771ad287cdabd7edf`, medium:
@@ -54,3 +55,30 @@ first-EOS validity expression. It separately reports mean per-sample entropy
 from raw IDs and aggregates over configured seeds. This is a source observation;
 no LM1B scorer has yet been implemented, validated or run. In particular, the
 TinyStories evaluator cannot simply be assumed equivalent.
+
+## Single-sample upstream CPU probes
+
+Each checkpoint size was loaded strictly with the shared tokenizer checkpoint,
+and a single batch-one sample was generated on CPU using seed 42, the observed
+level-zero unigram, `[CLS]` prefix ID 101, configured stochastic generation and
+the pinned evaluator's frequency/adjacency selection function. The command
+pattern was `setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false
+.reference/venv/bin/python tools/reference/lm1b_cpu_probe.py --upstream
+.reference/upstream-ncm --source artifacts/upstream/lm1b-phase4 --size SIZE
+--output NEW_REPORT`. It verified the checkpoint hashes and locally observed
+config hash before and after execution. Each output contains 641 codes and 128
+raw IDs; the output SHA-256 values are:
+
+| Size | SHA-256 |
+| --- | --- |
+| Small | `0b1299d3f9b874a25ceb769f4d94733ccce0a62d8e2bc46b33a72eb28b6f850a` |
+| Medium | `0b9cb97801932f8bd81b30f4648691d4ee9a353a69941b6378e2fce20150fc13` |
+| Large | `8a7a3b83bed32f3df2156a88a28721a4c74fcc5d603ae581adc76bd98496d3f6` |
+
+The small probe was repeated in a fresh process and produced identical bytes.
+The probe source SHA-256 is
+`c4180ddc12df044671ce0721ffbf9ccd41731aa96b7eff42bc650803ee7ae43a`.
+Raw reports and logs are under `reports/phase4-lm1b-*-cpu-probe-v1` with `.json`
+and `.log` suffixes; the small repeat is v2. These are CPU preparation fixtures,
+not the evaluator's batch-eight CUDA sampling, a quality comparison, or any
+runtime or GPU qualification.

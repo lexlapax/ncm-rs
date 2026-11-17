@@ -1,0 +1,72 @@
+{
+  "batches": {
+    "1": {
+      "python": {
+        "median_ms": 239.86012500245124,
+        "mlx_memory": {
+          "active": 609814636,
+          "cache": 5368384500,
+          "peak": 1264858828
+        },
+        "output_sha256": "c760e29fbc38c2f6aecdd4b99ac41a18499998374f0175e86bb37fdbfecf23c8",
+        "peak_rss_bytes": 1307033600
+      },
+      "rust": {
+        "median_ms": 211.84449999999998,
+        "mlx_memory": {
+          "active": 606817792,
+          "cache": 4640074752,
+          "peak": 1172181012
+        },
+        "output_sha256": "54cbf328d18149e8563d54d4e5d61b46e4229f87f6c939d853c978bd862c47cf",
+        "peak_rss_bytes": 1359724544
+      }
+    },
+    "32": {
+      "python": {
+        "median_ms": 4482.075333988178,
+        "mlx_memory": {
+          "active": 609814636,
+          "cache": 21456843388,
+          "peak": 2965761408
+        },
+        "output_sha256": "60569381453ba1fd9e9df4fb5f9ca7ee7e55fe3991d2d5f02776eeeec67f6515",
+        "peak_rss_bytes": 1725431808
+      },
+      "rust": {
+        "median_ms": 2930.545875,
+        "mlx_memory": {
+          "active": 606865408,
+          "cache": 18054335876,
+          "peak": 2708632336
+        },
+        "output_sha256": "57f97884e1549f780787052dfd3ca0460213d90051870f3d1b444249ab8d9545",
+        "peak_rss_bytes": 1358430208
+      }
+    },
+    "4": {
+      "python": {
+        "median_ms": 598.0719159997534,
+        "mlx_memory": {
+          "active": 609814636,
+          "cache": 17326808572,
+          "peak": 2613123868
+        },
+        "output_sha256": "683e077c21ce0ef9f7975154a6110426be37f9a24f7ae8f6820b8adc6d085ac6",
+        "peak_rss_bytes": 1356038144
+      },
+      "rust": {
+        "median_ms": 544.658459,
+        "mlx_memory": {
+          "active": 606822400,
+          "cache": 16436792208,
+          "peak": 2431365376
+        },
+        "output_sha256": "ae54d5d97d4431e05b05c72c9ee3813cc64f2233999098a6e0f2a11336d82b38",
+        "peak_rss_bytes": 1367080960
+      }
+    }
+  },
+  "scope": "one process per runtime and batch; two warmups and five trials; not a gate",
+  "source_receipt_sha256": "8962686647c1ddbdd5010e02976c2364df5326dd8ca674224a815590cd34c60d"
+}

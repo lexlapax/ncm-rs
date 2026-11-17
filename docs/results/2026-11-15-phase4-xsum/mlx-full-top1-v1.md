@@ -105,5 +105,69 @@ free-generation CUDA IDs for both rows. Source and input hashes passed postfligh
 row-4883 and row-4937 trace SHA-256 values are respectively
 `dcb52412e2d548d858d9ca742adfc4101db6f289760f6647e44131f955633236` and
 `69f7e1a07332738f9448eb9682010af06c2223b78971a1a199d978af12ff8fc8`,
-under `reports/phase4-xsum-top1-row-cuda-v1/`. The corresponding Metal harness
-has not yet run; these CUDA traces do not resolve the Metal differences.
+under `reports/phase4-xsum-top1-row-cuda-v1/`. These CUDA traces alone do not
+resolve the Metal differences; the subsequent Metal comparison is described below.
+
+## Same-batch forced-history comparison
+
+After the new row tracer passed Linux CUDA validation, pushed commit `d018aa3`
+was fast-forwarded into the clean Mac checkout. Full `tools/check.sh --mlx`
+passed, including 18 real-Metal operator cases. The CUDA and Metal tracer then
+used identical contiguous 32-row prefixes and the saved CUDA code histories,
+selecting rows 4883 and 4937 respectively. Each row's 3,233,792 compared head
+and final-logit floats stayed inside the existing accumulated band. Independent
+NumPy FP64 selection matched each native tracer's selected IDs.
+
+For row 4883, all head argmaxes matched. The first and only forced-history ID
+difference was position 40: with the same preceding IDs, CUDA's penalized score
+for 50256 minus 3646 was `+6.2059e-5`, while Metal's was `-1.1374e-5`. The
+forced Metal IDs exactly match that row's free-generation Metal IDs. This directly
+identifies a score-order crossing on this forced execution, while not proving a
+specific underlying operation is responsible.
+
+For row 4937, there was one head argmax difference: level 1 position 4. CUDA's
+logit for 3182 minus 3690 was `+9.5367e-7`, while Metal's was `-4.7684e-6`.
+With CUDA codes forced, the two backends' final selected IDs matched; Metal's
+forced IDs differed in five places from its free-generation Metal IDs. This is
+consistent with the early head difference contributing to later divergence,
+but does not independently prove every downstream cause. The exact full-corpus
+raw-ID gate remains failed; no numerical threshold was changed.
+
+The per-row results are [row 4883](mlx-top1-row-4883-v1.json) (SHA-256
+`7f00c6519038e2484c96c6d61b034ec1ed14bbe29cf70adfc38d7ebce57b31bf`) and
+[row 4937](mlx-top1-row-4937-v1.json) (SHA-256
+`aeed8ab90ba430bb818632ca88b4b8cd07258c741fbcf6f3fd510c24f5415003`).
+The local and Mac reports, trace hashes, and pre/post input hashes remain under
+`reports/phase4-xsum-top1-row-{cuda-v1,mlx-captured-v1}/`. The Mac check log
+`reports/phase4-owned-loader-mlx-check-captured-v1.log` hashes to
+`10c62f43e88d150f89641cdc4200feacb93b5d0eb1abd0e4da30a04e80a5eaa8`.
+
+While the next CUDA candidate was being checked, both baseline Metal traces
+were repeated on the clean `d018aa3` Mac checkout with the same binary, batch
+inputs and CUDA histories. The input manifest passed SHA-256 checks before and
+after both runs. The JSON and safetensors hashes for each row exactly match the
+originals listed in the per-row results above; stderr was empty. The repeated
+files remain on Mac under `reports/phase4-xsum-top1-row-mlx-repeat-v1/` and were
+copied to local `reports/phase4-xsum-top1-row-mlx-repeat-captured-v1/` with
+matching hashes. The
+command pattern was `target/release/examples/xsum_top1_row_trace
+artifacts/canonical/xsum-inference-rope-v2-final INPUT CUDA_OUTPUT SLOT OUTPUT`,
+with `reports/phase4-xsum-mlx-full-top1-v1/input-04864.json`,
+`reports/phase4-xsum-top1-batch-shape-cuda-v1/cuda-4864.json`, slot `19`, and
+output `reports/phase4-xsum-top1-row-mlx-repeat-v1/row-4883.safetensors` for the
+first row; the second used `input-04928.json`, `cuda-4928.json`, slot `9`, and
+`row-4937.safetensors` in the corresponding directories. This shows repeatability
+for these two forced-history executions, not a resolution of the full-corpus
+raw-ID failure.
+
+On the same checkout, `target/release/ncm sample-xsum
+artifacts/canonical/xsum-inference-rope-v2-final mlx INPUT` was also repeated for
+both `input-04864.json` and `input-04928.json`. All codes and IDs in each
+32-row result matched the corresponding original Metal batch result exactly.
+The binary SHA-256 (`aaba9fa090bdda88d4b757994ac3b609f292f01bdc0825ec027f7137c517bc69`)
+and the prior trace input manifest passed postflight checks. The two new stdout
+hashes are `13126af2482cd1a8bb7bd83bd382557b01b10d8fa1d718654ccc339629d4cce5`
+and `1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`,
+retained on Mac in `reports/phase4-xsum-top1-free-mlx-repeat-v1/` and copied
+with matching hashes to local `reports/phase4-xsum-top1-free-mlx-repeat-captured-v1/`. This is
+repeatability against the original Metal output, not equality with CUDA or Python.

@@ -18,7 +18,7 @@ use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;
 use safetensors::{Dtype, SafeTensors};
 use serde::{Deserialize, de::IgnoredAny};
-use std::{collections::BTreeMap, sync::OnceLock};
+use std::{borrow::Cow, collections::BTreeMap, sync::OnceLock};
 
 // IEEE-754 infinities and NaNs are exactly the values with an all-one exponent.
 // Check fixed-size groups before branching so finite weight buffers can be
@@ -39,6 +39,26 @@ fn has_nonfinite_f32_le(data: &[u8]) -> bool {
         .0
         .iter()
         .any(|bytes| u32::from_le_bytes(*bytes) & 0x7f80_0000 == 0x7f80_0000)
+}
+
+/// Borrow aligned little-endian F32 payloads when possible; otherwise decode an
+/// owned copy. Shape, dtype and finite-value checks remain the caller's preflight.
+fn upload_values(data: &[u8]) -> Result<Cow<'_, [f32]>> {
+    if !data.len().is_multiple_of(4) {
+        return Err(Error::Weights("invalid F32 payload length".into()));
+    }
+    if cfg!(target_endian = "little")
+        && let Ok(values) = bytemuck::try_cast_slice::<u8, f32>(data)
+    {
+        return Ok(Cow::Borrowed(values));
+    }
+    Ok(Cow::Owned(
+        data.as_chunks::<4>()
+            .0
+            .iter()
+            .map(|b| f32::from_le_bytes(*b))
+            .collect(),
+    ))
 }
 
 /// Immutable parameters plus backend and lazily prepared parameter-only norms.
@@ -99,15 +119,8 @@ impl<B: WeightBackend> Codec<B> {
             let t = tensors
                 .tensor(&name)
                 .map_err(|e| Error::Weights(e.to_string()))?;
-            // Decode little-endian bytes without alignment casts/unsafe. Only one
-            // temporary tensor is retained, not a second full host weight copy.
-            let values: Vec<f32> = t
-                .data()
-                .as_chunks::<4>()
-                .0
-                .iter()
-                .map(|b| f32::from_le_bytes(*b))
-                .collect();
+            // The checked borrowed view avoids a temporary copy when aligned.
+            let values = upload_values(t.data())?;
             weights.insert(name, backend.upload_f32(&values, &shape)?);
         }
         let codebook_norms = (0..config.levels().len())
@@ -254,8 +267,46 @@ struct TinyStoriesSpecialTokens {
 
 #[cfg(test)]
 mod tests {
-    use super::{artifact_config, has_nonfinite_f32_le};
+    use super::{artifact_config, has_nonfinite_f32_le, upload_values};
     use serde_json::{Value, json};
+    use std::borrow::Cow;
+
+    #[test]
+    fn upload_values_borrows_aligned_and_preserves_unaligned_bits() {
+        let words = [0x8000_0000u32, 0x3f80_0000, 1];
+        let mut aligned = [0u32; 3];
+        bytemuck::cast_slice_mut::<u32, u8>(&mut aligned).copy_from_slice(
+            &words
+                .iter()
+                .flat_map(|v| v.to_le_bytes())
+                .collect::<Vec<_>>(),
+        );
+        let bytes: &[u8] = bytemuck::cast_slice(&aligned);
+        let values = upload_values(bytes).unwrap();
+        #[cfg(target_endian = "little")]
+        assert!(matches!(values, Cow::Borrowed(_)));
+        assert_eq!(
+            values.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            words
+        );
+
+        let mut storage = [0u32; 3];
+        let raw: &mut [u8] = bytemuck::cast_slice_mut(&mut storage);
+        let expected = [0x8000_0000u32, 0x3f80_0000];
+        raw[1..9].copy_from_slice(
+            &expected
+                .iter()
+                .flat_map(|v| v.to_le_bytes())
+                .collect::<Vec<_>>(),
+        );
+        let unaligned = upload_values(&raw[1..9]).unwrap();
+        assert!(matches!(unaligned, Cow::Owned(_)));
+        assert_eq!(
+            unaligned.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            expected
+        );
+        assert!(upload_values(&raw[..3]).is_err());
+    }
 
     #[test]
     fn xsum_envelope_accepts_only_its_pinned_tokenizer_and_codec_profile() {

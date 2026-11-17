@@ -1,5 +1,5 @@
 //! Checked weights and eager greedy generation for the Sudoku profile.
-use crate::{artifact_config, has_nonfinite_f32_le};
+use crate::{artifact_config, has_nonfinite_f32_le, upload_values};
 use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;
 use safetensors::{Dtype, SafeTensors};
@@ -999,13 +999,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
             let tensor = tensors
                 .tensor(name)
                 .map_err(|e| Error::Weights(e.to_string()))?;
-            let values: Vec<f32> = tensor
-                .data()
-                .as_chunks::<4>()
-                .0
-                .iter()
-                .map(|x| f32::from_le_bytes(*x))
-                .collect();
+            let values = upload_values(tensor.data())?;
             weights.insert(
                 name.to_owned(),
                 backend.upload_f32(&values, tensor.shape())?,

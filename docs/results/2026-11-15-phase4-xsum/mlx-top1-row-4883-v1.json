@@ -1,0 +1,84 @@
+{
+  "first_id_difference_same_history": {
+    "cuda_id": 50256,
+    "cuda_score_difference": 6.205920362845063e-05,
+    "metal_id": 3646,
+    "metal_score_difference": -1.1373718734830618e-05,
+    "position": 40
+  },
+  "id_difference_positions": [
+    40
+  ],
+  "input_sha256": {
+    "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final/inference.safetensors": "950c41566ad38356302cf8cf7ea5322a4cf42ab3ffe5a949fe45042223611c2e",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final/manifest.json": "8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-top1-row-cuda-v1/row-4883.json": "491ea0e3beb1267a9060c9fa3a5b468e010c89d115376c4f0becd4144752b982",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-top1-row-cuda-v1/row-4883.safetensors": "dcb52412e2d548d858d9ca742adfc4101db6f289760f6647e44131f955633236",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/tools/reference/xsum_top1_row_compare.py": "21d8a5045ce358b47a328be2544da34f0489239e18f7889d32a658baf5a3592a",
+    "reports/phase4-xsum-top1-row-mlx-captured-v1/row-4883.json": "948399a0334c85d2298ed8fb6a8123136842d992d47b58817662444794ec79d3",
+    "reports/phase4-xsum-top1-row-mlx-captured-v1/row-4883.safetensors": "43b47eb146430ca2a06f5e18a061d1c20f13d1096a53219d7014dc3de3409b5d"
+  },
+  "row": 4883,
+  "scope": "same 32-row batch and forced CUDA code histories; not free Metal generation",
+  "trace": {
+    "generator.final_logits": {
+      "elements": 2414592,
+      "max_abs": 0.0003528594970703125,
+      "outside_existing_band": 0
+    },
+    "generator.level_00.logits": {
+      "argmax_differences": 0,
+      "elements": 16384,
+      "max_abs": 3.814697265625e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_01.logits": {
+      "argmax_differences": 0,
+      "elements": 24576,
+      "max_abs": 6.103515625e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_02.logits": {
+      "argmax_differences": 0,
+      "elements": 40960,
+      "max_abs": 6.103515625e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_03.logits": {
+      "argmax_differences": 0,
+      "elements": 57344,
+      "max_abs": 8.392333984375e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_04.logits": {
+      "argmax_differences": 0,
+      "elements": 81920,
+      "max_abs": 0.0001220703125,
+      "outside_existing_band": 0
+    },
+    "generator.level_05.logits": {
+      "argmax_differences": 0,
+      "elements": 106496,
+      "max_abs": 0.000244140625,
+      "outside_existing_band": 0
+    },
+    "generator.level_06.logits": {
+      "argmax_differences": 0,
+      "elements": 131072,
+      "max_abs": 0.000244140625,
+      "outside_existing_band": 0
+    },
+    "generator.level_07.logits": {
+      "argmax_differences": 0,
+      "elements": 163840,
+      "max_abs": 0.00030517578125,
+      "outside_existing_band": 0
+    },
+    "generator.level_08.logits": {
+      "argmax_differences": 0,
+      "elements": 196608,
+      "max_abs": 0.00042724609375,
+      "outside_existing_band": 0
+    }
+  }
+}

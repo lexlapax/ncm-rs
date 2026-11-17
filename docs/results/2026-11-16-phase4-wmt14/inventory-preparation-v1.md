@@ -36,6 +36,16 @@ buffers can be updated in the quantizer's general forward path. The generated-co
 and artifact-export review is still needed before classifying all 33 entries as
 training-only for every supported operation.
 
+For the pinned `eval_shard.py` generation path specifically, `run` calls
+`net.generate`, reconstructs the generated indices with `idx_to_zhats`, and
+passes the resulting latent to the decoder. The generator uses the codebook
+embeddings and `get_next_autoregressive_input`; those helpers and
+`idx_to_zhats` do not access the EMA or hit buffers. The alternate VQ-VAE
+`forward`/`reconstruct` path calls the quantizer's general `forward`, which
+does update hit buffers. This narrows the classification for the evaluated
+generation path only; it does not authorize dropping tensors for other APIs or
+replace artifact and trace validation.
+
 Comparing inventory names with the existing XSum v2 manifest found WMT14's
 `lm_head_l0.weight` and ten `lm_heads.*.weight` entries, while XSum instead has
 `l0_queries` and nine projection/temperature pairs. The names alone do not prove
@@ -77,3 +87,48 @@ preflight tests passed under `.reference/venv/bin/python`; a real CPU-only,
 `weights_only=True, mmap=True` load produced the expected 186/63/33 counts.
 An attempted inventory test with system Python failed because it lacked Torch;
 the existing reference virtual environment passed.
+
+## Experimental lossless export
+
+The separate `wmt14-preparation-v1` inventory preserves all 186 generator and
+96 tokenizer checkpoint tensors, including every EMA/hit buffer. It is not a
+runtime artifact or an inference qualification. The CPU-only command was:
+
+```sh
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/reference/wmt14_export_preparation.py --source artifacts/upstream/wmt14-phase4 --tokenizer-asset artifacts/canonical/tokenizers-qualified/qwen3 --output artifacts/canonical/wmt14-preparation-v1
+```
+
+Each serialized tensor was reloaded and compared for name, dtype, shape and
+exact bytes. The exporter checks the checkpoint and locally observed config
+hashes and the pinned tokenizer inputs before and after export; it does not
+promote the local config identity into a separately verified upstream pin. Its
+manifest SHA-256 is `3653e4c5bede7b0d8b89148ecccf580ac5cc87617697b737582e8173586334de`;
+the exporter SHA-256 is `10f6eacdb97eb7f1a3e282f3dab06728a72684d148c24382291956a0f5480c28`.
+Seven focused WMT14 tests passed, including bit-preserving roundtrip and
+existing-output rejection (`reports/phase4-wmt14-export-preparation-tests-v1.log`).
+The full runtime schema, implementation and GPU comparisons remain pending.
+
+Comparing this preparation manifest with the pinned XSum v2 manifest gives
+175 common generator names (three shape differences), 11 WMT14-only and 19
+XSum-only names. The shared level and mask tensors reflect WMT14's 312 positions
+after level zero; its ten level embeddings differ from XSum's nine. The 53 shared codec
+names include five shape differences, including the larger token embedding/output
+vocabulary and two learned-resampling kernels. This inventory comparison narrows
+the implementation work but does not establish equivalent layer semantics.
+
+## Single-row upstream CPU probe
+
+Two fresh CPU runs loaded the pinned upstream model and both checkpoint files
+strictly, used the first previously verified 96-token prefix, and captured 313
+generated codes and 64 argmax decoder IDs. The command was
+`setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python
+tools/reference/wmt14_cpu_probe.py --upstream .reference/upstream-ncm --source
+artifacts/upstream/wmt14-phase4 --prefixes
+reports/phase4-wmt14-tokenizer-reference-v1.json --output NEW_REPORT`.
+Both output files are byte-identical, SHA-256
+`3bbf94a1509151fd4351309348cab4bdbd2c748f728e162b7b3c708f520c5c5b`;
+the probe source SHA-256 is
+`a97b6041aa0d4b9dca97b50167b7ac8cdcc377017b578e121c3dab7d9b09125b`.
+The probe checks the observed generation configuration, source and checkpoint
+identities and output dimensions. It is a narrow CPU fixture, not a CUDA, Metal,
+full-corpus quality, performance or numerical-tolerance qualification.

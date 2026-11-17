@@ -1113,6 +1113,7 @@ dependencies = [
 name = "ncm-model"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "ncm-core",
  "ncm-io",
  "safetensors",

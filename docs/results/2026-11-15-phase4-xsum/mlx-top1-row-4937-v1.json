@@ -1,0 +1,84 @@
+{
+  "first_id_difference_same_history": null,
+  "id_difference_positions": [],
+  "input_sha256": {
+    "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final/inference.safetensors": "950c41566ad38356302cf8cf7ea5322a4cf42ab3ffe5a949fe45042223611c2e",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/xsum-inference-rope-v2-final/manifest.json": "8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-top1-row-cuda-v1/row-4937.json": "8752b0cc49b33b9e9e5ccdca1abdb986eb0fe231e856aa5a6d3f07a28ca359f2",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/reports/phase4-xsum-top1-row-cuda-v1/row-4937.safetensors": "69f7e1a07332738f9448eb9682010af06c2223b78971a1a199d978af12ff8fc8",
+    "/home/lexlapax/projects/lexlapax/ncm-rs/tools/reference/xsum_top1_row_compare.py": "21d8a5045ce358b47a328be2544da34f0489239e18f7889d32a658baf5a3592a",
+    "reports/phase4-xsum-top1-row-mlx-captured-v1/row-4937.json": "8752b0cc49b33b9e9e5ccdca1abdb986eb0fe231e856aa5a6d3f07a28ca359f2",
+    "reports/phase4-xsum-top1-row-mlx-captured-v1/row-4937.safetensors": "a20b14847acf355cb20c9c436fe21c8482772276500f24612013619a362b41bc"
+  },
+  "row": 4937,
+  "scope": "same 32-row batch and forced CUDA code histories; not free Metal generation",
+  "trace": {
+    "first_free_generation_code_difference": {
+      "cuda_3182_minus_3690": 9.5367431640625e-07,
+      "cuda_argmax": 3182,
+      "level": 1,
+      "metal_3182_minus_3690": -4.76837158203125e-06,
+      "metal_argmax": 3690,
+      "position": 4
+    },
+    "generator.final_logits": {
+      "elements": 2414592,
+      "max_abs": 0.0006151199340820312,
+      "outside_existing_band": 0
+    },
+    "generator.level_00.logits": {
+      "argmax_differences": 0,
+      "elements": 16384,
+      "max_abs": 3.814697265625e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_01.logits": {
+      "argmax_differences": 1,
+      "elements": 24576,
+      "max_abs": 6.4849853515625e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_02.logits": {
+      "argmax_differences": 0,
+      "elements": 40960,
+      "max_abs": 7.62939453125e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_03.logits": {
+      "argmax_differences": 0,
+      "elements": 57344,
+      "max_abs": 5.340576171875e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_04.logits": {
+      "argmax_differences": 0,
+      "elements": 81920,
+      "max_abs": 6.103515625e-05,
+      "outside_existing_band": 0
+    },
+    "generator.level_05.logits": {
+      "argmax_differences": 0,
+      "elements": 106496,
+      "max_abs": 0.00030517578125,
+      "outside_existing_band": 0
+    },
+    "generator.level_06.logits": {
+      "argmax_differences": 0,
+      "elements": 131072,
+      "max_abs": 0.00030517578125,
+      "outside_existing_band": 0
+    },
+    "generator.level_07.logits": {
+      "argmax_differences": 0,
+      "elements": 163840,
+      "max_abs": 0.00048828125,
+      "outside_existing_band": 0
+    },
+    "generator.level_08.logits": {
+      "argmax_differences": 0,
+      "elements": 196608,
+      "max_abs": 0.00030517578125,
+      "outside_existing_band": 0
+    }
+  }
+}

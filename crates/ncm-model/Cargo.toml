@@ -9,6 +9,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+bytemuck = "=1.25.2"
 ncm-core = { path = "../ncm-core" }
 ncm-io = { path = "../ncm-io" }
 safetensors = "=0.8.0"
