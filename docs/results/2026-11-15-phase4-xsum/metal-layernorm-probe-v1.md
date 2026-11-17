@@ -71,3 +71,26 @@ project's lint policy. No candidate inference ran. The failed check is retained
 on the Mac under `reports/phase4-xsum-norm-candidate-mlx-v1/check.log`; the
 allowance is now scoped to the validated launch wrapper, as for existing Metal
 kernels. A fresh Mac check and candidate capture remain pending.
+
+## Forced-history candidate result
+
+The corrected experimental backend at `36b5111` passed the full Metal check,
+including 18 operator cases (log SHA-256
+`92e2e906a3e305a3ef4778e888bda4960be2efded624c70323ff4fc957091c73`).
+The same-batch row-4937 capture has SHA-256
+`1323389ca938fd44d1fd23388265a7660be0e5fa45438d8955d55e4857ba8f5f`;
+the copied file matches the remote hash and inputs were unchanged. Its first
+normalization matches 363,025 of 393,216 CUDA prefix values, exactly the
+standalone safe-math probe count, confirming the intended Rust kernel behavior
+on those inputs.
+
+The forced-history level-1 position-4 head still selects code 3690 on Metal,
+while CUDA selects 3182: CUDA's 3182-minus-3690 margin is `+9.5367e-7`,
+default Metal's is `-4.7684e-6`, and experimental Metal's is `-5.7220e-6`.
+The first-block maximum cross-device difference increased from `1.5259e-5`
+to `4.5776e-5`, although the final hidden maximum decreased slightly from
+`8.2850e-6` to `7.8976e-6`. The forced final IDs remained unchanged. These
+mixed results do not justify replacing the default backend or claiming a fix;
+the observed target-input difference and other operations remain candidates
+for investigation. The frozen Metal raw-ID gate remains failed. Raw evidence is
+under ignored `reports/phase4-xsum-norm-candidate-mlx-captured-v2/`.
