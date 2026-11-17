@@ -124,3 +124,27 @@ The separate CFG batch-16 values are
 `74c394872edcf277559845fce39d06a1269f9c7c1c1e91e569f7c9b24d9e26b6` /
 `013064b8814af2d497d67cbd5a19a514e944ea411cc284035aef474cf697fc11` /
 `4428863196151686396362580490c78cb5144b0de371b407a0ac1755043feb53`.
+
+## Allocator observation preparation
+
+A separate batch-32 one-process smoke produced matching Rust/Python codes and
+IDs. The Rust default CUDA async pool reported live-output used/reserved high
+water 2323704992/2751463424 bytes and, after dropping the output and
+synchronizing, current used/reserved 1062175648/1140850688 bytes. The Python
+PyTorch allocator reported live-output allocated/reserved high water
+2475093504/3730833408 bytes and, after dropping outputs and explicit garbage
+collection, current allocated/reserved 1128726016/3730833408 bytes. Both high
+water counts include model loading; current counts retain the model. These are
+different allocators with different coverage and cleanup policies, not a
+direct comparison of total GPU usage. The earlier sampled process memory is
+reported separately. One observed load from artifact read through synchronized
+model construction took 1.587 s Rust and 1.197 s Python; the exact startup
+boundaries and CUDA initialization coverage differ, so these are diagnostic
+observations rather than a controlled startup performance claim.
+
+The Rust/Python smoke reports hash to
+`8ae9b843efd4704c9c3e657b7b470b3b42c2065da1b369539b58669682a61722` /
+`928b88fa545bd27253c413566da99bb54498472d0fa9482b0b42d8dc21c5c962b`.
+The standalone Rust example passed feature-specific Clippy/build and Python
+syntax validation. A source-bound per-batch allocator observation across all
+seven scoped cells is prepared but pending; no additional gate is claimed.
