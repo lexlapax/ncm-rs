@@ -654,3 +654,17 @@ continuation script/log hashes are
 `bf75a0f4804660d880e50efc68650bc71862686b75ef1daa0a031f0a79f70659` /
 `5cea3bac4c4aacea5f27b30fc21d509c5e9572e5ca35201c114d09e75e979312`.
 No default inference or quality gate changed.
+
+
+At `77ba69f`, an explicit diagnostic combined the refinement candidate with
+three 128-wide target projection products for the six-vector level. Full
+`tools/check.sh --cuda` passed, including 18 device cases
+(`reports/phase4-xsum-target-projection-cuda-check-v1.log`). The Metal build
+passed and both free-generation batches are byte-identical to the prior
+refinement candidate: batch 4864 matches CUDA; batch 4928 retains three code
+and five raw-ID differences on row 4937. Input hashes passed postflight.
+Output hashes are `8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6`
+and `1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`.
+The controlled CUDA tie did not translate into a free-generation fix. The
+path is experimental; the default inference and frozen exact gate are
+unchanged.

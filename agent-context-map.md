@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum three-part projection diagnostic:** an explicitly selected Metal candidate combines the prior refinement diagnostic with three-part projection on the six-vector target. Full `tools/check.sh --cuda` passed including 18 device cases; Metal free-generation screens are pending. It is a bounded diagnostic, not a default or gate pass.
+- **XSum three-part projection diagnostic:** an explicitly selected Metal candidate combines the prior refinement diagnostic with three-part projection on the six-vector target. Full `tools/check.sh --cuda` passed including 18 device cases. Both Metal free-generation batches are byte-identical to the prior refinement candidate, retaining three code and five raw-ID differences on row 4937. It remains experimental; the exact gate fails.
 
 - **XSum target projection screen:** [same-input Metal layouts and CUDA continuations](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) confirm the captured Metal projection; none exactly matches CUDA. Three parts reaches the CUDA-selected code only through an exact tie in the controlled continuation. No inference change or gate pass.
 
