@@ -199,3 +199,15 @@ local and Mac copies match. These comparisons isolate the operation on one
 captured row. The Python compiled graph uses a row-sized input, not the full
 32-row Rust graph, so its statistics do not prove exact Rust backend behavior
 or causality for the code crossing. Full output and quality gates remain open.
+
+The standalone Metal GELU probe next tested the CUDA expression's multiply
+order on this identical input. The first attempt failed because `erf` was not
+declared; the second failed because the JIT could not resolve the installed
+header. At `8c3ed81`, the probe loaded the installed MLX `erf.h` and
+`expm1f.h` into the JIT header with upstream notices preserved and recorded
+their hashes. Safe, relaxed and fast math each matched 1,180,744 of 1,591,296
+CUDA values, maximum absolute difference `5.9605e-7` and mean `5.9422e-8`.
+The original composed operation matched 1,034,783. The receipt SHA-256 is
+`765d1ff6daf714ad0485356fd2aff5ac70210f81463c97737f4f50fe94d9e92d`;
+Mac and local copies match. This is one inspected row and a Python Metal
+kernel, not a validated Rust model change, performance comparison or gate pass.
