@@ -552,7 +552,8 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
     length: usize,
 ) -> Result<B::Tensor> {
     decode_transformer_observed(
-        b, blocks, final_norm, geometry, prefix, target, prefix_len, heads, width, length, None,
+        b, blocks, final_norm, geometry, prefix, target, prefix_len, heads, width, length, false,
+        None,
     )
 }
 
@@ -568,6 +569,7 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
     heads: usize,
     width: usize,
     length: usize,
+    capture_qkv: bool,
     mut trace: Option<&mut dyn crate::TraceSink<B>>,
 ) -> Result<B::Tensor> {
     let batch = b.shape(prefix)[0];
@@ -600,8 +602,31 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
             trace.tensor("diagnostic.level_01.first_qkv", &qkv)?;
         }
         let [q, k, v] = b.split_qkv(&qkv, batch, seq, heads, head)?;
+        if index == 0
+            && capture_qkv
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor(
+                "diagnostic.level_01.normalized_q",
+                &b.rms_norm(&q, &block.q_norm, 1e-6)?,
+            )?;
+            trace.tensor(
+                "diagnostic.level_01.normalized_k",
+                &b.rms_norm(&k, &block.k_norm, 1e-6)?,
+            )?;
+            trace.tensor("diagnostic.level_01.cosine", &geometry.cosine)?;
+            trace.tensor("diagnostic.level_01.sine", &geometry.sine)?;
+        }
         let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
         let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
+        if index == 0
+            && capture_qkv
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.rotated_q", &q)?;
+            trace.tensor("diagnostic.level_01.rotated_k", &k)?;
+            trace.tensor("diagnostic.level_01.value", &v)?;
+        }
         let attn = b.attention(&q, &k, &v, Some(&geometry.mask))?;
         let attn = b.merge_heads(&attn, batch, seq, heads, head)?;
         if index == 0
@@ -1120,6 +1145,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                         12,
                         768,
                         length,
+                        false,
                         if self.cfg_internals_diagnostic && level == 1 {
                             Some(trace as &mut dyn crate::TraceSink<B>)
                         } else {
@@ -2364,6 +2390,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 12,
                 768,
                 length,
+                false,
                 if level == 1 && forced.is_some() {
                     Some(trace)
                 } else {
@@ -3124,6 +3151,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                         12,
                         768,
                         length,
+                        true,
                         Some(&mut observed),
                     )?
                 } else {

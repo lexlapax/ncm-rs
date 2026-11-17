@@ -153,3 +153,38 @@ Validation: the diagnostic example passed feature-specific clippy with
 `lm1b-experimental,cuda-cudnn`; `setpriv --inh-caps=-all env RUSTC_WRAPPER=
 ./tools/check.sh --cuda` passed, including 18 real-device operator cases. The
 full log is `reports/phase4-lm1b-qkv-diagnostic-cuda-check-v1.log`.
+
+A temporary candidate that also scaled Q and K before the dot product still
+failed 21/51 tensors, with 105 code and 31 penalized-ID differences. Its first
+attention differed from Python in 81,448/99,840 values, maximum `6.91414e-6`.
+The exploratory edit was reverted; its retained patch, 73-tensor trace,
+filtered trace and comparison have SHA-256 values
+`62d043baa6083031b43567afc52554b4e6202c56a6e5018ba76f82569cbf26cf`,
+`36c9affcef311a8a90383552846a561a9b2a78c5ff3fc474ef70b042d9009ad6`,
+`00844c5563d02269e449408b7f65f0773bba834729ec1561636e6405466f4325`, and
+`6785686340c75d46706025ef9830f18abd3e440b4fdeccae62d342d26fcd998b`.
+
+The expanded diagnostic captures normalized and rotated Q/K, V, and the rotary
+tables at level seven. On the same QKV input, normalized Q and K and V exactly
+match the pinned Python continuation, but 274 cosine and 496 sine table values
+differ (maximum `3.81470e-6` and `3.78490e-6`); rotated Q and K differ in
+13,783 and 13,775 values, respectively. Supplying Rust's rotated Q/K/V to Python
+math-SDPA still differs from Rust attention in 75,652 values, maximum
+`6.55651e-7`, so attention arithmetic is a separate discrepancy in this bounded
+comparison. The 80-tensor Rust trace and Python comparison script/log hashes are
+`1c56a2dd8e47b387f3524493f82126d8afb7478142ce5242d77a3d2dd9ed7ca6`,
+`e701ecec44e64a58dc3bbbbbefa870be4a63e883b5bfd5ea123feaf8c016a13c`, and
+`ba753d254f9b0a9fbf45446ca5a7eb351bd14e0df3cfeabfee77c2bb5a86bb53`.
+The trace checks that its sampled output agrees with untraced execution. These
+are bounded diagnostics, not proof that either discrepancy alone causes the
+sample crossing or a Phase 4 pass.
+
+A same-input intervention applies Python rotary arithmetic to the exact
+normalized Q/K using the captured Rust tables; it reproduces both rotated tensors
+exactly. This identifies the table values as sufficient to explain this
+controlled rotary difference. The script and log hashes are
+`ff36fcd77ce0f42b3c0c20682d52a1d0c56120ddbbd7c7201876e1657efc048f` and
+`21ea4ea24a671d73f64a53dfd5399aaa3fdcb2976d17a17e1cef7c873babb37d`.
+The 80-tensor capture also reproduces all 73 tensors from the earlier candidate.
+Feature-specific clippy passed, as did `tools/check.sh --cuda` including 18
+device cases (`reports/phase4-lm1b-rotary-trace-cuda-check-v1.log`).
