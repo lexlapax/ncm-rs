@@ -844,6 +844,45 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         Ok(Wmt14HostOutput { codes, ids })
     }
 
+    /// Explicit unqualified CFG recomputation in groups of at most four.
+    /// The heuristic and altered batch shape require independent qualification.
+    pub fn generate_cfg_recompute_microbatched(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+    ) -> Result<Wmt14HostOutput> {
+        if self.cfg_recompute_margin_diagnostic.is_none()
+            || !(1..=16).contains(&batch)
+            || !scale.is_finite()
+            || scale <= 0.0
+            || prefix_tokens.len() != batch * 96
+            || prefix_tokens.iter().any(|&x| x >= 151680)
+            || prefix_tokens
+                .as_chunks::<96>()
+                .0
+                .iter()
+                .any(|row| row.iter().all(|&x| x == 151643))
+        {
+            return Err(Error::Input(
+                "invalid WMT14 CFG diagnostic microbatch inputs or backend".into(),
+            ));
+        }
+        let mut codes = Vec::with_capacity(batch * 313);
+        let mut ids = Vec::with_capacity(batch * 64);
+        for chunk in prefix_tokens.chunks(4 * 96) {
+            let result = self.generate_cfg_top1(chunk, chunk.len() / 96, scale)?;
+            codes.extend(self.backend.read_indices(&result.codes)?);
+            ids.extend(self.backend.read_indices(&result.ids)?);
+        }
+        if codes.len() != batch * 313 || ids.len() != batch * 64 {
+            return Err(Error::Backend(
+                "invalid WMT14 CFG diagnostic microbatch output".into(),
+            ));
+        }
+        Ok(Wmt14HostOutput { codes, ids })
+    }
+
     /// Experimental guided top-1 with the upstream EOS/PAD null prefix.
     pub fn generate_cfg_top1_traced(
         &self,

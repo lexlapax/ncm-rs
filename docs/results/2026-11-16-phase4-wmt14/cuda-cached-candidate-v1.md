@@ -328,3 +328,20 @@ Manifest, measurement and telemetry SHA-256 values are
 `bb790030008022109c9f759573632aa7d8db833ccb3cc2c1d65a57d7a93959c5`.
 Telemetry is nonexclusive and does not establish allocator peaks or unseen
 input correctness. CFG remains explicitly diagnostic and guarded.
+
+## CFG recomputation microbatch diagnostic
+
+An explicit CFG recomputation-only host-output method schedules external
+batches up to 16 in groups of at most four. It rejects invalid batches,
+prefixes and scales before execution, and rejects backends without the
+explicit recomputation diagnostic. It does not qualify the heuristic or the
+ordinary cached CFG path. Four artifact-backed CUDA tests pass, including
+chunk equality for batch 1/4/5/16 and invalid inputs; log SHA-256
+`76f89a52fc637ad9aa1df085b3f3fe43ba5d56725db3d2f8bfee2277e6827c87`.
+A 35-row capture with external batches of 16 and a partial tail matches the
+retained Python codes and raw IDs, SHA-256
+`8e0b84495b6040e82241e5a0dda2de3a9c936ee50aab8122da994dc53e2fb737`.
+Strict feature-enabled Clippy and the full `tools/check.sh --cuda` pass,
+including 18 operator cases; full-check log SHA-256
+`fac15f2ca0d66ebe04cde0d542c27caa1a50af546d8cf941951f8269abe74c0b`.
+Source-bound full replay, quality and repeated memory/performance remain pending.
