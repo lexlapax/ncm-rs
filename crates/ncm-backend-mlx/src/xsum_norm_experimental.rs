@@ -65,7 +65,12 @@ for (uint v = tid; v < 192u; v += 128u) {
 "#;
 
 #[allow(unsafe_code)]
-pub(crate) fn apply(x: &Array, gamma: &Array, beta: &Array) -> crate::ops::Result<Array> {
+pub(crate) fn apply(
+    x: &Array,
+    gamma: &Array,
+    beta: &Array,
+    refined: bool,
+) -> crate::ops::Result<Array> {
     let shape = x.shape();
     if shape.is_empty()
         || shape.last() != Some(&768)
@@ -84,11 +89,22 @@ pub(crate) fn apply(x: &Array, gamma: &Array, beta: &Array) -> crate::ops::Resul
         return Err("invalid experimental XSum normalization row count".into());
     }
     let threads = rows.checked_mul(128).ok_or("normalization grid overflow")?;
+    let (name, source) = if refined {
+        (
+            "ncm_xsum_welford_refined_experimental",
+            SOURCE.replace(
+                "float inv = rsqrt(sigma_buf[0] + 1.0e-6f);",
+                "float v = sigma_buf[0] + 1.0e-6f;\nfloat y = rsqrt(v), square = y * y, error = fma(y, y, -square);\nfloat residual = fma(-v, square, 1.0f) - v * error;\nfloat inv = fma(y, 0.5f * residual, y);",
+            ),
+        )
+    } else {
+        ("ncm_xsum_welford_experimental", SOURCE.to_owned())
+    };
     let kernel = MetalKernel::new(
-        "ncm_xsum_welford_experimental",
+        name,
         &["x", "gamma", "beta"],
         &["out"],
-        SOURCE,
+        &source,
         MetalKernelOptions {
             header: HEADER.into(),
             ensure_row_contiguous: true,

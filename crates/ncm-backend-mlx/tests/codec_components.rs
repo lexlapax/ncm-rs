@@ -290,3 +290,27 @@ fn experimental_xsum_projection_preserves_reference_bias_order() {
     assert_eq!(b.shape(&result), [1, 6, 768]);
     assert!(b.read_f32(&result).unwrap().iter().all(|&v| v == 0.0));
 }
+
+#[test]
+fn experimental_xsum_refined_norm_matches_layer_norm_contract() {
+    let b = MlxBackend::gpu_xsum_refined_norm_experimental().unwrap();
+    let values: Vec<f32> = (0..2 * 768)
+        .map(|i| ((i * 37 % 101) as f32 - 50.0) / 17.0)
+        .collect();
+    let x = b.upload_f32(&values, &[1, 2, 768]).unwrap();
+    let weight = b.upload_f32(&[1.0; 768], &[768]).unwrap();
+    let bias = b.upload_f32(&[0.0; 768], &[768]).unwrap();
+    let candidate = b
+        .layer_norm_accelerated(&x, &weight, Some(&bias), 1e-6)
+        .unwrap();
+    let reference = b.layer_norm(&x, &weight, Some(&bias), 1e-6).unwrap();
+    assert_eq!(b.shape(&candidate), [1, 2, 768]);
+    for (actual, expected) in b
+        .read_f32(&candidate)
+        .unwrap()
+        .iter()
+        .zip(b.read_f32(&reference).unwrap())
+    {
+        assert!(actual.is_finite() && (actual - expected).abs() <= 1e-5);
+    }
+}

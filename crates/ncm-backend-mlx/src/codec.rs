@@ -83,6 +83,7 @@ pub struct MlxTensor(Array);
 pub struct MlxBackend {
     stream: Stream,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+    xsum_refined_norm_experimental: bool,
     xsum_reference_projection_experimental: bool,
     xsum_target_projection_experimental: bool,
     xsum_refinement_experimental: bool,
@@ -125,6 +126,7 @@ impl MlxBackend {
         let backend = Self {
             stream,
             compiled_gelu: Rc::new(RefCell::new(None)),
+            xsum_refined_norm_experimental: false,
             xsum_reference_projection_experimental: false,
             xsum_target_projection_experimental: false,
             xsum_refinement_experimental: false,
@@ -220,6 +222,13 @@ impl MlxBackend {
     pub fn gpu_xsum_reference_projection_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_refinement_experimental()?;
         backend.xsum_reference_projection_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit refined normalization with the reference-order projection candidate.
+    pub fn gpu_xsum_refined_norm_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_reference_projection_experimental()?;
+        backend.xsum_norm_experimental = true;
+        backend.xsum_refined_norm_experimental = true;
         Ok(backend)
     }
     /// Explicit split-head diagnostic with experimental group normalization.
@@ -515,7 +524,12 @@ impl CodecBackend for MlxBackend {
             let width = x.0.shape().last().copied();
             if self.xsum_norm_experimental && width == Some(768) && eps == 1e-6 {
                 let bias = bias.ok_or("experimental XSum normalization requires bias")?;
-                return crate::xsum_norm_experimental::apply(&x.0, &weight.0, &bias.0);
+                return crate::xsum_norm_experimental::apply(
+                    &x.0,
+                    &weight.0,
+                    &bias.0,
+                    self.xsum_refined_norm_experimental,
+                );
             }
             let affine_shape = weight.0.shape().len() == 1
                 && weight.0.shape().first().copied() == width

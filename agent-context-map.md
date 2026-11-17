@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum refined-normalization combination:** an explicitly selected Metal diagnostic combines reference-order projection and refinement with a Welford normalization using refined inverse; full `tools/check.sh --cuda` passed including 18 device cases, while Metal regression and free-generation screens are pending. The controlled CUDA continuation previously tied, so no success or gate pass is inferred. Default inference is unchanged.
+
 - **WMT14 CUDA final selection diagnostic:** synchronized profiling isolates the existing generic first-tie selection at about 94 ms for batch 32 on retained real logits. An explicit bounded one-pass CUDA candidate matched the generic result on real logits and ties/NaN/infinity tests; isolated median fell from 94.05 to 2.93 ms on batch 32. An opt-in backend passes focused and full CUDA checks (18 device cases), both 3,003-row base/CFG exact retests and frozen scoring. [Repeated paired timing](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md) favors Rust in median/p95, RSS and sampled GPU memory at all scoped batches, with desktop activity. The first full check failed an unrelated lifecycle fixture; isolation and the full rerun passed. Default inference and remaining gates are unchanged.
 
 - **WMT14 CUDA internal profiling:** a standalone example reuses existing explicitly enabled level-one trace checkpoints to break down the uncached generator path. CUDA build/lint passed, base/CFG traces match retained Rust outputs, and matching pinned Python block profiles reproduce those outputs. These synchronized intervals are instrumentation, not a performance gate.
