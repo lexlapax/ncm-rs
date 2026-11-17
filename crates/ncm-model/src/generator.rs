@@ -2744,3 +2744,267 @@ mod tests {
         assert_eq!(counter.0.get(), 142);
     }
 }
+
+/// Fixed-history LM1B-small diagnostic. It is not a generation or quality gate.
+#[cfg(feature = "lm1b-experimental")]
+pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
+    codec: crate::Codec<B>,
+    backend: B,
+    input: Affine<B::Tensor>,
+    levels: B::Tensor,
+    final_norm: Affine<B::Tensor>,
+    blocks: Box<[GeneratorBlock<B::Tensor>]>,
+    head: B::Tensor,
+    head_bias: Box<[B::Tensor]>,
+    post_conv: Box<[Affine<B::Tensor>]>,
+    geometry: Vec<LevelGeometry<B::Tensor>>,
+    allowance: Vec<f32>,
+}
+
+#[cfg(feature = "lm1b-experimental")]
+impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
+    pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
+        crate::Lm1bSmallGeneratorInspection::from_preparation_bytes(
+            artifact
+                .file("config.json")
+                .map_err(|e| Error::Weights(e.to_string()))?,
+            artifact
+                .file("generator.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?,
+            artifact
+                .file("inference.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?,
+        )?;
+        let codec = crate::Codec::from_lm1b_small_artifact_experimental(backend.clone(), artifact)?;
+        let bytes = artifact
+            .file("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        let mut weights = BTreeMap::new();
+        for name in tensors.names() {
+            if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                continue;
+            }
+            let t = tensors
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            weights.insert(
+                name.to_owned(),
+                backend.upload_f32(&upload_values(t.data())?, t.shape())?,
+            );
+        }
+        let input = take_affine(&mut weights, "transformer.wte")?;
+        let levels = take(&mut weights, "transformer.wle.weight")?;
+        let final_norm = take_affine(&mut weights, "transformer.ln_f")?;
+        let mut blocks = Vec::with_capacity(12);
+        for i in 0..12 {
+            let p = format!("transformer.blocks.{i}");
+            blocks.push(GeneratorBlock {
+                ln_1: take_affine(&mut weights, &format!("{p}.ln_1"))?,
+                qkv: take_affine(&mut weights, &format!("{p}.attn.c_attn"))?,
+                q_norm: take(&mut weights, &format!("{p}.attn.q_norm.weight"))?,
+                k_norm: take(&mut weights, &format!("{p}.attn.k_norm.weight"))?,
+                attention_projection: take_affine(&mut weights, &format!("{p}.attn.c_proj"))?,
+                ln_2: take_affine(&mut weights, &format!("{p}.ln_2"))?,
+                mlp_in: take_affine(&mut weights, &format!("{p}.mlp.c_fc"))?,
+                mlp_out: take_affine(&mut weights, &format!("{p}.mlp.c_proj"))?,
+            });
+        }
+        let head = take(&mut weights, "lm_heads.head.weight")?;
+        let mut head_bias = Vec::with_capacity(12);
+        let mut post_conv = Vec::with_capacity(12);
+        for i in 0..12 {
+            head_bias.push(take(&mut weights, &format!("lm_heads.biases.{i}"))?);
+            post_conv.push(take_affine(
+                &mut weights,
+                &format!("post_upsample_convs.{i}"),
+            )?);
+        }
+        let _unused_query = take(&mut weights, "l0_queries")?;
+        if !weights.is_empty() {
+            return Err(Error::Weights("unbound LM1B generator tensor".into()));
+        }
+        let geometry = prepare_geometry(&backend, codec.config().levels(), 1, 768, 12, 10000)?;
+        let data = artifact
+            .file("inference.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let tensors = SafeTensors::deserialize(data).map_err(|e| Error::Weights(e.to_string()))?;
+        let t = tensors
+            .tensor("token_unigram")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let allowance = upload_values(t.data())?.into_owned();
+        Ok(Self {
+            codec,
+            backend,
+            input,
+            levels,
+            final_norm,
+            blocks: blocks.into_boxed_slice(),
+            head,
+            head_bias: head_bias.into_boxed_slice(),
+            post_conv: post_conv.into_boxed_slice(),
+            geometry,
+            allowance,
+        })
+    }
+}
+
+#[cfg(feature = "lm1b-experimental")]
+impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
+    pub fn run_traced(
+        &self,
+        prefix: &[u32],
+        codes: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<()> {
+        if !(1..=32).contains(&batch)
+            || prefix.len() != batch
+            || prefix.iter().any(|&x| x != 101)
+            || codes.len() != batch * 641
+            || codes.iter().any(|&x| x >= 8192)
+        {
+            return Err(Error::Input("invalid LM1B fixed-history inputs".into()));
+        }
+        let b = &self.backend;
+        let prefix_ids = b.upload_indices(prefix, &[batch, 1])?;
+        let codes = b.upload_indices(codes, &[batch, 641])?;
+        trace.indices("generator.prefix_ids", &prefix_ids)?;
+        trace.indices("generator.forced_codes", &codes)?;
+        trace.indices(
+            "generator.initial_codes",
+            &b.narrow_indices(&codes, 1, 0, 1)?,
+        )?;
+        let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
+        let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
+        let mut cumulative = None;
+        let mut offset = 0;
+        for (level, &length) in self.codec.config().levels().iter().enumerate() {
+            if level > 0 {
+                let latent = b.area1d(cumulative.as_ref().expect("previous level"), length)?;
+                trace.tensor(
+                    &format!("generator.level_{level:02}.post_conv_input"),
+                    &b.permute(&latent, &[0, 2, 1])?,
+                )?;
+                let conv = &self.post_conv[level];
+                let delta = b.conv1d(&latent, &conv.weight, &conv.bias, 1, 1, false)?;
+                trace.tensor(
+                    &format!("generator.level_{level:02}.post_conv_output"),
+                    &b.permute(&delta, &[0, 2, 1])?,
+                )?;
+                let target = b.project_bias(
+                    &b.add(&latent, &delta)?,
+                    &self.input.weight,
+                    &self.input.bias,
+                )?;
+                let target = b.add(&target, &b.narrow(&self.levels, 0, level, 1)?)?;
+                let hidden = decode_transformer(
+                    b,
+                    &self.blocks,
+                    &self.final_norm,
+                    &self.geometry[level],
+                    &prefix,
+                    &target,
+                    1,
+                    12,
+                    768,
+                    length,
+                )?;
+                let logits = b.project_bias(&hidden, &self.head, &self.head_bias[level])?;
+                trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
+            }
+            let selected = b.narrow_indices(&codes, 1, offset, length)?;
+            offset += length;
+            let embedding = b.embedding(
+                self.codec
+                    .weight(&format!("vq.embeddings.{level}.weight"))?,
+                &selected,
+            )?;
+            let up = self.codec.upsample(&embedding, level)?;
+            let contribution = self.codec.refine(&up, level)?;
+            let sum = if let Some(old) = cumulative {
+                b.add(&old, &contribution)?
+            } else {
+                contribution
+            };
+            trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
+            cumulative = Some(sum);
+        }
+        let (logits, greedy) = self
+            .codec
+            .decode_latent_outputs(&cumulative.expect("levels"), &mut crate::NoTrace)?;
+        trace.tensor("generator.final_logits", &logits)?;
+        trace.indices("generator.greedy_ids", &greedy)?;
+        let penalized = lm1b_penalized_ids(&b.read_f32(&logits)?, &self.allowance, batch, 128)?;
+        trace.indices(
+            "generator.penalized_ids",
+            &b.upload_indices(&penalized, &[batch, 128])?,
+        )?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "lm1b-experimental")]
+fn lm1b_penalized_ids(
+    logits: &[f32],
+    allowance: &[f32],
+    batch: usize,
+    time: usize,
+) -> Result<Vec<u32>> {
+    let vocab = allowance.len();
+    if vocab != 30528
+        || !(1..=32).contains(&batch)
+        || time != 128
+        || logits.len() != batch * time * vocab
+        || allowance.iter().any(|x| !x.is_finite() || *x < 0.0)
+        || logits.iter().any(|x| !x.is_finite())
+    {
+        return Err(Error::Input("invalid LM1B penalty input".into()));
+    }
+    let allow: Vec<f64> = allowance
+        .iter()
+        .map(|&x| f64::from(x) * time as f64)
+        .collect();
+    let mut output = Vec::with_capacity(batch * time);
+    for row in logits.chunks_exact(time * vocab) {
+        let mut counts = vec![0_u32; vocab];
+        let start = output.len();
+        for (t, values) in row.chunks_exact(vocab).enumerate() {
+            let mut best = f64::NEG_INFINITY;
+            let mut chosen = 0;
+            for (id, &value) in values.iter().enumerate() {
+                let count = f64::from(counts[id]);
+                let mut score = f64::from(value) - 11.5 * (count - allow[id]).max(0.0);
+                score += 2.0 * ((time - t) as f64 / time as f64) * (allow[id] - count).max(0.0);
+                for (j, &penalty) in [10.0, 5.0, 2.5, 1.25].iter().enumerate().take(t.min(4)) {
+                    if output[start + t - j - 1] as usize == id {
+                        score -= penalty;
+                    }
+                }
+                if score > best {
+                    best = score;
+                    chosen = id;
+                }
+            }
+            counts[chosen] += 1;
+            output.push(chosen as u32);
+        }
+    }
+    Ok(output)
+}
+
+#[cfg(all(test, feature = "lm1b-experimental"))]
+mod lm1b_teacher_tests {
+    use super::lm1b_penalized_ids;
+
+    #[test]
+    fn penalty_selects_first_available_id_and_rejects_invalid_inputs() {
+        let allowance = vec![0.0; 30528];
+        let mut logits = vec![0.0; 128 * 30528];
+        let ids = lm1b_penalized_ids(&logits, &allowance, 1, 128).unwrap();
+        assert_eq!(ids, (0..128).collect::<Vec<_>>());
+        logits[0] = f32::NAN;
+        assert!(lm1b_penalized_ids(&logits, &allowance, 1, 128).is_err());
+        assert!(lm1b_penalized_ids(&logits[..1], &allowance, 1, 128).is_err());
+    }
+}

@@ -10,6 +10,8 @@ mod xsum_decode;
 mod xsum_generator;
 pub use blocks::{NoTrace, TraceSink, codebook_distances};
 pub use codec::{Decoded, Encoded};
+#[cfg(feature = "lm1b-experimental")]
+pub use generator::Lm1bSmallTeacher;
 pub use generator::{
     Generated, Generator, GeneratorConfig, GeneratorWeights, TinyStoriesGeneratorInspection,
     TinyStoriesTeacher, XsumGenerated, XsumTeacher, XsumTeacherOutput,
