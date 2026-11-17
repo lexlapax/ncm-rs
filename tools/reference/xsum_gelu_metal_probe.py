@@ -17,6 +17,11 @@ def gelu(x):
         mx.erf(x / mx.array(np.float32(np.sqrt(2.0)), mx.float32)) + mx.array(1.0, mx.float32))
 
 
+def gelu_multiply(x):
+    return (x * mx.array(0.5, mx.float32)) * (
+        mx.erf(x * mx.array(np.float32(1.0 / np.sqrt(2.0)), mx.float32)) + mx.array(1.0, mx.float32))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--input', required=True, type=Path)
@@ -31,6 +36,8 @@ def main():
     x = data['x']
     composed = gelu(x)
     compiled = mx.compile(gelu)(x)
+    multiply = gelu_multiply(x)
+    compiled_multiply = mx.compile(gelu_multiply)(x)
     kernel_dir = Path('.reference/mlx-native/include/mlx/backend/metal/kernels')
     erf_header = (kernel_dir / 'erf.h').read_text()
     expm1_header = (kernel_dir / 'expm1f.h').read_text()
@@ -48,10 +55,11 @@ def main():
         (value,) = kernel(inputs=[x], grid=(1591296, 1, 1), threadgroup=(256, 1, 1),
                           output_shapes=[(1, 518, 3072)], output_dtypes=[mx.float32])
         cuda_order.append((f'cuda_order_{mode}', value))
-    mx.eval(composed, compiled, *(value for _, value in cuda_order))
+    mx.eval(composed, compiled, multiply, compiled_multiply, *(value for _, value in cuda_order))
     expected = np.asarray(data['cuda'])
     result = {}
-    for name, value in [('composed', composed), ('compiled', compiled), *cuda_order]:
+    for name, value in [('composed', composed), ('compiled', compiled),
+                        ('multiply', multiply), ('compiled_multiply', compiled_multiply), *cuda_order]:
         value = np.asarray(value)
         if not np.isfinite(value).all():
             raise ValueError('nonfinite output')

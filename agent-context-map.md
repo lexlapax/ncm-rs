@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum compiled GELU screen:** the existing standalone probe is extended to compare uncompiled and compiled multiplication-order MLX graphs with CUDA on the captured and synthetic inputs. Syntax passes; Metal results are pending. No model behavior changes.
+
 - **XSum second normalization same-input probe:** on 512 captured prefix vectors, [Metal fast and Welford normalization](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) matched 245,194 and 299,356 of 393,216 CUDA values respectively; pinned PyTorch CUDA matched all. This is a bounded operation comparison, not a causal fix or gate pass.
 
 - **XSum same-input MLP projection probe:** the [standalone Metal diagnostic](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) and CUDA both reproduce all 1,591,296 retained projection values on the captured row in original 32-row geometry with other rows zero-filled; row-only CUDA geometry differed. This isolates the observed projection drift to differing inputs for this case, not general parity. The Metal gate remains open.
