@@ -31,11 +31,20 @@ def main():
     x = mx.concatenate([mx.zeros((9, length, 768)), d['x'], mx.zeros((22, length, 768))], axis=0)
     projected = x @ mx.transpose(d['weight'])
     output = (projected + d['bias'] if args.projection == 'mlp' else projected)[9:10]
-    mx.eval(output)
+    flat = mx.reshape(x, (32 * length, 768))
+    book = mx.transpose(d['weight'])
+    split = mx.reshape(flat[:, :384] @ book[:384] + flat[:, 384:] @ book[384:],
+                       (32, length, width))
+    split = (split + d['bias'] if args.projection == 'mlp' else split)[9:10]
+    mx.eval(output, split)
     actual, expected = np.asarray(output), np.asarray(d['cuda'])
     if not np.isfinite(actual).all():
         raise ValueError('nonfinite output')
     delta = np.abs(actual - expected)
+    split_actual = np.asarray(split)
+    if not np.isfinite(split_actual).all():
+        raise ValueError('nonfinite split output')
+    split_delta = np.abs(split_actual - expected)
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
     result = {'input_sha256': args.input_sha256,
@@ -43,7 +52,10 @@ def main():
         'projection': args.projection,
         'exact_elements': int(np.count_nonzero(delta == 0)), 'total_elements': int(delta.size),
         'max_abs': float(delta.max()), 'mean_abs': float(delta.mean()),
-        'target4_max_abs': float(delta[0, 516 if args.projection == 'mlp' else 4].max())}
+        'target4_max_abs': float(delta[0, 516 if args.projection == 'mlp' else 4].max()),
+        'split2': {'exact_elements': int(np.count_nonzero(split_delta == 0)),
+                   'max_abs': float(split_delta.max()), 'mean_abs': float(split_delta.mean()),
+                   'target4_max_abs': float(split_delta[0, 516 if args.projection == 'mlp' else 4].max())}}
     args.output.write_text(json.dumps(result, indent=2) + '\n')
 
 
