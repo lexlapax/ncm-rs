@@ -384,3 +384,17 @@ desktop GPU processes. Manifest, measurement and telemetry hashes are
 This addresses the observed batch-16 sampled memory regression in this
 nonexclusive comparison; it does not establish full Phase 4 or WMT Metal
 qualification, and the normal cached CFG path remains guarded.
+
+## Full-corpus raw-score audit preparation
+
+The explicitly selected recomputation diagnostic now exposes raw cached head
+logits to a trace observer. `wmt14_cfg_recompute_audit` compares those logits
+with uncached guided logits under the same final code history, verifies codes
+and raw IDs against the pinned Python corpus, and records per-position margins
+and batch-level recomputation coverage. A four-row smoke passed. Full
+`tools/check.sh --cuda` passed 18 operator cases; log SHA-256
+`2420a47d3e9a70bb9a2c1ba4812613850e321544bb5a889e026f1abca7d27b2b`.
+After refining audit-only coverage labels, strict feature-enabled lint and four
+artifact-backed CUDA cache tests passed. The initial lint import-name error is
+retained in its v1 log. The source-bound full audit remains pending. This is
+not a proof of a bound for unseen inputs and does not change the CFG guard.

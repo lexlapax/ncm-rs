@@ -1072,6 +1072,10 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             if let (Some(margin), Some(target), Some((original, scale))) =
                 (self.cfg_recompute_margin_diagnostic, recompute_target, cfg)
             {
+                trace.tensor(
+                    &format!("diagnostic.cached.level_{level:02}.logits"),
+                    &head_logits,
+                )?;
                 let uncertain = wmt14_margin_uncertain(&b.read_f32(&head_logits)?, margin)?;
                 trace.indices(
                     &format!("diagnostic.recomputed.level_{level:02}"),
