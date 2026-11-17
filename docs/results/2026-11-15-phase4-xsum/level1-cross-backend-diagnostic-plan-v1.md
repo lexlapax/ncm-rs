@@ -714,5 +714,33 @@ to the preceding refinement candidate: batch 4864 matches CUDA, while 4928
 retains the three code and five raw-ID differences on row 4937. Their hashes
 are `8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6`
 and `1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`;
-input hashes passed postflight. A forced-history trace is pending. This is
-not full-corpus quality or performance evidence, and the exact gate fails.
+input hashes passed postflight. The forced-history trace is described below. This is not full-corpus quality
+or performance evidence, and the exact gate fails.
+
+
+The candidate forced trace SHA-256 is
+`005f759f7f2d41fcdbe051f4ce3b2776e9c1d0c32de2221e58a9e771756f4772`;
+its receipt is `97fc103ef17c2b1851bf2a0a88341a44da795ef1eb03d1d1190f14805a30a6ea`.
+Local and Mac copies agree. Its latent and target projection match the
+previously prepared same-input CUDA projection input and output exactly,
+although its latent differs from the retained CUDA latent. An exact CUDA
+continuation from this candidate input selects the CUDA reference code,
+whereas substituting its Metal block-0 output selects the Metal code. The
+CUDA controls at all inspected boundaries exactly reproduce the retained CUDA
+hidden and reference margin. Script/log SHA-256 values are
+`9e6d9cc36699bb81522fb26da929ed77ade373fc1f016976f21013df8885dc96` /
+`2ced4aecbc1aa65a9e91267f0b00db3dc78c33d4980615d11ee9528bb1af8c75`.
+
+With the candidate input, separately substituting captured first-block Metal
+normalization, QKV, attention, second normalization, MLP input or GELU output
+into CUDA also selects 3690; substituting the first residual selects 3182.
+Replacing only the prefix or only the target part of first normalization each
+selects 3690. These are distinct interventions, not a monotonic causal chain
+or proof of a unique cause. Stage script/log SHA-256 values are
+`05d5fa01e9d5327da610f58065f5917beda37bc55856b6455ae8101ffa1aeb49` /
+`0515c0c00cdf04e7aa8999db1df9928612c46d05bf5302ffce1c31bdd2cdb750`;
+prefix/target script/log values are
+`e06fbbb64b3a2f5e6828bc79039898e09068e921bdadaf89de16db2e11a15e4b` /
+`1bfb0100593f5db1b36fa225beb812d88737209e77a744a337b0f206c2ebc47a`.
+A same-input Metal normalization comparison is prepared; it has not yet
+qualified a model change or gate.

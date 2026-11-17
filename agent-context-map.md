@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum first-block continuation:** the reference-order candidate reproduces CUDA projection on its captured latent, but its forced Metal block-0 output independently flips the exact CUDA continuation. Substituting either captured prefix or target first-normalization outputs also flips it. A [same-input normalization probe](tools/reference/xsum_candidate_norm_metal_probe.py) is prepared; no gate pass.
+
 - **XSum reference-order projection diagnostic:** Metal two-part matrix products with bias on the first part exactly match CUDA on one captured and four seeded inputs. An explicitly selected candidate combines this with the refinement diagnostic; full `tools/check.sh --cuda` passed including 18 device cases and Metal bias-order regression passed. The two Metal free-generation outputs are byte-identical to the preceding candidate, retaining the known row-4937 failure; a forced trace is pending. Default inference is unchanged.
 
 - **XSum three-part projection diagnostic:** an explicitly selected Metal candidate combines the prior refinement diagnostic with three-part projection on the six-vector target. Full `tools/check.sh --cuda` passed including 18 device cases. Both Metal free-generation batches are byte-identical to the prior refinement candidate, retaining three code and five raw-ID differences on row 4937. It remains experimental; the exact gate fails.
