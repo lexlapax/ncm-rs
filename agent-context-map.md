@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum group-normalization model diagnostic:** an explicit experimental Metal backend combines the first-upsample candidate with the CUDA-layout group-normalization kernel, restricted to the validated XSum shape. The default backend is unchanged. Full `tools/check.sh --cuda` passed (18 real-device operator cases); the Rust Metal build, probe equivalence and forced-history comparisons remain pending. The Metal kernel's Rust binding may use different compiler options from the Python safe-math probe, so numerical equivalence must be measured.
+- **XSum group-normalization model diagnostic:** an explicit experimental Metal backend combines the first-upsample candidate with the CUDA-layout group-normalization kernel, restricted to the validated XSum shape. The default backend is unchanged. Full `tools/check.sh --cuda` passed (18 real-device operator cases); the Rust Metal build passes. The first forced-history run failed because the tracer expected 36 tensors despite three later instrumentation additions; the guard now expects 39 and reports count separately from changed codes. The corrected tracer's full CUDA check passed (`reports/phase4-xsum-groupnorm-trace-count-cuda-check-v1.log`). The Metal kernel's Rust binding may use different compiler options from the Python safe-math probe, so numerical equivalence must be measured.
 
 - **Mac testing pushes:** the user approved all pushes needed for Mac testing via pulls going forward. Review scope before each push; do not overwrite unrelated remote work.
 

@@ -98,8 +98,15 @@ pub fn run<B: GeneratorBackend + Clone>(backend: B) -> Result<(), Box<dyn std::e
         final_logits: None,
     };
     let output = model.run_traced(&prefix, &forced, 32, &mut capture)?;
-    if backend.read_indices(&output.codes)? != forced || capture.values.len() != 36 {
-        return Err("incomplete or changed forced history".into());
+    if backend.read_indices(&output.codes)? != forced {
+        return Err("changed forced history".into());
+    }
+    if capture.values.len() != 39 {
+        return Err(format!(
+            "incomplete trace: expected 39 tensors, got {}",
+            capture.values.len()
+        )
+        .into());
     }
     let selected = select_xsum_tokens_cpu(
         capture
