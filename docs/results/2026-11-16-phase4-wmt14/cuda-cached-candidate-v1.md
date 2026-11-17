@@ -302,3 +302,29 @@ a bound for unseen inputs. The first decode attempt used a Python environment
 without Transformers; the existing pinned tokenizer environment succeeded.
 A source-bound alternating performance comparison is prepared; results remain
 pending and the ordinary cached CFG guard remains in place.
+
+The frozen scorer was independently replayed and reproduced byte-for-byte
+with the same SHA-256. An alternating three-process comparison at `45d4fed`,
+with five warmups and 30 trials per process, matched every benchmark code and
+raw ID. Pooled median/p95 latency in milliseconds, peak process RSS, and
+approximate sampled process GPU peaks were:
+
+| Batch | Python median / p95 ms | Rust median / p95 ms | Python / Rust RSS MiB | Python / Rust sampled GPU MiB |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 100.79 / 101.29 | 51.29 / 51.76 | 2093.10 / 1844.70 | 1364 / 1318 |
+| 4 | 328.78 / 330.00 | 139.12 / 140.28 | 2093.25 / 1856.57 | 1538 / 1384 |
+| 16 | 1235.62 / 1238.85 | 613.08 / 615.26 | 2092.75 / 1911.43 | 3072 / 3176 |
+
+Rust sampled GPU usage is higher at batch 16 and therefore remains a visible
+memory failure, not a full performance pass. These are approximately one-second
+process samples, not native allocator peaks. All 319 telemetry samples had
+zero query failures; observed temperature was 40.00–71.34 °C and other desktop
+GPU processes were present. Process medians in milliseconds were Rust
+51.13/51.35/51.33, 138.74/139.03/139.78, and 611.63/613.09/614.12; Python
+100.59/100.77/100.97, 327.37/328.82/329.51, and 1231.51/1236.04/1237.70.
+Manifest, measurement and telemetry SHA-256 values are
+`4dc42d1f700618214f0808dbace680bb76be11ac993f7abb6a27208f3167c42c`,
+`fea83cd63c856b8c0997ed04f7d59d45345c1fc71eab0136a6a2c1569775d1e6`, and
+`bb790030008022109c9f759573632aa7d8db833ccb3cc2c1d65a57d7a93959c5`.
+Telemetry is nonexclusive and does not establish allocator peaks or unseen
+input correctness. CFG remains explicitly diagnostic and guarded.
