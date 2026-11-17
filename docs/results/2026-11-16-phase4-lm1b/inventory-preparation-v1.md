@@ -133,3 +133,28 @@ loader limits, model semantics and all GPU gates remain open.
 The repository standard `tools/check.sh` completed successfully; log SHA-256
 `4a13ff7ce406f9a75e6a4b50edc902770db31c3028ac2442ff05b8f55828654e`.
 It does not establish model quality or GPU validation.
+
+## Bounded codec training-state probe
+
+The pinned LM1B codec has 36 EMA/hit-counter tensors (three named groups
+across 12 levels), alongside 100 other tensors. On the previously captured
+small CPU sample's fixed 641 codes, a strictly loaded pinned upstream codec
+produced generator inputs, 12 reconstruction levels and decoder logits.
+After all 36 candidate tensors were set to 7 in the in-memory model, all 14
+outputs remained bit-identical. Inputs and upstream source were checked before
+and after. Two independent processes produced identical report SHA-256
+`b2e48110d7862d7662b87b64e9ff2773fe8b6e42bbae098ebd2d690e4c0613ff`;
+the diagnostic source SHA-256 is
+`8c924a78fbdc46d9c6ee2a8d773201504c01374995f4af4ec683f5dadb2583e5`.
+
+The command was `setpriv --inh-caps=-all env OMP_NUM_THREADS=1
+TOKENIZERS_PARALLELISM=false .reference/venv/bin/python
+tools/reference/lm1b_training_state_probe.py --upstream .reference/upstream-ncm
+--source artifacts/upstream/lm1b-phase4 --sample
+reports/phase4-lm1b-small-cpu-probe-v1.json --output NEW_REPORT`. Two focused
+tests cover exact state-name inventory and bit-sensitive output hashes. This
+is one fixed-code CPU probe, not a proof for all inference paths, a change to
+the lossless export, or any GPU/quality gate.
+
+The repository standard `tools/check.sh` passed after this probe; log SHA-256
+`adddb2bdd24109638c55cb2e965c02f6da109d7266df7469018dde15de40d38f`.
