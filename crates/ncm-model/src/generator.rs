@@ -869,6 +869,11 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 b.narrow_indices(codes, 1, offset, length)?
             } else {
                 let selected = b.unique_max_4096(&head_logits)?;
+                if b.read_indices(&selected)?.iter().any(|&x| x >= 4096) {
+                    return Err(Error::Backend(
+                        "tied or nonfinite WMT14 head maximum is unsupported".into(),
+                    ));
+                }
                 if cfg.is_some() {
                     b.concat_indices(&[selected.clone(), selected], 0)?
                 } else {
@@ -877,14 +882,11 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             };
             offset += length;
             selected_levels.push(selected.clone());
-            let book = self
-                .codec
-                .weight(&format!("vq.embeddings.{level}.weight"))?;
-            let embedding = if forced.is_some() {
-                b.embedding(book, &selected)?
-            } else {
-                b.sampled_embedding_4096(book, &selected)?
-            };
+            let embedding = b.embedding(
+                self.codec
+                    .weight(&format!("vq.embeddings.{level}.weight"))?,
+                &selected,
+            )?;
             let contribution = self
                 .codec
                 .refine(&self.codec.upsample(&embedding, level)?, level)?;
@@ -908,11 +910,6 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             codes
         };
         if forced.is_none() {
-            if b.read_indices(&codes)?.iter().any(|&x| x >= 4096) {
-                return Err(Error::Backend(
-                    "tied or nonfinite WMT14 head maximum is unsupported".into(),
-                ));
-            }
             trace.indices("generator.codes", &codes)?;
         }
         let latent = cumulative.expect("validated levels");

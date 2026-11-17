@@ -94,3 +94,12 @@ mixed results do not justify replacing the default backend or claiming a fix;
 the observed target-input difference and other operations remain candidates
 for investigation. The frozen Metal raw-ID gate remains failed. Raw evidence is
 under ignored `reports/phase4-xsum-norm-candidate-mlx-captured-v2/`.
+
+A separate same-batch forced-history run on row 4883 at `09d6c04` also left
+the original raw-ID mismatch unchanged: position 40 is 3646 on both default
+and experimental Metal, versus 50256 on CUDA. All other forced IDs matched.
+Input hashes were unchanged; the candidate safetensors SHA-256 is
+`eea48831659d034ccc7cecf1c6513cca0ef594d85f7d2ec7e806c9b2168ade41`,
+and its JSON SHA-256 is
+`ec28b0ecabfbe06accd76e60939e0a0da65e5c686da5d8256288ca240276a085`;
+local copies match the Mac. This does not qualify a full free-generation run.
