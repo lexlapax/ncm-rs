@@ -182,6 +182,24 @@ impl MlxBackend {
         backend.xsum_head_split_experimental = true;
         Ok(backend)
     }
+    /// Explicit split-head diagnostic with experimental group normalization.
+    pub fn gpu_xsum_head_split_groupnorm_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_groupnorm_experimental()?;
+        backend.xsum_head_split_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit split-head diagnostic with experimental compiled GELU.
+    pub fn gpu_xsum_head_split_gelu_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_compiled_gelu_experimental()?;
+        backend.xsum_head_split_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit split-head diagnostic with all experimental operations.
+    pub fn gpu_xsum_head_split_all_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_all_experimental()?;
+        backend.xsum_head_split_experimental = true;
+        Ok(backend)
+    }
     fn array_op(
         &self,
         inputs: &[&MlxTensor],
