@@ -66,3 +66,21 @@ Its safetensors SHA-256 is
 Feature-specific strict Clippy passed. The full CUDA regression passed, including 18 operator cases (log SHA-256
 `f3ea33da28fe8d3c3ba1494cab25469e8c2f89dd9e07710e3e992be420699208`). The matching
 Metal trace remains pending; the added observations are diagnostic only.
+
+The follow-up Metal check at `5025e97` passed, including 18 operator cases;
+its log SHA-256 is
+`1ae00c77d98dce231f58dc1693dfd5218f9b68be4a8398ee2c5f761452614f86`.
+The capture SHA-256 is
+`cb113f515bc6512ca0b8c511ee0bf7f4c7a780f8c5a1a5fc2e8788d99a7c4edd`;
+the local copy matches the Mac hash, input hashes were unchanged, and all 12
+previous Metal tensors are bit-identical. The selected IDs remain unchanged.
+
+At transformer entry, the 512-position prefix is bit-identical across CUDA and
+Metal, but the six target vectors already differ, with maximum absolute
+`7.1526e-7`. After block 0, maximum differences are `1.5259e-5` in the prefix
+and `1.4305e-6` in the target. After block 11 they are `1.8311e-4` and
+`4.5776e-5`, respectively. These are raw diagnostic differences, not a new
+tolerance or an assertion about the first causal operation. Input reconstruction
+and block arithmetic both need investigation; the exact raw-ID gate remains
+failed. Raw traces are retained under ignored
+`reports/phase4-xsum-block-{cuda-v1,mlx-captured-v1}/`.
