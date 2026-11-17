@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum inverse rounding audit:** the standalone Metal probe is extended to expose the rounded variance-plus-epsilon for comparing correctly rounded inverse square root against pinned CUDA. Syntax checking passed; device and CPU audit results are pending. No inference behavior changes.
+
 - **XSum refined inverse probe:** the [standalone Metal refinement](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) fixes the inspected row's group-5 inverse discrepancy but introduces a one-step discrepancy in group 4; 4,094/4,608 output values match CUDA. It is not a runtime fix.
 
 - **XSum group statistics diagnostic:** [CUDA and Metal reference-order means](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) match in all eight groups for the inspected row; inverse standard deviations match except group 5, where Metal is one FP32 step higher. Explicit `1 / sqrt` fixes group 5 but introduces three other group differences; no inference behavior changes.

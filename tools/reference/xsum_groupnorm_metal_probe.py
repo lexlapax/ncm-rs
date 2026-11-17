@@ -83,7 +83,7 @@ REFERENCE_SOURCE = r'''
 uint tid = thread_position_in_threadgroup.x;
 uint row = threadgroup_position_in_grid.x;
 if (threads_per_simdgroup != 32u) {
-    if (tid == 0u) { stats[row * 2u] = NAN; stats[row * 2u + 1u] = NAN; }
+    if (tid == 0u) { stats[row * 3u] = NAN; stats[row * 3u + 1u] = NAN; stats[row * 3u + 2u] = NAN; }
     for (uint col = tid; col < 576u; col += 512u) out[row * 576u + col] = NAN;
     return;
 }
@@ -100,7 +100,8 @@ if (tid < 32u) {
 }
 if (tid == 0u) {
     means[0] = value.mean; m2s[0] = rsqrt(value.m2 / value.count + 1.0e-5f);
-    stats[row * 2u] = means[0]; stats[row * 2u + 1u] = m2s[0];
+    stats[row * 3u] = means[0]; stats[row * 3u + 1u] = m2s[0];
+    stats[row * 3u + 2u] = value.m2 / value.count + 1.0e-5f;
 }
 threadgroup_barrier(mem_flags::mem_threadgroup);
 for (uint col = tid; col < 576u; col += 512u)
@@ -145,7 +146,7 @@ def main():
         input_names=['x'], output_names=['out', 'stats'], source=source,
         header=REFERENCE_HEADER, compile_options={'math_mode': args.reference_math_mode})
     reference_order, stats = reference_kernel(inputs=[x], grid=(8 * 512, 1, 1),
-        threadgroup=(512, 1, 1), output_shapes=[(8, 576), (8, 2)],
+        threadgroup=(512, 1, 1), output_shapes=[(8, 576), (8, 3)],
         output_dtypes=[mx.float32, mx.float32])
     mx.eval(baseline, fast, candidate, reference_order, stats)
     stats_values = np.asarray(stats)
@@ -168,7 +169,7 @@ def main():
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
         'reference_math_mode': args.reference_math_mode,
         'reference_inverse': args.reference_inverse,
-        'reference_group_mean_rstd': stats_values.tolist(),
+        'reference_group_mean_rstd_variance_epsilon': stats_values.tolist(),
         'scope': 'one previously inspected forced-history row; non-production diagnostic',
         'results': results}, indent=2) + '\n')
 
