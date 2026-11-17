@@ -26,3 +26,7 @@ workspace = true
 [[example]]
 name = "lm1b_small_preparation_probe"
 required-features = ["lm1b-experimental"]
+
+[[example]]
+name = "lm1b_small_artifact_preflight"
+required-features = ["lm1b-experimental"]

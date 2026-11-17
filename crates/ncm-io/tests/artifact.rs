@@ -443,3 +443,74 @@ fn wmt14_profile_has_exact_inventory_and_independent_bounds() {
     save(dir.path(), &manifest);
     assert!(Artifact::load(dir.path()).is_err());
 }
+
+#[test]
+fn lm1b_small_profile_has_independent_inventory_and_bounds() {
+    let (dir, mut manifest) = fixture();
+    manifest.profile = "lm1b-small-inference-v1".into();
+    let training = fs::read(dir.path().join("training.safetensors")).unwrap();
+    fs::write(dir.path().join("inference.safetensors"), &training).unwrap();
+    manifest.files.insert(
+        "inference.safetensors".into(),
+        FileRecord {
+            bytes: training.len() as u64,
+            sha256: sha256(&training),
+        },
+    );
+    let original = &manifest.tensors["training.safetensors"][0];
+    manifest.tensors.insert(
+        "inference.safetensors".into(),
+        vec![TensorRecord {
+            name: original.name.clone(),
+            shape: original.shape.clone(),
+            dtype: original.dtype,
+            bytes: original.bytes,
+            sha256: original.sha256.clone(),
+        }],
+    );
+    for (name, bytes) in [
+        ("tokenizer-manifest.json", b"{}".as_slice()),
+        ("tokenizer.LICENSE", b"notice".as_slice()),
+    ] {
+        fs::write(dir.path().join(name), bytes).unwrap();
+        manifest.files.insert(
+            name.into(),
+            FileRecord {
+                bytes: bytes.len() as u64,
+                sha256: sha256(bytes),
+            },
+        );
+    }
+    save(dir.path(), &manifest);
+    let full = Artifact::load(dir.path()).unwrap();
+    let inference = Artifact::load_inference(dir.path()).unwrap();
+    assert_eq!(full.manifest().profile, "lm1b-small-inference-v1");
+    assert!(!full.file("training.safetensors").unwrap().is_empty());
+    assert!(inference.file("training.safetensors").is_err());
+    assert!(!inference.file("inference.safetensors").unwrap().is_empty());
+    manifest.files.remove("inference.safetensors");
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+    manifest.files.insert(
+        "inference.safetensors".into(),
+        FileRecord {
+            bytes: training.len() as u64,
+            sha256: sha256(&training),
+        },
+    );
+    manifest.files.get_mut("codec.safetensors").unwrap().bytes = 448 * 1024 * 1024 + 1;
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+    for name in [
+        "codec.safetensors",
+        "generator.safetensors",
+        "training.safetensors",
+    ] {
+        manifest.files.get_mut(name).unwrap().bytes = 400 * 1024 * 1024;
+    }
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+    manifest.profile = "lm1b-medium-inference-v1".into();
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+}

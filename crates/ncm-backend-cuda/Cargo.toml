@@ -312,3 +312,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_cfg_recompute_audit"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "lm1b_small_unsupported_probe"
+required-features = ["cpu"]

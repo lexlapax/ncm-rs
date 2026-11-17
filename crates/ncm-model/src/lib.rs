@@ -82,6 +82,11 @@ impl<B: WeightBackend> Codec<B> {
     /// Integrity checks belong to Artifact; this adds codec semantic checks, not
     /// manifest authentication. Generator/evaluation metadata is not executed.
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
+        if artifact.manifest().profile == "lm1b-small-inference-v1" {
+            return Err(Error::Config(
+                "LM1B-small codec execution is unsupported".into(),
+            ));
+        }
         let bytes = artifact
             .file("config.json")
             .map_err(|e| Error::Weights(e.to_string()))?;

@@ -28,6 +28,10 @@ const XSUM_MAX_TOTAL: u64 = 640 * 1024 * 1024;
 // WMT14's larger vocabulary and generator have separate bounded budgets.
 const WMT14_MAX_FILE: u64 = 640 * 1024 * 1024;
 const WMT14_MAX_TOTAL: u64 = 1280 * 1024 * 1024;
+// LM1B-small has an independently bounded codec and generator; larger sizes
+// remain unsupported and cannot inherit these limits.
+const LM1B_SMALL_MAX_FILE: u64 = 448 * 1024 * 1024;
+const LM1B_SMALL_MAX_TOTAL: u64 = 1024 * 1024 * 1024;
 const FILES: [&str; 6] = [
     "codec.safetensors",
     "generator.safetensors",
@@ -342,6 +346,12 @@ impl Artifact {
                     XSUM_MAX_TOTAL,
                 ),
                 "wmt14-inference-v1" => (&WMT14_FILES, &BUNDLES, WMT14_MAX_FILE, WMT14_MAX_TOTAL),
+                "lm1b-small-inference-v1" => (
+                    &TINYSTORIES_FILES,
+                    &TINYSTORIES_BUNDLES,
+                    LM1B_SMALL_MAX_FILE,
+                    LM1B_SMALL_MAX_TOTAL,
+                ),
                 _ => return Err(invalid("unsupported schema, profile or source pins")),
             };
         // Exact flat filename sets reject unknown files, absolute paths, traversal and aliases.
