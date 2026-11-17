@@ -198,3 +198,37 @@ trace as the cached comparison; targeted strict Clippy passed. Two initial
 builds failed to find the unversioned cuDNN linker name; a symlink under the
 ignored report directory to the existing versioned library resolved the third
 build. Logs are retained under `reports/phase4-wmt14-uncached-cfg-*`.
+
+## Cached/uncached internal shape diagnostic
+
+On the same previously inspected four-row CFG batch, explicit level-one
+internal traces compare cached target positions against the corresponding
+uncached positions. The input and first layer-normalization output are
+bit-identical; first Q/K/V projection values differ in 66,526 of 73,728
+positions, maximum absolute difference `7.1526e-7`. The cached and uncached
+internal captures preserve the respective previously observed codes and IDs.
+Their SHA-256 values are
+`43f18a47e689cfc148d9a9ef05de534932f8de2783a9bc0b9f5eb7c530491ef0` and
+`a7af5fa4944abdca62ba3480c996a3d5ac41d06d1f4e4a96a5d8b499ca14013c`.
+
+In separate opt-in probes, matching the uncached Q/K/V matrix shape made that
+projection bit-identical, but attention still differed. Matching the attention
+query shape made its output bit-identical; matching the output projection made
+the first residual identical. Matching all first-block projection shapes made
+the whole first block identical, but block 1 still differed in 21,639 of
+24,576 values, maximum `3.8147e-6`. That final shape probe still differed from
+Python in two codes and one raw ID on row 2658; SHA-256
+`9a5e74fdea968b2825dc6a314588e47615c0eb1efe6b25579b89ebc2eccc4df8`.
+It pads work and allocates filler, so no speed or memory improvement is claimed.
+Only row 2658's original batch was tested, not the separate row 2181 failure or
+the full corpus. These observations identify shape-sensitive arithmetic, not
+a complete correction; the normal cache and CFG guard remain unchanged.
+
+The full `tools/check.sh --cuda` passed, including 18 real-device operator
+cases; log SHA-256
+`0099e8428bc68490779527226518460dc9902d130041d463c6c5ced33d7746ec`.
+After a nonsemantic Clippy argument-count allowance, feature-enabled strict
+Clippy passed and all three artifact-backed CUDA cache regression tests passed;
+the test log SHA-256 is
+`610af19ba15930a81bbb5fc5a30e1e8a5838c30a37124299c9daf54b884b3cf0`.
+The first lint attempt's argument-count error is retained in its v1 log.

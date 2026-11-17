@@ -640,6 +640,8 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     geometry: Vec<LevelGeometry<B::Tensor>>,
     cached_prefix_experimental: bool,
     cached_cfg_diagnostic: bool,
+    cfg_internals_diagnostic: bool,
+    cfg_shape_matched_diagnostic: bool,
 }
 
 /// Host-resident output from explicitly microbatched experimental WMT14 generation.
@@ -709,6 +711,8 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             geometry,
             cached_prefix_experimental: false,
             cached_cfg_diagnostic: false,
+            cfg_internals_diagnostic: false,
+            cfg_shape_matched_diagnostic: false,
         })
     }
 
@@ -716,6 +720,29 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
     pub fn from_artifact_cached_experimental(backend: B, artifact: &Artifact) -> Result<Self> {
         let mut model = Self::from_artifact(backend, artifact)?;
         model.cached_prefix_experimental = true;
+        Ok(model)
+    }
+
+    /// Capture level-one internals for offline cached/uncached comparison only.
+    pub fn from_artifact_cfg_internals_diagnostic(
+        backend: B,
+        artifact: &Artifact,
+        cached: bool,
+    ) -> Result<Self> {
+        let mut model = Self::from_artifact(backend, artifact)?;
+        model.cached_prefix_experimental = cached;
+        model.cached_cfg_diagnostic = cached;
+        model.cfg_internals_diagnostic = true;
+        Ok(model)
+    }
+
+    /// Test shape-matched operations in the known-failing guided cache path.
+    pub fn from_artifact_cfg_shape_matched_diagnostic(
+        backend: B,
+        artifact: &Artifact,
+    ) -> Result<Self> {
+        let mut model = Self::from_artifact_cfg_internals_diagnostic(backend, artifact, true)?;
+        model.cfg_shape_matched_diagnostic = true;
         Ok(model)
     }
 
@@ -919,9 +946,19 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                         &geometry,
                         &target,
                         cache,
+                        if self.cfg_shape_matched_diagnostic {
+                            Some(&prefix)
+                        } else {
+                            None
+                        },
+                        if self.cfg_internals_diagnostic && level == 1 {
+                            Some(trace as &mut dyn crate::TraceSink<B>)
+                        } else {
+                            None
+                        },
                     )?
                 } else {
-                    decode_transformer(
+                    decode_transformer_observed(
                         b,
                         &self.blocks,
                         &self.final_norm,
@@ -932,6 +969,11 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                         12,
                         768,
                         length,
+                        if self.cfg_internals_diagnostic && level == 1 {
+                            Some(trace as &mut dyn crate::TraceSink<B>)
+                        } else {
+                            None
+                        },
                     )?
                 }
             };
@@ -1141,6 +1183,7 @@ fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
 }
 
 #[cfg(feature = "wmt14-experimental")]
+#[allow(clippy::too_many_arguments)]
 fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
@@ -1148,6 +1191,8 @@ fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
     geometry: &LevelGeometry<B::Tensor>,
     target: &B::Tensor,
     cache: &Wmt14PrefixCache<B::Tensor>,
+    projection_padding: Option<&B::Tensor>,
+    mut trace: Option<&mut dyn crate::TraceSink<B>>,
 ) -> Result<B::Tensor> {
     let shape = b.shape(target);
     let [batch, length, 768] = shape.as_slice() else {
@@ -1159,7 +1204,20 @@ fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
     let cosine = b.narrow(&geometry.cosine, 0, 96, *length)?;
     let sine = b.narrow(&geometry.sine, 0, 96, *length)?;
     let mask = b.narrow(&geometry.mask, 2, 96, *length)?;
-    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &a.weight, &a.bias);
+    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| {
+        if let Some(padding) = projection_padding {
+            let width = b.shape(x)[2];
+            let filler = if width == 768 {
+                padding.clone()
+            } else {
+                b.upload_f32(&vec![0.0; *batch * 96 * width], &[*batch, 96, width])?
+            };
+            let full = b.concat_f32(&[filler, x.clone()], 1)?;
+            b.narrow(&b.project_bias(&full, &a.weight, &a.bias)?, 1, 96, *length)
+        } else {
+            b.project_bias(x, &a.weight, &a.bias)
+        }
+    };
     let norm = |a: &Affine<B::Tensor>, x: &B::Tensor| {
         if *batch < 16 {
             b.layer_norm(x, &a.weight, Some(&a.bias), 1e-6)
@@ -1168,23 +1226,56 @@ fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
         }
     };
     let mut x = target.clone();
-    for (block, (prefix_k, prefix_v)) in blocks.iter().zip(cache) {
-        let qkv = linear(&block.qkv, &norm(&block.ln_1, &x)?)?;
+    if let Some(trace) = trace.as_deref_mut() {
+        trace.tensor("diagnostic.level_01.input", &x)?;
+    }
+    for (index, (block, (prefix_k, prefix_v))) in blocks.iter().zip(cache).enumerate() {
+        let normalized = norm(&block.ln_1, &x)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_norm", &normalized)?;
+        }
+        let qkv = linear(&block.qkv, &normalized)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_qkv", &qkv)?;
+        }
         let [q, k, v] = b.split_qkv(&qkv, *batch, *length, 12, 64)?;
         let q = b.rms_rope(&q, &block.q_norm, &cosine, &sine, 1e-6)?;
         let k = b.rms_rope(&k, &block.k_norm, &cosine, &sine, 1e-6)?;
         let keys = b.concat_f32(&[prefix_k.clone(), k], 2)?;
         let values = b.concat_f32(&[prefix_v.clone(), v], 2)?;
-        let attn = b.merge_heads(
-            &b.attention(&q, &keys, &values, Some(&mask))?,
-            *batch,
-            *length,
-            12,
-            64,
-        )?;
+        let attn = if projection_padding.is_some() {
+            let full_q = b.concat_f32(&[prefix_k.clone(), q], 2)?;
+            let full = b.attention(&full_q, &keys, &values, Some(&geometry.mask))?;
+            b.merge_heads(&b.narrow(&full, 2, 96, *length)?, *batch, *length, 12, 64)?
+        } else {
+            b.merge_heads(
+                &b.attention(&q, &keys, &values, Some(&mask))?,
+                *batch,
+                *length,
+                12,
+                64,
+            )?
+        };
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_attention", &attn)?;
+        }
         x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_residual", &x)?;
+        }
         let hidden = b.gelu(&linear(&block.mlp_in, &norm(&block.ln_2, &x)?)?)?;
         x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        if let Some(trace) = trace.as_deref_mut() {
+            trace.tensor(&format!("diagnostic.level_01.block_{index:02}"), &x)?;
+        }
     }
     norm(final_norm, &x)
 }

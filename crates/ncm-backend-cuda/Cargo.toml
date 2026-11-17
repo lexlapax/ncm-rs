@@ -280,3 +280,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_uncached_cfg_row2658"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cfg_internals_row2658"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
