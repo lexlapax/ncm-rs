@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum group-normalization probe prepared:** the [bounded diagnostic](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) compares existing composed, fast and Welford Metal operations on a hash-bound captured row. Syntax passes; Metal execution and any candidate validation are pending.
+- **XSum group-normalization probe:** the [bounded Metal diagnostic](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) compares composed, fast and Welford operations on a hash-bound captured row. The current composed operation matched 3,033/4,608 CUDA values exactly, versus 2,781 for fast and 2,070 for Welford. Neither alternative is supported by this row; the Metal gate remains open.
 
 - **WMT14 eight-row uncached follow-up:** the [diagnostic](docs/results/2026-11-16-phase4-wmt14/cuda-uncached-cfg-eight-v1.md) exactly matches all 3,003 pinned CUDA Python codes and IDs, and independently replayed frozen scoring passes. In the repeated batch-16 comparison Rust median was 1.58% slower than Python, so performance is not accepted. Prioritize the earliest failing XSum Metal gate; avoid further later-profile optimization until it is unblocked. Full candidate Metal work requires the separately requested push authorization.
 

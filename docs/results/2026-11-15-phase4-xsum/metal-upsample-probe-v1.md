@@ -143,3 +143,13 @@ has SHA-256 `787774bc0753e424963efe7d17460105f3c3f4c88d6809f2edf20fd275372d9d`;
 preparation checked that CUDA and upsampling-only Metal first-convolution
 values are bit-identical. Python syntax checking passed locally. A real Metal
 run is pending; this probe is not production inference or gate evidence.
+
+The probe ran on Metal at pushed commit `690e412`; the input hash matched
+before and after execution. Of 4,608 CUDA values, the composed operation
+matched 3,033 exactly, MLX fast layer norm matched 2,781, and the safe-math
+Welford candidate matched 2,070. All had maximum absolute difference
+`4.7684e-7`; mean absolute differences were `1.8466e-8`, `1.9416e-8`, and
+`3.0744e-8`, respectively. The result SHA-256 is
+`24133c5c206c59f6a82d56760898348c3c131dff0b32e45c2a763bfef5ab2ba5`;
+local and Mac copies agree. Neither alternative improves this inspected row's
+exact count; no production or quality conclusion is drawn.
