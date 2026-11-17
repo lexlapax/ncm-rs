@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum same-input head screen:** a standalone Metal probe is prepared with captured CUDA projection, codebook, controlled CUDA norms/scales and the original 32-row geometry. The PyTorch CUDA comparison reproduces the relevant reference margin but differs in 5,692/24,576 logits, so it is an independent controlled arithmetic screen, not an exact replay. Local syntax passes; Metal result is pending.
+- **XSum same-input head screen:** the [controlled Metal and CUDA comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) uses identical captured CUDA projection, codebook, CUDA norms/scales and 32-row geometry. It still crosses 3182/3690, showing the head arithmetic can independently produce the difference. Controlled PyTorch CUDA reproduces the reference pair margin but differs in 5,692/24,576 logits, so this is not an exact replay or gate pass.
 
 - **XSum head precision diagnostic:** on row 4937's captured CUDA projection, an [FP64 unrounded distance recomputation](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) favors code 3690 while the pinned FP32 reference chooses 3182. A generic higher-precision near-tie fallback would not preserve this reference decision; no rule or tolerance changed.
 

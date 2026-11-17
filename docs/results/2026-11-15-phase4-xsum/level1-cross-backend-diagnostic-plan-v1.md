@@ -317,6 +317,21 @@ shows that replacing the reference decision with this higher-precision
 recomputation would select 3690 even for the captured CUDA state; it is not a
 valid parity fix or evidence to change the frozen decision rule.
 
+At `faad73b`, a controlled same-input head comparison used the captured CUDA
+projection at row slot 9 of the original 32-row geometry, CUDA-derived
+codebook norms and FP32 scales, with other rows zero-filled. The controlled
+PyTorch CUDA calculation reproduced the reference pair margin `+9.5367e-7`
+but differed from the retained reference in 5,692/24,576 logits; it is not an
+exact replay of the reference computation. On the same controlled input,
+Metal's margin was `-2.8610e-6`: CUDA chose 3182 and Metal 3690. Metal matched
+6,528/24,576 controlled CUDA logits exactly, maximum absolute difference
+`2.1935e-5`. This isolates a crossing in the controlled head arithmetic even
+with equal projections and norms, without proving it is the sole cause of the
+model-level crossing. Input and receipt SHA-256 values are
+`bb6d1badf44ce7b9e82c37585291d39ce314388f989cb4f92366a1ce77e63aa9` and
+`1894c758a706ef8076c3ce5469f0aebf6741ee911c71f748a876dcf72178d73d`;
+local and Mac receipt copies match. No gate or runtime change follows.
+
 The same six backends were screened on the 32-row batch beginning at 4864.
 Default Metal matched all CUDA codes but retained one raw-ID difference at
 row 4883 position 40. Each of the five experimental variants matched all
