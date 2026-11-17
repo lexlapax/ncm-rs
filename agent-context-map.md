@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum refinement probe preparation:** a [standalone Metal diagnostic](tools/reference/xsum_refinement_metal_probe.py) compares the CUDA and Metal refinement on the same captured input and batch geometry. Python syntax validation passes; device results are pending. It does not change inference.
+
 - **XSum CUDA intervention replay:** the [bounded row-4937 replay](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) exactly reproduces CUDA hidden states and the decisive head margin from captured block boundaries. Substituting only Metal target input, or Metal latent followed by CUDA projection, flips the choice under CUDA replay. A further CUDA replay preserves the reference choice from Metal cascade normalization or convolution, but flips it from Metal reconstruction, narrowing this one intervention to refinement or its interactions. This does not qualify a fix or pass the Metal gate.
 
 - **XSum Metal-hidden head-chain screen:** the [controlled chain probe](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) tried five head layouts on the captured Metal split-head hidden state; all select 3690. Its CUDA reference scores use a different hidden state, so exact-match counts are not same-input accuracy. No inference change or gate pass.
