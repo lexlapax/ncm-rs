@@ -458,6 +458,18 @@ evidence, not an exact reference replay or quality gate. A six-part model
 variant passes the full CUDA check, including 18 device cases; Metal
 free-generation and performance results remain pending.
 
+At `d4b37b6`, the same controlled chain was screened using the retained Metal
+split-head hidden state instead of the CUDA hidden state. All five hidden
+projection layouts selected 3690; their pair margins ranged from
+`-9.5367e-7` to `-3.8147e-6`. CUDA-derived norms and scales were held fixed.
+The CUDA score array in the input belongs to the *different CUDA hidden state*,
+so the receipt's exact-match counts are not same-input accuracy measurements.
+The input and receipt hashes are
+`7cee53e126b21ba646b132b2104d707923de7ad5a61794c0c31770cf42e82e18` and
+`b5c6a30a82cb4ba9a84046b4763d9f9727b508c91455dbfa1e62d86bfad1792b`;
+local and Mac receipt copies agree. This is one inspected forced-history row,
+not a full model or gate result.
+
 At `6b8a156`, the six-part model variant built and ran on Metal. Its free
 outputs on batches 4864 and 4928 were byte-identical to the earlier split-head
 candidate: batch 4864 matches CUDA, while batch 4928 retains three code and
