@@ -947,3 +947,8 @@ the independent mathematical probe is retained as
 example and test files were verified byte-identical to `ccda683`, which has
 full passing CUDA and Metal checks. The probe passes Python compilation. No
 runtime, artifact, oracle, or gate change is claimed.
+After the removal was pulled on Mac, the restored refined-normalization Metal
+regression passed and the retained, shape-checked mathematical probe reproduced
+both the prior receipt and tensor byte-for-byte. The checked-in probe is the
+validated version; the earlier hash identifies the exploratory version used
+for the original two-input screen.
