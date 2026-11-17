@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum CPU erf controls:** a separate FP32 CPU erf expression and system C-library erf also fail to reproduce the CUDA decision under the retained continuation; these are bounded controls, not runtime fallbacks. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
+
 - **XSum high-precision GELU control:** FP64-erf/FP32-expression intervention matches 1,493,683/1,591,296 CUDA values but independently flips the decisive CUDA continuation; exact CUDA GELU retains the reference choice. Prefix-only substitution flips while target-only retains it; both halves of the first 128 prefix tokens independently flip. This rules out assuming more accurate erf alone fixes this case, without proving a general cause. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
 
 - **XSum independent mathematical GELU diagnostic:** an erf-table/Taylor approximation matches 1,494,171/1,591,296 CUDA values on the refined row and 1,516,010 on a synthetic input. A CUDA continuation reaches an exact tie (not a robust pass). An explicit full-model candidate passed CUDA and targeted Metal checks but its two Metal outputs were byte-identical to the prior candidate and retain the failure. The unqualified runtime candidate was removed; the restored Metal regression passes and the checked-in mathematical probe reproduces its bounded result. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).

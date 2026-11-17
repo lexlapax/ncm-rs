@@ -983,3 +983,17 @@ log hashes, in order, are:
 - Prefix quarters: `ffd25d23eb3afb4f189899b3c60c6397b8633cb4cce8dc77d73294fc57db55ab` / `1e61cf95a6ac9bd2428aa1d1df61e060107610a9b941f038b4aa2ff40c0a450b`.
 - First-quarter halves: `0a22578e955e19715d8c9a01e661603eed75216de7b61f3f9db63e38d63060cd` / `47658af0797fc3b1ac4e227e782673252ad59db7ccddcb0ebcb83e84bd6ffd2d`.
 - Exact CUDA control: `017b1ab7c18ab85fadcdfb5ceb51021bc9939b0c3c54af27d96a8d5d9e588ceb` / `acbc370b5e6a60e8c2104227d620ea4760da76a48383c3d20a5f87771d3d3141`.
+
+A separate CPU FP32 `torch.erf` computation matches 1,492,404/1,591,296
+same-input CUDA GELU values and differs from the FP64-erf intervention in
+11,425 values. Its independent CUDA continuation still chooses 3690 with margin
+`-9.5367e-7`. The tensor reproduced byte-for-byte (SHA-256
+`f63072bf2ba1523465111e2432cb0a656fa7590ac73f521056727c81b8d95c6f`);
+the preparation, continuation script and continuation log hashes are
+`294b5517658f5dc75c7a2fb3ed0ea1da853eb12253aec4d03629d570fec43c9b`,
+`c08f3d34a16799b8891194209eb137806034f1029a593c1f5a10fc5e73dedb29`, and
+`6976173fa329a93647d9327adea5ccfb5ea618fdcb8848cae37bdd2b60a41108`.
+The system C-library `erff` expression was also byte-identical to the prior
+FP64-erf intervention for this input. These are numerical controls only;
+they do not justify a CPU fallback, infer a general model failure, or change
+the exact gate.
