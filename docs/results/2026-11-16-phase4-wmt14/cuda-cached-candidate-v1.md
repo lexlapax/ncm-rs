@@ -232,3 +232,33 @@ Clippy passed and all three artifact-backed CUDA cache regression tests passed;
 the test log SHA-256 is
 `610af19ba15930a81bbb5fc5a30e1e8a5838c30a37124299c9daf54b884b3cf0`.
 The first lint attempt's argument-count error is retained in its v1 log.
+
+## Prefix-state follow-up
+
+On row 2658's original four-row batch, the explicitly captured cached prefix
+first normalization, Q/K/V and attention outputs are bit-identical to the
+prefix portion of the uncached level-one trace. The first attention residual
+differs in 469,379 of 589,824 values, maximum `7.6294e-6`; second normalization
+and feed-forward values also differ. After block zero, 562,372 prefix values
+differ, maximum `0.003418`. These numbers include padded positions. Cached
+and uncached traces retain the respective prior code and ID decisions. Their
+SHA-256 values are
+`9e2ace3aa1ca37fbcb1872a532b59f67eda6977113b46084a9b7fc144e55e291` and
+`7f8e4a1f23f674283a41847d9eee00e723b5b287411af569cda08eee490d3c52`.
+The first difference is at the output projection after identical attention
+inputs; different full-sequence matrix shapes are consistent with the earlier
+shape probes, but a causal kernel-level proof is not claimed.
+
+As a bounded exploratory check, top-two scores in each of the previously
+captured cached CFG traces for rows 2181 and 2658 each contain one margin
+below `1e-5`, `1e-4` and `1e-3`, across 1,252 positions per four-row batch.
+The minimum margins are `3.33786e-6` and `5.72205e-6` respectively. These
+inspected examples do not establish a safe margin or detectability guarantee
+for the full corpus; no fallback or gate change follows from this observation.
+
+The follow-up instrumentation passed full `tools/check.sh --cuda` with 18
+CUDA operator cases (log SHA-256
+`6adacfc2a9baca2754ffbc3a8d87dc0651013f0435c12f477d21eabc125154b3`),
+feature-enabled strict Clippy, and all three artifact-backed CUDA cache tests
+(log SHA-256
+`5e49d84f422d9eb384a098f120e669436d53c1131c38099803ec146521c66eae`).

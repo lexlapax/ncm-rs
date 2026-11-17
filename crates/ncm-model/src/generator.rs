@@ -616,7 +616,15 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
             trace.tensor("diagnostic.level_01.first_residual", &x)?;
         }
         let normalized = norm(&block.ln_2, &x)?;
-        let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
+        let projected = linear(&block.mlp_in, &normalized)?;
+        let hidden = b.gelu(&projected)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.second_norm", &normalized)?;
+            trace.tensor("diagnostic.level_01.first_mlp_in", &projected)?;
+            trace.tensor("diagnostic.level_01.first_mlp_gelu", &hidden)?;
+        }
         x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
         if let Some(trace) = trace.as_deref_mut() {
             trace.tensor(&format!("diagnostic.level_01.block_{index:02}"), &x)?;
@@ -926,6 +934,11 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                         &self.final_norm,
                         &geometry,
                         &prefix,
+                        if self.cfg_internals_diagnostic {
+                            Some(trace as &mut dyn crate::TraceSink<B>)
+                        } else {
+                            None
+                        },
                     )?;
                     prefix_cache = Some(cache);
                     hidden
@@ -1155,6 +1168,7 @@ fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
     final_norm: &Affine<B::Tensor>,
     geometry: &LevelGeometry<B::Tensor>,
     prefix: &B::Tensor,
+    mut trace: Option<&mut dyn crate::TraceSink<B>>,
 ) -> Result<(B::Tensor, Wmt14PrefixCache<B::Tensor>)> {
     let batch = b.shape(prefix)[0];
     let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &a.weight, &a.bias);
@@ -1162,8 +1176,19 @@ fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
         |a: &Affine<B::Tensor>, x: &B::Tensor| b.layer_norm(x, &a.weight, Some(&a.bias), 1e-6);
     let mut x = prefix.clone();
     let mut cache = Vec::with_capacity(blocks.len());
-    for block in blocks {
-        let qkv = linear(&block.qkv, &norm(&block.ln_1, &x)?)?;
+    for (index, block) in blocks.iter().enumerate() {
+        let normalized = norm(&block.ln_1, &x)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.prefix.first_norm", &normalized)?;
+        }
+        let qkv = linear(&block.qkv, &normalized)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.prefix.first_qkv", &qkv)?;
+        }
         let [q, k, v] = b.split_qkv(&qkv, batch, 96, 12, 64)?;
         let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
         let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
@@ -1174,10 +1199,28 @@ fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
             12,
             64,
         )?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.prefix.first_attention", &attn)?;
+        }
         cache.push((k, v));
         x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
-        let hidden = b.gelu(&linear(&block.mlp_in, &norm(&block.ln_2, &x)?)?)?;
+        let normalized = norm(&block.ln_2, &x)?;
+        let projected = linear(&block.mlp_in, &normalized)?;
+        let hidden = b.gelu(&projected)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.prefix.first_residual", &x)?;
+            trace.tensor("diagnostic.prefix.second_norm", &normalized)?;
+            trace.tensor("diagnostic.prefix.first_mlp_in", &projected)?;
+            trace.tensor("diagnostic.prefix.first_mlp_gelu", &hidden)?;
+        }
         x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        if let Some(trace) = trace.as_deref_mut() {
+            trace.tensor(&format!("diagnostic.prefix.block_{index:02}"), &x)?;
+        }
     }
     Ok((norm(final_norm, &x)?, cache))
 }
