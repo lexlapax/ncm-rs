@@ -98,7 +98,7 @@ pub fn run<B: GeneratorBackend + Clone>(backend: B) -> Result<(), Box<dyn std::e
         final_logits: None,
     };
     let output = model.run_traced(&prefix, &forced, 32, &mut capture)?;
-    if backend.read_indices(&output.codes)? != forced || capture.values.len() != 29 {
+    if backend.read_indices(&output.codes)? != forced || capture.values.len() != 32 {
         return Err("incomplete or changed forced history".into());
     }
     let selected = select_xsum_tokens_cpu(

@@ -1800,7 +1800,13 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             } else {
                 b.area1d(cumulative.as_ref().expect("preceding levels"), length)?
             };
+            if level == 1 && forced.is_some() {
+                trace.tensor("diagnostic.level_01.latent", &latent)?;
+            }
             let target = b.project_bias(&latent, &self.input.weight, &self.input.bias)?;
+            if level == 1 && forced.is_some() {
+                trace.tensor("diagnostic.level_01.target_projection", &target)?;
+            }
             let target = b.add(&target, &b.narrow(&self.level_embedding, 0, level, 1)?)?;
             let seq = 512 + length;
             let base = &self.geometry[level];
@@ -1902,6 +1908,9 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 Some(ref old) => b.add(old, &contribution)?,
                 None => contribution,
             };
+            if level == 0 && forced.is_some() {
+                trace.tensor("diagnostic.level_01.initial_reconstruction", &sum)?;
+            }
             trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
             cumulative = Some(sum);
         }

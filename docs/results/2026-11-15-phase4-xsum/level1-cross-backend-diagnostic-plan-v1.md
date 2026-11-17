@@ -119,3 +119,15 @@ This suggests a bounded normalization comparison as a next experiment; it
 does not prove the downstream code near tie is caused by this operation.
 The exact Metal raw-ID gate is still failed. Full raw traces remain under
 ignored `reports/phase4-xsum-first-block-{cuda-v1,mlx-captured-v1}/`.
+
+## Target-input follow-up
+
+The forced trace now additionally records the initial reconstruction, its
+level-1 resized latent and input projection. CUDA's row capture contains 32
+tensors; all 29 previous tensors are bit-identical. Its SHA-256 is
+`f1192dd8e9a1b6ea68a63930109b66146c83a2b044f59f0354e5a08282bb0d2b`.
+Feature-specific strict Clippy passed. The full CUDA check and matching Metal
+capture remain pending. This is diagnostic and does not change selection or
+qualification rules.
+The full CUDA check passed, including 18 operator cases; log SHA-256
+`870f5aaf57d082ac64fee66c467e798cdc2968b588ba85317dcf51d1d41c30c6`.
