@@ -116,3 +116,12 @@ hashes are `74ff1cec3d1ca59a299ca148c749d9cce3c71f2151968ed9964e3f1604b39190`,
 Inputs remained hash-identical, and local captures match Mac hashes. This is
 evidence against selecting the combined operation based on these inspected
 rows; it is not a full corpus or quality test.
+
+Comparing the retained CUDA cascade trace to the upsampling-only row-4937
+trace identifies the next captured difference: the first convolution agrees
+in all 4,608 values, while the following group normalization differs in 1,575
+of 4,608 values (maximum absolute difference `4.7684e-7`). The second
+convolution differs in 13,098 of 18,432 values (maximum `9.5367e-7`). These
+are comparisons of one selected row in the same forced 32-row history, not
+proof that group normalization causes the downstream choice crossing. They
+identify group normalization as the next bounded operation to investigate.
