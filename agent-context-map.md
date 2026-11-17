@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum target projection screen:** a [standalone Metal probe](tools/reference/xsum_target_projection_metal_probe.py) prepares same-input layout comparisons for the remaining candidate crossing; results are pending. No inference change.
+
 - **XSum refinement layout candidate:** the flattened Metal convolution exactly matches CUDA on one controlled input. Full `tools/check.sh --cuda` passed including 18 device cases. [Metal free-generation screens](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) match CUDA on batch 4864 but retain the three code and five raw-ID differences on batch 4928. A forced-row trace and controlled CUDA replay show the candidate latent with CUDA projection preserves the reference choice, while the captured candidate transformer input flips it. Default inference is unchanged and the exact gate remains failed.
 
 - **XSum refinement same-input probe:** the [controlled Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) reproduces the captured Metal reconstruction exactly but differs from CUDA in 16,653/18,432 convolution values. This is one captured row, not a fix or gate pass. Default inference is unchanged.
