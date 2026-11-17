@@ -71,6 +71,13 @@ inline GroupStats group_reduce(GroupStats a) {
     }
     return a;
 }
+inline float refined_rsqrt(float v) {
+    float y = rsqrt(v);
+    float square = y * y;
+    float square_error = fma(y, y, -square);
+    float residual = fma(-v, square, 1.0f) - v * square_error;
+    return fma(y, 0.5f * residual, y);
+}
 '''
 REFERENCE_SOURCE = r'''
 uint tid = thread_position_in_threadgroup.x;
@@ -111,7 +118,7 @@ def main():
     parser.add_argument('--input-sha256', required=True)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--reference-math-mode', choices=['safe', 'relaxed', 'fast'], default='safe')
-    parser.add_argument('--reference-inverse', choices=['rsqrt', 'sqrt-div'], default='rsqrt')
+    parser.add_argument('--reference-inverse', choices=['rsqrt', 'sqrt-div', 'refined'], default='rsqrt')
     args = parser.parse_args()
     if args.output.exists() or digest(args.input) != args.input_sha256:
         raise ValueError('output exists or input digest differs')
@@ -131,6 +138,9 @@ def main():
     if args.reference_inverse == 'sqrt-div':
         source = source.replace('rsqrt(value.m2 / value.count + 1.0e-5f)',
                                 '(1.0f / sqrt(value.m2 / value.count + 1.0e-5f))')
+    elif args.reference_inverse == 'refined':
+        source = source.replace('rsqrt(value.m2 / value.count + 1.0e-5f)',
+                                'refined_rsqrt(value.m2 / value.count + 1.0e-5f)')
     reference_kernel = mx.fast.metal_kernel(name='ncm_xsum_groupnorm_reference_order_probe',
         input_names=['x'], output_names=['out', 'stats'], source=source,
         header=REFERENCE_HEADER, compile_options={'math_mode': args.reference_math_mode})
