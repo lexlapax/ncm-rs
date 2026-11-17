@@ -1791,7 +1791,13 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 length,
             )?;
             let head = &self.heads[level];
+            if level == 1 && forced.is_some() {
+                trace.tensor("diagnostic.level_01.hidden", &hidden)?;
+            }
             let z = b.project(&hidden, &head.projection)?;
+            if level == 1 && forced.is_some() {
+                trace.tensor("diagnostic.level_01.projection", &z)?;
+            }
             let book = self
                 .codec
                 .weight(&format!("vq.embeddings.{level}.weight"))?;

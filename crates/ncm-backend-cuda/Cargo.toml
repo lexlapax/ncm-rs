@@ -240,3 +240,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_perf_screen"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "xsum_top1_row_diagnostic"
+required-features = ["cuda-cudnn"]
