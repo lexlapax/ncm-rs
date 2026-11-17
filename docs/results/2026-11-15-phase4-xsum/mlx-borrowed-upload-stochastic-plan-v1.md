@@ -37,4 +37,27 @@ a580ba2ca6c8a2e1a43d4e7a0b3a7b6645b6576f7424ec2ea3adb711a2429414
 --qualification reports/phase4-xsum-borrowed-upload-mlx-cli-v3/result.json
 --qualification-sha256 30415fa65a9346989ea8b4924a27d565bfd448ece82c310cb09adc148d7f3d12
 --seed SEED --output reports/phase4-xsum-borrowed-upload-mlx-stochastic-seed-SEED-v1`
-for seeds 4 through 8. Partial captures are not a quality result.
+for seeds 4 through 8.
+
+All five captures completed. Every file was copied to the corresponding local
+`reports/phase4-xsum-borrowed-upload-mlx-stochastic-seed-SEED-captured-v1`
+directory and verified against a remote SHA-256 inventory. The receipt-checked
+comparator examined 2,048 rows per seed, 10,240 total, and found zero code or
+raw-ID differences from the retained scored Metal captures. Its result SHA-256
+is `7866c4c7abeff3d355cce5cb9edc8fcc35931b489303ebc210d422259eef1d21`.
+Candidate manifest hashes in seed order 4–8 are:
+
+```text
+13f64e6a91732fe3f6d933d4e64cff1f36e01df718dace0f1f532fc0b27cad77
+c5d6f59d3d79d4ee38989ee96d8e5171a29de05ffdec2f013e09d72e90a745d1
+5952a9e674021188d91bb5f1cb0ffe0369267825bae1e98152543f2c29833b14
+f9e8c9bbe0b66b4e4542fde8b1c1432c9ca7e2db036077961f5552c76d60dd19
+327d636f9c5ff07a47fa922d365a626368afafe3a898cd29c2fbf4bbe60e6a5c
+```
+
+The comparison uses the command in `tools/bench/compare_xsum_mlx_stochastic_candidate.py`
+with those hashes, the head and binary above, the captured directory template,
+and output `reports/phase4-xsum-borrowed-upload-mlx-stochastic-comparison-v1.json`.
+This exact replay reuses previously scored inputs; it is not a fresh scorer run
+or a new held-out study. The frozen Metal top-1 raw-ID gate still fails, and the
+previously accepted CUDA stochastic exceptions remain documented.
