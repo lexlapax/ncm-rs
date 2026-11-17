@@ -250,3 +250,27 @@ fn fused_projection_bias_matches_composition() {
     assert!(b.project_bias(&wrong_width, &w, &bias).is_err());
     assert!(b.project_bias(&x, &w, &wrong_type).is_err());
 }
+
+#[test]
+fn experimental_xsum_upsample_preserves_layout_and_bias() {
+    let b = MlxBackend::gpu_xsum_upsample_experimental().unwrap();
+    let values: Vec<f32> = (0..2 * 4 * 384).map(|i| (i % 7) as f32).collect();
+    let mut weights = vec![0.0; 384 * 384 * 3];
+    for c in 0..384 {
+        for k in 0..3 {
+            weights[(c * 384 + c) * 3 + k] = (k + 1) as f32;
+        }
+    }
+    let x = b.upload_f32(&values, &[2, 4, 384]).unwrap();
+    let w = b.upload_f32(&weights, &[384, 384, 3]).unwrap();
+    let bias = b.upload_f32(&[7.0; 384], &[384]).unwrap();
+    let output = b.conv1d(&x, &w, &bias, 3, 0, true).unwrap();
+    assert_eq!(b.shape(&output), [2, 12, 384]);
+    let expected: Vec<_> = values
+        .as_chunks::<384>()
+        .0
+        .iter()
+        .flat_map(|row| (1..=3).flat_map(move |k| row.iter().map(move |v| v * k as f32 + 7.0)))
+        .collect();
+    assert_eq!(b.read_f32(&output).unwrap(), expected);
+}

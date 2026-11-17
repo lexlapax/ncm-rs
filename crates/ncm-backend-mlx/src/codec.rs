@@ -58,6 +58,7 @@ pub struct MlxBackend {
     stream: Stream,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
     xsum_norm_experimental: bool,
+    xsum_upsample_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -90,6 +91,7 @@ impl MlxBackend {
             stream,
             compiled_gelu: Rc::new(RefCell::new(None)),
             xsum_norm_experimental: false,
+            xsum_upsample_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
@@ -100,6 +102,12 @@ impl MlxBackend {
     pub fn gpu_xsum_norm_experimental() -> Result<Self> {
         let mut backend = Self::gpu()?;
         backend.xsum_norm_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit diagnostic backend; this is not a qualified inference profile.
+    pub fn gpu_xsum_upsample_experimental() -> Result<Self> {
+        let mut backend = Self::gpu()?;
+        backend.xsum_upsample_experimental = true;
         Ok(backend)
     }
     fn array_op(
@@ -427,7 +435,20 @@ impl CodecBackend for MlxBackend {
             if span.is_none() {
                 return Err("invalid convolution output size".into());
             }
-            let y = if transposed {
+            let y = if self.xsum_upsample_experimental
+                && transposed
+                && length == 4
+                && input == 384
+                && output == 384
+                && kernel == 3
+                && stride == 3
+                && padding == 0
+            {
+                x.0.matmul(&weight.0.reshape(&[384, 1152])?)?
+                    .reshape(&[batch, length, output, kernel])?
+                    .transpose_axes(&[0, 1, 3, 2])?
+                    .reshape(&[batch, 12, output])?
+            } else if transposed {
                 ops::conv_transpose1d(&x.0, &weight.0, stride, padding)?
             } else if padding == 0 && length == kernel {
                 // A full-span convolution is exactly a projection. The native

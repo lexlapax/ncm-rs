@@ -35,3 +35,20 @@ trace SHA-256 is
 The probe can now compare every element of that full batch after validating the
 reference hash and selected row. The full-batch Metal result remains pending;
 this direct operation is diagnostic, not an independent model reference.
+
+The full 32-row Metal diagnostic at `622ae97` matched the CUDA direct
+convolution in all 147,456 elements with the flattened matmul. Native Metal
+matched 106,826 elements, while separate matmuls matched 25,889. The result
+SHA-256 is `e801a2931781d7c99b0b68f048fd1e0dabdd3553893ab496bb3d7d260fa9274b`;
+the local copy matches the Mac. This remains a single inspected batch and a
+single stage, not an end-to-end or independent held-out result.
+
+An explicit experimental Metal backend is prepared to use the flattened
+matmul only for the shape-checked level-zero XSum upsampling operation; the
+default backend is unchanged. A deterministic Metal layout/bias regression and
+forced-history comparison are planned after Linux CUDA checks. Full-quality,
+performance and raw-ID gates remain pending, with no tolerance changes.
+The full local CUDA check passed, including 18 operator cases; log SHA-256
+`0b4c44c9512532ac7f826655eb2d236b3182c97e52c81fc9781ca57c5096e3f5`.
+This does not compile or validate the macOS-only candidate; the Metal check,
+layout regression and forced-history trace remain pending.
