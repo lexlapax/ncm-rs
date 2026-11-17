@@ -256,3 +256,14 @@ their respective SHA-256 values are
 `5823e6b346f86b54a392465558d3f12f578a034e45fedf7a887db83d7594f4a0`.
 This is one inspected row; correctly rounded inverse alone cannot reproduce
 all CUDA results here and no inference or tolerance change follows.
+
+To check generalization beyond that row, four synthetic `[1, 384, 12]` inputs
+were generated with CPU Torch seed `192037`, scales `0.5, 0.75, 1.0, 1.25`
+and offsets `-0.2, -0.1, 0.0, 0.1`; CUDA PyTorch group normalization with
+eight groups supplied the output reference. The hash-bound Metal results are
+retained under `reports/phase4-xsum-groupnorm-synthetic-v1/` on both machines.
+Exact match counts out of 4,608 for reference-layout rsqrt were
+3,177/3,505/3,307/4,608; refined rsqrt gave 3,316/2,952/3,739/4,608.
+All input hashes matched locally after transfer. This small synthetic screen
+shows neither choice is uniformly better or establishes a numerical bound;
+it is not a model-quality or performance comparison.

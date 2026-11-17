@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum synthetic normalization screen:** [four synthetic inputs](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) compare reference-layout and refined inverse operations against CUDA. Refinement improves two cases, worsens one and ties one; neither gives general exact parity. These are synthetic diagnostic inputs, not quality or performance evidence.
+
 - **XSum inverse rounding audit:** the [isolated CUDA and Metal variance captures](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) have bit-identical means and variances in all eight groups, and the CUDA probe reproduces all retained CUDA outputs. Group 5's CUDA inverse is one step below Metal; group 4's CUDA inverse is one step above a CPU double-precision inverse rounded to FP32. Correct rounding alone cannot reproduce all eight CUDA values. No inference behavior changes.
 
 - **XSum refined inverse probe:** the [standalone Metal refinement](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) fixes the inspected row's group-5 inverse discrepancy but introduces a one-step discrepancy in group 4; 4,094/4,608 output values match CUDA. It is not a runtime fix.
