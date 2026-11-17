@@ -8,12 +8,12 @@ mod xsum_decode;
 mod xsum_generator;
 pub use blocks::{NoTrace, TraceSink, codebook_distances};
 pub use codec::{Decoded, Encoded};
-#[cfg(feature = "wmt14-experimental")]
-pub use generator::Wmt14Teacher;
 pub use generator::{
     Generated, Generator, GeneratorConfig, GeneratorWeights, TinyStoriesGeneratorInspection,
     TinyStoriesTeacher, XsumGenerated, XsumTeacher, XsumTeacherOutput,
 };
+#[cfg(feature = "wmt14-experimental")]
+pub use generator::{Wmt14HostOutput, Wmt14Teacher};
 pub use wmt14_generator::Wmt14GeneratorInspection;
 pub use xsum_decode::select_xsum_tokens_cpu;
 pub use xsum_generator::XsumGeneratorInspection;

@@ -152,3 +152,38 @@ fn cached_forced_history_preserves_existing_tensor_bands() {
     assert!(expected.is_empty());
     assert!(expected_indices.is_empty());
 }
+
+#[test]
+#[ignore = "requires the pinned local WMT14 artifact, prefixes and CUDA/cuDNN"]
+fn explicit_microbatch_matches_uncached_and_rejects_invalid_requests() {
+    let artifact = std::env::var("NCM_WMT14_CACHE_ARTIFACT").expect("artifact path");
+    let prefixes = std::env::var("NCM_WMT14_CACHE_PREFIXES").expect("prefix path");
+    let value: Value = serde_json::from_slice(&std::fs::read(prefixes).unwrap()).unwrap();
+    let input: Vec<u32> = value["prefixes"].as_array().unwrap()[..32]
+        .iter()
+        .flat_map(|row| row.as_array().unwrap().iter())
+        .map(|value| u32::try_from(value.as_u64().unwrap()).unwrap())
+        .collect();
+    let b = CandleBackend::cuda_wmt14_reference(0).unwrap();
+    let artifact = Artifact::load_inference(&artifact).unwrap();
+    let model = Wmt14Teacher::from_artifact(b.clone(), &artifact).unwrap();
+    assert!(model.generate_top1_microbatched(&input[..96], 1).is_err());
+    let mut expected = Vec::new();
+    for batch in [1, 16, 17, 32] {
+        let result = model.generate_top1(&input[..batch * 96], batch).unwrap();
+        expected.push((
+            b.read_indices(&result.codes).unwrap(),
+            b.read_indices(&result.ids).unwrap(),
+        ));
+    }
+    drop(model);
+    let model = Wmt14Teacher::from_artifact_cached_experimental(b.clone(), &artifact).unwrap();
+    assert!(model.generate_top1_microbatched(&input[..95], 1).is_err());
+    assert!(model.generate_top1_microbatched(&[], 0).is_err());
+    for (batch, expected) in [1, 16, 17, 32].into_iter().zip(expected) {
+        let result = model
+            .generate_top1_microbatched(&input[..batch * 96], batch)
+            .unwrap();
+        assert_eq!((result.codes, result.ids), expected, "batch {batch}");
+    }
+}

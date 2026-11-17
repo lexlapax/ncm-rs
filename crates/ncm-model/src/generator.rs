@@ -642,6 +642,13 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     cached_cfg_diagnostic: bool,
 }
 
+/// Host-resident output from explicitly microbatched experimental WMT14 generation.
+#[cfg(feature = "wmt14-experimental")]
+pub struct Wmt14HostOutput {
+    pub codes: Vec<u32>,
+    pub ids: Vec<u32>,
+}
+
 #[cfg(feature = "wmt14-experimental")]
 impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
@@ -747,6 +754,42 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
     /// Return experimental CFG-zero top-1 outputs for explicit offline validation.
     pub fn generate_top1(&self, prefix_tokens: &[u32], batch: usize) -> Result<Generated<B>> {
         self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, None)
+    }
+
+    /// Explicit cached base generation in groups of at most four, with host output.
+    /// This scheduling changes execution batch shape and remains experimental.
+    pub fn generate_top1_microbatched(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+    ) -> Result<Wmt14HostOutput> {
+        if !self.cached_prefix_experimental
+            || !(1..=32).contains(&batch)
+            || prefix_tokens.len() != batch * 96
+            || prefix_tokens.iter().any(|&x| x >= 151680)
+            || prefix_tokens
+                .as_chunks::<96>()
+                .0
+                .iter()
+                .any(|row| row.iter().all(|&x| x == 151643))
+        {
+            return Err(Error::Input(
+                "invalid WMT14 microbatch inputs or backend".into(),
+            ));
+        }
+        let mut codes = Vec::with_capacity(batch * 313);
+        let mut ids = Vec::with_capacity(batch * 64);
+        for chunk in prefix_tokens.chunks(4 * 96) {
+            let result = self.generate_top1(chunk, chunk.len() / 96)?;
+            codes.extend(self.backend.read_indices(&result.codes)?);
+            ids.extend(self.backend.read_indices(&result.ids)?);
+        }
+        if codes.len() != batch * 313 || ids.len() != batch * 64 {
+            return Err(Error::Backend(
+                "invalid WMT14 microbatch output shape".into(),
+            ));
+        }
+        Ok(Wmt14HostOutput { codes, ids })
     }
 
     /// Experimental guided top-1 with the upstream EOS/PAD null prefix.

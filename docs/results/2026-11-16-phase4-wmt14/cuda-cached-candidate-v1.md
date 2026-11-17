@@ -107,3 +107,23 @@ Manifest, measurements and telemetry SHA-256 values are
 `1d1052ab3694f4bc76ede56b3214cbeb937c8a49a608d97d477f58a86611b6ed`, and
 `ec072880e88c67e41cff25bb2357fcb4e3be17fccf3dc256202b40b7e24addfe`.
 Raw files are retained under ignored `reports/phase4-wmt14-cache-microbatch-perf-v1/`.
+
+An explicit experimental base-only host-output API now runs the same
+batch-of-four schedule and rejects unsupported backend/input combinations.
+A real-CUDA test compared its codes and IDs to the no-cache model at external
+batches 1, 16, 17 and 32, including a partial tail; it also checks invalid
+requests and the CFG guard. All three targeted cache tests passed (log SHA-256
+`c94b2811e1743bb450049962c445b33fcfde34b8f595b06f1f346b7cf02d0cc9`).
+The first strict Clippy run caught an unused import in the updated example;
+a corrected rerun passed. Full CUDA regression and source-bound API replay and
+performance measurement remain pending. The previous benchmark used the same
+scheduling as an example loop and is not presented as a measurement of the
+new API binary.
+The API's full CUDA check passed 18 operator cases (log SHA-256
+`f393bb541cef0ed4bb572b5c3f7c4811f3ba201e299e20f9b44a393109ffb1ee`).
+The new source-bound capture example and updated API benchmark example passed
+strict feature-specific Clippy and release build. A local 35-row capture using
+external groups of 32 and internal groups of four matched all Python codes and
+IDs, including the three-row external tail; SHA-256
+`f21f3314085d1e729c3c113e23376876a492e7f580744979cd15711a49c7158c`.
+Full source-bound capture and repeated API benchmark remain pending.

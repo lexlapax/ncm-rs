@@ -1,7 +1,6 @@
 //! Synchronized WMT14 CUDA timing; quality and acceptance are separate.
 use candle_core::cuda_backend::cudarc::driver::sys;
 use ncm_backend_cuda::CandleBackend;
-use ncm_core::CodecBackend;
 use ncm_io::{Artifact, sha256};
 use ncm_model::Wmt14Teacher;
 use serde_json::{Value, json};
@@ -56,13 +55,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let stream = backend.device().as_cuda_device()?.cuda_stream();
         let device_start = stream.record_event(Some(sys::CUevent_flags::CU_EVENT_DEFAULT))?;
         let start = Instant::now();
-        let mut codes = Vec::with_capacity(batch * 313);
-        let mut ids = Vec::with_capacity(batch * 64);
-        for chunk in input.chunks(4 * 96) {
-            let output = model.generate_top1(chunk, chunk.len() / 96)?;
-            codes.extend(backend.read_indices(&output.codes)?);
-            ids.extend(backend.read_indices(&output.ids)?);
-        }
+        let output = model.generate_top1_microbatched(&input, batch)?;
+        let codes = output.codes;
+        let ids = output.ids;
         let device_end = stream.record_event(Some(sys::CUevent_flags::CU_EVENT_DEFAULT))?;
         backend.device().synchronize()?;
         let elapsed = start.elapsed().as_secs_f64();
