@@ -2745,7 +2745,14 @@ mod tests {
     }
 }
 
-/// Fixed-history LM1B-small diagnostic. It is not a generation or quality gate.
+/// Experimental LM1B output with native codes and explicit host-selected IDs.
+#[cfg(feature = "lm1b-experimental")]
+pub struct Lm1bSample<B: ncm_core::GeneratorBackend> {
+    pub codes: B::Indices,
+    pub ids: Vec<u32>,
+}
+
+/// Experimental LM1B-small teacher and sampler; not a qualified runtime.
 #[cfg(feature = "lm1b-experimental")]
 pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
     codec: crate::Codec<B>,
@@ -2759,6 +2766,7 @@ pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
     post_conv: Box<[Affine<B::Tensor>]>,
     geometry: Vec<LevelGeometry<B::Tensor>>,
     allowance: Vec<f32>,
+    initial_distribution: Vec<f32>,
 }
 
 #[cfg(feature = "lm1b-experimental")]
@@ -2833,6 +2841,10 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             .tensor("token_unigram")
             .map_err(|e| Error::Weights(e.to_string()))?;
         let allowance = upload_values(t.data())?.into_owned();
+        let t = tensors
+            .tensor("level0_unigram")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let initial_distribution = upload_values(t.data())?.into_owned();
         Ok(Self {
             codec,
             backend,
@@ -2845,6 +2857,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             post_conv: post_conv.into_boxed_slice(),
             geometry,
             allowance,
+            initial_distribution,
         })
     }
 }
@@ -2858,7 +2871,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, Some(codes), &[], batch, trace)
+        self.run_impl(prefix, Some(codes), &[], batch, trace, None)
+            .map(|_| ())
     }
 
     /// Uncached greedy continuation from an explicitly supplied initial code.
@@ -2869,7 +2883,37 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, None, initial, batch, trace)
+        self.run_impl(prefix, None, initial, batch, trace, None)
+            .map(|_| ())
+    }
+
+    /// Controlled full-distribution sampling, with a request-local SplitMix64 stream.
+    /// This explicit CPU sampler does not reproduce PyTorch's random stream.
+    pub fn sample_seeded_traced(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Lm1bSample<B>> {
+        if !(1..=32).contains(&batch) {
+            return Err(Error::Input("invalid LM1B sample batch".into()));
+        }
+        let mut random = SplitMix64(seed);
+        let weights: Vec<f64> = self
+            .initial_distribution
+            .iter()
+            .map(|&x| f64::from(x))
+            .collect();
+        let initial: Vec<u32> = (0..batch)
+            .map(|_| lm1b_choose(&weights, &mut random))
+            .collect::<Result<_>>()?;
+        self.run_impl(prefix, None, &initial, batch, trace, Some(&mut random))
+    }
+
+    /// Explicit CPU sampling and penalty selection, without retaining trace tensors.
+    pub fn sample_seeded(&self, prefix: &[u32], batch: usize, seed: u64) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_traced(prefix, batch, seed, &mut crate::NoTrace)
     }
 
     fn run_impl(
@@ -2879,7 +2923,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         initial: &[u32],
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
-    ) -> Result<()> {
+        mut random: Option<&mut SplitMix64>,
+    ) -> Result<Lm1bSample<B>> {
         validate_lm1b_request(prefix, codes, initial, batch)?;
         let b = &self.backend;
         let prefix_ids = b.upload_indices(prefix, &[batch, 1])?;
@@ -2934,10 +2979,23 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                 let logits = b.project_bias(&hidden, &self.head, &self.head_bias[level])?;
                 trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
                 if codes.is_none() {
-                    if b.read_f32(&logits)?.iter().any(|x| !x.is_finite()) {
-                        return Err(Error::Backend("nonfinite LM1B greedy logits".into()));
+                    let values = b.read_f32(&logits)?;
+                    if values.len() != batch * length * 8192
+                        || values.iter().any(|x| !x.is_finite())
+                    {
+                        return Err(Error::Backend("invalid or nonfinite LM1B logits".into()));
                     }
-                    generated = Some(b.select_last(&logits, true)?);
+                    generated = if let Some(rng) = random.as_deref_mut() {
+                        let selected: Vec<u32> = values
+                            .as_chunks::<8192>()
+                            .0
+                            .iter()
+                            .map(|row| lm1b_sample_logits(row, rng))
+                            .collect::<Result<_>>()?;
+                        Some(b.upload_indices(&selected, &[batch, length])?)
+                    } else {
+                        Some(b.select_last(&logits, true)?)
+                    };
                 }
             }
             let selected = if let Some(codes) = &codes {
@@ -2964,11 +3022,9 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
             cumulative = Some(sum);
         }
+        let result_codes = b.concat_indices(&selected_levels, 1)?;
         if codes.is_none() {
-            trace.indices(
-                "generator.generated_codes",
-                &b.concat_indices(&selected_levels, 1)?,
-            )?;
+            trace.indices("generator.generated_codes", &result_codes)?;
         }
         let (logits, greedy) = self
             .codec
@@ -2980,8 +3036,48 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             "generator.penalized_ids",
             &b.upload_indices(&penalized, &[batch, 128])?,
         )?;
-        Ok(())
+        Ok(Lm1bSample {
+            codes: result_codes,
+            ids: penalized,
+        })
     }
+}
+
+#[cfg(feature = "lm1b-experimental")]
+fn lm1b_choose(weights: &[f64], random: &mut SplitMix64) -> Result<u32> {
+    if weights.is_empty()
+        || weights.len() > u32::MAX as usize
+        || weights.iter().any(|x| !x.is_finite() || *x < 0.0)
+    {
+        return Err(Error::Input("invalid LM1B categorical weights".into()));
+    }
+    let total: f64 = weights.iter().sum();
+    if !total.is_finite() || total <= 0.0 {
+        return Err(Error::Input("invalid LM1B categorical total".into()));
+    }
+    let uniform = ((random.next() >> 32) as f64 + 0.5) / 4294967296.0;
+    let threshold = uniform * total;
+    let mut cumulative = 0.0;
+    for (index, &weight) in weights.iter().enumerate() {
+        cumulative += weight;
+        if cumulative > threshold {
+            return Ok(index as u32);
+        }
+    }
+    Err(Error::Backend("LM1B categorical sum mismatch".into()))
+}
+
+#[cfg(feature = "lm1b-experimental")]
+fn lm1b_sample_logits(values: &[f32], random: &mut SplitMix64) -> Result<u32> {
+    if values.len() != 8192 || values.iter().any(|v| !v.is_finite()) {
+        return Err(Error::Input("invalid LM1B categorical logits".into()));
+    }
+    let maximum = values.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let weights: Vec<f64> = values
+        .iter()
+        .map(|&x| (f64::from(x) - f64::from(maximum)).exp())
+        .collect();
+    lm1b_choose(&weights, random)
 }
 
 #[cfg(feature = "lm1b-experimental")]
@@ -3054,7 +3150,22 @@ fn lm1b_penalized_ids(
 
 #[cfg(all(test, feature = "lm1b-experimental"))]
 mod lm1b_teacher_tests {
-    use super::{lm1b_penalized_ids, validate_lm1b_request};
+    use super::{
+        SplitMix64, lm1b_choose, lm1b_penalized_ids, lm1b_sample_logits, validate_lm1b_request,
+    };
+
+    #[test]
+    fn controlled_sampler_repeats_and_rejects_invalid_distributions() {
+        let mut rng = SplitMix64(11);
+        let result: Vec<_> = (0..12)
+            .map(|_| lm1b_choose(&[1.0, 2.0, 3.0], &mut rng).unwrap())
+            .collect();
+        assert_eq!(result, [1, 1, 2, 2, 0, 2, 0, 2, 1, 2, 0, 1]);
+        assert!(lm1b_choose(&[0.0, 0.0], &mut rng).is_err());
+        assert!(lm1b_choose(&[-1.0, 2.0], &mut rng).is_err());
+        assert!(lm1b_sample_logits(&[0.0], &mut rng).is_err());
+        assert!(lm1b_sample_logits(&vec![f32::NAN; 8192], &mut rng).is_err());
+    }
 
     #[test]
     fn validates_greedy_and_forced_inputs_before_execution() {
