@@ -296,3 +296,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_cfg_recompute_capture"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cfg_recompute_perf"
+required-features = ["wmt14-experimental", "cuda-cudnn"]

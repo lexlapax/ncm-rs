@@ -286,3 +286,19 @@ the corrected rerun passed. Full `tools/check.sh --cuda` passed 18 device
 operator cases; log SHA-256
 `253e386a1c025bfd6049eeef8f2711dab6ce7a086c281334fb89a0003ae59f62`.
 The margin unit test and all three artifact-backed CUDA cache tests passed.
+
+The source-bound complete 3,003-row CFG replay at `018216b` matched every
+Python code and raw ID, including both previously failing rows. Its capture
+and comparison SHA-256 values are
+`f89220200f45e357fef9298849792ecaac3321e8deb2b4ca8a71989d70595915` and
+`e1ea831fbfd216aa4d6b77ba9c88cf557d10640b3059de4093b6190d1b76d58a`;
+the manifest SHA-256 is
+`b921581dcc865573161903a2710dcd6f48047451d03b19672e79c7f9a0440360`.
+The frozen full and held-out scorer passed with identical hypotheses; its
+SHA-256 is `915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`.
+Full-set BLEU was 22.9464, lowercase BLEU 23.8358, chrF 51.5160, and length
+ratio 0.95867 on both sides. This reuses inspected data and does not establish
+a bound for unseen inputs. The first decode attempt used a Python environment
+without Transformers; the existing pinned tokenizer environment succeeded.
+A source-bound alternating performance comparison is prepared; results remain
+pending and the ordinary cached CFG guard remains in place.
