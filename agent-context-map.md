@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum same-input head projection:** PyTorch CUDA reproduces all 2,304 retained values at original batch 32 but not batch 1. The first Metal same-input probe matched 271/2,304; a two-part layout comparison is prepared and syntax-checked. No inference change or gate pass.
+- **XSum same-input head projection:** [PyTorch CUDA and Metal comparisons](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) use captured hidden states and original batch 32. CUDA reproduces all 2,304 retained values; ordinary Metal matches 271 and split Metal matches 439. The split reduces maximum error but is not reference-equivalent; no inference change or gate pass.
 
 - **XSum head norm diagnostic:** the [controlled head probe](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) finds independently computed Metal norms differ from PyTorch CUDA norms, but CUDA dots with Metal norms retain the CUDA pair choice. CUDA head arithmetic on the retained Metal split-head projection selects the Metal code instead; upstream projection drift can independently change the decision. This is a controlled row, not an exact runtime-norm replay or gate pass.
 

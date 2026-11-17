@@ -200,6 +200,19 @@ This rules out a difference for this isolated projection and input, not for
 all shapes or values; earlier normalization differences and the full Metal
 gate remain open.
 
+The level-1 hidden-to-head projection was tested separately on the captured
+CUDA hidden state. PyTorch CUDA reproduced all 2,304 retained projection values
+with the original 32-row geometry but not with batch 1. On the identical input
+and geometry, Metal's ordinary projection matched 271/2,304 CUDA values,
+maximum absolute difference `2.0981e-5`. Splitting the 768-wide product into
+two 384-wide products improved the count to 439/2,304 and reduced the maximum
+to `5.7220e-6`, but did not reproduce the reference. The input and split-probe
+receipt SHA-256 values are
+`f3facfd746c8be6b5d05d3370efcbce0c00eb1de9104a64fc26fb0a4f6c879d7` and
+`2de3a86dadcc4ab09fdea13e5771d9e3c96dd3c69bce90c51f603effae871273`;
+local and Mac receipt copies match. These bounded comparisons do not establish
+a model-level fix or justify changing the default projection.
+
 The second normalization was isolated using the 512 captured CUDA prefix
 vectors, its trained affine weights and the retained CUDA outputs. PyTorch
 CUDA layer normalization reproduced all 393,216 reference values exactly.
