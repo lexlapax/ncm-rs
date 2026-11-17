@@ -52,7 +52,7 @@ def main():
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
-        'scope': 'one CUDA hidden row, controlled CUDA norms/scales and original batch geometry',
+        'scope': 'one supplied hidden row, controlled CUDA norms/scales and original batch geometry',
         'cuda_pair_margin': float(expected[0, 4, 3182] - expected[0, 4, 3690]),
         'results': results}, indent=2) + '\n')
 
