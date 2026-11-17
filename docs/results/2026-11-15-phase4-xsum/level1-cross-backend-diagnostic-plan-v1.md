@@ -704,3 +704,15 @@ An explicit runtime diagnostic passes `tools/check.sh --cuda`, including 18
 CUDA device cases (`reports/phase4-xsum-reference-projection-cuda-check-v1.log`);
 Metal regression and free-generation checks remain pending. The default
 backend is unchanged.
+
+
+At `82346ed`, the reference-order candidate passed full
+`tools/check.sh --cuda` including 18 CUDA cases and its Metal regression
+`experimental_xsum_projection_preserves_reference_bias_order`. The
+Metal release build passed. Both free-generation batches are byte-identical
+to the preceding refinement candidate: batch 4864 matches CUDA, while 4928
+retains the three code and five raw-ID differences on row 4937. Their hashes
+are `8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6`
+and `1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`;
+input hashes passed postflight. A forced-history trace is pending. This is
+not full-corpus quality or performance evidence, and the exact gate fails.
