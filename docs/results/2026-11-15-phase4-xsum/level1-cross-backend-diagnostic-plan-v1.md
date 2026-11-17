@@ -211,3 +211,16 @@ The original composed operation matched 1,034,783. The receipt SHA-256 is
 `765d1ff6daf714ad0485356fd2aff5ac70210f81463c97737f4f50fe94d9e92d`;
 Mac and local copies match. This is one inspected row and a Python Metal
 kernel, not a validated Rust model change, performance comparison or gate pass.
+
+An explicitly selected model diagnostic at `ae1b8bf` combined the prior
+experimental upsampling and group-normalization operations with an uncompiled
+MLX GELU graph using multiplication by `1/sqrt(2)`. It is not the standalone
+custom kernel, and the default backend remains unchanged. Full Linux CUDA
+validation passed, including 18 operator cases. The Mac release build and
+row-4937 forced-history capture completed; the candidate still selects code
+3690 where CUDA selects 3182 at level 1 position 4. Its 3182-minus-3690
+margin is `-3.8147e-6`, versus `-4.7684e-6` for the earlier Metal candidate;
+forced final IDs match CUDA. The captured tensor SHA-256 is
+`0d9364a314d78c6609e41261873c3d143f6d6c68b13ee811ab162d1594940dc7`,
+with matching local and Mac copies. This does not resolve the crossing or
+qualify a full generation, quality or performance gate.
