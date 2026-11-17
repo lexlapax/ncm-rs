@@ -32,7 +32,40 @@ setpriv --inh-caps=-all env RUSTC_WRAPPER= ./tools/check.sh --cuda > reports/pha
 ```
 
 All-feature lint and the full CUDA check passed, including 18 device operator
-cases. The source-bound full 3,003-row replay, frozen scorer and repeated alternating
-performance/memory comparison remain pending. The capture and benchmark
-supervisors require a clean tracked source tree and record source identities.
-No WMT14 Metal or Phase 4 gate is claimed.
+cases. The subsequent source-bound full replay at `6fc07a1` matched all 3,003
+retained Python rows exactly: zero code or raw-ID differences. The candidate
+capture SHA-256 is
+`8a0ff957653084ad5d11da577a637e123307a47f4698921f415de647041a5483`,
+and the comparison receipt SHA-256 is
+`e1b4ae1dcabb918cfe31ff8809dc911c9b4fb1bd8d2ad660413f9f9dd17ab9e5`.
+The frozen full and held-out scorer passed, reproducing the prior scored
+result byte-for-byte in two independent scorer environments (SHA-256
+`915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`).
+This is a replay of previously inspected data, not an unseen-input proof.
+
+The alternating three-process batch-16 comparison used five warmups and 30
+trials per process. Every benchmark code and ID matched. Pooled median/p95
+was **1.291226/1.296859 seconds Rust**, versus **1.237539/1.240858 seconds
+Python**: this candidate is slower and does not pass the desired speed
+direction. Python process medians were 1.231563/1.239367/1.237539 seconds;
+Rust medians were 1.290281/1.293527/1.290831 seconds. Largest process VmHWM
+was 2,143,576 KiB Python and 1,893,676 KiB Rust. Roughly one-second GPU
+telemetry observed process maxima of 3,072 MiB Python and 1,640 MiB Rust;
+these are sampled observations, not allocator peaks. All 279 telemetry samples
+had successful queries, and other desktop GPU processes were present.
+Benchmark manifest, measurements and telemetry SHA-256 values are
+`40446553316f6263c12501e7dcf5b019d3b3b15fedf44d24d59ccb01f30935bb`,
+`7391ded26ab160810201ac8a9fe3ba318f6458fb61e53ab03a352236310dfa61`, and
+`6ffbd0e4c0fd1ffb837400520a9d8c96e024a91e3fa098408d300f677b49257a`.
+
+The source-bound commands used clean tracked commit
+`6fc07a143994da86095850d4c47731919880e30e`:
+
+```sh
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/bench/capture_wmt14_cfg_uncached_microbatch.py --mode cfg1 --head 6fc07a143994da86095850d4c47731919880e30e --binary-sha256 e6fd19e5bc78fc183f0c4b8c3c11eb73a8e0864c62c1d368e0cd1e106701420f --protocol-sha256 26f5f13aeb440da2f95f56091a482e221fa0c311934494a334566d9bc5ff8de1 --rows 3003 --output reports/phase4-wmt14-uncached-cfg-microbatch-full-v1
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/bench/run_wmt14_cfg_uncached_microbatch_bench.py --output reports/phase4-wmt14-uncached-cfg-microbatch-bench-v1 --repetitions 3 --batches 16 --modes 1
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/tokenizers-venv/bin/python tools/reference/wmt14_decode_capture.py reports/phase4-wmt14-uncached-cfg-microbatch-full-v1/rust.json reports/phase4-wmt14-uncached-cfg-microbatch-full-text-v1.json --capture-sha256 8a0ff957653084ad5d11da577a637e123307a47f4698921f415de647041a5483
+.reference/wmt14-scorer-venv/bin/python tools/reference/wmt14_score_heldout.py reports/phase4-wmt14-cfg-cuda-full-python-text-v1.json reports/phase4-wmt14-uncached-cfg-microbatch-full-text-v1.json reports/phase4-wmt14-uncached-cfg-microbatch-full-v1/comparison.json reports/phase4-wmt14-uncached-cfg-microbatch-score-v1.json --reference-text-sha256 1dc421ee6bdd115e050c7d85069b7f7076c177881d35752181b0ee45ca7bf1df --candidate-text-sha256 df4c14dd6ae32f3b70b0a0a14c749d18cce0f7a23ec38bacd9dfb7954b5c4c29 --comparison-sha256 e1b4ae1dcabb918cfe31ff8809dc911c9b4fb1bd8d2ad660413f9f9dd17ab9e5 --protocol-sha256 26f5f13aeb440da2f95f56091a482e221fa0c311934494a334566d9bc5ff8de1 --mode cfg1
+```
+
+No WMT14 Metal or Phase 4 gate is claimed; the normal cached CFG guard remains.
