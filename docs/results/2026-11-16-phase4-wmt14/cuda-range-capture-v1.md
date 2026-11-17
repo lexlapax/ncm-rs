@@ -14,8 +14,8 @@ inspected 32 rows. Use development baseline variation and metric behavior to
 choose and record justified non-inferiority criteria before comparing held-out
 quality. Rows 128–3002 remain held out for that decision. The full official
 3,003-row BLEU, lowercase BLEU, chrF and length-ratio evaluation, and separate
-base/CFG runs, remain required. The upstream scorer dependency is not yet
-pinned in the local reference environment.
+base/CFG runs, remain required. The subsequently pinned scorer is documented in
+the [development quality record](cuda-development-quality-v1.md).
 
 The following smoke used 35 rows, exercising eight four-row batches and a
 three-row tail; a separate run used start 32 and count 3:
