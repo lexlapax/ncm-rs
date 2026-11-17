@@ -97,3 +97,59 @@ so. This is one controlled history and does not isolate a unique operation or
 establish a fix. The ignored script/log SHA-256 values are
 `fa658b78611eec06ad66ee3c318f0cc22029c1e361b60a1ae7335a67521c5806` /
 `bf3d32c75147e4cf822515225270cf282de12643fa8a81c520e7c83f5d65b6bc`.
+
+## Level-seven internals and QKV algorithm diagnostic
+
+An explicitly selected level-seven trace captures the target and transformer
+internals without changing the normal model path. Its traced and untraced
+samples agree, and all 51 tensors shared with the earlier reference-operator
+capture are bit-identical. The 73-tensor capture SHA-256 is
+`2282dd3424849b899fc534067798d390027d45d2df2bd0d0f3a6ef6a990273da`.
+A pinned Python CUDA replay on the captured Rust target reproduces the first
+block input and first normalization exactly, but its QKV projection differs in
+258,466 of 299,520 values (maximum `2.0265579e-6`). The retained replay script,
+log and tensors have SHA-256 values
+`976024b6030cf2671bb2815c455a19c3669b991198ae7cfc5086f3d7e6e2f1a5`,
+`591bc38f6b88e1b2c50113b627bebb4233e66e4b3ea2492b56343f5b24d759d0`, and
+`95ee8dd551f756cc38e2ab6165a66a5280e4c6797558b8e7dced8091521fcee5`.
+
+For this exact captured input, a cuBLASLt heuristic screen found that a 1 MiB
+workspace preference selected an algorithm reproducing the Python QKV exactly;
+the existing 4 MiB preference selected the existing Rust result. The same
+screen was observed using the system and Python cuBLASLt libraries; changing the
+library alone left the original Rust trace identical. The screen uses one shape
+and input, so it does not establish portable numerical equivalence. The system
+screen script, log and JSON hashes are
+`99de09141bcba96b6796eeb435ca2197f3c028c29cd1354d51dadb704f36fff1`,
+`95bb0aceacd4f59cc7340c1febab7ae5391e67bb11d30c08bcb6884e352e070d`, and
+`222eceade2c1340e51142d870a14484626d456ec71ad4d7af9697b353333007c`.
+
+An explicit experimental backend applies that preference only to the 2304 by
+768 projection, retaining the existing reference-operator diagnostics. On the
+same two-row trace its first QKV exactly matches Python with the same input,
+but its first attention already differs in 83,537 of 99,840 values (maximum
+`6.6757202e-6`). The complete controlled comparison still fails 21/51 tensors,
+with 116 code and 42 penalized-ID differences. This is not a fix or a gate pass;
+no default, tolerance or sampling policy changed. The 73-tensor trace, filtered
+51-tensor trace and comparison hashes are respectively
+`2bfc05cef275512aa8c5d2f86e30c43a51ca9f297d80d88fa6e9bb7ad76b6cec`,
+`45369293e0aedca0a7704872c9125b436cf220b5e1064241558981dddedcd0d6`, and
+`006af26f421205870ca56c1992ddda56116eebb823efaaaa4c8d53041aa9af22`.
+The trace example is `lm1b_small_controlled_level7_trace`; setting
+`NCM_LM1B_QKV_DIAGNOSTIC=1` selects the experimental backend. Reports and
+scripts are retained under `reports/phase4-lm1b-level7-replay-v1` and
+`reports/phase4-lm1b-qkv-candidate-v1`.
+
+A further pinned-Python probe captured Q, K, V and mask from the same Python
+continuation. Splitting the scale between Q and K before multiplication
+reproduced all of Python's math-SDPA attention values exactly; scaling after
+the dot product differed in 75,925/99,840 values, maximum `5.9604645e-7`.
+Neither reproduces the captured Rust output, and the probe does not establish
+whether independently computed Rust Q/K are identical. The ignored script and
+log hashes are `8fae89e7dfcccb23051a2dd15e04be9415fc944aae92c22af7f5c74015c13e45`
+and `0063cc6955175731fe69d01255aaa38a9ec504260053a3c2a98d9ddc58ddce3b`.
+
+Validation: the diagnostic example passed feature-specific clippy with
+`lm1b-experimental,cuda-cudnn`; `setpriv --inh-caps=-all env RUSTC_WRAPPER=
+./tools/check.sh --cuda` passed, including 18 real-device operator cases. The
+full log is `reports/phase4-lm1b-qkv-diagnostic-cuda-check-v1.log`.

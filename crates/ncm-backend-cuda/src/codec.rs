@@ -107,8 +107,11 @@ impl CodecBackend for CandleBackend {
                     })?;
                     if lock.is_none() {
                         let stream = self.device().as_cuda_device()?.cuda_stream();
-                        let h =
-                            crate::fused_projection::StrictLt::new(stream, self.xsum_reference)?;
+                        let h = crate::fused_projection::StrictLt::new(
+                            stream,
+                            self.xsum_reference,
+                            self.lm1b_qkv_reference,
+                        )?;
                         *lock = Some(std::sync::Arc::new(std::sync::Mutex::new(h)));
                     }
                     lock.as_ref()

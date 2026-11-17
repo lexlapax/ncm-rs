@@ -634,6 +634,24 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
     b.narrow(&x, 1, prefix_len, length)
 }
 
+#[cfg(feature = "lm1b-experimental")]
+struct Lm1bLevelSevenTrace<'a, T>(&'a mut T);
+#[cfg(feature = "lm1b-experimental")]
+impl<B: ncm_core::GeneratorBackend, T: crate::TraceSink<B>> crate::TraceSink<B>
+    for Lm1bLevelSevenTrace<'_, T>
+{
+    fn tensor(&mut self, name: &str, value: &B::Tensor) -> Result<()> {
+        let suffix = name
+            .strip_prefix("diagnostic.level_01.")
+            .ok_or_else(|| Error::Backend("unexpected LM1B diagnostic tensor name".into()))?;
+        self.0
+            .tensor(&format!("diagnostic.level_07.{suffix}"), value)
+    }
+    fn indices(&mut self, name: &str, value: &B::Indices) -> Result<()> {
+        self.0.indices(name, value)
+    }
+}
+
 /// Fixed-history development path for the pinned WMT14 configuration.
 /// It does not implement sampling or qualified translation inference.
 #[cfg(feature = "wmt14-experimental")]
@@ -2817,6 +2835,7 @@ pub struct Lm1bSample<B: ncm_core::GeneratorBackend> {
 pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
     codec: crate::Codec<B>,
     backend: B,
+    level_seven_diagnostic: bool,
     input: Affine<B::Tensor>,
     levels: B::Tensor,
     final_norm: Affine<B::Tensor>,
@@ -2910,6 +2929,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
         Ok(Self {
             codec,
             backend,
+            level_seven_diagnostic: false,
             input,
             levels,
             final_norm,
@@ -2922,6 +2942,13 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             device_allowance,
             initial_distribution,
         })
+    }
+
+    /// Capture the level-seven transformer internals for an explicit diagnostic.
+    pub fn from_artifact_level_seven_diagnostic(backend: B, artifact: &Artifact) -> Result<Self> {
+        let mut model = Self::from_artifact(backend, artifact)?;
+        model.level_seven_diagnostic = true;
+        Ok(model)
     }
 }
 
@@ -3083,18 +3110,39 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                     &self.input.bias,
                 )?;
                 let target = b.add(&target, &b.narrow(&self.levels, 0, level, 1)?)?;
-                let hidden = decode_transformer(
-                    b,
-                    &self.blocks,
-                    &self.final_norm,
-                    &self.geometry[level],
-                    &prefix,
-                    &target,
-                    1,
-                    12,
-                    768,
-                    length,
-                )?;
+                let hidden = if self.level_seven_diagnostic && level == 7 {
+                    trace.tensor("diagnostic.level_07.target", &target)?;
+                    let mut observed = Lm1bLevelSevenTrace(&mut *trace);
+                    decode_transformer_observed(
+                        b,
+                        &self.blocks,
+                        &self.final_norm,
+                        &self.geometry[level],
+                        &prefix,
+                        &target,
+                        1,
+                        12,
+                        768,
+                        length,
+                        Some(&mut observed),
+                    )?
+                } else {
+                    decode_transformer(
+                        b,
+                        &self.blocks,
+                        &self.final_norm,
+                        &self.geometry[level],
+                        &prefix,
+                        &target,
+                        1,
+                        12,
+                        768,
+                        length,
+                    )?
+                };
+                if self.level_seven_diagnostic && level == 7 {
+                    trace.tensor("diagnostic.level_07.hidden", &hidden)?;
+                }
                 let logits = b.project_bias(&hidden, &self.head, &self.head_bias[level])?;
                 trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
                 if codes.is_none() {

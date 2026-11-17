@@ -5,6 +5,8 @@ use ncm_core::{Error, Result, WeightBackend};
 pub struct CandleBackend {
     device: Device,
     pub(crate) xsum_reference: bool,
+    #[cfg(feature = "cuda")]
+    pub(crate) lm1b_qkv_reference: bool,
     #[cfg(feature = "cuda-cudnn")]
     pub(crate) wmt14_reference: bool,
     #[cfg(feature = "cuda-cudnn")]
@@ -32,6 +34,10 @@ impl Clone for CandleBackend {
             let mut cloned = Self::from_device(self.device.clone());
             cloned.strict_cudnn = self.strict_cudnn;
             cloned.xsum_reference = self.xsum_reference;
+            #[cfg(feature = "cuda")]
+            {
+                cloned.lm1b_qkv_reference = self.lm1b_qkv_reference;
+            }
             cloned.wmt14_reference = self.wmt14_reference;
             cloned.wmt14_fast_argmax = self.wmt14_fast_argmax;
             cloned
@@ -40,6 +46,10 @@ impl Clone for CandleBackend {
         {
             let mut cloned = Self::from_device(self.device.clone());
             cloned.xsum_reference = self.xsum_reference;
+            #[cfg(feature = "cuda")]
+            {
+                cloned.lm1b_qkv_reference = self.lm1b_qkv_reference;
+            }
             cloned
         }
     }
@@ -49,6 +59,8 @@ impl CandleBackend {
         Self {
             device,
             xsum_reference: false,
+            #[cfg(feature = "cuda")]
+            lm1b_qkv_reference: false,
             #[cfg(feature = "cuda-cudnn")]
             wmt14_reference: false,
             #[cfg(feature = "cuda-cudnn")]
@@ -116,6 +128,14 @@ impl CandleBackend {
     pub fn cuda_cudnn(ordinal: usize) -> Result<Self> {
         let mut backend = Self::cuda(ordinal)?;
         backend.strict_cudnn = true;
+        Ok(backend)
+    }
+    /// Explicit diagnostic for LM1B reference-order QKV projection.
+    #[cfg(feature = "cuda-cudnn")]
+    pub fn cuda_lm1b_qkv_reference_experimental(ordinal: usize) -> Result<Self> {
+        let mut backend = Self::cuda_cudnn(ordinal)?;
+        backend.xsum_reference = true;
+        backend.lm1b_qkv_reference = true;
         Ok(backend)
     }
     /// Explicit experimental WMT14 reference-order initial reconstruction.

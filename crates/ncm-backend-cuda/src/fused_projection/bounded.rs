@@ -31,11 +31,20 @@ fn select_with_limit<T>(
     }
 }
 
+fn projection_preference(default: usize, xsum: bool, lm1b: bool, m: u64, k: u64) -> usize {
+    if (xsum && m == 768 && k == 768) || (lm1b && m == 2304 && k == 768) {
+        1024 * 1024
+    } else {
+        default
+    }
+}
+
 pub(crate) struct BoundedLt {
     handle: sys::cublasLtHandle_t,
     buffer: CudaSlice<u8>,
     preference: usize,
     xsum_reference: bool,
+    lm1b_qkv_reference: bool,
     stream: Arc<CudaStream>,
 }
 // SAFETY: callers serialize handle and buffer access; the sole owning stream
@@ -45,7 +54,11 @@ unsafe impl Send for BoundedLt {}
 
 impl BoundedLt {
     #[allow(unsafe_code)]
-    pub(crate) fn new(stream: Arc<CudaStream>, xsum_reference: bool) -> candle_core::Result<Self> {
+    pub(crate) fn new(
+        stream: Arc<CudaStream>,
+        xsum_reference: bool,
+        lm1b_qkv_reference: bool,
+    ) -> candle_core::Result<Self> {
         use candle_core::cuda_backend::cudarc::driver::sys::CUdevice_attribute;
         stream
             .context()
@@ -72,6 +85,7 @@ impl BoundedLt {
             buffer,
             preference,
             xsum_reference,
+            lm1b_qkv_reference,
             stream,
         })
     }
@@ -115,11 +129,13 @@ impl BoundedLt {
             &sys::cublasLtEpilogue_t::CUBLASLT_EPILOGUE_BIAS,
         )?;
         let pref = Pref::new()?;
-        let preference = if self.xsum_reference && m == 768 && k == 768 {
-            1024 * 1024
-        } else {
-            self.preference
-        };
+        let preference = projection_preference(
+            self.preference,
+            self.xsum_reference,
+            self.lm1b_qkv_reference,
+            m,
+            k,
+        );
         let heuristic = select_with_limit(preference, self.buffer.len(), |limit| {
             pref.set_size(limit)?;
             // SAFETY: all descriptors and the serialized handle are live, and
@@ -251,6 +267,30 @@ impl Drop for Pref {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn diagnostic_preference_is_explicit_and_shape_bounded() {
+        let default = 4 * 1024 * 1024;
+        assert_eq!(
+            super::projection_preference(default, false, false, 2304, 768),
+            default
+        );
+        assert_eq!(
+            super::projection_preference(default, true, false, 2304, 768),
+            default
+        );
+        assert_eq!(
+            super::projection_preference(default, true, true, 2304, 768),
+            1024 * 1024
+        );
+        assert_eq!(
+            super::projection_preference(default, true, true, 2304, 769),
+            default
+        );
+        assert_eq!(
+            super::projection_preference(default, true, false, 768, 768),
+            1024 * 1024
+        );
+    }
     use super::*;
 
     #[test]

@@ -409,3 +409,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "lm1b_small_controlled_reference_ops"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "lm1b_small_controlled_level7_trace"
+required-features = ["lm1b-experimental", "cuda-cudnn"]
