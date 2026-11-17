@@ -125,3 +125,12 @@ convolution differs in 13,098 of 18,432 values (maximum `9.5367e-7`). These
 are comparisons of one selected row in the same forced 32-row history, not
 proof that group normalization causes the downstream choice crossing. They
 identify group normalization as the next bounded operation to investigate.
+
+On Linux CUDA, PyTorch `group_norm` with eight groups and epsilon `1e-5` on
+that exact retained first-convolution input reproduced all 4,608 retained CUDA
+normalization outputs bit-for-bit. Explicit PyTorch reductions over the same
+grouped input disagreed in 1,902 values with square-root/division and in 1,734
+values with reciprocal-square-root/multiplication (maximum differences
+`4.7684e-7` and `7.1526e-7`, respectively). This single-row diagnostic
+indicates that reduction arithmetic matters; neither decomposition is a
+qualified replacement and no Metal result or causal fix is implied.
