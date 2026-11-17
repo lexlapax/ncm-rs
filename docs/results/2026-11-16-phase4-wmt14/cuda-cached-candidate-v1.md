@@ -171,3 +171,10 @@ the comparison SHA-256 is
 `5f13e04aac88d4640034691bb7de009991c7812e4cd864764cd9d3d84433bdb3`.
 The separate row-2658 divergence remains untraced. This does not waive the
 exact CFG gate; the ordinary cache constructor continues to reject CFG.
+
+A separate source-bound Python trace is prepared for the original four-row
+batch starting at 2656, containing the other cached-CFG mismatch at row 2658.
+It checks the retained Python full-capture outputs, pinned checkpoint and
+inputs; the corresponding cached CUDA trace and unchanged-band comparison
+remain pending. This is an investigation of already inspected data, not a new
+quality study or a waiver.
