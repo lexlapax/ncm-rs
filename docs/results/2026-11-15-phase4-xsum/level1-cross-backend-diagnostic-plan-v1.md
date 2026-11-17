@@ -857,3 +857,20 @@ and five raw-ID differences. The controlled GELU intervention therefore did
 not yield an end-to-end fix in these combinations; the exact gate remains
 failed. Outputs are retained under
 `reports/phase4-xsum-refined-gelu-screen-captured-v1`.
+
+A same-input operator screen used the refined Metal row's captured first MLP
+input and CUDA `gelu(..., approximate='none')` output. Of 1,591,296 values,
+uncompiled multiplication and the safe, relaxed and fast CUDA-order Metal
+expressions each matched 1,181,365 exactly; composed division matched
+1,034,203, compiled multiplication 809,680, and compiled division 324,126.
+The largest error was at most `7.1526e-7`. These are one captured input, not a
+qualified implementation or proof of the full-model failure. The input and
+result SHA-256 values are
+`b431509d36c1d7608108f257cf8c5bf64a2550601b10bc22375cf6fbc9a2f036` /
+`b2d00725f41f403c679b6bb37438d8f88795b844dca794cefcd46d26762af327`,
+and the CUDA preparation script SHA-256 is
+`9a8cd8cd84dd415460d2c5141d48dc99211560fd5091dfa5a3808b258ffb46e0`.
+Two CUDA preparations produced identical inputs; the Mac output was retrieved
+with matching hashes. The first Metal probe invocation used a nonexistent
+`.reference/venv` on Mac and failed before executing; rerunning in the existing
+`.reference/mlx-venv` succeeded. No model or gate was changed.

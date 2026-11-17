@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum refined-input same-operator GELU:** the best tested Metal expression matches 1,181,365/1,591,296 same-input CUDA values, leaving an operator discrepancy. [Bounded evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md); no full-model fix or exact gate pass.
+
 - **XSum refined-normalization GELU isolation:** the forced Metal row still selects the wrong code. Its first-MLP-input CUDA substitution retains the reference choice, but GELU-output substitution flips it; [bounded evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md). Two explicit refined/GELU combinations pass full CUDA checks (18 device cases) and the Metal normalization regression, but both Metal screens match the prior candidate byte-for-byte and retain the row-4937 failure.
 
 - **XSum refined-normalization trace preparation:** a separate opt-in Metal forced-row example will capture the existing refined candidate at row 4937 to locate its remaining differences. Full Linux/CUDA validation passes (18 device cases); the Mac trace and subsequent replay are recorded above. The exact gate remains failed.
