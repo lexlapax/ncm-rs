@@ -74,3 +74,27 @@ fn sampled_embedding_bounds_invalid_sentinel_without_erasing_it() {
     );
     assert_eq!(backend.read_indices(&indices).unwrap(), original);
 }
+
+#[test]
+fn unique_selection_preserves_invalid_rows_through_safe_embedding_and_concatenation() {
+    let backend = CandleBackend::cuda(0).unwrap();
+    let mut scores = vec![0.0f32; 3 * 4096];
+    scores[7] = 2.0;
+    scores[4096 + 2] = 3.0;
+    scores[4096 + 4] = 3.0;
+    scores[2 * 4096 + 1] = f32::NAN;
+    let logits = backend.upload_f32(&scores, &[1, 3, 4096]).unwrap();
+    let selected = backend.unique_max_4096(&logits).unwrap();
+    let weight = backend
+        .upload_f32(&(0..4096).map(|i| i as f32).collect::<Vec<_>>(), &[4096, 1])
+        .unwrap();
+    let embedded = backend.sampled_embedding_4096(&weight, &selected).unwrap();
+    let collected = backend
+        .concat_indices(&[selected.clone(), selected], 1)
+        .unwrap();
+    assert_eq!(backend.read_f32(&embedded).unwrap(), [7.0, 4095.0, 4095.0]);
+    assert_eq!(
+        backend.read_indices(&collected).unwrap(),
+        [7, u32::MAX, u32::MAX, 7, u32::MAX, u32::MAX]
+    );
+}
