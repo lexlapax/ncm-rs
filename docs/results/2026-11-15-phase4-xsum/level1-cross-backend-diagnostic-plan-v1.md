@@ -360,6 +360,19 @@ default backend is unchanged. Full CUDA checks passed (18 device cases;
 `reports/phase4-xsum-head-split-cuda-check-v1.log`). Rust Metal compilation,
 free-generation, full quality and performance remain pending.
 
+At `2abb48a`, the split-head diagnostic built and ran on Metal. On the forced
+row-4937 history it still selected 3690 instead of CUDA's 3182, with a
+`-9.5367e-7` margin. Free generation matched all CUDA codes and raw IDs for
+the 4864 batch, but retained three code and five raw-ID differences on the
+4928 batch. Its free outputs are byte-identical to the earlier upsample
+candidate on both batches; hashes are
+`8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6` and
+`1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`.
+The forced tensor SHA-256 is
+`0ff9cd6bdc43e1bef1679273617f0f5fd714607a6f2acda197a756789f32468d`;
+local and Mac copies match. This is a previously inspected bounded screen,
+not full corpus quality or performance evidence. The exact gate remains failed.
+
 The same six backends were screened on the 32-row batch beginning at 4864.
 Default Metal matched all CUDA codes but retained one raw-ID difference at
 row 4883 position 40. Each of the five experimental variants matched all
