@@ -280,7 +280,7 @@ fn experimental_xsum_projection_preserves_reference_bias_order() {
     let b = MlxBackend::gpu_xsum_reference_projection_experimental().unwrap();
     let x = b.upload_f32(&vec![1.0; 6 * 384], &[1, 6, 384]).unwrap();
     let mut weights = vec![0.0; 768 * 384];
-    for row in weights.chunks_exact_mut(384) {
+    for row in weights.as_chunks_mut::<384>().0.iter_mut() {
         row[0] = 100_000_000.0;
         row[192] = -100_000_000.0;
     }

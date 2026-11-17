@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Mac full-check compatibility:** the first full MLX check failed before Metal tests because Rust 1.99 Clippy rejects three existing constant-size chunk iterators. Equivalent fixed-size chunk fixes pass full Linux/CUDA validation (18 device cases); the Mac rerun is pending. A separate native `metal::erf` probe failed to compile; no model change. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
+
 - **XSum refined-input same-operator GELU:** the best tested Metal expression matches 1,181,365/1,591,296 same-input CUDA values, leaving an operator discrepancy. [Bounded evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md); no full-model fix or exact gate pass.
 
 - **XSum refined-normalization GELU isolation:** the forced Metal row still selects the wrong code. Its first-MLP-input CUDA substitution retains the reference choice, but GELU-output substitution flips it; [bounded evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md). Two explicit refined/GELU combinations pass full CUDA checks (18 device cases) and the Metal normalization regression, but both Metal screens match the prior candidate byte-for-byte and retain the row-4937 failure.

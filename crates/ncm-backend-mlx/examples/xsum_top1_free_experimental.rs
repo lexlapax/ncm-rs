@@ -48,8 +48,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if codes.len() != 32 * 200 || output.ids.len() != 32 * 48 {
         return Err("unexpected output shape".into());
     }
-    let codes: Vec<_> = codes.chunks_exact(200).collect();
-    let ids: Vec<_> = output.ids.chunks_exact(48).collect();
+    let codes: Vec<_> = codes
+        .as_chunks::<200>()
+        .0
+        .iter()
+        .map(|row| row.as_slice())
+        .collect();
+    let ids: Vec<_> = output
+        .ids
+        .as_chunks::<48>()
+        .0
+        .iter()
+        .map(|row| row.as_slice())
+        .collect();
     println!("{}", serde_json::json!({"codes": codes, "ids": ids}));
     Ok(())
 }

@@ -874,3 +874,16 @@ Two CUDA preparations produced identical inputs; the Mac output was retrieved
 with matching hashes. The first Metal probe invocation used a nonexistent
 `.reference/venv` on Mac and failed before executing; rerunning in the existing
 `.reference/mlx-venv` succeeded. No model or gate was changed.
+
+A follow-up native Metal error-function probe failed during shader compilation:
+this environment's `metal` namespace has no `erf` member. No result or model
+change was produced. The retained script and Mac failure log hashes are
+`a7761411276e7ed5abc88fe6f9f8b0010dfe71957c2c24f6aa3f4022a9b9475e` /
+`f77df00f2cfd9227d447e64f61309b164fffcb380b277157370c9bfd07710fba`.
+
+A full `tools/check.sh --mlx` attempt then failed at Clippy on three existing
+constant-size `chunks_exact` uses under the Mac's Rust 1.99 toolchain, before
+Metal tests ran (`reports/phase4-xsum-refined-gelu-mlx-check-v1.log` on Mac).
+The targeted refined-normalization Metal test above passed. Equivalent fixed-size
+chunk APIs pass full `tools/check.sh --cuda` with 18 real-device cases
+(`reports/phase4-xsum-mlx-clippy-cuda-check-v1.log`); the Mac rerun is pending.
