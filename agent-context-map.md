@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **Linux validation scheduling:** two independently isolated existing report tests overlap after all others run serially. The scheduler checks full test identities and fails on omissions or failures; all 520 prior tests plus four scheduler tests and 18 CUDA device cases pass. A single suite comparison saved about 12 seconds (167.35 to 155.37 s); [evidence](docs/results/2026-11-17-phase4-check-scheduling.md). No model or acceptance gate changed.
+- **Linux validation scheduling:** three independently isolated existing report tests overlap after all others run serially. The scheduler checks full test identities and fails on omissions or failures; all 520 prior tests plus four scheduler tests and 18 CUDA device cases pass. A single suite comparison saved about 21 seconds (167.35 to about 146.48 s); [evidence](docs/results/2026-11-17-phase4-check-scheduling.md). No model or acceptance gate changed.
 
 - **XSum six-part head combinations:** explicit diagnostics combine the earlier six-part head with reference-order projection, refined normalization, and optionally CUDA-order GELU. No default, selection rule or tolerance changes. Full Linux/CUDA validation passes (18 device cases). A CUDA-only refined-hidden head screen selects the differing code for all layouts; it does not predict Metal. Automatic approval review rejected the bounded Metal screen while `dotsetup.rmlx` is active; service pause needs explicit user approval. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
 

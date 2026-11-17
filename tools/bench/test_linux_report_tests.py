@@ -49,7 +49,7 @@ class LinuxReportSchedulingTests(unittest.TestCase):
                     self.fail('isolated failure')
 
         isolated = sorted(OVERLAPPED)
-        suite = unittest.TestSuite([Case('serial.case', False), Case(isolated[0], True), Case(isolated[1], False)])
+        suite = unittest.TestSuite([Case('serial.case', False)] + [Case(name, index == 0) for index, name in enumerate(isolated)])
         with patch.object(scheduler.sys, 'platform', 'linux'), patch.object(scheduler.unittest.defaultTestLoader, 'discover', return_value=suite), redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit) as error:
                 scheduler.main()
