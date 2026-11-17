@@ -66,3 +66,10 @@ SHA-256 hashes are
 `ad08ba5f1b90ac9d1977d861f417414cdcda63a9f71db2d21fcba9e96e26816c`.
 These are forced-history diagnostics, not free-generation or full-quality
 results; the exact Metal gate remains failed and the default is unchanged.
+
+A separate opt-in diagnostic combines the experimental upsampling operation
+with the previously tested experimental normalization. Neither operation is
+selected by the default backend. Linux checks precede the same forced-history
+Metal comparison; results are pending. The full `tools/check.sh --cuda`
+passed 18 CUDA operator cases; log SHA-256 is
+`08ad8c45929811e7056ff25f944b12953f82dec3611cab67e557016e6e3605a2`.

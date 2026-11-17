@@ -110,6 +110,13 @@ impl MlxBackend {
         backend.xsum_upsample_experimental = true;
         Ok(backend)
     }
+    /// Explicit combined diagnostic; this is not a qualified inference profile.
+    pub fn gpu_xsum_combined_experimental() -> Result<Self> {
+        let mut backend = Self::gpu()?;
+        backend.xsum_norm_experimental = true;
+        backend.xsum_upsample_experimental = true;
+        Ok(backend)
+    }
     fn array_op(
         &self,
         inputs: &[&MlxTensor],
