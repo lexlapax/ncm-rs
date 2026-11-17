@@ -236,3 +236,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_reference_cfg_capture"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_perf_screen"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
