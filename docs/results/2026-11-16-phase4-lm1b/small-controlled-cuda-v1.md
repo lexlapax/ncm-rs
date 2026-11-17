@@ -226,3 +226,37 @@ comparison hashes are
 `78e60d3fff128a2944d50e1c73d35bb6d0c33d5df5973b0348306410bd60f525`, and
 `6043c4bef55d0cad0b65f93f6106ed72c83e699b5de5ada17a2c01383be30989`.
 Broader quality and performance evidence remain pending.
+
+## Non-held-out candidate development screen
+
+The same explicit QKV/reference-table candidate generated 256 samples in
+batch-eight requests for each development seed 11–15, using the existing
+request-local SplitMix64 streams. The pinned FLM evaluator matched its upstream
+implementation on all five captures. These are descriptive development results,
+not the held-out quality gate or proof of general stochastic parity:
+
+| Seed | Candidate perplexity | Candidate raw-ID entropy |
+| --- | ---: | ---: |
+| 11 | 93.261720 | 4.311424 |
+| 12 | 95.223602 | 4.305927 |
+| 13 | 92.006153 | 4.312571 |
+| 14 | 91.207176 | 4.311991 |
+| 15 | 92.054570 | 4.315229 |
+
+The five-seed candidate mean is 92.750644 perplexity and 4.311428 entropy;
+the retained Python development means are 92.975852 and 4.311537. Candidate
+minus Python is -0.225208 and -0.000109. Independent 10,000-resample seed
+bootstrap percentile intervals are [-2.872697, 2.100387] and
+[-0.003445, 0.002876], respectively; five seeds limit interpretation. Capture
+and scorer identities are checked by the retained summary script
+`reports/phase4-lm1b-level7-replay-v1/development-summary.py`, SHA-256
+`fe7c9be5327cac7b5477e02c1068e77308424cc242ee83a241cfa225d2c24b9c`, and the
+summary SHA-256 is
+`f6497e6ef6341e2181f02fc0e1b17870f907b719ff423a2d569cd0c61397c192`.
+The candidate's seed-11 capture differs from the earlier default-backend
+capture in 12,086 codes across 98 rows and 3,362 IDs across 93 rows; existing
+scores for that backend cannot be reused as candidate evidence. Each capture
+records the diagnostic backend and table hash. The feature-specific capture
+lint and seed-guard test pass; the seed-11 capture and its pinned scorer report repeat byte-for-byte.
+`tools/check.sh --cuda` passed including 18 real-device cases
+(`reports/phase4-lm1b-reference-rope-development-cuda-check-v1.log`).

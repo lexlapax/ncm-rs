@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B candidate development quality:** the opt-in reference-table/QKV candidate was scored on five non-held-out 256-sample seeds; candidate-minus-Python mean perplexity is -0.225208 and entropy -0.000109, with all pinned scorers matching upstream. These are descriptive, not held-out results. Feature lint, seed guard, seed-11 capture/scorer byte-for-byte repeat and full CUDA validation pass (18 device cases); official quality remains pending. [Details](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md).
+
 - **LM1B reference-table intervention:** the explicit QKV/reference-operator candidate supplied pinned Python rotary tables passes the retained two-row controlled comparison (51/51 tensors, exact generated codes/IDs). Tables are diagnostic input, not an artifact/schema/default change. The table-only variant still fails 21/51 tensors. Dimension and finiteness regression, feature clippy and full CUDA validation pass (18 device cases); broader quality/performance evidence is pending. [Details](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md).
 
 - **LM1B rotary and attention isolation:** expanded opt-in traces show normalized Q/K and V match Python exactly while rotary tables and rotated Q/K differ. Python rotary arithmetic with Rust tables reproduces Rust Q/K exactly; Python math-SDPA with Rust Q/K/V still differs from Rust attention. A separate-operand scaling candidate still fails 21/51 tensors and was reverted. Feature clippy and full CUDA checks pass (18 device cases). [Details](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md).
