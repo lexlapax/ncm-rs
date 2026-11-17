@@ -18,3 +18,20 @@ CUDA values than the existing Metal convolution on this row, so those CPU
 orders are not proposed for runtime use. The standalone Metal probe passed
 Python syntax checking; its real-device result is pending. This is a bounded,
 previously inspected diagnostic, not a quality or performance gate.
+
+The row-4937 Metal probe at `685b829` reproduced all 4,608 previously
+captured Metal values. Native convolution matched 3,299/4,608 CUDA values;
+the flattened FP32 matmul matched 4,608/4,608, while three separate matmuls
+matched 730/4,608. The result SHA-256 is
+`070bfecce2a5e97f227498c3b9e006e50c351f894dbf9d4f71ec1c88fc41ac05`;
+the local copy matches the Mac. This is one previously inspected row, not a
+model-level fix or a quality gate.
+
+For a broader bounded comparison, pinned PyTorch CUDA evaluated the same
+32-row `x`, weight and bias with deterministic cuDNN, TF32 disabled and stride
+3. Its row 4937 is bit-identical to the captured CUDA row. The full reference
+trace SHA-256 is
+`a44f20b092f44d91c3f4271171f996b181c63aac7eb58eca0639956ef70a14ed`.
+The probe can now compare every element of that full batch after validating the
+reference hash and selected row. The full-batch Metal result remains pending;
+this direct operation is diagnostic, not an independent model reference.
