@@ -260,3 +260,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_cached_perf_screen"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cached_microbatch_perf"
+required-features = ["wmt14-experimental", "cuda-cudnn"]

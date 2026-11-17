@@ -39,7 +39,7 @@ fn cached_matches_uncached_for_padded_base_and_guided_batches() {
     for cached in [false, true] {
         let data = Artifact::load_inference(&artifact).unwrap();
         let model = if cached {
-            Wmt14Teacher::from_artifact_cached_experimental(backend.clone(), &data).unwrap()
+            Wmt14Teacher::from_artifact_cached_cfg_diagnostic(backend.clone(), &data).unwrap()
         } else {
             Wmt14Teacher::from_artifact(backend.clone(), &data).unwrap()
         };
@@ -63,6 +63,16 @@ fn cached_matches_uncached_for_padded_base_and_guided_batches() {
                     }
                 }
             }
+        }
+        if cached {
+            drop(model);
+            let guarded =
+                Wmt14Teacher::from_artifact_cached_experimental(backend.clone(), &data).unwrap();
+            let error = guarded
+                .generate_cfg_top1(&input[..96], 1, 1.0)
+                .err()
+                .expect("cached CFG must fail explicitly");
+            assert!(error.to_string().contains("cached CFG is unsupported"));
         }
     }
     assert!(expected.is_empty());

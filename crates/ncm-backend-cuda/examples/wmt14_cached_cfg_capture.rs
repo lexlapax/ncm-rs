@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let artifact = Artifact::load_inference(&args[1])?;
     let backend = CandleBackend::cuda_wmt14_reference(0)?;
-    let teacher = Wmt14Teacher::from_artifact_cached_experimental(backend.clone(), &artifact)?;
+    let teacher = Wmt14Teacher::from_artifact_cached_cfg_diagnostic(backend.clone(), &artifact)?;
     let mut outputs = Vec::with_capacity(count);
     for start in (0..count).step_by(4) {
         let size = (count - start).min(4);

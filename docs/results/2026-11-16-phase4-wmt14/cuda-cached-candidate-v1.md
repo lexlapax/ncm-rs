@@ -54,3 +54,27 @@ pending. The manifest, measurements and telemetry SHA-256 values are
 `91d203f17c5df648aaead51e014e3083e7cc0ee96984100f92a8e0db82c38407`.
 The known CFG failure must remain explicit; a base-only guard and further
 investigation are pending. No Metal WMT gate is claimed.
+
+A follow-up explicitly rejects guided generation from the ordinary cached
+constructor, directing callers to the no-cache model. A separately named
+`cached_cfg_diagnostic` constructor remains available solely to reproduce and
+investigate the documented failure. A real-CUDA regression confirms the guard,
+small diagnostic cases, and existing forced-history bands (log SHA-256
+`ecee314c26d80ef5b9a4b9c711e5890ae07eb8be3ebd6e242e3851d6ce536050`).
+The first full guard check failed because an untracked microbatch benchmark
+example was auto-discovered without its feature declaration; the failed log
+is retained at `reports/phase4-wmt14-cache-guard-cuda-check-v1.log`. The
+feature declaration was added and a full rerun is pending.
+
+A separate explicit microbatch experiment will process external base batches
+in sequential groups of at most four, measuring whether it reduces peak GPU
+memory while maintaining exact outputs and a speed advantage. It is not yet a
+production scheduling policy; full source-bound output and repeated
+performance/memory evidence remain pending.
+
+The corrected full CUDA check passed, including 18 operator cases; its log
+SHA-256 is `b05b70c6a3194c9d789d56ace4a5fcc025d69e51457c689788ef42650e1f0d62`.
+A batch-32 microbatch smoke matched all retained Python codes and IDs and had
+a single-process median of 655.55 ms (result SHA-256
+`6c6cc0aaf7afb245cba75b655f6ef4b16507a5bb8a689c6dd278f3f0c977c2d3`).
+This smoke does not establish peak GPU memory or a repeated performance gate.

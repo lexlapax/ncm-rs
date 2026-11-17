@@ -639,6 +639,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     heads: Box<[B::Tensor]>,
     geometry: Vec<LevelGeometry<B::Tensor>>,
     cached_prefix_experimental: bool,
+    cached_cfg_diagnostic: bool,
 }
 
 #[cfg(feature = "wmt14-experimental")]
@@ -700,6 +701,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             heads: heads.into_boxed_slice(),
             geometry,
             cached_prefix_experimental: false,
+            cached_cfg_diagnostic: false,
         })
     }
 
@@ -707,6 +709,13 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
     pub fn from_artifact_cached_experimental(backend: B, artifact: &Artifact) -> Result<Self> {
         let mut model = Self::from_artifact(backend, artifact)?;
         model.cached_prefix_experimental = true;
+        Ok(model)
+    }
+
+    /// Investigate the known-failing guided cache path; never a qualified profile.
+    pub fn from_artifact_cached_cfg_diagnostic(backend: B, artifact: &Artifact) -> Result<Self> {
+        let mut model = Self::from_artifact_cached_experimental(backend, artifact)?;
+        model.cached_cfg_diagnostic = true;
         Ok(model)
     }
 }
@@ -778,6 +787,11 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         trace: &mut impl crate::TraceSink<B>,
         cfg: Option<(usize, f64)>,
     ) -> Result<Generated<B>> {
+        if cfg.is_some() && self.cached_prefix_experimental && !self.cached_cfg_diagnostic {
+            return Err(Error::Input(
+                "WMT14 cached CFG is unsupported; use the no-cache model".into(),
+            ));
+        }
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
         if !(1..=32).contains(&batch)
