@@ -122,6 +122,36 @@ impl<B: CodecBackend> Codec<B> {
         }
         Ok(value)
     }
+
+    /// Trace the XSum first-level upsampling cascade for a forced-history diagnostic.
+    pub(crate) fn xsum_cascade_diagnostic(
+        &self,
+        x: &B::Tensor,
+        trace: &mut impl TraceSink<B>,
+    ) -> Result<B::Tensor> {
+        self.check_latent(x, self.config.levels()[0])?;
+        let b = &self.backend;
+        let q = &self.config.raw().vector_quantizer_config;
+        let mut value = x.clone();
+        for (i, stride) in self.config.strides().iter().rev().copied().enumerate() {
+            if i > 0 && q.learned_l1_cascade_norm {
+                value = b.group_norm(&value, 8, 1e-5)?;
+                trace.tensor(&format!("diagnostic.level_01.cascade_{i:02}.norm"), &value)?;
+            }
+            let index = if q.learned_l1_cascade_norm { i * 2 } else { i };
+            let name = format!("vq.learned_up_l1.{index}");
+            value = b.conv1d(
+                &value,
+                self.weight(&format!("{name}.weight"))?,
+                self.weight(&format!("{name}.bias"))?,
+                stride,
+                0,
+                true,
+            )?;
+            trace.tensor(&format!("diagnostic.level_01.cascade_{i:02}.conv"), &value)?;
+        }
+        Ok(value)
+    }
     pub fn refine(&self, x: &B::Tensor, level: usize) -> Result<B::Tensor> {
         self.check_latent(x, self.config.raw().context_length)?;
         if level >= self.config.levels().len() {

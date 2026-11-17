@@ -146,3 +146,15 @@ RMS `2.3264e-7`). The resized latent differs in 2,206 of 2,304 elements
 not identify the first differing codec operation or prove causation for the
 head near tie. The exact Metal gate remains failed. Raw evidence is retained
 under ignored `reports/phase4-xsum-target-{cuda-v1,mlx-captured-v1}/`.
+
+## Level-zero cascade follow-up
+
+A forced-history diagnostic now records the codebook output, both upsampling
+convolutions, and the intervening group normalization for level zero. The
+same-batch CUDA capture contains 36 tensors and reproduces all 32 previous
+CUDA tensors bit-for-bit; SHA-256
+`155d66bbed2905dd3d99cd2a255bb55601dcbb181b06a057ce0e70710726f867`.
+Feature-specific strict Clippy passed. Full CUDA check and the corresponding
+Metal trace remain pending. The default untraced cascade is unchanged.
+The full CUDA check passed, including 18 operator cases; log SHA-256
+`effe8c19e8d9a4e792a3f04ef0f71f3e97c7764fdc8970256bf72c303f4946e6`.

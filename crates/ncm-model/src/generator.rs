@@ -2077,9 +2077,13 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             } else {
                 b.sampled_embedding_4096(book, &selected)?
             };
-            let contribution = self
-                .codec
-                .refine(&self.codec.upsample(&embedding, level)?, level)?;
+            let upsampled = if forced.is_some() && level == 0 {
+                trace.tensor("diagnostic.level_01.codebook", &embedding)?;
+                self.codec.xsum_cascade_diagnostic(&embedding, trace)?
+            } else {
+                self.codec.upsample(&embedding, level)?
+            };
+            let contribution = self.codec.refine(&upsampled, level)?;
             let sum = match cumulative {
                 Some(ref old) => b.add(old, &contribution)?,
                 None => contribution,
