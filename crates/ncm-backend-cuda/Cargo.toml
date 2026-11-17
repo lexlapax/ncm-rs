@@ -14,6 +14,7 @@ cpu = ["dep:candle-core"]
 cuda = ["cpu", "candle-core/cuda", "dep:candle-nn"]
 cuda-cudnn = ["cuda", "dep:cudarc"]
 cudnn-probe = ["cuda-cudnn", "candle-core/cudnn"]
+wmt14-experimental = ["cuda", "ncm-model/wmt14-experimental"]
 
 [dependencies]
 ncm-core = { path = "../ncm-core" }
@@ -183,3 +184,7 @@ name = "wmt14_codec_preflight"
 
 [[example]]
 name = "wmt14_generator_preflight"
+
+[[example]]
+name = "wmt14_codec_trace"
+required-features = ["wmt14-experimental"]

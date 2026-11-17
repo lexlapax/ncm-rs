@@ -91,7 +91,27 @@ impl<B: WeightBackend> Codec<B> {
     /// Complete host preflight precedes the FIRST backend allocation. Native
     /// allocation errors are propagated, never retried on a different device.
     pub fn from_safetensors(backend: B, config: CodecConfig, bytes: &[u8]) -> Result<Self> {
-        if bytes.len() > 256 * 1024 * 1024 + 1024 * 1024 {
+        Self::from_safetensors_with_limit(backend, config, bytes, 256 * 1024 * 1024 + 1024 * 1024)
+    }
+
+    /// Development-only WMT14 codec path; this has not passed model parity or
+    /// quality gates and is intentionally absent from normal artifact loading.
+    #[cfg(feature = "wmt14-experimental")]
+    pub fn from_wmt14_artifact_experimental(backend: B, artifact: &Artifact) -> Result<Self> {
+        let config = wmt14_generator::codec_config(artifact)?;
+        let bytes = artifact
+            .file("codec.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        Self::from_safetensors_with_limit(backend, config, bytes, 640 * 1024 * 1024 + 1024 * 1024)
+    }
+
+    fn from_safetensors_with_limit(
+        backend: B,
+        config: CodecConfig,
+        bytes: &[u8],
+        limit: usize,
+    ) -> Result<Self> {
+        if bytes.len() > limit {
             return Err(Error::Weights(
                 "safetensors file exceeds codec limit".into(),
             ));

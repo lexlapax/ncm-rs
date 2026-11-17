@@ -141,6 +141,23 @@ pub struct Wmt14GeneratorInspection {
     pub tensor_count: usize,
 }
 
+#[cfg(feature = "wmt14-experimental")]
+pub(crate) fn codec_config(artifact: &Artifact) -> Result<CodecConfig> {
+    if artifact.manifest().profile != "wmt14-inference-v1" {
+        return Err(Error::Config("unsupported WMT14 artifact profile".into()));
+    }
+    let config = artifact
+        .file("config.json")
+        .map_err(|error| Error::Weights(error.to_string()))?;
+    let envelope: Envelope = serde_json::from_slice(config)?;
+    if envelope.task != "wmt14" {
+        return Err(Error::Config("unsupported WMT14 task".into()));
+    }
+    validate_model_config(&envelope.model)?;
+    validate_pre_tokenizer(&envelope.tokenizer.pre_tokenizer)?;
+    CodecConfig::validate_wmt14(envelope.tokenizer.vqvae)
+}
+
 impl Wmt14GeneratorInspection {
     pub fn from_artifact(artifact: &Artifact) -> Result<Self> {
         if artifact.manifest().profile != "wmt14-inference-v1" {
