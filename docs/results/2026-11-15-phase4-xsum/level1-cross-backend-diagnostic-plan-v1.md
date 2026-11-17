@@ -54,3 +54,15 @@ The existing logits retain their documented in-band crossing, and the exact
 full Metal raw-ID gate remains failed. The Metal check log SHA-256 is
 `26d588bdc1198731da3cba950b29e48a7a94c88c6de0d0870d9ad2e62a244834`.
 Raw evidence is under ignored `reports/phase4-xsum-level1-{cuda-v2,mlx-captured-v1}/`.
+
+## Transformer block follow-up
+
+The next forced-history diagnostic adds the concatenated level-1 input and
+all 12 transformer block outputs, preserving all earlier observations. It is
+only enabled for the forced level-1 trace. A CUDA capture with the same inputs
+contains 25 tensors, and all 12 previously captured tensors match bit-for-bit.
+Its safetensors SHA-256 is
+`c9d7c3d95e0177e89db35ad0f1c109b90451323acd058e056b42a95ab05f419f`.
+Feature-specific strict Clippy passed. The full CUDA regression passed, including 18 operator cases (log SHA-256
+`f3ea33da28fe8d3c3ba1494cab25469e8c2f89dd9e07710e3e992be420699208`). The matching
+Metal trace remains pending; the added observations are diagnostic only.

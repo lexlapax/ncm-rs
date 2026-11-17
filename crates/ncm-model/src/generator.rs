@@ -551,6 +551,25 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
     width: usize,
     length: usize,
 ) -> Result<B::Tensor> {
+    decode_transformer_observed(
+        b, blocks, final_norm, geometry, prefix, target, prefix_len, heads, width, length, None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    blocks: &[GeneratorBlock<B::Tensor>],
+    final_norm: &Affine<B::Tensor>,
+    geometry: &LevelGeometry<B::Tensor>,
+    prefix: &B::Tensor,
+    target: &B::Tensor,
+    prefix_len: usize,
+    heads: usize,
+    width: usize,
+    length: usize,
+    mut trace: Option<&mut dyn crate::TraceSink<B>>,
+) -> Result<B::Tensor> {
     let batch = b.shape(prefix)[0];
     let seq = prefix_len + length;
     let head = width / heads;
@@ -564,7 +583,10 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
         }
     };
     let mut x = b.concat_f32(&[prefix.clone(), target.clone()], 1)?;
-    for block in blocks {
+    if let Some(trace) = trace.as_deref_mut() {
+        trace.tensor("diagnostic.level_01.input", &x)?;
+    }
+    for (index, block) in blocks.iter().enumerate() {
         let normalized = norm(&block.ln_1, &x)?;
         let qkv = linear(&block.qkv, &normalized)?;
         let [q, k, v] = b.split_qkv(&qkv, batch, seq, heads, head)?;
@@ -576,6 +598,9 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
         let normalized = norm(&block.ln_2, &x)?;
         let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
         x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        if let Some(trace) = trace.as_deref_mut() {
+            trace.tensor(&format!("diagnostic.level_01.block_{index:02}"), &x)?;
+        }
     }
     let x = norm(final_norm, &x)?;
     b.narrow(&x, 1, prefix_len, length)
@@ -1778,7 +1803,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 cosine: base.cosine.clone(),
                 sine: base.sine.clone(),
             };
-            let hidden = decode_transformer(
+            let hidden = decode_transformer_observed(
                 b,
                 &self.blocks,
                 &self.final_norm,
@@ -1789,6 +1814,11 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 12,
                 768,
                 length,
+                if level == 1 && forced.is_some() {
+                    Some(trace)
+                } else {
+                    None
+                },
             )?;
             let head = &self.heads[level];
             if level == 1 && forced.is_some() {
