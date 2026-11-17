@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum GELU ULP-partition control:** on the captured CUDA continuation, replacing only high-precision GELU values two to four FP32 ULPs away flips the code; one-ULP substitutions alone retain it and five-or-more produce a tie. Positive and negative subsets of the two-to-four group each flip. Replays repeat byte-for-byte; this is case-specific evidence, not a tolerance or gate change. [Details](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
+
 - **XSum CPU erf controls:** a separate FP32 CPU erf expression and system C-library erf also fail to reproduce the CUDA decision under the retained continuation; these are bounded controls, not runtime fallbacks. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
 
 - **XSum high-precision GELU control:** FP64-erf/FP32-expression intervention matches 1,493,683/1,591,296 CUDA values but independently flips the decisive CUDA continuation; exact CUDA GELU retains the reference choice. Prefix-only substitution flips while target-only retains it; both halves of the first 128 prefix tokens independently flip. This rules out assuming more accurate erf alone fixes this case, without proving a general cause. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).

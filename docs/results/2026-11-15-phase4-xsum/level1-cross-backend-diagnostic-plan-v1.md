@@ -997,3 +997,25 @@ The system C-library `erff` expression was also byte-identical to the prior
 FP64-erf intervention for this input. These are numerical controls only;
 they do not justify a CPU fallback, infer a general model failure, or change
 the exact gate.
+
+A further bounded replay separated the high-precision-erf intervention's
+97,613 differences from the exact same-input CUDA GELU by FP32 bit distance.
+Both tensors are finite and have identical sign bits, so their integer bit
+positions measure ULP distance here. Replacing only the 35,541 one-ULP values
+retains reference code 3182 with margin `+9.5367e-7`; replacing only the
+26,609 values two to four ULPs away selects 3690 with margin `-9.5367e-7`;
+replacing only the 35,463 values at least five ULPs away produces a tie selecting
+3182. The full high-precision intervention selects 3690. Each is a separate
+substitution into CUDA's captured-input continuation, not a bound or attribution
+for full Metal inference.
+
+Of the two-to-four-ULP positions, 25,924 have negative and 685 nonnegative
+inputs. Substituting either subset independently selects 3690 (margins
+`-1.9073e-6` and `-9.5367e-7`). The grouped and sign-partition scripts/logs
+have SHA-256 values
+`c72c743fb6e4e2d3f288c82d5e47fd725025fdbab1971302f7d87ee1be5d0b21` /
+`07db6f282c719120eb04ff6ee4357445a5bc8ebd876fb6a0c1fbae4a761614eb`, and
+`5859613d8b8ca7faff555ed0f2795182b333c2e5be3661df9be558f30550ddcb` /
+`eb9e347175248ff8dd519b191d86a728ed9dba5809c415558f9b9d02dd8324d1`.
+Both logs reproduced byte-for-byte in independent reruns. These observations
+constrain this captured case; no tolerance, model, or gate changed.
