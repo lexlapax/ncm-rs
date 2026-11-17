@@ -398,3 +398,20 @@ After refining audit-only coverage labels, strict feature-enabled lint and four
 artifact-backed CUDA cache tests passed. The initial lint import-name error is
 retained in its v1 log. The source-bound full audit remains pending. This is
 not a proof of a bound for unseen inputs and does not change the CFG guard.
+
+The full audit at `cd6c2f4` compared 936,936 non-level-zero guided positions
+over all 3,003 previously inspected rows. It found 30 positions at or below
+the `1e-4` cached margin threshold, triggering recomputation of 30 batch
+levels. There were two raw cached-versus-uncached argmax disagreements;
+both were within the threshold and no batch level with a disagreement went
+unrecomputed. Final codes and raw IDs matched the pinned Python capture for
+every row. The maximum absolute cached-versus-uncached score difference was
+`0.0001926422119140625`, exceeding the margin trigger. Thus this audit
+measures coverage on this corpus and does not establish an error bound or
+guarantee for unseen inputs. The report SHA-256 is
+`2507d950b9b0acb957bd25128afff44477ada005489f4728050e42552ab3bdef`.
+The binary, audit/model source, artifact manifest, prefix and Python-capture
+SHA-256 lists matched before and after; tracked source remained clean at
+`cd6c2f4`. Raw logs and lists are under
+`reports/phase4-wmt14-cfg-recompute-audit-*`. The ordinary cached CFG guard
+remains unchanged.
