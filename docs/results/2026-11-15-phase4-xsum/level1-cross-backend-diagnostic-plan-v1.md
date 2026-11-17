@@ -457,3 +457,10 @@ synthetic inputs and receipts are retained under
 evidence, not an exact reference replay or quality gate. A six-part model
 variant passes the full CUDA check, including 18 device cases; Metal
 free-generation and performance results remain pending.
+
+At `6b8a156`, the six-part model variant built and ran on Metal. Its free
+outputs on batches 4864 and 4928 were byte-identical to the earlier split-head
+candidate: batch 4864 matches CUDA, while batch 4928 retains three code and
+five raw-ID differences. Input hashes passed postflight; local and Mac output
+hashes agree. The controlled head-chain improvement did not resolve this
+free-generation failure. Full corpus quality and performance remain pending.

@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum head-chain probe:** the [standalone Metal screen](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) compared hidden-to-head layouts followed by a split codebook product. Six parts reproduced the decisive controlled CUDA margin on the inspected CUDA hidden state and had the most exact matches on four synthetic screens, but most logits still differed. An explicit six-part model diagnostic passes the full CUDA check, including 18 device cases (`reports/phase4-xsum-six-head-split-cuda-check-v1.log`); Metal results remain pending. Default inference is unchanged.
+- **XSum head-chain probe:** the [standalone Metal screen](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found six-part projection reproduced the decisive controlled CUDA margin on the inspected CUDA hidden state and had the most exact matches on four synthetic screens, but most logits still differed. The explicit six-part model passes full CUDA checks and Metal bounded screens, but its outputs match the prior split-head candidate and retain the row-4937 failure. Default inference is unchanged; the exact gate remains open.
 
 - **XSum head-projection layout screen:** the [same-input Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) tested three-, four- and six-part layouts. None reproduced CUDA; six parts matched 502/2,304 values and reduced maximum error to `3.8147e-6`. No runtime change or gate pass.
 
