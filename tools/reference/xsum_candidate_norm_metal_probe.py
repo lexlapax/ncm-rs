@@ -34,9 +34,25 @@ def main():
         grid=(518 * 128, 1, 1), threadgroup=(128, 1, 1),
         output_shapes=[(518, 768)], output_dtypes=[mx.float32])
     fast = mx.fast.layer_norm(data['x'], data['gamma'], data['beta'], 1e-6)
-    mx.eval(welford, fast)
+    inverse = 'float inv = rsqrt(sigma_buf[0] + 1.0e-6f);'
+    refined = """float v = sigma_buf[0] + 1.0e-6f;
+float y = rsqrt(v), square = y * y, error = fma(y, y, -square);
+float residual = fma(-v, square, 1.0f) - v * error;
+float inv = fma(y, 0.5f * residual, y);"""
+    alternate = {}
+    for name, replacement in [('refined', refined), ('sqrt_div', 'float inv = 1.0f / sqrt(sigma_buf[0] + 1.0e-6f);')]:
+        source = SOURCE.replace(inverse, replacement)
+        if source == SOURCE:
+            raise ValueError('inverse replacement failed')
+        k = mx.fast.metal_kernel(name=f'ncm_xsum_candidate_norm_{name}',
+            input_names=['x', 'gamma', 'beta'], output_names=['out'], source=source, header=HEADER,
+            compile_options={'math_mode': 'safe'})
+        (alternate[name],) = k(inputs=[data['x'], data['gamma'], data['beta']],
+            grid=(518 * 128, 1, 1), threadgroup=(128, 1, 1),
+            output_shapes=[(518, 768)], output_dtypes=[mx.float32])
+    mx.eval(welford, fast, *alternate.values())
     results = {}
-    for name, value in [('fast', fast), ('welford', welford)]:
+    for name, value in [('fast', fast), ('welford', welford), *alternate.items()]:
         results[name] = {}
         a = np.asarray(value)
         for ref in ('cuda', 'metal'):
@@ -48,7 +64,7 @@ def main():
                                   'total': int(diff.size), 'max_abs': float(diff.max())}
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
-    mx.save_safetensors(str(args.tensors), {'fast': fast, 'welford': welford})
+    mx.save_safetensors(str(args.tensors), {'fast': fast, 'welford': welford, **alternate})
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
         'tensors_sha256': digest(args.tensors), 'scope': 'one candidate input, 518 vectors',
         'results': results}, indent=2) + '\n')

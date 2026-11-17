@@ -771,3 +771,17 @@ all 397,824 CUDA outputs exactly; the forced-control receipt SHA-256 is
 `50f5626b4f44fca61ae5592757d9be8e03b076da2709cda6774a976f5880d47b`.
 An extracted project CUDA normalization kernel reproduces all CUDA outputs,
 means and reciprocal standard deviations exactly, enabling a variance probe. These observations cover one candidate history, not a gate.
+
+
+The extracted CUDA normalization kernel reproduced all captured CUDA
+outputs, means and inverse standard deviations exactly. Its variance also
+matched safe Metal Welford on all 518 vectors. Given these identical CUDA
+variances, Metal `rsqrt`, `1/sqrt`, and an FMA-refined reciprocal square root
+differed from CUDA on 53, 77 and 48 vectors, respectively. Thus the tested refined inverse formula is not CUDA-exact.
+The combined input/result SHA-256 values are
+`c6c4c015f59f2bb4c6fbc680a3d66e6f07a05282643ea8aa6d7c27b2e8b0cb54` /
+`d958db478786cb6700f62aee6f033a8a4b014b7793b4d1db16c515ee3aee78bb`.
+The extracted CUDA source/preparation hashes are
+`45c38e1df5af92d10778ce413f0dd0652ae5491ed1d271d2e8698743af9a0378` /
+`e7848e73fbde69fa3f0bb87363eb4317a2f3c2d351200057e3beb0ffead682ed`.
+These are one captured history; no runtime or tolerance changed.
