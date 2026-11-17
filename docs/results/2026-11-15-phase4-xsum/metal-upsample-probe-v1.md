@@ -159,3 +159,12 @@ matching the layout of the existing CUDA reference kernel. Metal and CUDA
 compiler math and reciprocal-square-root rounding can still differ. Python
 syntax checking passes; Metal execution is pending. This does not change the
 model backend or qualify an output gate.
+
+At pushed commit `eea366d`, the reference-layout candidate matched 4,117 of
+4,608 CUDA values exactly on the same row, versus 3,033 for the unchanged
+composed operation. Its maximum absolute difference remained `4.7684e-7`
+and its mean absolute difference was `6.6625e-9`. The earlier three probe
+results repeated exactly. The result SHA-256 is
+`db5fee7e02a2f48431878e359456c1f8064928a02f923f099bf014a86f995c32`,
+and local and Mac copies match. This previously inspected row motivates a
+forced-history model test; it does not establish exact output or quality parity.
