@@ -103,3 +103,16 @@ SHA-256 values for rows 4883 and 4937 respectively are
 `d3598bf2d90d60920f6ee83858693744c01a74cbe6d88d377208e6050c8a1a07`;
 local copies match. These targeted forced-history results do not establish
 free-generation parity or a phase gate pass.
+
+The combined backend was also tested on the three additional retained forced
+histories using the same binary. It retains the head crossings for row 10009
+(level 5 position 15, CUDA 3758 versus Metal 3032) and row 10015 (level 8
+position 18, CUDA 2298 versus Metal 605). It also restores the row 9813
+crossing that upsampling alone removed (level 7 position 17, CUDA 2854 versus
+Metal 3206). All forced-history final IDs match. The respective captured tensor
+hashes are `74ff1cec3d1ca59a299ca148c749d9cce3c71f2151968ed9964e3f1604b39190`,
+`cd4b612c0fca153046facff59e7894c8b5be53908bb842afa1b6e49c9ad63049`, and
+`f9fd4027eed3fc28e72bd5604a29ea3bb6223ac06473e4cbe3b58869e89d26a6`.
+Inputs remained hash-identical, and local captures match Mac hashes. This is
+evidence against selecting the combined operation based on these inspected
+rows; it is not a full corpus or quality test.
