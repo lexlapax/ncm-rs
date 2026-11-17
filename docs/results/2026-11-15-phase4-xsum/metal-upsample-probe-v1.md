@@ -211,3 +211,15 @@ machines; their respective SHA-256 values are
 `f765ed53627d3c3daf1cc1bee45008ebd91c76a9283394b6c4485e34f2c37f96`, and
 `9e8d5effd2fcc4665c1c3373878c837922bcb1fd01e354b484f553f9ef31955b`.
 These are one-row diagnostic results, not production or quality acceptance.
+
+The reference-order Metal probe at `bdddeb5` exposed per-group statistics;
+pinned CUDA `native_group_norm` reproduced the captured CUDA output exactly.
+All eight means and seven inverse standard deviations match; group 5's Metal
+inverse is one FP32 step higher (1.620216846 versus CUDA 1.620216727).
+Receipts hash to `299d32ab825a4296081302189966f86fda780766ee350dab7a30a374786e3d9c`
+(Metal) and `06d9d303f5000210e7782f890b716ec65c2810c5f31c07ea327bc90b494405da`
+(CUDA). At `3691803`, replacing reciprocal square root with `1 / sqrt` in the
+standalone Metal probe corrected group 5 but introduced differences in groups
+2, 4 and 6; 3,036/4,608 values matched exactly. Its result hash is
+`a019fd79077082d6484586369a01744be82b290d45e2b2e25696700f7c960b2a`.
+This one-row diagnostic is not evidence for changing the runtime operation.
