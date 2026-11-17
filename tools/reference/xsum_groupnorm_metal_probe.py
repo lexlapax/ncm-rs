@@ -106,6 +106,7 @@ def main():
     parser.add_argument('--input', required=True, type=Path)
     parser.add_argument('--input-sha256', required=True)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--reference-math-mode', choices=['safe', 'relaxed', 'fast'], default='safe')
     args = parser.parse_args()
     if args.output.exists() or digest(args.input) != args.input_sha256:
         raise ValueError('output exists or input digest differs')
@@ -123,7 +124,7 @@ def main():
                           output_shapes=[(8, 576)], output_dtypes=[mx.float32])
     reference_kernel = mx.fast.metal_kernel(name='ncm_xsum_groupnorm_reference_order_probe',
         input_names=['x'], output_names=['out'], source=REFERENCE_SOURCE,
-        header=REFERENCE_HEADER, compile_options={'math_mode': 'safe'})
+        header=REFERENCE_HEADER, compile_options={'math_mode': args.reference_math_mode})
     (reference_order,) = reference_kernel(inputs=[x], grid=(8 * 512, 1, 1),
         threadgroup=(512, 1, 1), output_shapes=[(8, 576)], output_dtypes=[mx.float32])
     mx.eval(baseline, fast, candidate, reference_order)
@@ -137,10 +138,12 @@ def main():
         diff = np.abs(actual - expected)
         results[name] = {'exact_elements': int(np.count_nonzero(diff == 0)),
                          'total_elements': int(diff.size), 'max_abs': float(diff.max()),
-                         'mean_abs': float(diff.mean())}
+                         'mean_abs': float(diff.mean()),
+                         'different_per_group': [int(np.count_nonzero(row)) for row in diff]}
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
+        'reference_math_mode': args.reference_math_mode,
         'scope': 'one previously inspected forced-history row; non-production diagnostic',
         'results': results}, indent=2) + '\n')
 

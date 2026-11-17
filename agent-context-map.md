@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum group-normalization math-mode screen:** the existing standalone Metal probe now accepts explicit safe, relaxed or fast reference-kernel math modes and reports differences per group. Local syntax passes; device results remain pending. This does not modify the model backend.
+
 - **XSum group-normalization model diagnostic:** an explicit experimental Metal backend combines the first-upsample candidate with the CUDA-layout group-normalization kernel, restricted to the validated XSum shape. The default backend is unchanged. Full `tools/check.sh --cuda` passed (18 real-device operator cases); the Rust Metal build passes. The first forced-history run failed because the tracer expected 36 tensors despite three later instrumentation additions; the corrected 39-tensor guard and full CUDA check passed. The [corrected row-4937 Metal capture](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) has 491 differing normalization values, all in group 5; seven groups are bit-identical. It retains the level-1 crossing with the same two logits as original Metal. No Metal gate is claimed.
 
 - **Mac testing pushes:** the user approved all pushes needed for Mac testing via pulls going forward. Review scope before each push; do not overwrite unrelated remote work.
