@@ -148,3 +148,48 @@ The Rust/Python smoke reports hash to
 The standalone Rust example passed feature-specific Clippy/build and Python
 syntax validation. A source-bound per-batch allocator observation across all
 seven scoped cells is prepared but pending; no additional gate is claimed.
+
+## Source-bound native allocator and load observations
+
+At clean commit `0a2e288eb98a5295af718ad2f277568c2e1e87e2`, one fresh
+process per runtime and cell ran three warmups and one observed generation.
+All codes and IDs matched the corresponding previously qualified benchmark
+output. The table reports MiB in the order **used or allocated peak / reserved
+peak / used or allocated current / reserved current**. Rust current values
+are after dropping the generation output and synchronizing; Python current
+values are after dropping outputs and explicit garbage collection. Both keep
+the model loaded. High-water counters include loading. The CUDA default async
+pool does not account for all CUDA or library allocations; PyTorch's allocator
+has different coverage. These figures must not be treated as interchangeable
+total-device peaks or combined with sampled driver memory.
+
+| CFG | Batch | Rust CUDA default pool MiB | Python PyTorch allocator MiB |
+|---:|---:|:---|:---|
+| 0 | 1 | 1050.6 / 1088.0 / 1013.0 / 1056.0 | 1126.2 / 1192.0 / 1076.4 / 1192.0 |
+| 0 | 4 | 1163.4 / 1248.0 / 1013.0 / 1056.0 | 1244.7 / 1324.0 / 1076.4 / 1324.0 |
+| 0 | 16 | 1614.5 / 1824.0 / 1013.0 / 1056.0 | 1724.3 / 2132.0 / 1076.4 / 2132.0 |
+| 0 | 32 | 2216.1 / 2624.0 / 1013.0 / 1088.0 | 2360.4 / 3558.0 / 1076.4 / 3558.0 |
+| 1 | 1 | 1050.9 / 1088.0 / 1013.0 / 1024.0 | 1128.3 / 1196.0 / 1076.4 / 1196.0 |
+| 1 | 4 | 1164.9 / 1280.0 / 1013.0 / 1024.0 | 1253.7 / 1370.0 / 1076.4 / 1370.0 |
+| 1 | 16 | 1620.6 / 2016.0 / 1013.0 / 1056.0 | 1757.2 / 2904.0 / 1076.4 / 2904.0 |
+
+The one-process load observations ranged 1.494–1.521 s Rust and
+1.191–1.229 s Python. Rust's interval includes artifact loading and backend
+construction through synchronization; Python's includes checkpoint loading
+and model construction through synchronization, but its CUDA initialization
+can begin earlier. These are not equivalent startup boundaries or a repeated
+startup comparison. The observer recorded 70 telemetry samples with zero query
+errors; desktop GPU activity remained present. The independent measured
+process RSS and sampled GPU memory remain in the timing table above.
+
+```sh
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/bench/observe_wmt14_fast_argmax_memory.py --head 0a2e288eb98a5295af718ad2f277568c2e1e87e2 --binary-sha256 13291d4b00e6d1367078f68e0ed95405f2c70d37e0c4c6c1c3d42f0de0011c3b --output reports/phase4-wmt14-fast-argmax-memory-matrix-v1
+```
+
+Manifest, completion receipt and telemetry SHA-256 values are
+`d3fa5383fc625c34df77ee5f0a5d674835026913cb0648948d16a68e99e1d631` /
+`fc56425e9d5d51b0db7f3331b3dc9ec7f9ee44149a63b44818aaf5efb78dbfa8` /
+`2a8f58e25f02fabfada09ccb72f33b8bcda7946bfd6c7b96eb53714cddeb2a26`.
+The individual snapshots and their hashes are in the completion receipt.
+This remains an opt-in CUDA candidate; WMT14 Metal and the Phase 4 gates
+remain pending.
