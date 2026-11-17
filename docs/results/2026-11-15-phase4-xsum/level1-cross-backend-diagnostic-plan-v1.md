@@ -887,3 +887,13 @@ Metal tests ran (`reports/phase4-xsum-refined-gelu-mlx-check-v1.log` on Mac).
 The targeted refined-normalization Metal test above passed. Equivalent fixed-size
 chunk APIs pass full `tools/check.sh --cuda` with 18 real-device cases
 (`reports/phase4-xsum-mlx-clippy-cuda-check-v1.log`); the Mac rerun is pending.
+
+After the fixed-size chunk compatibility changes, the full Mac
+`tools/check.sh --mlx` rerun passed, including all 18 real-Metal operator
+cases. The failed first log and successful rerun are retained locally and on
+Mac with SHA-256 values
+`2e0f220b6970979bca3f158472d2d4aa4a200f39f13d0d4598e4b91bdda0dfa6` /
+`4425a922e27f3de1667b45b5bd5cd7e0311a41ba3e8ccfbfd883e3d8f2ec4ebf`.
+All four post-fix Metal free-generation captures were byte-identical to their
+preceding counterparts. This validates the compatibility changes, not the
+still-failed XSum exact raw-ID gate.
