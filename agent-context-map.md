@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum refinement layout screen:** a [standalone probe](tools/reference/xsum_refinement_layout_probe.py) prepares three mathematically equivalent convolution layouts on the captured same-input control; Metal measurements and CUDA continuation are pending. Default inference is unchanged.
+
 - **XSum refinement same-input probe:** the [controlled Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) reproduces the captured Metal reconstruction exactly but differs from CUDA in 16,653/18,432 convolution values. This is one captured row, not a fix or gate pass. Default inference is unchanged.
 
 - **XSum CUDA intervention replay:** the [bounded row-4937 replay](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) exactly reproduces CUDA hidden states and the decisive head margin from captured block boundaries. Substituting only Metal target input, or Metal latent followed by CUDA projection, flips the choice under CUDA replay. A further CUDA replay preserves the reference choice from Metal cascade normalization or convolution, but flips it from Metal reconstruction, narrowing this one intervention to refinement or its interactions. This does not qualify a fix or pass the Metal gate.
