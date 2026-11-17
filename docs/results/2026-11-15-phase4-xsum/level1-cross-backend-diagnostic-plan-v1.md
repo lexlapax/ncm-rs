@@ -414,6 +414,16 @@ passed postflight and local and Mac capture hashes agree. This eliminates these
 combinations for the inspected batches, not all possible approaches; full
 quality, performance and the exact Metal gate remain open.
 
+At `0584442`, an explicit diagnostic combined the two-part hidden-to-head
+projection with the previous two-part codebook head and upsampling candidate.
+Full CUDA validation passed including 18 device cases; the Metal build and
+both free-generation screens completed. Outputs were byte-identical to the
+earlier split-head candidate on both batches: 4864 matches CUDA exactly,
+while 4928 retains three code and five raw-ID differences. Input hashes passed
+postflight and local and Mac output hashes agree. The reduced isolated
+projection error therefore did not resolve the observed free-generation
+failure; this is not full corpus quality or performance evidence.
+
 The same six backends were screened on the 32-row batch beginning at 4864.
 Default Metal matched all CUDA codes but retained one raw-ID difference at
 row 4883 position 40. Each of the five experimental variants matched all
