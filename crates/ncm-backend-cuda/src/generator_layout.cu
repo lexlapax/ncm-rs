@@ -152,6 +152,60 @@ extern "C" __global__ void ncm_categorical_4096(const float* logits,
     }
 }
 
+// Explicit LM1B FP64 inverse-CDF draw. One 256-thread block owns one row;
+// a monotone section scan gives each valid uniform a single writer.
+extern "C" __global__ void ncm_categorical_8192(const float* logits,
+                                                const unsigned int* uniform_bits,
+                                                unsigned int* output) {
+    const unsigned int row = blockIdx.x, t = threadIdx.x;
+    const float* values = logits + row * 8192;
+    __shared__ double work[256];
+    __shared__ unsigned int bad;
+    if (t == 0) { bad = 0; output[row] = 0xffffffffU; }
+    __syncthreads();
+    float maximum = -CUDART_INF_F;
+    for (unsigned int j = 0; j < 32; ++j) {
+        float v = values[t * 32 + j];
+        if (!isfinite(v)) atomicOr(&bad, 1);
+        maximum = fmaxf(maximum, v);
+    }
+    work[t] = double(maximum);
+    __syncthreads();
+    for (unsigned int stride = 128; stride > 0; stride >>= 1) {
+        if (t < stride) work[t] = fmax(work[t], work[t + stride]);
+        __syncthreads();
+    }
+    const double max_value = work[0];
+    if (bad) return;
+    __syncthreads();
+    double local = 0.0;
+    for (unsigned int j = 0; j < 32; ++j) local += exp(double(values[t * 32 + j]) - max_value);
+    work[t] = local;
+    __syncthreads();
+    if (t == 0) {
+        double prefix = 0.0;
+        for (unsigned int i = 0; i < 256; ++i) {
+            prefix += work[i];
+            work[i] = prefix;
+        }
+    }
+    __syncthreads();
+    __shared__ double threshold;
+    if (t == 0) threshold = (double(uniform_bits[row]) + 0.5) * (1.0 / 4294967296.0) * work[255];
+    __syncthreads();
+    double partial = t ? work[t - 1] : 0.0;
+    if (threshold >= partial && threshold < work[t]) {
+        unsigned int choice = t * 32;
+        for (unsigned int j = 0; j < 32; ++j) {
+            double weight = exp(double(values[t * 32 + j]) - max_value);
+            if (weight > 0.0) choice = t * 32 + j;
+            partial += weight;
+            if (threshold < partial) break;
+        }
+        output[row] = choice;
+    }
+}
+
 // Exact layout copies for the TinyStories 12-head, 64-wide generator.
 extern "C" __global__ void ncm_pack_qkv_12x64(const float* input, float* output,
                                               unsigned int batch, unsigned int seq) {

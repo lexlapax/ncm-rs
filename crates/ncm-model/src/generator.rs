@@ -2871,7 +2871,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, Some(codes), &[], batch, trace, None)
+        self.run_impl(prefix, Some(codes), &[], batch, trace, None, false)
             .map(|_| ())
     }
 
@@ -2883,7 +2883,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, None, initial, batch, trace, None)
+        self.run_impl(prefix, None, initial, batch, trace, None, false)
             .map(|_| ())
     }
 
@@ -2895,6 +2895,38 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_impl(prefix, batch, seed, trace, false)
+    }
+
+    /// Explicit experimental CUDA sampling; unsupported backends return an error.
+    pub fn sample_seeded_device_traced(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_impl(prefix, batch, seed, trace, true)
+    }
+
+    /// Explicit device categorical sampling with host final penalties.
+    pub fn sample_seeded_device(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_device_traced(prefix, batch, seed, &mut crate::NoTrace)
+    }
+
+    fn sample_seeded_impl(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+        trace: &mut impl crate::TraceSink<B>,
+        device: bool,
     ) -> Result<Lm1bSample<B>> {
         if !(1..=32).contains(&batch) {
             return Err(Error::Input("invalid LM1B sample batch".into()));
@@ -2908,7 +2940,15 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         let initial: Vec<u32> = (0..batch)
             .map(|_| lm1b_choose(&weights, &mut random))
             .collect::<Result<_>>()?;
-        self.run_impl(prefix, None, &initial, batch, trace, Some(&mut random))
+        self.run_impl(
+            prefix,
+            None,
+            &initial,
+            batch,
+            trace,
+            Some(&mut random),
+            device,
+        )
     }
 
     /// Explicit CPU sampling and penalty selection, without retaining trace tensors.
@@ -2916,6 +2956,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         self.sample_seeded_traced(prefix, batch, seed, &mut crate::NoTrace)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn run_impl(
         &self,
         prefix: &[u32],
@@ -2924,6 +2965,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
         mut random: Option<&mut SplitMix64>,
+        device: bool,
     ) -> Result<Lm1bSample<B>> {
         validate_lm1b_request(prefix, codes, initial, batch)?;
         let b = &self.backend;
@@ -2979,22 +3021,44 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                 let logits = b.project_bias(&hidden, &self.head, &self.head_bias[level])?;
                 trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
                 if codes.is_none() {
-                    let values = b.read_f32(&logits)?;
-                    if values.len() != batch * length * 8192
-                        || values.iter().any(|x| !x.is_finite())
-                    {
-                        return Err(Error::Backend("invalid or nonfinite LM1B logits".into()));
-                    }
-                    generated = if let Some(rng) = random.as_deref_mut() {
-                        let selected: Vec<u32> = values
-                            .as_chunks::<8192>()
-                            .0
+                    generated = if device {
+                        let rng = random
+                            .as_deref_mut()
+                            .ok_or_else(|| Error::Input("device sampling requires RNG".into()))?;
+                        let words: Vec<u32> = (0..batch * length)
+                            .map(|_| (rng.next() >> 32) as u32)
+                            .collect();
+                        let selected = b.categorical_8192(
+                            &logits,
+                            &b.upload_indices(&words, &[batch, length])?,
+                        )?;
+                        if b.read_indices(&selected)?
                             .iter()
-                            .map(|row| lm1b_sample_logits(row, rng))
-                            .collect::<Result<_>>()?;
-                        Some(b.upload_indices(&selected, &[batch, length])?)
+                            .any(|&value| value >= 8192)
+                        {
+                            return Err(Error::Backend(
+                                "invalid LM1B device categorical logits".into(),
+                            ));
+                        }
+                        Some(selected)
                     } else {
-                        Some(b.select_last(&logits, true)?)
+                        let values = b.read_f32(&logits)?;
+                        if values.len() != batch * length * 8192
+                            || values.iter().any(|x| !x.is_finite())
+                        {
+                            return Err(Error::Backend("invalid or nonfinite LM1B logits".into()));
+                        }
+                        if let Some(rng) = random.as_deref_mut() {
+                            let selected: Vec<u32> = values
+                                .as_chunks::<8192>()
+                                .0
+                                .iter()
+                                .map(|row| lm1b_sample_logits(row, rng))
+                                .collect::<Result<_>>()?;
+                            Some(b.upload_indices(&selected, &[batch, length])?)
+                        } else {
+                            Some(b.select_last(&logits, true)?)
+                        }
                     };
                 }
             }

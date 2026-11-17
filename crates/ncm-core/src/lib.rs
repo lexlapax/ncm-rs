@@ -182,6 +182,17 @@ pub trait GeneratorBackend: CodecBackend {
             "native categorical sampling is unsupported".into(),
         ))
     }
+    /// Experimental LM1B 8192-way FP64 inverse-CDF draw using midpoint u32
+    /// uniforms. Invalid rows return u32::MAX and must be rejected by callers.
+    fn categorical_8192(
+        &self,
+        _logits: &Self::Tensor,
+        _uniforms: &Self::Indices,
+    ) -> Result<Self::Indices> {
+        Err(Error::Backend(
+            "8192-way categorical sampling is unsupported".into(),
+        ))
+    }
     /// XSum-specific 4096-way categorical draw. Backends explicitly opt in;
     /// unsupported devices fail rather than silently selecting another path.
     fn xsum_categorical_4096(

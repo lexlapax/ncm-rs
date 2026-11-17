@@ -7,10 +7,15 @@ use candle_core::{CpuStorage, CudaStorage, CustomOp2, Layout, Result, Shape, Ten
 
 struct Draw {
     function: candle_core::cuda_backend::cudarc::driver::CudaFunction,
+    width: usize,
 }
 impl CustomOp2 for Draw {
     fn name(&self) -> &'static str {
-        "ncm-categorical-4096"
+        if self.width == 8192 {
+            "ncm-categorical-8192"
+        } else {
+            "ncm-categorical-4096"
+        }
     }
     fn cpu_fwd(
         &self,
@@ -34,7 +39,7 @@ impl CustomOp2 for Draw {
         };
         if !(1..=128).contains(batch)
             || !(1..=128).contains(length)
-            || *vocab != 4096
+            || *vocab != self.width
             || uniform_layout.dims() != [*batch, *length]
         {
             candle_core::bail!("unsupported categorical shape")
@@ -48,7 +53,7 @@ impl CustomOp2 for Draw {
             .ok_or_else(|| candle_core::Error::Msg("uniforms must be contiguous".into()))?;
         let source = scores.as_cuda_slice::<f32>()?;
         let random = uniforms.as_cuda_slice::<u32>()?;
-        if hi.checked_sub(lo) != Some(rows * 4096)
+        if hi.checked_sub(lo) != Some(rows * self.width)
             || hi > source.len()
             || uhi.checked_sub(ulo) != Some(rows)
             || uhi > random.len()
@@ -109,7 +114,41 @@ pub fn categorical_from_uniforms(
             crate::generator_layout::PTX,
         )?
         .into_cuda_function();
-    logits
-        .contiguous()?
-        .apply_op2_no_bwd(&uniforms.contiguous()?, &Draw { function })
+    logits.contiguous()?.apply_op2_no_bwd(
+        &uniforms.contiguous()?,
+        &Draw {
+            function,
+            width: 4096,
+        },
+    )
+}
+
+/// Explicit experimental 8192-way FP64 inverse-CDF draw for LM1B.
+pub fn categorical_8192_from_uniforms(
+    backend: &crate::CandleBackend,
+    logits: &Tensor,
+    uniforms: &Tensor,
+) -> Result<Tensor> {
+    if !backend.device().is_cuda()
+        || !logits.device().same_device(backend.device())
+        || !uniforms.device().same_device(backend.device())
+    {
+        candle_core::bail!("explicit matching CUDA device required")
+    }
+    let function = backend
+        .device()
+        .as_cuda_device()?
+        .get_or_load_custom_func(
+            "ncm_categorical_8192",
+            "ncm-generator-layout-v1",
+            crate::generator_layout::PTX,
+        )?
+        .into_cuda_function();
+    logits.contiguous()?.apply_op2_no_bwd(
+        &uniforms.contiguous()?,
+        &Draw {
+            function,
+            width: 8192,
+        },
+    )
 }

@@ -496,6 +496,20 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             ))
         }
     }
+    fn categorical_8192(&self, logits: &Tensor, uniforms: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        {
+            crate::categorical::categorical_8192_from_uniforms(self, logits, uniforms)
+                .map_err(|e| Error::Backend(e.to_string()))
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            let _ = (logits, uniforms);
+            Err(Error::Backend(
+                "8192-way categorical sampling is unsupported".into(),
+            ))
+        }
+    }
     fn xsum_categorical_4096(&self, logits: &Tensor, uniforms: &Tensor) -> Result<Tensor> {
         self.categorical_4096(logits, uniforms)
     }
