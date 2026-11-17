@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum same-input GELU probe:** a standalone Metal comparison is prepared using the captured first-block MLP input and CUDA GELU output. PyTorch CUDA reproduces all 1,591,296 retained values exactly; local syntax passes. Metal execution remains pending and no inference behavior changes.
+
 - **XSum first-block MLP trace:** a [fresh 39-tensor CUDA forced-history capture](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) reproduces every retained CUDA tensor exactly and compares the three later MLP-stage tensors with the existing Metal candidate. The largest first-block difference is in a prefix position; input differences prevent attributing causality to an operation. The exact Metal gate remains failed.
 
 - **XSum synthetic normalization screen:** [four synthetic inputs](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) compare reference-layout and refined inverse operations against CUDA. Refinement improves two cases, worsens one and ties one; neither gives general exact parity. These are synthetic diagnostic inputs, not quality or performance evidence.
