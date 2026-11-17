@@ -282,3 +282,13 @@ The compiled multiplication model diagnostic built and ran on Metal at
 identical to the prior uncompiled candidate; the JSON hash also matches. It
 therefore retains the same level-1 code crossing and matching forced final IDs.
 This result applies to the captured row, not all inputs or a performance gate.
+
+The explicitly selected all-operation diagnostic at `bcf03b7` combines the
+experimental upsampling, group normalization, Welford layer normalization
+and compiled GELU. Full CUDA checks passed, including 18 device cases; the
+Metal release build and row-4937 forced-history capture completed. The
+candidate still selects 3690 instead of CUDA's 3182 at level 1 position 4,
+with margin `-5.7220e-6`; forced final IDs match. The tensor SHA-256 is
+`6bf249c311a636410eb9aafba54e4ee9e4c1ef822f5a4da09eab99e8c0554630`,
+and local and Mac copies match. This fails to resolve the known crossing and
+does not qualify full generation, quality or performance.
