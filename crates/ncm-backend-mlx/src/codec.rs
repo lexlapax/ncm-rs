@@ -243,6 +243,24 @@ impl MlxBackend {
         backend.xsum_compiled_gelu_experimental = true;
         Ok(backend)
     }
+    /// Explicit reference-order projection with the six-part head diagnostic.
+    pub fn gpu_xsum_reference_six_head_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_reference_projection_experimental()?;
+        backend.xsum_head_projection_six_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit refined normalization with the six-part head diagnostic.
+    pub fn gpu_xsum_refined_six_head_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_refined_norm_experimental()?;
+        backend.xsum_head_projection_six_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit refined six-part head with CUDA-order GELU diagnostic.
+    pub fn gpu_xsum_refined_six_head_gelu_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_refined_six_head_experimental()?;
+        backend.xsum_gelu_experimental = true;
+        Ok(backend)
+    }
     /// Explicit split-head diagnostic with experimental group normalization.
     pub fn gpu_xsum_head_split_groupnorm_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_groupnorm_experimental()?;

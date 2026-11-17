@@ -35,6 +35,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         "double-head-split" => MlxBackend::gpu_xsum_double_head_split_experimental()?,
         "six-head-split" => MlxBackend::gpu_xsum_six_head_split_experimental()?,
+        "reference-six-head" => MlxBackend::gpu_xsum_reference_six_head_experimental()?,
+        "refined-six-head" => MlxBackend::gpu_xsum_refined_six_head_experimental()?,
+        "refined-six-head-gelu" => MlxBackend::gpu_xsum_refined_six_head_gelu_experimental()?,
         "head-split-groupnorm" => MlxBackend::gpu_xsum_head_split_groupnorm_experimental()?,
         "head-split-gelu" => MlxBackend::gpu_xsum_head_split_gelu_experimental()?,
         "head-split-all" => MlxBackend::gpu_xsum_head_split_all_experimental()?,
