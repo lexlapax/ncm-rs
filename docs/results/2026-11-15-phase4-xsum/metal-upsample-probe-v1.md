@@ -89,3 +89,17 @@ selected by the default backend. Linux checks precede the same forced-history
 Metal comparison; results are pending. The full `tools/check.sh --cuda`
 passed 18 CUDA operator cases; log SHA-256 is
 `08ad8c45929811e7056ff25f944b12953f82dec3611cab67e557016e6e3605a2`.
+
+At pushed commit `5b4d3d1`, the combined diagnostic built on the Mac using
+the documented prebuilt MLX configuration. Initial build attempts without
+that environment failed; their logs are retained as
+`reports/phase4-xsum-combined-build-v{1,2,3,4}.log` on the Mac. The successful
+binary SHA-256 is `f62b2344d0e0654ab5bb48f2e7e3e1bc2a6e5ae1154c5b15751ec06b4ab6ed81`.
+Input checks passed after both forced-history runs. Row 4883 matches all CUDA
+head choices and selected IDs. Row 4937 still differs at level 1 position 4:
+CUDA chooses 3182 and Metal 3690, although forced final IDs match. Capture
+SHA-256 values for rows 4883 and 4937 respectively are
+`8d086d9f24f5ced81e01bada0441a1518540df2cb4801685d33a7ac7b7d5e125` and
+`d3598bf2d90d60920f6ee83858693744c01a74cbe6d88d377208e6050c8a1a07`;
+local copies match. These targeted forced-history results do not establish
+free-generation parity or a phase gate pass.
