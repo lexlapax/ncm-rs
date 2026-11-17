@@ -57,3 +57,14 @@ summary and development capture/scorer hashes before and after the comparison.
 Two outputs were byte-identical, SHA-256
 `5104bf266d98153b0d8251443a7fb99f0fdb43663fad149c6c9418941abcbbb0`;
 existing metric-comparator tests pass.
+
+## Identical reference control
+
+`tools/reference/lm1b_identical_reference_control.py` supplies the same five
+retained Python seed scores as both inputs to the unchanged comparator, after
+checking each score against the retained summary's digest. This descriptive
+control passes with zero point differences and entropy interval
+`[-0.003724240511655985, 0.003724240511655097]`, within the frozen
+`[-0.0046, 0.0046]` limits. It shows that these reference samples do not force
+an identical comparison to fail; it does not qualify the Rust output, change
+the independent-resampling protocol, or undo the actual held-out failure.

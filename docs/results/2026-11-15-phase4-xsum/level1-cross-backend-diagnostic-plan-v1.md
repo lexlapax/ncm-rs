@@ -1038,6 +1038,28 @@ it because the Mac's `dotsetup.rmlx` service was active and may compete for the
 GPU. No service was stopped. A service pause requires explicit user approval;
 no Metal pass is claimed and the exact gate remains failed.
 
+### Head precision control
+
+For the retained row 4937, `tools/reference/xsum_head_fp64_diagnostic.py`
+recomputes the whole head in CPU FP64 using the captured CUDA or refined
+Metal hidden state. It checks the three input hashes before and after. With
+the captured FP32 codebook norms the 3182-minus-3690 margins are respectively
+`-3.3935259828865583e-6` and `-3.2261902074282034e-6`; both choose 3690.
+Recomputing norms in FP64 also chooses 3690 for both. The captured CUDA logits
+instead choose 3182 with margin `+9.5367431640625e-7`. The result repeats with
+one BLAS thread. This rules out treating greater precision at this head alone
+as a reference-equivalent fix for this captured case.
+
+The separate `tools/reference/xsum_head_precision_stages.py` uses CUDA and
+original flattened batch geometry. Its all-FP32 CUDA-hidden path reproduces
+the captured margin and choice. Retaining FP32 projection but changing the
+codebook dot and following arithmetic to FP64 gives margin `-3.4317157311392066e-6`
+and chooses 3690. With FP64 projection followed by FP32 dot the CUDA-hidden
+path still chooses 3182. All four stage combinations on the refined Metal
+hidden state choose 3690. These are bounded observations, not proof of a
+portable operation or a full-model gate. Input digests were checked before
+and after; scripts are standalone diagnostics and do not alter runtime behavior.
+
 ### Six-part combinations: subsequent Metal screens
 
 After explicit approval to pause and restore `dotsetup.rmlx`, the clean Mac
