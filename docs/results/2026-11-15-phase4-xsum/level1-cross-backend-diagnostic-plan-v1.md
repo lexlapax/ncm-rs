@@ -304,3 +304,14 @@ five raw-ID differences, all on row 4937. Input hashes passed before and after
 the runs; local and Mac captures match. This explicitly tests free generation
 on one previously inspected batch, not the full corpus or a quality gate. It
 rules out these candidates as exact fixes for this batch.
+
+The same six backends were screened on the 32-row batch beginning at 4864.
+Default Metal matched all CUDA codes but retained one raw-ID difference at
+row 4883 position 40. Each of the five experimental variants matched all
+CUDA codes and raw IDs on that batch; their byte-identical capture SHA-256 is
+`8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6`,
+versus default Metal SHA-256
+`13126af2482cd1a8bb7bd83bd382557b01b10d8fa1d718654ccc339629d4cce5`.
+Input hashes passed before and after; local and Mac copies match. This confirms
+the partial row-4883 improvement in free generation, while all variants still
+fail the previously described row-4937 batch. Neither screen is full quality.
