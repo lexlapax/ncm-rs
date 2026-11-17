@@ -36,7 +36,16 @@ def main():
     split = mx.reshape(flat[:, :384] @ book[:384] + flat[:, 384:] @ book[384:],
                        (32, length, width))
     split = (split + d['bias'] if args.projection == 'mlp' else split)[9:10]
-    mx.eval(output, split)
+    alternatives = []
+    for parts in (3, 4, 6):
+        step = 768 // parts
+        products = [flat[:, i:i + step] @ book[i:i + step] for i in range(0, 768, step)]
+        combined = products[0]
+        for product in products[1:]:
+            combined = combined + product
+        combined = mx.reshape(combined, (32, length, width))
+        alternatives.append((str(parts), (combined + d['bias'] if args.projection == 'mlp' else combined)[9:10]))
+    mx.eval(output, split, *(value for _, value in alternatives))
     actual, expected = np.asarray(output), np.asarray(d['cuda'])
     if not np.isfinite(actual).all():
         raise ValueError('nonfinite output')
@@ -45,6 +54,14 @@ def main():
     if not np.isfinite(split_actual).all():
         raise ValueError('nonfinite split output')
     split_delta = np.abs(split_actual - expected)
+    alternate_results = {}
+    for name, value in alternatives:
+        value = np.asarray(value)
+        if not np.isfinite(value).all():
+            raise ValueError('nonfinite alternative output')
+        difference = np.abs(value - expected)
+        alternate_results[name] = {'exact_elements': int(np.count_nonzero(difference == 0)),
+                                   'max_abs': float(difference.max()), 'mean_abs': float(difference.mean())}
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
     result = {'input_sha256': args.input_sha256,
@@ -55,7 +72,8 @@ def main():
         'target4_max_abs': float(delta[0, 516 if args.projection == 'mlp' else 4].max()),
         'split2': {'exact_elements': int(np.count_nonzero(split_delta == 0)),
                    'max_abs': float(split_delta.max()), 'mean_abs': float(split_delta.mean()),
-                   'target4_max_abs': float(split_delta[0, 516 if args.projection == 'mlp' else 4].max())}}
+                   'target4_max_abs': float(split_delta[0, 516 if args.projection == 'mlp' else 4].max())},
+        'other_splits': alternate_results}
     args.output.write_text(json.dumps(result, indent=2) + '\n')
 
 
