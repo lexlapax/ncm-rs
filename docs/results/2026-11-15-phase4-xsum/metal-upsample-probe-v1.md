@@ -153,3 +153,9 @@ Welford candidate matched 2,070. All had maximum absolute difference
 `24133c5c206c59f6a82d56760898348c3c131dff0b32e45c2a763bfef5ab2ba5`;
 local and Mac copies agree. Neither alternative improves this inspected row's
 exact count; no production or quality conclusion is drawn.
+
+A follow-up probe adds a separate 512-thread, four-value-chunk reduction
+matching the layout of the existing CUDA reference kernel. Metal and CUDA
+compiler math and reciprocal-square-root rounding can still differ. Python
+syntax checking passes; Metal execution is pending. This does not change the
+model backend or qualify an output gate.

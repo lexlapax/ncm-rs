@@ -50,6 +50,52 @@ for (uint col = tid; col < 576u; col += 128u)
     out[row * 576u + col] = (x[row * 576u + col] - mean_buf[0]) * inv;
 '''
 
+REFERENCE_HEADER = r'''
+struct GroupStats { float mean; float m2; float count; };
+inline GroupStats group_add(GroupStats a, float x) {
+    float n = a.count + 1.0f, delta = x - a.mean;
+    float mean = a.mean + delta / n;
+    return {mean, a.m2 + delta * (x - mean), n};
+}
+inline GroupStats group_combine(GroupStats a, GroupStats b) {
+    if (a.count == 0.0f) return b;
+    if (b.count == 0.0f) return a;
+    float delta = b.mean - a.mean, n = a.count + b.count, ratio = b.count / n;
+    return {a.mean + delta * ratio, a.m2 + b.m2 + delta * delta * a.count * ratio, n};
+}
+inline GroupStats group_reduce(GroupStats a) {
+    for (uint offset = 16u; offset > 0u; offset >>= 1u) {
+        GroupStats b{simd_shuffle_down(a.mean, offset), simd_shuffle_down(a.m2, offset),
+                     simd_shuffle_down(a.count, offset)};
+        a = group_combine(a, b);
+    }
+    return a;
+}
+'''
+REFERENCE_SOURCE = r'''
+uint tid = thread_position_in_threadgroup.x;
+uint row = threadgroup_position_in_grid.x;
+if (threads_per_simdgroup != 32u) {
+    for (uint col = tid; col < 576u; col += 512u) out[row * 576u + col] = NAN;
+    return;
+}
+GroupStats value{0.0f, 0.0f, 0.0f};
+for (uint j = tid; j < 144u; j += 512u)
+    for (uint k = 0; k < 4u; ++k) value = group_add(value, x[row * 576u + j * 4u + k]);
+value = group_reduce(value);
+threadgroup float means[16], m2s[16], counts[16];
+if (tid % 32u == 0u) { means[tid / 32u] = value.mean; m2s[tid / 32u] = value.m2; counts[tid / 32u] = value.count; }
+threadgroup_barrier(mem_flags::mem_threadgroup);
+if (tid < 32u) {
+    value = tid < 16u ? GroupStats{means[tid], m2s[tid], counts[tid]} : GroupStats{0.0f, 0.0f, 0.0f};
+    value = group_reduce(value);
+}
+if (tid == 0u) { means[0] = value.mean; m2s[0] = rsqrt(value.m2 / value.count + 1.0e-5f); }
+threadgroup_barrier(mem_flags::mem_threadgroup);
+for (uint col = tid; col < 576u; col += 512u)
+    out[row * 576u + col] = (x[row * 576u + col] - means[0]) * m2s[0];
+'''
+
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -75,10 +121,16 @@ def main():
                                   compile_options={'math_mode': 'safe'})
     (candidate,) = kernel(inputs=[x], grid=(8 * 128, 1, 1), threadgroup=(128, 1, 1),
                           output_shapes=[(8, 576)], output_dtypes=[mx.float32])
-    mx.eval(baseline, fast, candidate)
+    reference_kernel = mx.fast.metal_kernel(name='ncm_xsum_groupnorm_reference_order_probe',
+        input_names=['x'], output_names=['out'], source=REFERENCE_SOURCE,
+        header=REFERENCE_HEADER, compile_options={'math_mode': 'safe'})
+    (reference_order,) = reference_kernel(inputs=[x], grid=(8 * 512, 1, 1),
+        threadgroup=(512, 1, 1), output_shapes=[(8, 576)], output_dtypes=[mx.float32])
+    mx.eval(baseline, fast, candidate, reference_order)
     expected = np.asarray(data['cuda'])
     results = {}
-    for name, value in [('composed', baseline), ('mlx_fast', fast), ('welford', candidate)]:
+    for name, value in [('composed', baseline), ('mlx_fast', fast), ('welford', candidate),
+                        ('reference_order', reference_order)]:
         actual = np.asarray(value)
         if not np.isfinite(actual).all():
             raise ValueError('nonfinite output')
