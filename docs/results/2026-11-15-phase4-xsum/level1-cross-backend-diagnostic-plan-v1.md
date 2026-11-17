@@ -1037,3 +1037,29 @@ planned bounded Metal screen did not run: automatic approval review rejected
 it because the Mac's `dotsetup.rmlx` service was active and may compete for the
 GPU. No service was stopped. A service pause requires explicit user approval;
 no Metal pass is claimed and the exact gate remains failed.
+
+### Six-part combinations: subsequent Metal screens
+
+After explicit approval to pause and restore `dotsetup.rmlx`, the clean Mac
+checkout fast-forwarded to `0fb6b26`. Release Clippy for all MLX targets and
+the experimental example build passed; the executable SHA-256 was
+`c6e9dc9a3b0cd494a84599fa5aea2cc39369a0c86c8338001e1f03c5bac57cbf`.
+An initial attempt aborted before any screen because the server was still
+exiting after launchd bootout; immediate bootstrap failed while shutdown was
+in progress. Bootstrap succeeded after the process exited and the service was
+verified running. A subsequent attempt waited for both the launchd job and
+server process to exit, ran the screens, restored the job, and verified its
+running state and server process. No unrelated service was stopped.
+
+Each of `reference-six-head`, `refined-six-head`, and
+`refined-six-head-gelu` ran on both retained inputs. All three batch-04864
+outputs have SHA-256 `8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6`;
+all three batch-04928 outputs have SHA-256
+`1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`.
+These are byte-identical to the preceding candidate, including its three code
+and five raw-ID differences at row 4937. Input hashes remained
+`7fa8e5070c1ec01a4262265a6610ab97ac4ea6d1b8e4d821c2acef57546e798c` and
+`ea64637b3ca4176f2025af1f27611b46f71cda5a3219a027abb41a92cf39f515`.
+Outputs, build logs, and service snapshot are retained on the Mac under
+`reports/phase4-xsum-six-refined-screen-v1`. These bounded screens do not pass
+the exact full-corpus gate; no default, tolerance, oracle or gate changed.
