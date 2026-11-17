@@ -191,3 +191,12 @@ the forced final IDs match. The capture SHA-256 is
 and the copied file matches the Mac. Matching aggregate probe statistics does
 not prove the outputs are bit-identical. The candidate does not resolve the
 known crossing and does not qualify full generation or the Metal gate.
+
+On that forced row, grouping the 4,608 normalization values by the original
+eight channel groups shows seven groups bit-identical to CUDA: all 491
+differences occur in group 5, with maximum `4.7684e-7`. After the second
+convolution, 9,798 of 18,432 values differ (maximum `7.1526e-7`). The two
+competing level-1 logits are exactly the same in the original Metal,
+upsampling-only and group-normalization candidate traces: 9.411467552 for
+code 3182 and 9.411472321 for code 3690. These inspected values do not prove
+causality; they narrow a subsequent normalization-arithmetic probe to group 5.
