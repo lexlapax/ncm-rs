@@ -209,3 +209,38 @@ a quality margin, a Rust model or the full evaluation's resource envelope.
 
 The repository standard `tools/check.sh` passed; log SHA-256
 `357331545d482b5717225040fee5bef2f07b074f28dff3a3f8d0cf888aff6525`.
+
+## LM1B-small CUDA development capture
+
+`tools/reference/lm1b_cuda_development_capture.py` captured 32 small-model
+samples from the pinned upstream generator on CUDA, in four batches of eight
+with non-held-out seed 11. It uses the configured CPU level-zero unigram
+draw, stochastic generator settings, BERT CLS prefix, and the pinned upstream
+frequency/deficit/adjacency selection function. Checkpoint, config and source
+identities are checked before and after; loading uses `weights_only=True`.
+The 641-code and 128-raw-ID rows are retained in ignored JSON. Two fresh
+processes produced identical capture SHA-256
+`5c961e193f0ea101afc2282f673eb3fde02ae6c752e8dd6dde069c3b25a8f90d`;
+the capture source SHA-256 is
+`6de6b5015021c3650ae2622daeafad5a7938e8b4bd57424735646c172401d34f`.
+The command was `setpriv --inh-caps=-all env OMP_NUM_THREADS=1
+TOKENIZERS_PARALLELISM=false .reference/venv/bin/python
+tools/reference/lm1b_cuda_development_capture.py --upstream
+.reference/upstream-ncm --source artifacts/upstream/lm1b-phase4 --size small
+--output NEW_REPORT`.
+
+The FLM scorer probe evaluated these same 32 distinct development rows in
+two 16-row batches and matched the pinned upstream scorer exactly. Two fresh
+scoring processes produced identical report SHA-256
+`5c59816d2efd9aef92044b65c25c3ebd0e396e0ac171c488dbdf37ddec8f16e4`.
+The observed development corpus perplexity was 92.55672488170092, mean
+raw-ID entropy 4.319455176591873, and valid target count 4,064; peak PyTorch
+allocated/reserved counters across both scorer passes were 4,807,493,632 and
+5,540,675,584 bytes. The updated scorer source SHA-256 is
+`8dedfd903b9af98a113a1564476f8ec75b426172faa15cdc904916a19e5843a5`.
+These are development observations from one seed and one model, with desktop
+activity; they do not define a non-inferiority margin, constitute an official
+seed/held-out quality result, or establish Rust parity.
+
+The repository standard `tools/check.sh` passed; log SHA-256
+`72ecfcecd74b94475838d533f52476df486424fda8b5d4fa16774518df672b58`.

@@ -70,6 +70,7 @@ def main():
     p.add_argument('--bert', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--repeat', type=int, choices=(1, 6), default=1)
+    p.add_argument('--development-capture', type=Path)
     args = p.parse_args()
     if args.output.exists() or args.output.is_symlink() or not args.output.resolve().is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('output must be new and under reports')
@@ -94,15 +95,30 @@ def main():
     bert_manifest = json.loads(tokenizer_manifest.read_bytes())
     for name, meta in bert_manifest['source']['files'].items():
         verify_input(args.bert / name, meta['bytes'], meta['sha256'])
-    paths = {size: ROOT / f'reports/phase4-lm1b-{size}-cpu-probe-v1.json' for size in SAMPLES}
     rows = []
-    for size, path in paths.items():
-        verify_input(path, path.stat().st_size, SAMPLES[size])
+    if args.development_capture is not None:
+        if args.repeat != 1:
+            raise ValueError('development capture cannot be repeated')
+        paths = {'development': args.development_capture}
+        sample_hashes = {'development': '5c961e193f0ea101afc2282f673eb3fde02ae6c752e8dd6dde069c3b25a8f90d'}
+        path = paths['development']
+        verify_input(path, path.stat().st_size, sample_hashes['development'])
         sample = json.loads(path.read_bytes())
-        if sample['size'] != size or len(sample['raw_ids']) != 128 or any(type(x) is not int or not 0 <= x < 30528 for x in sample['raw_ids']):
-            raise ValueError('invalid sample')
-        rows.append(sample['raw_ids'])
-    rows = rows * args.repeat
+        if (sample['size'], sample['seed'], sample['count'], sample['batch_size']) != ('small', 11, 32, 8):
+            raise ValueError('unexpected development capture')
+        rows = sample['raw_ids']
+    else:
+        paths = {size: ROOT / f'reports/phase4-lm1b-{size}-cpu-probe-v1.json' for size in SAMPLES}
+        sample_hashes = SAMPLES
+        for size, path in paths.items():
+            verify_input(path, path.stat().st_size, sample_hashes[size])
+            sample = json.loads(path.read_bytes())
+            if sample['size'] != size:
+                raise ValueError('invalid sample size')
+            rows.append(sample['raw_ids'])
+        rows = rows * args.repeat
+    if (not rows or any(len(row) != 128 or any(type(x) is not int or not 0 <= x < 30528 for x in row) for row in rows)):
+        raise ValueError('invalid sample rows')
     bert = AutoTokenizer.from_pretrained(args.bert, local_files_only=True, trust_remote_code=False)
     ref = AutoTokenizer.from_pretrained(args.model, local_files_only=True, trust_remote_code=False)
     if ref.pad_token is None:
@@ -121,13 +137,13 @@ def main():
     for name, meta in bert_manifest['source']['files'].items():
         verify_input(args.bert / name, meta['bytes'], meta['sha256'])
     for size, path in paths.items():
-        verify_input(path, path.stat().st_size, SAMPLES[size])
+        verify_input(path, path.stat().st_size, sample_hashes[size])
     verify_input(evaluator, evaluator.stat().st_size, EVALUATOR_SHA)
     if before != {str(path): digest_file(path) for path in watched}:
         raise ValueError('scorer inputs changed during probe')
     check_upstream()
-    json_file(args.output, {'scope': 'repeated inspected CPU samples; scorer development only, not quality or held-out validation',
-                             'upstream': UPSTREAM, 'evaluator_sha256': EVALUATOR_SHA, 'sample_sha256': SAMPLES,
+    json_file(args.output, {'scope': 'inspected development samples; scorer development only, not quality or held-out validation',
+                             'upstream': UPSTREAM, 'evaluator_sha256': EVALUATOR_SHA, 'sample_sha256': sample_hashes,
                              'count': len(rows), 'repeat': args.repeat, 'ppl': actual, 'nll_sum': nll, 'token_count': count,
                              'entropy': actual_entropy, 'upstream_exact': True,
                              'torch': torch.__version__, 'gpu': torch.cuda.get_device_name(0),
