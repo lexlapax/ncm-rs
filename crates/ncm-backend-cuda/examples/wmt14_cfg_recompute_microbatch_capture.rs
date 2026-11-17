@@ -80,7 +80,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         file,
         "{}",
         serde_json::to_string_pretty(
-            &json!({"scope":"experimental WMT14 cached CFG=1 near-tie recomputation microbatch diagnostic capture; scoring and performance are separate","batch_size":16,"cfg_scale":1.0,"cfg_null_eos":151645,"start":first,"count":count,"outputs":outputs})
+            &json!({"scope":"experimental WMT14 cached CFG=1 near-tie recomputation microbatch diagnostic capture; scoring and performance are separate","batch_size":16,"internal_batch_size":4,"cfg_scale":1.0,"cfg_null_eos":151645,"start":first,"count":count,"outputs":outputs})
         )?
     )?;
     println!("{count} rows captured; compare with upstream separately");

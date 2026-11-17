@@ -55,7 +55,7 @@ def main():
     reference_rel, reference_sha = REFERENCES[(args.mode, args.rows)]
     reference = ROOT / reference_rel
     binary = ROOT / 'target/release/examples' / 'wmt14_cfg_recompute_microbatch_capture'
-    comparator = ROOT / 'tools/reference' / ('compare_wmt14_cuda_capture.py' if args.mode == 'base' else 'compare_wmt14_cfg_capture.py')
+    comparator = ROOT / 'tools/reference' / 'compare_wmt14_cfg_microbatch_capture.py'
     cudnn = ROOT / '.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib/libcudnn.so.9'
     libraries = sorted(cudnn.parent.glob('libcudnn*.so.9'))
     if cudnn not in libraries:

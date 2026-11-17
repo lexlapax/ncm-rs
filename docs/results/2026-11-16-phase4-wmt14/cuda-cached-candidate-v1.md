@@ -345,3 +345,15 @@ Strict feature-enabled Clippy and the full `tools/check.sh --cuda` pass,
 including 18 operator cases; full-check log SHA-256
 `fac15f2ca0d66ebe04cde0d542c27caa1a50af546d8cf941951f8269abe74c0b`.
 Source-bound full replay, quality and repeated memory/performance remain pending.
+
+The first complete microbatch capture generated all 3,003 rows, but its
+supervisor did not produce a comparison receipt: the existing CFG comparator
+requires both captures to declare batch 4, while the candidate declares
+external batch 16. A direct provisional call to the same row-value comparison
+found zero code and ID differences; the failed supervisor and capture remain
+under `reports/phase4-wmt14-cfg-recompute-microbatch-full-v1`. A separate
+comparator now checks Python batch 4 against candidate external 16/internal
+4, without changing either capture or the exact comparison. Two tests verify
+matching output, altered ID detection and rejection of the wrong internal
+batch size. Capture metadata now records both batch sizes. Strict lint passes;
+a new source-bound full replay and memory benchmark remain pending.
