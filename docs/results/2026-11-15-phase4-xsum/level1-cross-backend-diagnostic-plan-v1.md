@@ -532,3 +532,30 @@ Run the Python probes with `setpriv --inh-caps=-all env OMP_NUM_THREADS=1
 kernel with `/opt/cuda/bin/nvcc --shared -Xcompiler -fPIC -O3
 --gpu-architecture=compute_75 softmax.cu -o softmax.so`. The full quality
 and performance gates remain open.
+
+
+A further intervention reconstructs the remainder of the CUDA cascade from
+its captured normalization output using the original batch geometry. CUDA
+transposed convolution and refinement reproduce all captured reconstruction
+values exactly; the 48-to-6 area reduction requires the CUDA operator's
+sequential eight-value FP32 sum, which reproduces all captured latent values.
+Ordinary PyTorch reduction differs and is not used for the intervention.
+With either the Metal cascade normalization output or the Metal second cascade
+convolution output substituted, the remaining CUDA computation still chooses
+3182 with margin `+9.5367e-7`. With the Metal initial reconstruction
+substituted, CUDA area reduction and the remaining model choose 3690 with
+margin `-1.9073e-6`. All three corresponding CUDA-state controls reproduce
+the captured CUDA target input and final hidden exactly. Thus, for this
+particular state and CUDA continuation, the reconstruction difference is
+sufficient and the earlier captured differences alone are not; this narrows
+investigation to refinement and interactions, not a unique arithmetic cause.
+
+The additional ignored script/log SHA-256 pairs are: normalization
+`efb784add347422e90e9d6572b349f724d657c3a729126901e68a921415c4cbe` /
+`1659068d81efd6388d4cccd20c105832660187e4d0db1e2eac4d78e4667d3ca8`;
+second cascade convolution
+`4093370aeb9d832b0563709eb8597d12104c40f682c95b01433c27eac5aa6c52` /
+`74d74cc1e5eb53a97406cc0569f987bb208520cf26f63a1c46e8cea0009196e9`;
+and reconstruction
+`7c69d171ccc4b7981f058e7852f33755cc5a86f9b3b82063c8094bc9a2bd8416` /
+`e6e575ccf935bd58f00521512e51d4b06ca94aab1e025d9ae7a459b74fbdea0d`.
