@@ -158,3 +158,31 @@ the lossless export, or any GPU/quality gate.
 
 The repository standard `tools/check.sh` passed after this probe; log SHA-256
 `adddb2bdd24109638c55cb2e965c02f6da109d7266df7469018dde15de40d38f`.
+
+## Bounded FLM scorer probe
+
+`tools/reference/lm1b_quality_probe.py` implements the pinned `genppl_flm`
+scoring expressions for development: BERT decode with special tokens retained,
+GPT-2-large retokenization truncated to 128, batches of 16, the upstream
+first-EOS validity expression, corpus-level perplexity and raw-ID entropy.
+The EOS expression is preserved exactly, including its behavior after repeated
+EOS tokens; focused tests cover that behavior and entropy.
+
+On the three already-inspected small/medium/large CPU samples mixed as one
+development batch, the diagnostic matched the exact pinned upstream nested
+functions on the RTX 3060 Ti for corpus perplexity and each entropy value.
+The shared corpus had 381 valid targets, NLL sum 1749.8406982421875 and
+perplexity 98.76642688688013. Three runs produced identical report SHA-256
+`e674287e54ced83e4d3555ba2fab5bfa51556d76fc7b07c8efdfa54b4ae993d7`;
+the final probe source SHA-256 is
+`b2fc667f539ffde3fde12ea2080327b462c4f37832dca60182392abd21fb3110`.
+The final run verifies its own source, tokenizer lock and manifest before and
+after, in addition to the pinned model, tokenizer source, sample and upstream
+identities. Logs are `reports/phase4-lm1b-quality-probe-v{1,2,3}.log`.
+
+This three-sample mixed-size development check is not an official seed run,
+quality margin, held-out comparison, full batch-16/OOM qualification or any
+LM1B runtime parity claim. Official sampling and the full scorer remain open.
+
+The repository standard `tools/check.sh` passed; log SHA-256
+`dbfeaf609c7656fc5476b98c6f69fbbd2c08423e0bd113843b2cf68e029470ef`.
