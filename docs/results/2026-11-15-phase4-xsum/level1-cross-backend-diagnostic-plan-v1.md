@@ -1019,3 +1019,21 @@ have SHA-256 values
 `eb9e347175248ff8dd519b191d86a728ed9dba5809c415558f9b9d02dd8324d1`.
 Both logs reproduced byte-for-byte in independent reruns. These observations
 constrain this captured case; no tolerance, model, or gate changed.
+
+A CUDA-only head-layout control uses the refined Metal candidate's captured
+hidden state, original batch geometry, CUDA-held codebook norms/scales, and a
+split codebook dot product. One-, two-, three-, four-, and six-part hidden
+projections all choose 3690; six parts has margin `-2.8610e-6`. This uses CUDA
+matrix arithmetic, so it cannot predict the corresponding Metal result or
+qualify the full model. Both inputs were hash-checked before and after, and the
+fixed-input rerun produced the same log. The final script/log SHA-256 values are
+`1e43fd8370a2a3f6ad8251069bcae76fec3612e61409115b945362e26a98ca4f` /
+`fc7875a64841d35551c37c1956edffd72635fa8695907cea6b46456be7e215b1`.
+
+The three six-part-head model combinations passed the full Linux/CUDA check
+including 18 real-device cases
+(`reports/phase4-xsum-six-refined-combinations-cuda-check-v1.log`). The
+planned bounded Metal screen did not run: automatic approval review rejected
+it because the Mac's `dotsetup.rmlx` service was active and may compete for the
+GPU. No service was stopped. A service pause requires explicit user approval;
+no Metal pass is claimed and the exact gate remains failed.
