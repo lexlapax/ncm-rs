@@ -76,6 +76,7 @@ REFERENCE_SOURCE = r'''
 uint tid = thread_position_in_threadgroup.x;
 uint row = threadgroup_position_in_grid.x;
 if (threads_per_simdgroup != 32u) {
+    if (tid == 0u) { stats[row * 2u] = NAN; stats[row * 2u + 1u] = NAN; }
     for (uint col = tid; col < 576u; col += 512u) out[row * 576u + col] = NAN;
     return;
 }
@@ -90,7 +91,10 @@ if (tid < 32u) {
     value = tid < 16u ? GroupStats{means[tid], m2s[tid], counts[tid]} : GroupStats{0.0f, 0.0f, 0.0f};
     value = group_reduce(value);
 }
-if (tid == 0u) { means[0] = value.mean; m2s[0] = rsqrt(value.m2 / value.count + 1.0e-5f); }
+if (tid == 0u) {
+    means[0] = value.mean; m2s[0] = rsqrt(value.m2 / value.count + 1.0e-5f);
+    stats[row * 2u] = means[0]; stats[row * 2u + 1u] = m2s[0];
+}
 threadgroup_barrier(mem_flags::mem_threadgroup);
 for (uint col = tid; col < 576u; col += 512u)
     out[row * 576u + col] = (x[row * 576u + col] - means[0]) * m2s[0];
@@ -123,11 +127,15 @@ def main():
     (candidate,) = kernel(inputs=[x], grid=(8 * 128, 1, 1), threadgroup=(128, 1, 1),
                           output_shapes=[(8, 576)], output_dtypes=[mx.float32])
     reference_kernel = mx.fast.metal_kernel(name='ncm_xsum_groupnorm_reference_order_probe',
-        input_names=['x'], output_names=['out'], source=REFERENCE_SOURCE,
+        input_names=['x'], output_names=['out', 'stats'], source=REFERENCE_SOURCE,
         header=REFERENCE_HEADER, compile_options={'math_mode': args.reference_math_mode})
-    (reference_order,) = reference_kernel(inputs=[x], grid=(8 * 512, 1, 1),
-        threadgroup=(512, 1, 1), output_shapes=[(8, 576)], output_dtypes=[mx.float32])
-    mx.eval(baseline, fast, candidate, reference_order)
+    reference_order, stats = reference_kernel(inputs=[x], grid=(8 * 512, 1, 1),
+        threadgroup=(512, 1, 1), output_shapes=[(8, 576), (8, 2)],
+        output_dtypes=[mx.float32, mx.float32])
+    mx.eval(baseline, fast, candidate, reference_order, stats)
+    stats_values = np.asarray(stats)
+    if not np.isfinite(stats_values).all():
+        raise ValueError('nonfinite statistics')
     expected = np.asarray(data['cuda'])
     results = {}
     for name, value in [('composed', baseline), ('mlx_fast', fast), ('welford', candidate),
@@ -144,6 +152,7 @@ def main():
         raise ValueError('input changed')
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
         'reference_math_mode': args.reference_math_mode,
+        'reference_group_mean_rstd': stats_values.tolist(),
         'scope': 'one previously inspected forced-history row; non-production diagnostic',
         'results': results}, indent=2) + '\n')
 
