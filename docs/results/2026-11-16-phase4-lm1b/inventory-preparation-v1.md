@@ -278,3 +278,23 @@ Rust parity evidence. Raw files and logs remain under ignored `reports/`.
 
 The repository standard `tools/check.sh` passed; log SHA-256
 `350e6024a699fb9a22d1f9ad54724a0c40a2a4a5d47b9e0ab43224499b5b5f9c`.
+
+## Held-out metric comparison preparation
+
+`tools/reference/lm1b_quality_compare.py` implements the frozen small-model
+seed-level metric arithmetic without reading or scoring official samples. It
+requires exactly one record for each configured seed, 256 rows per seed,
+finite in-range metrics, and computes independent seed bootstrap intervals
+with 10,000 resamples and seed 42. Its result reports the point and interval
+checks separately. It is a metric-only helper: callers must separately verify
+generation, raw IDs, scoring, pinned model/tokenizer identities and source
+receipts before using its result in a gate. The frozen protocol is unchanged.
+
+Focused tests verify deterministic results, threshold and interval failures,
+and rejection of nonfinite metrics, missing/duplicate seeds and bad counts.
+The helper SHA-256 is
+`0ecb72fbe54c472ab9a244595366b3f37286b86b34f2c259a25bdc07ffe2d56e`.
+No official samples were scored, and no held-out quality result is claimed.
+
+The repository standard `tools/check.sh` passed; log SHA-256
+`84ef153acb3f6fb9c4b1353167405043c124a3343f414acd54f38d94e6e6c56e`.
