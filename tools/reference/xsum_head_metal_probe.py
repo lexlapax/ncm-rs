@@ -30,6 +30,8 @@ def main():
     dot = (z @ mx.transpose(d['book']))[9:10]
     value = ((dot * 2.0 - d['norm']) * d['scales'][0]) * d['scales'][1]
     forced_dot_value = ((d['cuda_dot'] * 2.0 - d['norm']) * d['scales'][0]) * d['scales'][1]
+    metal_norm = mx.sum(mx.square(d['book']), axis=-1)
+    metal_mean = mx.sum(metal_norm) * (1.0 / 4096.0)
     flat = mx.reshape(z, (192, 384))
     transposed_book = mx.transpose(d['book'])
     flattened = mx.reshape(flat @ transposed_book, (32, 6, 4096))[9:10]
@@ -39,7 +41,7 @@ def main():
     split4 = mx.reshape(sum((flat[:, i:i + 96] @ transposed_book[i:i + 96]
                              for i in range(0, 384, 96))), (32, 6, 4096))[9:10]
     alternatives = [('flattened', flattened), ('row_only', row_only), ('split2', split2), ('split4', split4)]
-    mx.eval(value, dot, forced_dot_value, *(v for _, v in alternatives))
+    mx.eval(value, dot, forced_dot_value, metal_norm, metal_mean, *(v for _, v in alternatives))
     actual, expected = np.asarray(value), np.asarray(d['cuda'])
     if not np.isfinite(actual).all():
         raise ValueError('nonfinite output')
@@ -47,6 +49,13 @@ def main():
     metal_dot = np.asarray(dot)
     expected_dot = np.asarray(d['cuda_dot'])
     forced_dot = np.asarray(forced_dot_value)
+    norms = np.asarray(metal_norm)
+    reference_norms = np.asarray(d['norm'])
+    mean = float(np.asarray(metal_mean))
+    if not np.isfinite(mean) or mean <= 0:
+        raise ValueError('invalid Metal norm mean')
+    metal_scale = np.float32(1.0 / mean)
+    metal_norm_scores = ((expected_dot * np.float32(2.0) - norms) * metal_scale) * np.asarray(d['scales'])[1]
     if not np.isfinite(metal_dot).all() or not np.isfinite(forced_dot).all():
         raise ValueError('nonfinite intermediate output')
     if digest(args.input) != args.input_sha256:
@@ -75,6 +84,14 @@ def main():
         'metal_dot_pair': [float(metal_dot[0, 4, i]) for i in (3182, 3690)],
         'forced_dot_exact_elements': int(np.count_nonzero(forced_dot == expected)),
         'forced_dot_pair_margin': float(forced_dot[0, 4, 3182] - forced_dot[0, 4, 3690]),
+        'metal_norm_exact_elements': int(np.count_nonzero(norms == reference_norms)),
+        'metal_norm_total_elements': int(norms.size),
+        'metal_norm_max_abs': float(np.abs(norms - reference_norms).max()),
+        'cuda_norm_pair': [float(reference_norms[i]) for i in (3182, 3690)],
+        'metal_norm_pair': [float(norms[i]) for i in (3182, 3690)],
+        'cuda_scale': float(np.asarray(d['scales'])[0]), 'metal_scale': float(metal_scale),
+        'metal_norm_cuda_dot_pair_margin': float(metal_norm_scores[0, 4, 3182] - metal_norm_scores[0, 4, 3690]),
+        'metal_norm_cuda_dot_choice': int(metal_norm_scores[0, 4].argmax()),
         'cuda_choice': int(expected[0, 4].argmax()), 'metal_choice': int(actual[0, 4].argmax()),
         'alternative_layouts': candidates}
     args.output.write_text(json.dumps(result, indent=2) + '\n')
