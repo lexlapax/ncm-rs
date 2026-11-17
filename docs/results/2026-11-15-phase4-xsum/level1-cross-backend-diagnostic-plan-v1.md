@@ -261,3 +261,17 @@ CUDA-order Metal expression matched 1,203,197, with maximum absolute
 differences `7.1526e-7` and `5.9605e-7`, respectively. All three Metal math
 modes had the same reported results. This one synthetic input is not a
 model-quality, performance or full-parity result.
+
+At `80bbc5c`, the standalone probe compared compiled and uncompiled MLX GELU
+graphs using multiplication by `1/sqrt(2)`. On the captured row, compiled
+multiplication matched 810,907/1,591,296 CUDA values versus 324,499 for the
+original compiled division graph and 1,180,744 for uncompiled multiplication.
+On the synthetic input, corresponding counts were 892,589, 368,231 and
+1,203,197. The receipts hash to
+`c4deead62a37f129aea3bc31ef8d24dcce67b9b74cb144699773a9e6cb75c4f0` and
+`299049f1474e86c8446cc0a6c60072c6da873ce177fcd3a3d156f28fef758fa6`,
+and local and Mac copies agree. A separate explicitly selected model backend
+is prepared to test the compiled multiplication graph with the prior cascade
+diagnostics. The full CUDA check passed, including 18 device cases
+(`reports/phase4-xsum-compiled-gelu-cuda-check-v1.log`); Metal model results
+remain pending. This is not a quality or performance gate.

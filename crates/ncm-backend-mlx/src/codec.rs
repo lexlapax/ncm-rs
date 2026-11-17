@@ -18,6 +18,16 @@ fn gelu_graph(inputs: &[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error
 }
 
 #[cfg(panic = "unwind")]
+fn gelu_multiply_graph(
+    inputs: &[Array],
+) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception> {
+    let (x, half, inv_sqrt_two, one) = (&inputs[0], &inputs[1], &inputs[2], &inputs[3]);
+    Ok(vec![x.multiply(half)?.multiply(
+        mlx_rs::ops::erf(x.multiply(inv_sqrt_two)?)?.add(one)?,
+    )?])
+}
+
+#[cfg(panic = "unwind")]
 fn guarded_compiler_init<T>(init: impl FnOnce() -> T + std::panic::UnwindSafe) -> ops::Result<T> {
     std::panic::catch_unwind(init).map_err(|_| "GELU compiler initialization failed".into())
 }
@@ -27,6 +37,22 @@ fn new_gelu_compiler() -> ops::Result<CompiledGelu> {
     {
         guarded_compiler_init(|| {
             Box::new(mlx_rs::transforms::compile::compile(gelu_graph, Some(true))) as CompiledGelu
+        })
+    }
+    #[cfg(not(panic = "unwind"))]
+    {
+        Err("compiled GELU requires panic unwinding".into())
+    }
+}
+
+fn new_gelu_multiply_compiler() -> ops::Result<CompiledGelu> {
+    #[cfg(panic = "unwind")]
+    {
+        guarded_compiler_init(|| {
+            Box::new(mlx_rs::transforms::compile::compile(
+                gelu_multiply_graph,
+                Some(true),
+            )) as CompiledGelu
         })
     }
     #[cfg(not(panic = "unwind"))]
@@ -61,6 +87,7 @@ pub struct MlxBackend {
     xsum_upsample_experimental: bool,
     xsum_groupnorm_experimental: bool,
     xsum_gelu_experimental: bool,
+    xsum_compiled_gelu_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -96,6 +123,7 @@ impl MlxBackend {
             xsum_upsample_experimental: false,
             xsum_groupnorm_experimental: false,
             xsum_gelu_experimental: false,
+            xsum_compiled_gelu_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
@@ -132,6 +160,12 @@ impl MlxBackend {
     pub fn gpu_xsum_gelu_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_groupnorm_experimental()?;
         backend.xsum_gelu_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit compiled GELU diagnostic combined with the XSum cascade probes.
+    pub fn gpu_xsum_compiled_gelu_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_groupnorm_experimental()?;
+        backend.xsum_compiled_gelu_experimental = true;
         Ok(backend)
     }
     fn array_op(
@@ -384,6 +418,27 @@ impl CodecBackend for MlxBackend {
     }
     fn gelu(&self, x: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x], || {
+            if self.xsum_compiled_gelu_experimental {
+                let mut slot = self
+                    .compiled_gelu
+                    .try_borrow_mut()
+                    .map_err(|_| "GELU compiler reentered")?;
+                if slot.is_none() {
+                    *slot = Some(new_gelu_multiply_compiler()?);
+                }
+                let compiled = slot.as_mut().ok_or("GELU compiler unavailable")?;
+                let inputs = [
+                    x.0.clone(),
+                    Array::from_f32(0.5),
+                    Array::from_f32(std::f32::consts::FRAC_1_SQRT_2),
+                    Array::from_f32(1.),
+                ];
+                let mut result = compiled(&inputs)?;
+                if result.len() != 1 {
+                    return Err("invalid compiled GELU result".into());
+                }
+                return Ok(result.remove(0));
+            }
             if self.xsum_gelu_experimental {
                 return Ok(x.0.multiply(Array::from_f32(0.5))?.multiply(
                     mlx_rs::ops::erf(

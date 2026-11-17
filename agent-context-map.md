@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum compiled GELU screen:** the existing standalone probe is extended to compare uncompiled and compiled multiplication-order MLX graphs with CUDA on the captured and synthetic inputs. Syntax passes; Metal results are pending. No model behavior changes.
+- **XSum compiled GELU screen:** the [standalone Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found more CUDA matches for compiled multiplication than compiled division on the captured and synthetic inputs, though fewer than uncompiled multiplication. An explicit model diagnostic is prepared; full CUDA checks pass including 18 device cases, and the Metal model result is pending. Default inference is unchanged.
 
 - **XSum second normalization same-input probe:** on 512 captured prefix vectors, [Metal fast and Welford normalization](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) matched 245,194 and 299,356 of 393,216 CUDA values respectively; pinned PyTorch CUDA matched all. This is a bounded operation comparison, not a causal fix or gate pass.
 
