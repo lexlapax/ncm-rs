@@ -20,3 +20,34 @@ The prefix bounds test passes in the pinned reference environment. GPU desktop
 processes were present; this capture makes no timing claim. Reports and large
 trace files remain ignored under `reports/`. No Rust generator comparison or
 WMT14 quality, performance or Metal gate has yet passed.
+
+## Experimental Rust teacher comparison
+
+The non-default `wmt14-experimental` feature now provides a fixed-history
+teacher path. It checks the pinned generator tensor inventory before upload,
+handles the prefix-only first level, prefix padding and ten untied later heads,
+and does not provide free generation. Its CUDA capture used the reference and
+artifact manifest hashes embedded in the example:
+
+```sh
+setpriv --inh-caps=-all env RUSTC_WRAPPER= CUDA_COMPUTE_CAP=86 cargo build --release -p ncm-backend-cuda --features wmt14-experimental --example wmt14_teacher_trace
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 target/release/examples/wmt14_teacher_trace artifacts/canonical/wmt14-inference-v1-final reports/phase4-wmt14-teacher-cuda-reference-v1 reports/phase4-wmt14-teacher-rust-cuda-v2
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 .reference/venv/bin/python tools/reference/compare_wmt14_teacher_trace.py reports/phase4-wmt14-teacher-cuda-reference-v1/trace.safetensors reports/phase4-wmt14-teacher-rust-cuda-v2/traces.safetensors reports/phase4-wmt14-teacher-cuda-comparison-v2.json
+```
+
+All 26 tensors pass the existing comparison bands; all 626 head argmax choices,
+recorded forced codes, prefix IDs and greedy decoder IDs match exactly. The largest absolute
+difference is 0.000041961669921875 in `generator.final_logits`. The native trace
+SHA-256 is `cff57cecc1ba1e486fdad62ed1050754266cdfff126e94111063d3dd9db718ee`,
+comparison SHA-256 `c51d810e979a1e27fed5b3b37280f131c6c0766cd805740522e447c8ae1bc66a`,
+and executable SHA-256 `79791650cbf5b171be8c72cfcd9e16d02ca8b3f4d5c8e87d85176e5f4c5b4421`.
+The example binds artifact and reference identities but does not perform a
+source postflight. The initial capture had the same trace bytes before three
+Clippy style corrections and a prefix-position regression test. The corrected
+feature-enabled model tests, comparator test and Clippy pass. Full
+`tools/check.sh --cuda` passed 18 real-device operator cases (log SHA-256
+`3270fdbcea8ea5089d48fcd08ed084c38a36392d1113c0e27b22669e30e4c033`);
+its default checks began before the feature-only corrections, while its CUDA
+build and device cases ran afterward. This is a two-prefix
+development fixture, not a sampling, translation-quality, performance or Metal
+gate; the normal WMT14 inference path remains unsupported.

@@ -188,3 +188,7 @@ name = "wmt14_generator_preflight"
 [[example]]
 name = "wmt14_codec_trace"
 required-features = ["wmt14-experimental"]
+
+[[example]]
+name = "wmt14_teacher_trace"
+required-features = ["wmt14-experimental"]

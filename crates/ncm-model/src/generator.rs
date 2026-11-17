@@ -581,6 +581,251 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
     b.narrow(&x, 1, prefix_len, length)
 }
 
+/// Fixed-history development path for the pinned WMT14 configuration.
+/// It does not implement sampling or qualified translation inference.
+#[cfg(feature = "wmt14-experimental")]
+pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
+    codec: crate::Codec<B>,
+    backend: B,
+    input: Affine<B::Tensor>,
+    level_embedding: B::Tensor,
+    final_norm: Affine<B::Tensor>,
+    blocks: Box<[GeneratorBlock<B::Tensor>]>,
+    heads: Box<[B::Tensor]>,
+    geometry: Vec<LevelGeometry<B::Tensor>>,
+}
+
+#[cfg(feature = "wmt14-experimental")]
+impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
+    pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
+        crate::Wmt14GeneratorInspection::from_artifact(artifact)?;
+        let codec = crate::Codec::from_wmt14_artifact_experimental(backend.clone(), artifact)?;
+        let bytes = artifact
+            .file("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+        let mut weights = BTreeMap::new();
+        for name in tensors.names() {
+            if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                continue;
+            }
+            let tensor = tensors
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            weights.insert(
+                name.to_owned(),
+                backend.upload_f32(&upload_values(tensor.data())?, tensor.shape())?,
+            );
+        }
+        let input = take_affine(&mut weights, "transformer.wte")?;
+        let level_embedding = take(&mut weights, "transformer.wle.weight")?;
+        let final_norm = take_affine(&mut weights, "transformer.ln_f")?;
+        let mut blocks = Vec::with_capacity(12);
+        for i in 0..12 {
+            let p = format!("transformer.blocks.{i}");
+            blocks.push(GeneratorBlock {
+                ln_1: take_affine(&mut weights, &format!("{p}.ln_1"))?,
+                qkv: take_affine(&mut weights, &format!("{p}.attn.c_attn"))?,
+                q_norm: take(&mut weights, &format!("{p}.attn.q_norm.weight"))?,
+                k_norm: take(&mut weights, &format!("{p}.attn.k_norm.weight"))?,
+                attention_projection: take_affine(&mut weights, &format!("{p}.attn.c_proj"))?,
+                ln_2: take_affine(&mut weights, &format!("{p}.ln_2"))?,
+                mlp_in: take_affine(&mut weights, &format!("{p}.mlp.c_fc"))?,
+                mlp_out: take_affine(&mut weights, &format!("{p}.mlp.c_proj"))?,
+            });
+        }
+        let mut heads = vec![take(&mut weights, "lm_head_l0.weight")?];
+        for i in 0..10 {
+            heads.push(take(&mut weights, &format!("lm_heads.{i}.weight"))?);
+        }
+        if !weights.is_empty() {
+            return Err(Error::Weights("unbound WMT14 generator tensor".into()));
+        }
+        let mut lengths = vec![0];
+        lengths.extend_from_slice(&codec.config().levels()[1..]);
+        let geometry = prepare_geometry(&backend, &lengths, 96, 768, 12, 100000)?;
+        Ok(Self {
+            codec,
+            backend,
+            input,
+            level_embedding,
+            final_norm,
+            blocks: blocks.into_boxed_slice(),
+            heads: heads.into_boxed_slice(),
+            geometry,
+        })
+    }
+}
+
+#[cfg(feature = "wmt14-experimental")]
+impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
+    pub fn run_traced(
+        &self,
+        prefix_tokens: &[u32],
+        forced_codes: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<()> {
+        let levels = self.codec.config().levels();
+        let total: usize = levels.iter().sum();
+        if !(1..=32).contains(&batch)
+            || prefix_tokens.len() != batch * 96
+            || forced_codes.len() != batch * total
+            || prefix_tokens.iter().any(|&x| x >= 151680)
+            || forced_codes.iter().any(|&x| x >= 4096)
+            || prefix_tokens
+                .as_chunks::<96>()
+                .0
+                .iter()
+                .any(|row| row.iter().all(|&x| x == 151643))
+        {
+            return Err(Error::Input("invalid WMT14 teacher inputs".into()));
+        }
+        let b = &self.backend;
+        let prefix_ids = b.upload_indices(prefix_tokens, &[batch, 96])?;
+        let prefix = b.project_bias(
+            &b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?,
+            &self.input.weight,
+            &self.input.bias,
+        )?;
+        let forced = b.upload_indices(forced_codes, &[batch, total])?;
+        trace.indices("generator.prefix_ids", &prefix_ids)?;
+        trace.indices("generator.forced_codes", &forced)?;
+        let mut cumulative: Option<B::Tensor> = None;
+        let mut offset = 0;
+        for (level, &length) in levels.iter().enumerate() {
+            let target_length = if level == 0 { 0 } else { length };
+            let seq = 96 + target_length;
+            let base = &self.geometry[level];
+            let mut padding = Vec::with_capacity(batch * seq);
+            for row in prefix_tokens.as_chunks::<96>().0 {
+                padding.extend(
+                    row.iter()
+                        .map(|&x| if x == 151643 { f32::NEG_INFINITY } else { 0.0 }),
+                );
+                padding.extend(std::iter::repeat_n(0.0, target_length));
+            }
+            let mask = b.add(&base.mask, &b.upload_f32(&padding, &[batch, 1, 1, seq])?)?;
+            let geometry = LevelGeometry {
+                mask,
+                cosine: base.cosine.clone(),
+                sine: base.sine.clone(),
+            };
+            let hidden = if level == 0 {
+                wmt14_prefix_transformer(b, &self.blocks, &self.final_norm, &geometry, &prefix)?
+            } else {
+                let latent = b.area1d(cumulative.as_ref().expect("preceding level"), length)?;
+                let target = b.add(
+                    &b.project_bias(&latent, &self.input.weight, &self.input.bias)?,
+                    &b.narrow(&self.level_embedding, 0, level - 1, 1)?,
+                )?;
+                decode_transformer(
+                    b,
+                    &self.blocks,
+                    &self.final_norm,
+                    &geometry,
+                    &prefix,
+                    &target,
+                    96,
+                    12,
+                    768,
+                    length,
+                )?
+            };
+            let hidden = if level == 0 {
+                let mut rows = Vec::with_capacity(batch);
+                for (i, row) in prefix_tokens.as_chunks::<96>().0.iter().enumerate() {
+                    let position = wmt14_prefix_position(row);
+                    rows.push(b.narrow(&b.narrow(&hidden, 0, i, 1)?, 1, position, 1)?);
+                }
+                b.concat_f32(&rows, 0)?
+            } else {
+                hidden
+            };
+            trace.tensor(
+                &format!("generator.level_{level:02}.logits"),
+                &b.project(&hidden, &self.heads[level])?,
+            )?;
+            let selected = b.narrow_indices(&forced, 1, offset, length)?;
+            offset += length;
+            let embedding = b.embedding(
+                self.codec
+                    .weight(&format!("vq.embeddings.{level}.weight"))?,
+                &selected,
+            )?;
+            let contribution = self
+                .codec
+                .refine(&self.codec.upsample(&embedding, level)?, level)?;
+            let sum = if let Some(old) = &cumulative {
+                b.add(old, &contribution)?
+            } else {
+                contribution
+            };
+            trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
+            cumulative = Some(sum);
+        }
+        let (logits, ids) = self
+            .codec
+            .decode_latent_outputs(&cumulative.expect("validated levels"), &mut crate::NoTrace)?;
+        trace.tensor("generator.final_logits", &logits)?;
+        trace.indices("generator.greedy_ids", &ids)?;
+        Ok(())
+    }
+}
+
+#[cfg(feature = "wmt14-experimental")]
+fn wmt14_prefix_position(row: &[u32; 96]) -> usize {
+    row.iter()
+        .filter(|&&x| x != 151643)
+        .count()
+        .saturating_sub(1)
+        .min(95)
+}
+
+#[cfg(all(test, feature = "wmt14-experimental"))]
+#[test]
+fn wmt14_level_zero_uses_upstream_nonpadding_count() {
+    let mut row = [151643; 96];
+    row[0] = 10;
+    row[1] = 11;
+    assert_eq!(wmt14_prefix_position(&row), 1);
+    row[10] = 12;
+    assert_eq!(wmt14_prefix_position(&row), 2);
+    assert_eq!(wmt14_prefix_position(&[10; 96]), 95);
+}
+
+#[cfg(feature = "wmt14-experimental")]
+fn wmt14_prefix_transformer<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    blocks: &[GeneratorBlock<B::Tensor>],
+    final_norm: &Affine<B::Tensor>,
+    geometry: &LevelGeometry<B::Tensor>,
+    prefix: &B::Tensor,
+) -> Result<B::Tensor> {
+    let batch = b.shape(prefix)[0];
+    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &a.weight, &a.bias);
+    let norm =
+        |a: &Affine<B::Tensor>, x: &B::Tensor| b.layer_norm(x, &a.weight, Some(&a.bias), 1e-6);
+    let mut x = prefix.clone();
+    for block in blocks {
+        let qkv = linear(&block.qkv, &norm(&block.ln_1, &x)?)?;
+        let [q, k, v] = b.split_qkv(&qkv, batch, 96, 12, 64)?;
+        let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
+        let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
+        let attn = b.merge_heads(
+            &b.attention(&q, &k, &v, Some(&geometry.mask))?,
+            batch,
+            96,
+            12,
+            64,
+        )?;
+        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let hidden = b.gelu(&linear(&block.mlp_in, &norm(&block.ln_2, &x)?)?)?;
+        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+    }
+    norm(final_norm, &x)
+}
+
 /// TinyStories teacher-forced execution and seeded stochastic generation.
 /// Arbitrary padded prefixes are not yet implemented.
 pub struct TinyStoriesTeacher<B: ncm_core::GeneratorBackend> {
