@@ -785,3 +785,18 @@ The extracted CUDA source/preparation hashes are
 `45c38e1df5af92d10778ce413f0dd0652ae5491ed1d271d2e8698743af9a0378` /
 `e7848e73fbde69fa3f0bb87363eb4317a2f3c2d351200057e3beb0ffead682ed`.
 These are one captured history; no runtime or tolerance changed.
+
+
+The bounded same-input Metal inverse screen found that the refined inverse
+differed from CUDA in 28,389/397,824 normalization values, while `1/sqrt`
+differed in 46,507. Substituting the refined output into the exact CUDA
+continuation produced an exact tie between codes 3182 and 3690; the replay
+selected 3182 under its tie behavior. `1/sqrt` still selected 3690. This tie
+is not a validated parity fix, and no runtime path or gate was changed. The
+Metal receipt/tensor hashes are
+`55db7f9f70028e101f1a14e01adf1af9f544a120548b7b569e130a1ad93849cb` /
+`0b2ea00cf1179528d5d1eccc10f25e18d4de8fdfd0ebe5b67a3269208119c51b`;
+local and Mac copies agree and input hashes passed before and after. The CUDA
+continuation script/log hashes are
+`65e6976134c4f159f096e7284b149c2d123b5bd3845a0572e43c477616ff67ea` /
+`b1dd1de4dc8903163e81ef4065af712eb1798c0e2abc46643a484458360ed312`.
