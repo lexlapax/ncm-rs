@@ -305,6 +305,18 @@ the runs; local and Mac captures match. This explicitly tests free generation
 on one previously inspected batch, not the full corpus or a quality gate. It
 rules out these candidates as exact fixes for this batch.
 
+For row 4937's level-1 position 4, a CPU FP64 diagnostic recomputed the
+unrounded squared-distance score difference between codes 3182 and 3690 from
+each captured projection and the pinned FP32 codebook values. After applying
+the positive CUDA-derived mean-norm and temperature scales, its margin was
+`-3.4309e-6` on the CUDA projection and `-3.0220e-6` on the experimental
+Metal projection. The recorded FP32 margins were respectively `+9.5367e-7`
+and `-3.8147e-6`. This calculation deliberately uses FP64 codebook norms and
+does not reproduce the reference's FP32 reduction/rounding semantics. It
+shows that replacing the reference decision with this higher-precision
+recomputation would select 3690 even for the captured CUDA state; it is not a
+valid parity fix or evidence to change the frozen decision rule.
+
 The same six backends were screened on the 32-row batch beginning at 4864.
 Default Metal matched all CUDA codes but retained one raw-ID difference at
 row 4883 position 40. Each of the five experimental variants matched all

@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum head precision diagnostic:** on row 4937's captured CUDA projection, an [FP64 unrounded distance recomputation](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) favors code 3690 while the pinned FP32 reference chooses 3182. A generic higher-precision near-tie fallback would not preserve this reference decision; no rule or tolerance changed.
+
 - **XSum free-generation diagnostic:** an explicit Metal example captures complete codes and raw IDs for 32 rows using selected experimental backends; it does not change inference defaults. `tools/check.sh` passed and prior CUDA runtime validation remains applicable. The [bounded Metal screens](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found all five variants correct the row-4883 raw-ID difference but byte-identical to default on the batch containing row 4937, retaining three code and five raw-ID differences there. The exact Metal gate remains failed.
 
 - **XSum all-operation diagnostic:** an explicitly selected Metal backend combines experimental upsampling, group normalization, Welford layer normalization and compiled GELU. Default inference is unchanged. Full `tools/check.sh --cuda` passed including 18 device cases (`reports/phase4-xsum-all-candidate-cuda-check-v1.log`). The [row-4937 Metal trace](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) still has the wrong level-1 code and a worse margin than the previous candidate. No gate is claimed.
