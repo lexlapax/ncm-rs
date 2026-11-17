@@ -182,3 +182,19 @@ history. The pinned Python trace SHA-256 is
 the cached CUDA trace SHA-256 is
 `d2544515e1d59ada5fcee67203864115302f9d4f927769bba7089c49cfc252e9`.
 This traces inspected data and does not waive the exact CFG gate.
+
+A matched uncached Rust CFG trace of the same four rows exactly matches the
+Python trace's codes and raw IDs; cached Rust differs in two codes and one
+raw ID. Cached and uncached level-zero logits are bit-identical, while level 1
+logits already differ by up to `3.2902e-5` and retain identical argmaxes. At
+the first changed choice (level 9, row 2658, position 8), uncached scores for
+codes 1922 and 1813 are 11.90690041 and 11.90689754; cached scores are
+11.90689945 and 11.90690517. This establishes cached-path arithmetic drift
+before the choice but does not isolate a particular operator or justify a
+change to the exact gate. Uncached trace SHA-256:
+`7fd6ab8da2998e623faf8c6bebe6e8101c317bc39b31edebebaebd80a6c3af84`.
+The diagnostic was built and run with the same artifact and pinned Python
+trace as the cached comparison; targeted strict Clippy passed. Two initial
+builds failed to find the unversioned cuDNN linker name; a symlink under the
+ignored report directory to the existing versioned library resolved the third
+build. Logs are retained under `reports/phase4-wmt14-uncached-cfg-*`.
