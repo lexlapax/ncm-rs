@@ -742,5 +742,17 @@ or proof of a unique cause. Stage script/log SHA-256 values are
 prefix/target script/log values are
 `e06fbbb64b3a2f5e6828bc79039898e09068e921bdadaf89de16db2e11a15e4b` /
 `1bfb0100593f5db1b36fa225beb812d88737209e77a744a337b0f206c2ebc47a`.
-A same-input Metal normalization comparison is prepared; it has not yet
-qualified a model change or gate.
+The same-input [normalization comparison](../../../tools/reference/xsum_candidate_norm_metal_probe.py)
+reproduces the captured fast Metal output exactly; it differs from CUDA in
+160,441/397,824 values, while the Welford alternative differs in 31,190.
+Substituting either output into the exact CUDA continuation still selects 3690,
+with margins `-9.5367e-7` and `-2.8610e-6` respectively. The input, receipt
+and tensor SHA-256 values are
+`168e9f614032fb145ea76d22bf14e404f54311ba222cb04346f3838c98cb23f5`,
+`a8bf6be4e9b3f4a70524e031a9d9335384f1cb59931d88ffc672413a2f6836b4` and
+`5e848dd35d1db16ebfa9f54bef6bf756ae05b28c7fe19bc20a693db7f0c679ee`;
+local and Mac copies agree. The continuation script/log hashes are
+`7e428a5d4c6320a64ea8397cbce337ae829bcd277c30463184f5f6e3663b9eab` /
+`02b1e98636dae03974a54cd86f024e7b6137efd602c8ec84ccb98cdd793a9732`.
+A statistics comparison is prepared. These do not qualify a model change or
+a gate.
