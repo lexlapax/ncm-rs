@@ -405,3 +405,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_fast_argmax_memory"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "lm1b_small_controlled_reference_ops"
+required-features = ["lm1b-experimental", "cuda-cudnn"]

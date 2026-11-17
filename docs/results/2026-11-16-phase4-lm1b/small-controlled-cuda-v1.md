@@ -53,3 +53,27 @@ was corrected. This two-row diagnostic
 does not establish PyTorch-seed equivalence, stochastic quality, held-out
 metrics, performance, Metal, or Phase 4 completion. Logs and traces are ignored
 local artifacts.
+
+
+## Reference-order operator screen
+
+An explicit standalone example uses the existing CUDA reference-order
+layer-normalization, RMS/rotary and GELU backend for the same controlled
+histories. Feature-specific Clippy and release build pass; the trace contains
+51 tensors and its traced/untraced outputs match. The unchanged comparator
+still fails 21 tensors. Its first generated-code difference remains row 1,
+position 216; the candidate has 83 total code and 31 penalized-ID differences
+versus the pinned reference, compared with 116 and 42 in the earlier CUDA
+trace. Later differences cascade, so those totals do not establish an
+improvement in the underlying cause. This bounded exploratory result does
+not qualify sampling, quality, performance or a runtime gate; no default or
+tolerance changed.
+
+The new trace and comparison SHA-256 values are
+`f00764e9dacfdbf5990ebe9b7e889c09f6e7e55618d85d24239c52a008bce641` /
+`39a4aefe1140b27a6a79dc3923dbe2b9f9ad8c049a9568b5e6f9090f5c130839`.
+Run the explicit example with the same artifact and reference arguments as the
+original above; its binary name is `lm1b_small_controlled_reference_ops`.
+The comparator exits 1 for this retained failure. Logs and outputs remain in
+`reports/phase4-lm1b-reference-ops-*` and
+`reports/phase4-lm1b-small-controlled-reference-ops-*`.
