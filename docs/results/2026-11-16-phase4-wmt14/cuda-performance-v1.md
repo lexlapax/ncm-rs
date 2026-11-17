@@ -82,3 +82,41 @@ and telemetry SHA-256 is
 Full raw records remain under ignored `reports/`. The separate original CFG
 failure, candidate retest limitation and unresolved XSum Metal raw-ID failure
 remain documented; these timings do not waive them.
+
+## Supported-limit base batch 32
+
+On committed harness `312cc06`, the separately prepared CFG=0 batch-32
+comparison completed three alternating fresh processes per runtime, each with
+five warmups and 30 measured batches. All codes and raw IDs matched across
+all six processes; neither runtime ran out of memory. Rust's pooled
+median/p95 was 1299.63/1302.91 ms per batch, versus Python's 1273.52/1278.96
+ms. Process median ranges were 1280.53–1301.77 ms for Rust and 1267.83–1277.66
+ms for Python. At the pooled median, Rust delivered 24.62 samples/s, 1575.83
+output positions/s and 600.17 non-special pre-EOS IDs/s; Python delivered
+25.13, 1608.14 and 612.47 respectively. The 32 fixed outputs contain 780
+non-special pre-EOS IDs. This Rust candidate is slower at this batch and does
+not meet the desired speed direction on this workload.
+
+CUDA-event medians were 1261.78 ms Rust and 1273.45 ms Python, with the same
+stream-idle limitation described above. Python's cleanup-inclusive median was
+1325.14 ms. Peak process RSS was 1875 MiB Rust and 2093 MiB Python; the
+approximately one-second sampled driver process peaks were 4072 and 3726 MiB.
+PyTorch's allocated/reserved peaks were 2360/3558 MiB. There were 286 telemetry
+samples with no query errors and observed temperatures 42.31–71.72 °C; desktop
+GPU processes were present, so the run was not exclusive. The supported
+reference-backend limit is 32 internal rows (CFG=1 doubles rows), not a physical
+GPU maximum. Stage breakdowns and exclusive-device measurements remain pending.
+
+Command:
+
+```sh
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/bench/run_phase4_wmt14_bench.py --output reports/phase4-wmt14-perf-b32-v1 --repetitions 3 --batches 32 --modes 0
+```
+
+Manifest SHA-256
+`1bf7b35ef2b2f4ddeddab002a54ec23aaafc0d9be9df62b53265eb46c8732d99`,
+measurements SHA-256
+`55d0a7fd7668661bc936ad402e93a90224168b19881abbe0ce4f4cdde8fc976e`,
+and telemetry SHA-256
+`c5ecb4f1f37ba7a924e388ed209ff75d259aa34f89cebd7d105b5d254a46b7c4`.
+Raw records remain under ignored `reports/`.
