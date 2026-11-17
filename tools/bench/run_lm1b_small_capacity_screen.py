@@ -44,6 +44,7 @@ def summarize(rows):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', required=True, type=Path)
+    p.add_argument('--reference-rope-diagnostic', type=Path)
     args = p.parse_args()
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
@@ -57,12 +58,17 @@ def main():
     for directory in ['crates/ncm-core/src', 'crates/ncm-model/src', 'crates/ncm-backend-cuda/src']:
         source.extend(sorted(p for p in (ROOT / directory).iterdir() if p.suffix in ('.rs', '.cu')))
     source.extend(sorted(CUDNN.glob('libcudnn*.so.9')))
+    if args.reference_rope_diagnostic:
+        if digest(args.reference_rope_diagnostic) != '9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc':
+            raise ValueError('unexpected diagnostic rotary tables')
+        source.append(args.reference_rope_diagnostic.resolve())
     before = {str(path): digest(path) for path in source}
     out.mkdir(parents=True)
     manifest = {'scope': 'non-held-out LM1B-small multi-batch development performance screen; not a gate',
                 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                 'sources_sha256': before, 'order': 'alternating runtime per fresh process',
                 'warmups': 2, 'trials': 8, 'repetitions': 3, 'batches': [1, 4, 16], 'rust_penalty': 'device',
+                'rust_diagnostic': 'reference tables and 1 MiB QKV preference' if args.reference_rope_diagnostic else 'default',
                 'telemetry': 'nvidia-smi approximately once per second',
                 'gpu': subprocess.check_output(['nvidia-smi', '--query-gpu=name,uuid,driver_version,memory.total', '--format=csv,noheader'], text=True).strip(),
                 'created_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
@@ -84,7 +90,10 @@ def main():
                                    '--upstream', str(ROOT / '.reference/upstream-ncm'), '--source', str(ROOT / 'artifacts/upstream/lm1b-phase4'),
                                    '--size', 'small', '--seed', '11', '--batch', str(batch), '--output', str(out / (stem + '.json'))]
                     env = os.environ.copy()
+                    env.pop('NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC', None)
                     env.update({'OMP_NUM_THREADS': '1', 'TOKENIZERS_PARALLELISM': 'false', 'LD_LIBRARY_PATH': str(CUDNN)})
+                    if runtime == 'rust' and args.reference_rope_diagnostic:
+                        env['NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC'] = str(args.reference_rope_diagnostic.resolve())
                     with (out / (stem + '.log')).open('x') as log:
                         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
                         pid, started = process.pid, time.monotonic()
@@ -97,6 +106,9 @@ def main():
                         raise RuntimeError(f'{stem} exited {code}; see retained log')
                     if runtime == 'rust':
                         result = json.loads((out / (stem + '.log')).read_text().splitlines()[-1])
+                        expected_diagnostic = 'reference tables and 1 MiB QKV preference' if args.reference_rope_diagnostic else 'default'
+                        if result.get('diagnostic') != expected_diagnostic:
+                            raise ValueError('unexpected Rust diagnostic selection')
                     else:
                         result = json.loads((out / (stem + '.json')).read_bytes())
                     values = result['seconds']

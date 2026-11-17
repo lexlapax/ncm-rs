@@ -260,3 +260,39 @@ records the diagnostic backend and table hash. The feature-specific capture
 lint and seed-guard test pass; the seed-11 capture and its pinned scorer report repeat byte-for-byte.
 `tools/check.sh --cuda` passed including 18 real-device cases
 (`reports/phase4-lm1b-reference-rope-development-cuda-check-v1.log`).
+
+## Candidate device sampling and capacity screen
+
+The candidate's explicit CUDA inverse-CDF and FP64 penalty path exactly matches
+all CPU-sampled candidate codes and raw IDs across five development seeds,
+1,280 samples. The hash-checked comparison report is
+`reports/phase4-lm1b-reference-rope-device-compare-v1.json`, SHA-256
+`1848e4c6520ba9a0e455684973d8e22e4238a00d9733c6a310980807b97846d2`.
+Therefore the candidate's five development scores apply to those exact device
+outputs. The comparison does not establish held-out quality or general parity.
+
+A source- and rotary-table-bound, non-held-out paired screen compared the
+CUDA-sampling/penalty candidate and pinned Python in three fresh processes per
+runtime, with two warmups and eight measured batches per process. The timing
+includes initial sampling, generation, decoding, penalties, and code/ID host
+readback; level-zero sampling remains on the CPU and model loading is excluded. Signatures repeat within each runtime,
+not across their different random streams. The 24 pooled timings per cell are:
+
+| Batch | Python median / p95 | Candidate median / p95 | Python / candidate median process peak RSS |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.061774 / 0.066694 s | 0.045426 / 0.049354 s | 2,665,136 / 1,635,532 KiB |
+| 4 | 0.133072 / 0.133971 s | 0.108290 / 0.109904 s | 2,657,720 / 1,626,260 KiB |
+| 16 | 0.427715 / 0.428621 s | 0.362949 / 0.364626 s | 2,635,680 / 1,676,952 KiB |
+
+The source-bound result hash is
+`e4225ad3039afd41fb08eba039c82f7b554f4d2fe173ee765c0a2da4eacc4a9e`;
+manifest, per-process output and sampled GPU activity are retained under
+`reports/phase4-lm1b-reference-rope-capacity-screen-v1`. Other desktop GPU
+processes were present, and sampled driver memory is not an allocator peak.
+This is an exploratory screen, not the release performance/memory gate; it
+does not replace held-out quality, broader numerical parity or Metal evidence.
+The exact candidate table and source are hashed in the manifest. Feature-specific
+lint, device-capture seed guard, capacity-summary tests, and the hash-checked
+five-seed comparator pass. Full `tools/check.sh --cuda` passed including
+18 real-device operator cases
+(`reports/phase4-lm1b-reference-rope-device-capacity-cuda-check-v1.log`).
