@@ -666,13 +666,33 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
+        self.run_internal(prefix_tokens, Some(forced_codes), batch, trace)
+    }
+
+    /// Experimental CFG-0 top-1 generation; tied or nonfinite heads fail.
+    pub fn generate_top1_traced(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<()> {
+        self.run_internal(prefix_tokens, None, batch, trace)
+    }
+
+    fn run_internal(
+        &self,
+        prefix_tokens: &[u32],
+        forced_codes: Option<&[u32]>,
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<()> {
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
         if !(1..=32).contains(&batch)
             || prefix_tokens.len() != batch * 96
-            || forced_codes.len() != batch * total
+            || forced_codes.is_some_and(|codes| codes.len() != batch * total)
             || prefix_tokens.iter().any(|&x| x >= 151680)
-            || forced_codes.iter().any(|&x| x >= 4096)
+            || forced_codes.is_some_and(|codes| codes.iter().any(|&x| x >= 4096))
             || prefix_tokens
                 .as_chunks::<96>()
                 .0
@@ -688,10 +708,15 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             &self.input.weight,
             &self.input.bias,
         )?;
-        let forced = b.upload_indices(forced_codes, &[batch, total])?;
+        let forced = forced_codes
+            .map(|codes| b.upload_indices(codes, &[batch, total]))
+            .transpose()?;
         trace.indices("generator.prefix_ids", &prefix_ids)?;
-        trace.indices("generator.forced_codes", &forced)?;
+        if let Some(codes) = &forced {
+            trace.indices("generator.forced_codes", codes)?;
+        }
         let mut cumulative: Option<B::Tensor> = None;
+        let mut selected_levels = Vec::with_capacity(levels.len());
         let mut offset = 0;
         for (level, &length) in levels.iter().enumerate() {
             let target_length = if level == 0 { 0 } else { length };
@@ -742,12 +767,21 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             } else {
                 hidden
             };
-            trace.tensor(
-                &format!("generator.level_{level:02}.logits"),
-                &b.project(&hidden, &self.heads[level])?,
-            )?;
-            let selected = b.narrow_indices(&forced, 1, offset, length)?;
+            let head_logits = b.project(&hidden, &self.heads[level])?;
+            trace.tensor(&format!("generator.level_{level:02}.logits"), &head_logits)?;
+            let selected = if let Some(codes) = &forced {
+                b.narrow_indices(codes, 1, offset, length)?
+            } else {
+                let selected = b.unique_max_4096(&head_logits)?;
+                if b.read_indices(&selected)?.iter().any(|&x| x >= 4096) {
+                    return Err(Error::Backend(
+                        "tied or nonfinite WMT14 head maximum is unsupported".into(),
+                    ));
+                }
+                selected
+            };
             offset += length;
+            selected_levels.push(selected.clone());
             let embedding = b.embedding(
                 self.codec
                     .weight(&format!("vq.embeddings.{level}.weight"))?,
@@ -763,6 +797,9 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             };
             trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
             cumulative = Some(sum);
+        }
+        if forced.is_none() {
+            trace.indices("generator.codes", &b.concat_indices(&selected_levels, 1)?)?;
         }
         let (logits, ids) = self
             .codec
