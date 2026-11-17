@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum same-input MLP projection probe:** a standalone Metal diagnostic is prepared with the captured row in its original 32-row geometry, other rows zero-filled. On CUDA this geometry reproduces the retained row exactly, while a row-only projection differs. Local syntax passes; Metal result is pending. No inference behavior changes.
+- **XSum same-input MLP projection probe:** the [standalone Metal diagnostic](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) and CUDA both reproduce all 1,591,296 retained projection values on the captured row in original 32-row geometry with other rows zero-filled; row-only CUDA geometry differed. This isolates the observed projection drift to differing inputs for this case, not general parity. The Metal gate remains open.
 
 - **XSum synthetic GELU screen:** a [fresh synthetic input](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) shows 1,203,197/1,591,296 exact CUDA matches for the standalone CUDA-order Metal expression versus 1,080,669 for composed Metal. It remains a bounded operation test; the model candidate still fails the known crossing and the Metal gate remains open.
 

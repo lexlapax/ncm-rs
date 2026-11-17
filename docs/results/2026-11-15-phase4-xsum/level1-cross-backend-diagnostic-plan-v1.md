@@ -187,6 +187,19 @@ and `1.5259e-5` after block 0. The largest block-level difference is in prefix
 positions. These stages receive already-different inputs, so this comparison
 does not assign causality to an individual operation or establish a fix.
 
+The first MLP projection was isolated on the captured CUDA second-norm input.
+A row-only CUDA projection differed from the retained 32-row trace in over
+1.4 million values; zero-filling the other 31 rows while retaining row 4937
+at slot 9 restored all 1,591,296 CUDA values exactly. Using that same input,
+weights, bias and 32-row geometry, the standalone Metal projection at
+`415cdd3` also matched all 1,591,296 retained CUDA values bit-for-bit. The
+hash-bound input and receipt are retained locally and on Mac, with SHA-256
+`bb6efb7f11a4cfe569bd7d3faaa341b5b42f4f2bc772ba499beca0f2dfa00aa2` and
+`25a99094984c669db3ada0c287530f381ed731b47a2192063506c00e33871d36`.
+This rules out a difference for this isolated projection and input, not for
+all shapes or values; earlier normalization differences and the full Metal
+gate remain open.
+
 The captured CUDA first-MLP input and GELU output were packed as a same-input
 probe (SHA-256 `ac8b934c98ca34d9590afdededad8dfba2bb5b4e3c555d382190819f0f9c95d0`).
 PyTorch CUDA reproduced all 1,591,296 retained GELU outputs exactly. At pushed
