@@ -361,3 +361,7 @@ required-features = ["lm1b-experimental", "cuda-cudnn"]
 [[example]]
 name = "lm1b_device_penalty_probe"
 required-features = ["lm1b-experimental"]
+
+[[example]]
+name = "lm1b_small_capacity_probe"
+required-features = ["lm1b-experimental", "cuda-cudnn"]
