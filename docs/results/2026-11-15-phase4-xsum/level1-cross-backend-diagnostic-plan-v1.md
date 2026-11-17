@@ -200,6 +200,18 @@ This rules out a difference for this isolated projection and input, not for
 all shapes or values; earlier normalization differences and the full Metal
 gate remain open.
 
+The second normalization was isolated using the 512 captured CUDA prefix
+vectors, its trained affine weights and the retained CUDA outputs. PyTorch
+CUDA layer normalization reproduced all 393,216 reference values exactly.
+The existing standalone Metal probe matched 245,194 values with MLX fast
+normalization (maximum absolute difference `7.1526e-7`) and 299,356 with
+safe-math Welford (maximum `4.7684e-7`). The input and receipt SHA-256 values
+are `9c99649d0b8e9c0d65e33a2c379fecbfad3e15b3f60a6c96f20ab3dd91b883ec`
+and `67f24926e41b166672502cb4df20f3a77ec6557da76de2afc03f18236680cef5`;
+local and Mac copies match. These are previously inspected prefix vectors,
+not a causal demonstration or full-quality test; earlier model-level
+normalization experiments did not resolve the known output crossing.
+
 The captured CUDA first-MLP input and GELU output were packed as a same-input
 probe (SHA-256 `ac8b934c98ca34d9590afdededad8dfba2bb5b4e3c555d382190819f0f9c95d0`).
 PyTorch CUDA reproduced all 1,591,296 retained GELU outputs exactly. At pushed
