@@ -169,12 +169,16 @@ The captured trace SHA-256 is
 `85155099da0fd67ea41a71223d2260ddb5f4dbba8cf52aeadc958e24918cb5dd`;
 the comparison SHA-256 is
 `5f13e04aac88d4640034691bb7de009991c7812e4cd864764cd9d3d84433bdb3`.
-The separate row-2658 divergence remains untraced. This does not waive the
-exact CFG gate; the ordinary cache constructor continues to reject CFG.
+This does not waive the exact CFG gate; the ordinary cache constructor
+continues to reject CFG.
 
-A separate source-bound Python trace is prepared for the original four-row
-batch starting at 2656, containing the other cached-CFG mismatch at row 2658.
-It checks the retained Python full-capture outputs, pinned checkpoint and
-inputs; the corresponding cached CUDA trace and unchanged-band comparison
-remain pending. This is an investigation of already inspected data, not a new
-quality study or a waiver.
+A same-four-row trace for the other mismatch (row 2658) finds its first
+argmax crossing at level 9, position 8. Python chooses code 1922 with
+scores 11.90689564 versus 11.90689182 for code 1813; cached Rust chooses
+1813 with scores 11.90689945 versus 11.90690517. Levels 0–8 have no argmax
+differences in the batch. A later level-10 difference follows the changed
+history. The pinned Python trace SHA-256 is
+`07dcf16e7029f40c97b88d384ddecc0feb299ffdfe566bc372aadfb388a6c14f`;
+the cached CUDA trace SHA-256 is
+`d2544515e1d59ada5fcee67203864115302f9d4f927769bba7089c49cfc252e9`.
+This traces inspected data and does not waive the exact CFG gate.

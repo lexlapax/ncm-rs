@@ -52,3 +52,17 @@ The full local CUDA check passed, including 18 operator cases; log SHA-256
 `0b4c44c9512532ac7f826655eb2d236b3182c97e52c81fc9781ca57c5096e3f5`.
 This does not compile or validate the macOS-only candidate; the Metal check,
 layout regression and forced-history trace remain pending.
+
+The experimental backend subsequently passed `tools/check.sh --mlx`, including
+18 Metal operator cases and the deterministic layout/bias regression; the
+copied check log SHA-256 is
+`5fae06ec61534c949e1c067d278f8ebfff20012d2cae76f53bbdfa2a68ad1019`.
+On the original forced 32-row history, row 4937's first upsample now matches
+all 4,608 CUDA values, but its level-1 position-4 code crossing remains.
+For row 4883, all forced-history raw IDs now match CUDA; the original Metal
+trace differed at position 40. The candidate row-4937 and row-4883 trace
+SHA-256 hashes are
+`ffead2f64871334f3f10097d6ffcf689e915d34be7b7d7d5489e7e94fe8891ac` and
+`ad08ba5f1b90ac9d1977d861f417414cdcda63a9f71db2d21fcba9e96e26816c`.
+These are forced-history diagnostics, not free-generation or full-quality
+results; the exact Metal gate remains failed and the default is unchanged.
