@@ -596,3 +596,16 @@ Metal candidate uses the flattened layout together with the previous split
 head/upsampling candidate; the default path is unchanged. Full `tools/check.sh --cuda` passed, including 18 device cases
 (`reports/phase4-xsum-refinement-layout-cuda-check-v1.log`); Metal
 free-generation screens are pending.
+
+
+At `18a7a7c`, the candidate was built with the MLX feature and screened on
+macstudio. The 4864 free-generation batch matches all CUDA codes and raw IDs
+(output SHA-256 `8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6`).
+The 4928 batch still has three code and five raw-ID differences, all on row
+4937 (output SHA-256
+`1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`).
+Input hashes passed postflight and local/Mac output hashes match. The first
+build attempt omitted the required `mlx` feature and failed before compilation;
+the corrected build passed. These are bounded screens, not full corpus quality
+or performance. The exact Metal raw-ID gate remains failed. A forced-history
+trace is pending to determine what changed inside this candidate.
