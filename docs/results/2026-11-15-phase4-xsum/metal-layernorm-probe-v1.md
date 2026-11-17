@@ -36,3 +36,16 @@ A follow-up explicitly checks for 32-lane SIMD groups and compares Metal safe,
 relaxed and fast compiler math modes on this same diagnostic payload. These
 variants remain diagnostic, and neither a numerical tolerance nor the runtime
 backend is changed. Their results are pending.
+
+At `f317cf3`, the explicit 32-lane check passed. Safe math reproduced the
+363,025 exact matches above; both relaxed and fast modes matched 196,960 of
+393,216, worse than the 234,772 for the existing fast norm. All three had
+maximum absolute difference `1.1921e-7`; mean absolute differences were
+`3.8816e-10` for safe and `1.3516e-9` for relaxed/fast. Respective result
+SHA-256 values for safe, relaxed and fast are
+`da89792aca08405015aad5c69b8c855a43b6cccf75217ea1c8e74c4479902a42`,
+`793e940eed01d619969c14791e6430f77aa351535882cb58ce65ade1a66c7f2e`, and
+`7643b823a5d53c2a41c8ffb393e92bf7e4b25f3afc25856e3a24836b47499c9c`.
+The copied files match remote hashes. These comparisons still do not establish
+model-level behavior or acceptance; the safe variant warrants a bounded
+forced-history investigation before any production integration.
