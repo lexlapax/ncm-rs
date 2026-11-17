@@ -800,3 +800,18 @@ local and Mac copies agree and input hashes passed before and after. The CUDA
 continuation script/log hashes are
 `65e6976134c4f159f096e7284b149c2d123b5bd3845a0572e43c477616ff67ea` /
 `b1dd1de4dc8903163e81ef4065af712eb1798c0e2abc46643a484458360ed312`.
+
+
+At `5c0c355`, an explicitly selected candidate combined the reference-order
+target projection and refinement with the Welford/FMA-refined inverse
+normalization. Full `tools/check.sh --cuda` passed including 18 CUDA device
+cases (`reports/phase4-xsum-refined-norm-cuda-check-v1.log`); the Metal
+normalization regression and release build passed. The free-generation
+outputs for batches 4864 and 4928 were byte-identical to the preceding
+reference-order candidate, with SHA-256 values
+`8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6` and
+`1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`.
+The first batch matches CUDA; the second retains three code and five raw-ID
+differences on row 4937. Input hashes passed postflight. This bounded screen
+does not pass full quality, performance or the exact Metal raw-ID gate; the
+default inference path is unchanged.
