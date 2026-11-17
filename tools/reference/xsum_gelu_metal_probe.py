@@ -31,11 +31,18 @@ def main():
     x = data['x']
     composed = gelu(x)
     compiled = mx.compile(gelu)(x)
+    kernel_dir = Path('.reference/mlx-native/include/mlx/backend/metal/kernels')
+    erf_header = (kernel_dir / 'erf.h').read_text()
+    expm1_header = (kernel_dir / 'expm1f.h').read_text()
+    include = '#include "mlx/backend/metal/kernels/expm1f.h"'
+    if erf_header.count(include) != 1:
+        raise ValueError('unexpected installed MLX erf header')
+    header = erf_header.replace(include, expm1_header) + '\n'
     cuda_order = []
     for mode in ('safe', 'relaxed', 'fast'):
         kernel = mx.fast.metal_kernel(name=f'ncm_xsum_gelu_cuda_order_{mode}',
             input_names=['x'], output_names=['out'],
-            header='#include "mlx/backend/metal/kernels/erf.h"',
+            header=header,
             source='uint i = thread_position_in_grid.x; float v = x[i]; out[i] = v * 0.5f * (1.0f + erf(v * 0.7071067811865475244f));',
             ensure_row_contiguous=True, compile_options={'math_mode': mode})
         (value,) = kernel(inputs=[x], grid=(1591296, 1, 1), threadgroup=(256, 1, 1),
@@ -56,6 +63,8 @@ def main():
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
+        'erf_header_sha256': digest(kernel_dir / 'erf.h'),
+        'expm1_header_sha256': digest(kernel_dir / 'expm1f.h'),
         'scope': 'one captured forced-history row, identical input; diagnostic only',
         'results': result}, indent=2) + '\n')
 
