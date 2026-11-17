@@ -634,3 +634,23 @@ for block boundaries, and
 `b79e27b1aa215f919c23c107f28f1cf15102a8c9c95e3b37660b988edab1744a`
 for latent intervention. This is not proof of a unique cause, a candidate
 fix, or full-corpus evidence.
+
+
+The [target projection screen](../../../tools/reference/xsum_target_projection_metal_probe.py)
+used the candidate's captured latent and identical batch-32 geometry. Metal
+`addmm` and `matmul` plus bias both exactly reproduce the candidate's captured
+projection but differ from the CUDA projection in 3,866/4,608 values, maximum
+`5.9605e-7`. A two-part projection reduces the mismatch to 1,528 values,
+maximum `1.1921e-7`, but the exact CUDA continuation still chooses 3690. A
+three-part projection yields an exact tie in the CUDA continuation, which
+chooses 3182 by its tie behavior; four and six parts choose 3690. All are
+bounded arithmetic interventions, and a tie is not evidence of a robust fix.
+Input, Metal result and output-tensor SHA-256 values are respectively
+`beba7c1c7672482d4f49b5629b4bc0d208a6412ad291b2e2a473c0a3cae6c953`,
+`2fc8a4f03a54730324e15d032a00c04682110ff7ab8603a719d2bd25b0c4da44` and
+`88228a241002174a4dd361972bc4601b2efd9b3ff3ef429edbe69e3ff5e92e14`.
+Local and Mac copies agree; input hashes passed before and after. The CUDA
+continuation script/log hashes are
+`bf75a0f4804660d880e50efc68650bc71862686b75ef1daa0a031f0a79f70659` /
+`5cea3bac4c4aacea5f27b30fc21d509c5e9572e5ca35201c114d09e75e979312`.
+No default inference or quality gate changed.
