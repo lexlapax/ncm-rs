@@ -699,6 +699,23 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             .map(|_| ())
     }
 
+    /// Return experimental guided top-1 outputs for explicit offline validation.
+    pub fn generate_cfg_top1(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+    ) -> Result<Generated<B>> {
+        let combined = wmt14_cfg_prefixes(prefix_tokens, batch, scale)?;
+        self.run_internal(
+            &combined,
+            None,
+            batch * 2,
+            &mut crate::NoTrace,
+            Some((batch, scale)),
+        )
+    }
+
     fn run_internal(
         &self,
         prefix_tokens: &[u32],

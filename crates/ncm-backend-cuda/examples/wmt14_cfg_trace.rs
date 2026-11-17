@@ -59,6 +59,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let b = &backend;
     let mut captured = Captured::default();
     teacher.generate_cfg_top1_traced(&tokens, input.shape()[0], 1.0, &mut captured)?;
+    let plain = teacher.generate_cfg_top1(&tokens, input.shape()[0], 1.0)?;
+    if b.read_indices(&plain.codes)? != b.read_indices(&captured.indices["generator.codes"])?
+        || b.read_indices(&plain.ids)?
+            != b.read_indices(&captured.indices["generator.greedy_ids"])?
+        || b.read_f32(&plain.logits)? != b.read_f32(&captured.tensors["generator.final_logits"])?
+    {
+        return Err("untraced WMT14 CFG generation differs".into());
+    }
     let mut all = BTreeMap::new();
     for (name, tensor) in captured.tensors {
         let values = b.read_f32(&tensor)?;

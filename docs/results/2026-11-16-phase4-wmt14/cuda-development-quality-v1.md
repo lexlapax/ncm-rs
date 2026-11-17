@@ -60,7 +60,7 @@ metrics respectively. The upstream score report and independent offline replay
 both have SHA-256 `46cf7c718a3c4200a7452e525ee66d4894a9f057d2a6996825af8eb9baa222f5`.
 The Rust score report differs only in its input provenance and has SHA-256
 `904bb5c3a418b4bc518f92234381a50eaa95a8d0531b4480b2bc2bd6674ce401`.
-The scorer unit test checks metric defaults and input rejection. A separately
-captured CFG development baseline and explicit frozen held-out criteria are
-still required before held-out scoring; no full-corpus, performance or Metal
-gate is claimed.
+The scorer unit test checks metric defaults and input rejection. The separately
+captured [CFG development baseline](cuda-cfg-development-quality-v1.md) and
+[held-out criteria](heldout-protocol-v1.md) follow this record; no full-corpus,
+performance or Metal gate is claimed.
