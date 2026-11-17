@@ -26,9 +26,11 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--prefixes', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--batch', type=int, choices=[1, 4, 16], required=True)
+    parser.add_argument('--batch', type=int, choices=[1, 4, 16, 32], required=True)
     parser.add_argument('--cfg', type=int, choices=[0, 1], required=True)
     args = parser.parse_args()
+    if args.cfg == 1 and args.batch > 16:
+        raise ValueError('CFG doubles the internal batch beyond the candidate limit')
     if torch.__version__.split('+')[0] != '2.15.0' or not torch.cuda.is_available() or torch.cuda.device_count() != 1:
         raise ValueError('pinned Torch and one CUDA device required')
     if any(os.environ.get(k) for k in ('LD_PRELOAD', 'LD_AUDIT', 'CUDA_VISIBLE_DEVICES',

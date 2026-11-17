@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let batch: usize = args[3].parse()?;
     let cfg: u32 = args[4].parse()?;
-    if ![1, 4, 16].contains(&batch) || cfg > 1 {
+    if ![1, 4, 16, 32].contains(&batch) || cfg > 1 || (cfg == 1 && batch > 16) {
         return Err("unsupported batch or CFG".into());
     }
     if sha256(&fs::read(format!("{}/manifest.json", args[1]))?)

@@ -25,9 +25,11 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--repetitions', type=int, choices=(1, 3), default=3)
-    p.add_argument('--batches', type=int, nargs='+', choices=(1, 4, 16), default=[1, 4, 16])
+    p.add_argument('--batches', type=int, nargs='+', choices=(1, 4, 16, 32), default=[1, 4, 16])
     p.add_argument('--modes', type=int, nargs='+', choices=(0, 1), default=[0, 1])
     args = p.parse_args()
+    if 1 in args.modes and 32 in args.batches:
+        raise ValueError('CFG doubles the internal batch beyond the candidate limit')
     if len(set(args.batches)) != len(args.batches) or len(set(args.modes)) != len(args.modes):
         raise ValueError('duplicate workload')
     forbidden = ('LD_LIBRARY_PATH', 'LD_PRELOAD', 'LD_AUDIT', 'CUDA_VISIBLE_DEVICES', 'CUDA_LAUNCH_BLOCKING',

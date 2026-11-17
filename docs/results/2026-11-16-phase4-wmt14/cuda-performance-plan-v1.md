@@ -32,3 +32,13 @@ passed all requested checks and 18 CUDA operator cases (log SHA-256
 `91db06e51b43d7ddf0161f04491df856de51610128abf9edd38c44d7c1ef74b4`).
 The WMT experimental/cuDNN example also passed feature-specific Clippy with
 `-D warnings` and built in release mode.
+
+A separate CFG=0 batch-32 capacity comparison is prepared with the same
+alternating three-process, 5-warmup/30-trial protocol. The scoped CUDA
+reference normalization accepts an internal batch at most 32; CFG=1 doubles
+its internal batch, so its supported maximum external batch is 16. The
+supervisor and both probes reject CFG=1 batch 32 explicitly. This is a supported
+backend boundary, not a claim about the GPU's physical maximum batch. The
+batch-32 example passed feature-specific strict Clippy and release build;
+the supervisor rejects the unsupported combination. Formal capacity results
+remain pending and will retain any failures or OOMs.
