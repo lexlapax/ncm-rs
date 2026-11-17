@@ -579,3 +579,20 @@ e6a550e694cea63fce4c393290f89a84ea45a009076dafad5ab18b444aae0f57
 receipt checks the input hash before and after. This locates same-input
 refinement arithmetic differences for one captured row; no default, tolerance,
 quality or performance gate has changed.
+
+
+The [refinement layout screen](../../../tools/reference/xsum_refinement_layout_probe.py)
+compared the same captured input and batch geometry. A single flattened
+`[batch*48, 1152]` matrix product in channel/kernel order exactly matched all
+18,432 CUDA convolution and reconstruction values. Three separate kernel-tap
+products, summed in either direction, differed in more than 17,500 convolution
+values. The receipt SHA-256 is
+`97ee4c6e5e5ce80418cc31fc334977c74dfdd8e0e5108e6a6b8ddbb033b6ebd4`;
+its captured candidate tensors hash to
+`c49c708f1afde50f95ea378c0a1276563b8dabc8625de9d8ec5d0553bf45ec88`.
+The input hash is the one above, verified before and after. This is a single
+controlled row, not a full-model or quality result. An explicitly selected
+Metal candidate uses the flattened layout together with the previous split
+head/upsampling candidate; the default path is unchanged. Full `tools/check.sh --cuda` passed, including 18 device cases
+(`reports/phase4-xsum-refinement-layout-cuda-check-v1.log`); Metal
+free-generation screens are pending.

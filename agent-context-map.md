@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum refinement layout screen:** a [standalone probe](tools/reference/xsum_refinement_layout_probe.py) prepares three mathematically equivalent convolution layouts on the captured same-input control; Metal measurements and CUDA continuation are pending. Default inference is unchanged.
+- **XSum refinement layout screen:** the [standalone probe](tools/reference/xsum_refinement_layout_probe.py) found a flattened convolution exactly matched CUDA on one captured input. An explicitly selected Metal diagnostic combines that layout with the prior split-head candidate; Full `tools/check.sh --cuda` passes including 18 device cases; Metal free-generation screens are pending. Default inference is unchanged.
 
 - **XSum refinement same-input probe:** the [controlled Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) reproduces the captured Metal reconstruction exactly but differs from CUDA in 16,653/18,432 convolution values. This is one captured row, not a fix or gate pass. Default inference is unchanged.
 

@@ -83,6 +83,7 @@ pub struct MlxTensor(Array);
 pub struct MlxBackend {
     stream: Stream,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+    xsum_refinement_experimental: bool,
     xsum_norm_experimental: bool,
     xsum_upsample_experimental: bool,
     xsum_groupnorm_experimental: bool,
@@ -122,6 +123,7 @@ impl MlxBackend {
         let backend = Self {
             stream,
             compiled_gelu: Rc::new(RefCell::new(None)),
+            xsum_refinement_experimental: false,
             xsum_norm_experimental: false,
             xsum_upsample_experimental: false,
             xsum_groupnorm_experimental: false,
@@ -196,6 +198,12 @@ impl MlxBackend {
     pub fn gpu_xsum_six_head_split_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_head_split_experimental()?;
         backend.xsum_head_projection_six_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit XSum refinement layout diagnostic with the split-head candidate.
+    pub fn gpu_xsum_refinement_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_head_split_experimental()?;
+        backend.xsum_refinement_experimental = true;
         Ok(backend)
     }
     /// Explicit split-head diagnostic with experimental group normalization.
@@ -629,6 +637,27 @@ impl CodecBackend for MlxBackend {
                     .reshape(&[batch, length, output, kernel])?
                     .transpose_axes(&[0, 1, 3, 2])?
                     .reshape(&[batch, 12, output])?
+            } else if self.xsum_refinement_experimental
+                && !transposed
+                && length == 48
+                && input == 384
+                && output == 384
+                && kernel == 3
+                && stride == 1
+                && padding == 1
+            {
+                let zeros = Array::zeros::<f32>(&[batch, 1, input])?;
+                let padded = mlx_rs::ops::concatenate(&[&zeros, &x.0, &zeros], 1)?;
+                let windows = [
+                    padded.try_index((.., 0..48, ..))?,
+                    padded.try_index((.., 1..49, ..))?,
+                    padded.try_index((.., 2..50, ..))?,
+                ];
+                let rows = batch.checked_mul(48).ok_or("refinement rows overflow")?;
+                mlx_rs::ops::stack(&windows, -1)?
+                    .reshape(&[rows, 1152])?
+                    .matmul(&weight.0.reshape(&[384, 1152])?.transpose_axes(&[1, 0])?)?
+                    .reshape(&[batch, 48, 384])?
             } else if transposed {
                 ops::conv_transpose1d(&x.0, &weight.0, stride, padding)?
             } else if padding == 0 && length == kernel {
