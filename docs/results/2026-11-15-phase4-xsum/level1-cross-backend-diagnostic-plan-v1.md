@@ -843,3 +843,17 @@ the block-boundary script/log hashes are
 The new opt-in GELU combinations pass full `tools/check.sh --cuda`, including
 18 real-device cases (`reports/phase4-xsum-refined-gelu-cuda-check-v1.log`);
 their Metal screens remain pending.
+
+The refined-normalization combinations with uncompiled and compiled
+CUDA-order GELU both passed the existing Metal refined-normalization regression
+and built on the clean Mac checkout. On each of the two 32-row free-generation
+screens, both combinations were byte-identical to the prior refined candidate:
+`8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6`
+for batch 4864 and
+`1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`
+for batch 4928. Input hashes were unchanged; local and Mac output hashes agree.
+The first batch matches CUDA, while the second retains row 4937's three code
+and five raw-ID differences. The controlled GELU intervention therefore did
+not yield an end-to-end fix in these combinations; the exact gate remains
+failed. Outputs are retained under
+`reports/phase4-xsum-refined-gelu-screen-captured-v1`.
