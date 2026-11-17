@@ -213,6 +213,14 @@ receipt SHA-256 values are
 local and Mac receipt copies match. These bounded comparisons do not establish
 a model-level fix or justify changing the default projection.
 
+At `24279d2`, the same controlled head projection was also tested as sums of
+three, four and six equal-width products. They matched 350, 420 and 502 of
+2,304 CUDA values exactly, with maximum absolute differences `7.6294e-6`,
+`5.7220e-6` and `3.8147e-6`. The prior two-part result matched 439 values.
+The hash-bound receipt is
+`abfc9115e2a29370051eb564cc2d4840297b0f311dee79e52d1fdf546f120303`;
+local and Mac copies agree. None establishes reference parity or a model fix.
+
 The second normalization was isolated using the 512 captured CUDA prefix
 vectors, its trained affine weights and the retained CUDA outputs. PyTorch
 CUDA layer normalization reproduced all 393,216 reference values exactly.

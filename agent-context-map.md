@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum head-projection layout screen:** the standalone same-input probe adds three-, four- and six-part projection layouts alongside the earlier two-part test. Local syntax passes; Metal result is pending. No runtime changes.
+- **XSum head-projection layout screen:** the [same-input Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) tested three-, four- and six-part layouts. None reproduced CUDA; six parts matched 502/2,304 values and reduced maximum error to `3.8147e-6`. No runtime change or gate pass.
 
 - **XSum double-split head diagnostic:** an explicitly selected Metal backend splits both the hidden-to-head and codebook projections into two products, with the previous upsampling candidate. Default inference is unchanged. Full `tools/check.sh --cuda` passed including 18 device cases; [Metal free-generation screens](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) reproduce the earlier split-head outputs, retaining the row-4937 differences. The exact gate remains failed.
 
