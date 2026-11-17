@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum same-input head projection:** the standalone projection probe now supports the bias-free level-1 head projection. PyTorch CUDA reproduces all 2,304 retained values at original batch 32 but not batch 1. Local syntax passes; Metal result pending.
+
 - **XSum head norm diagnostic:** the [controlled head probe](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) finds independently computed Metal norms differ from PyTorch CUDA norms, but CUDA dots with Metal norms retain the CUDA pair choice. CUDA head arithmetic on the retained Metal split-head projection selects the Metal code instead; upstream projection drift can independently change the decision. This is a controlled row, not an exact runtime-norm replay or gate pass.
 
 - **XSum split-head combinations:** explicit Metal diagnostics combine the split head with prior group normalization, compiled GELU, and all-operation variants. Default inference is unchanged. Full `tools/check.sh --cuda` passes, including 18 device cases. [Metal free-generation screens](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) are byte-identical to the earlier split candidate on both known failure batches and retain the row-4937 differences; the exact gate remains failed.

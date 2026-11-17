@@ -17,17 +17,20 @@ def main():
     p.add_argument('--input', required=True, type=Path)
     p.add_argument('--input-sha256', required=True)
     p.add_argument('--output', required=True, type=Path)
+    p.add_argument('--projection', choices=['mlp', 'head'], default='mlp')
     args = p.parse_args()
     if args.output.exists() or digest(args.input) != args.input_sha256:
         raise ValueError('output exists or input digest differs')
     d = mx.load(str(args.input))
-    if (set(d) != {'x', 'weight', 'bias', 'cuda'} or d['x'].shape != (1, 518, 768)
-            or d['weight'].shape != (3072, 768) or d['bias'].shape != (3072,)
-            or d['cuda'].shape != (1, 518, 3072)):
+    length, width = (518, 3072) if args.projection == 'mlp' else (6, 384)
+    if (set(d) != {'x', 'weight', 'bias', 'cuda'} or d['x'].shape != (1, length, 768)
+            or d['weight'].shape != (width, 768) or d['bias'].shape != (width,)
+            or d['cuda'].shape != (1, length, width)):
         raise ValueError('unexpected captured shape')
     # Row 9 occupies its original position; other rows are zero-filled.
-    x = mx.concatenate([mx.zeros((9, 518, 768)), d['x'], mx.zeros((22, 518, 768))], axis=0)
-    output = (x @ mx.transpose(d['weight']) + d['bias'])[9:10]
+    x = mx.concatenate([mx.zeros((9, length, 768)), d['x'], mx.zeros((22, length, 768))], axis=0)
+    projected = x @ mx.transpose(d['weight'])
+    output = (projected + d['bias'] if args.projection == 'mlp' else projected)[9:10]
     mx.eval(output)
     actual, expected = np.asarray(output), np.asarray(d['cuda'])
     if not np.isfinite(actual).all():
@@ -37,9 +40,10 @@ def main():
         raise ValueError('input changed')
     result = {'input_sha256': args.input_sha256,
         'scope': 'one captured row in zero-filled original batch geometry; diagnostic only',
+        'projection': args.projection,
         'exact_elements': int(np.count_nonzero(delta == 0)), 'total_elements': int(delta.size),
         'max_abs': float(delta.max()), 'mean_abs': float(delta.mean()),
-        'target4_max_abs': float(delta[0, 516].max())}
+        'target4_max_abs': float(delta[0, 516 if args.projection == 'mlp' else 4].max())}
     args.output.write_text(json.dumps(result, indent=2) + '\n')
 
 
