@@ -67,6 +67,22 @@ SHA-256 hashes are
 These are forced-history diagnostics, not free-generation or full-quality
 results; the exact Metal gate remains failed and the default is unchanged.
 
+The same already-built experimental Metal binary (SHA-256
+`0c51547caf12970f8755b1542e8aa96ac2278c059549ce1af044257503d6cd04`)
+was also run on the three retained 32-row forced histories with known head
+crossings. Against the retained CUDA traces, row 9813 now has no head argmax
+differences; row 10009 still differs at level 5 position 15 (CUDA 3758,
+Metal 3032), and row 10015 at level 8 position 18 (CUDA 2298, Metal 605).
+All selected final IDs match CUDA in these forced histories. Inputs passed
+SHA-256 checks after the runs, and copied output hashes match the Mac. The
+respective safetensors hashes are
+`b44663fa75ab50cbdfd9dfd399d20fcc857d970a19f7338126cbb175380d7b74`,
+`a7dbde3f03384b09b10d33477be570266c7fdc277167268ac7857a171dfdbb59`,
+and `8944ca1c2bc67eb2f67b6943f30ce6396e88bf4211169ad69447014b2e1b35ed`.
+The ignored captures are in `reports/phase4-xsum-upsample-remaining-v1/` on
+Mac and `reports/phase4-xsum-upsample-remaining-captured-v1/` locally. These
+are inspected rows with forced CUDA histories, not a full free-generation pass.
+
 A separate opt-in diagnostic combines the experimental upsampling operation
 with the previously tested experimental normalization. Neither operation is
 selected by the default backend. Linux checks precede the same forced-history
