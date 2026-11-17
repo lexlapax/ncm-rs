@@ -373,6 +373,16 @@ The forced tensor SHA-256 is
 local and Mac copies match. This is a previously inspected bounded screen,
 not full corpus quality or performance evidence. The exact gate remains failed.
 
+At `7509110`, three additional explicit combinations paired the split head
+with experimental group normalization, compiled GELU, and all prior
+operations. Full CUDA validation passed including 18 device cases. On Metal,
+all three free-generation outputs were byte-identical to the earlier split
+candidate on both 32-row batches: the 4864 batch matches CUDA exactly, while
+the 4928 batch retains three code and five raw-ID differences. Input hashes
+passed postflight and local and Mac capture hashes agree. This eliminates these
+combinations for the inspected batches, not all possible approaches; full
+quality, performance and the exact Metal gate remain open.
+
 The same six backends were screened on the 32-row batch beginning at 4864.
 Default Metal matched all CUDA codes but retained one raw-ID difference at
 row 4883 position 40. Each of the five experimental variants matched all

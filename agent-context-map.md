@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum split-head combinations:** explicit Metal diagnostics combine the split head with prior group normalization, compiled GELU, and all-operation variants. Default inference is unchanged. Full `tools/check.sh --cuda` passes, including 18 device cases (`reports/phase4-xsum-split-combinations-cuda-check-v1.log`); Metal free-generation screens are pending.
+- **XSum split-head combinations:** explicit Metal diagnostics combine the split head with prior group normalization, compiled GELU, and all-operation variants. Default inference is unchanged. Full `tools/check.sh --cuda` passes, including 18 device cases. [Metal free-generation screens](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) are byte-identical to the earlier split candidate on both known failure batches and retain the row-4937 differences; the exact gate remains failed.
 
 - **XSum head-layout screen:** the [controlled Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found two 192-wide products sum to exact controlled CUDA dots on the inspected row and four fresh synthetic inputs. The split-head plus upsampling Metal model narrows the forced row-4937 margin to `-9.5367e-7` but free generation still differs from CUDA in three codes and five IDs on that batch; the 4864 batch matches. Full CUDA check passes 18 device cases; full quality/performance and the exact gate remain open. Default inference is unchanged.
 
