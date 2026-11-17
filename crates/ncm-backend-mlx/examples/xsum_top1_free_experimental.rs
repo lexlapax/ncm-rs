@@ -25,6 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "compiled-gelu" => MlxBackend::gpu_xsum_compiled_gelu_experimental()?,
         "all" => MlxBackend::gpu_xsum_all_experimental()?,
         "head-split" => MlxBackend::gpu_xsum_head_split_experimental()?,
+        "double-head-split" => MlxBackend::gpu_xsum_double_head_split_experimental()?,
         "head-split-groupnorm" => MlxBackend::gpu_xsum_head_split_groupnorm_experimental()?,
         "head-split-gelu" => MlxBackend::gpu_xsum_head_split_gelu_experimental()?,
         "head-split-all" => MlxBackend::gpu_xsum_head_split_all_experimental()?,

@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum double-split head diagnostic:** an explicitly selected Metal backend splits both the hidden-to-head and codebook projections into two products, with the previous upsampling candidate. Default inference is unchanged. Full `tools/check.sh --cuda` passed including 18 device cases (`reports/phase4-xsum-double-head-split-cuda-check-v1.log`); Metal free-generation screens are pending.
+
 - **XSum same-input head projection:** [PyTorch CUDA and Metal comparisons](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) use captured hidden states and original batch 32. CUDA reproduces all 2,304 retained values; ordinary Metal matches 271 and split Metal matches 439. The split reduces maximum error but is not reference-equivalent; no inference change or gate pass.
 
 - **XSum head norm diagnostic:** the [controlled head probe](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) finds independently computed Metal norms differ from PyTorch CUDA norms, but CUDA dots with Metal norms retain the CUDA pair choice. CUDA head arithmetic on the retained Metal split-head projection selects the Metal code instead; upstream projection drift can independently change the decision. This is a controlled row, not an exact runtime-norm replay or gate pass.

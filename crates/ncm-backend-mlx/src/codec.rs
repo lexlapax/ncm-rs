@@ -89,6 +89,7 @@ pub struct MlxBackend {
     xsum_gelu_experimental: bool,
     xsum_compiled_gelu_experimental: bool,
     xsum_head_split_experimental: bool,
+    xsum_head_projection_split_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -126,6 +127,7 @@ impl MlxBackend {
             xsum_gelu_experimental: false,
             xsum_compiled_gelu_experimental: false,
             xsum_head_split_experimental: false,
+            xsum_head_projection_split_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
@@ -180,6 +182,12 @@ impl MlxBackend {
     pub fn gpu_xsum_head_split_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_upsample_experimental()?;
         backend.xsum_head_split_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit diagnostic splitting both XSum head projections.
+    pub fn gpu_xsum_double_head_split_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_head_split_experimental()?;
+        backend.xsum_head_projection_split_experimental = true;
         Ok(backend)
     }
     /// Explicit split-head diagnostic with experimental group normalization.
@@ -292,6 +300,17 @@ impl CodecBackend for MlxBackend {
         self.array_op(&[x], || Ok(x.0.sum_axis(-1, true)?))
     }
     fn project(&self, x: &MlxTensor, weight: &MlxTensor) -> Result<MlxTensor> {
+        if self.xsum_head_projection_split_experimental
+            && weight.0.shape() == [384, 768]
+            && matches!(x.0.shape(), [_, _, 768])
+        {
+            let left = self.project(&self.slice(x, 2, 0, 384)?, &self.slice(weight, 1, 0, 384)?)?;
+            let right = self.project(
+                &self.slice(x, 2, 384, 384)?,
+                &self.slice(weight, 1, 384, 384)?,
+            )?;
+            return self.add(&left, &right);
+        }
         if self.xsum_head_split_experimental
             && weight.0.shape() == [4096, 384]
             && matches!(x.0.shape(), [_, _, 384])
