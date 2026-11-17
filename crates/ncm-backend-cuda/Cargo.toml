@@ -373,3 +373,11 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_cfg_uncached_microbatch_perf"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cfg_uncached_eight_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cfg_uncached_eight_perf"
+required-features = ["wmt14-experimental", "cuda-cudnn"]

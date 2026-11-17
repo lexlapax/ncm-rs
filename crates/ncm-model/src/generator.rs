@@ -891,6 +891,27 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         batch: usize,
         scale: f64,
     ) -> Result<Wmt14HostOutput> {
+        self.generate_cfg_uncached_chunks(prefix_tokens, batch, scale, 4)
+    }
+
+    /// Explicit experimental eight-row grouping; independent numerical
+    /// qualification is required because it changes the execution shape.
+    pub fn generate_cfg_uncached_eight_diagnostic(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+    ) -> Result<Wmt14HostOutput> {
+        self.generate_cfg_uncached_chunks(prefix_tokens, batch, scale, 8)
+    }
+
+    fn generate_cfg_uncached_chunks(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        chunk_size: usize,
+    ) -> Result<Wmt14HostOutput> {
         if self.cached_prefix_experimental
             || !(1..=16).contains(&batch)
             || !scale.is_finite()
@@ -909,7 +930,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         }
         let mut codes = Vec::with_capacity(batch * 313);
         let mut ids = Vec::with_capacity(batch * 64);
-        for chunk in prefix_tokens.chunks(4 * 96) {
+        for chunk in prefix_tokens.chunks(chunk_size * 96) {
             let result = self.generate_cfg_top1(chunk, chunk.len() / 96, scale)?;
             codes.extend(self.backend.read_indices(&result.codes)?);
             ids.extend(self.backend.read_indices(&result.ids)?);

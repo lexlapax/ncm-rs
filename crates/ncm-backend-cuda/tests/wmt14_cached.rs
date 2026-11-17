@@ -318,3 +318,53 @@ fn uncached_cfg_microbatch_matches_exact_chunks_and_rejects_invalid_requests() {
             .is_err()
     );
 }
+
+#[test]
+#[ignore = "requires the pinned local WMT14 artifact, prefixes and CUDA/cuDNN"]
+fn uncached_cfg_eight_matches_eight_row_chunks_and_rejects_cached() {
+    let artifact = std::env::var("NCM_WMT14_CACHE_ARTIFACT").expect("artifact path");
+    let prefixes = std::env::var("NCM_WMT14_CACHE_PREFIXES").expect("prefix path");
+    let value: Value = serde_json::from_slice(&std::fs::read(prefixes).unwrap()).unwrap();
+    let rows = value["prefixes"].as_array().unwrap();
+    let input: Vec<u32> = rows[..16]
+        .iter()
+        .flat_map(|row| row.as_array().unwrap())
+        .map(|id| u32::try_from(id.as_u64().unwrap()).unwrap())
+        .collect();
+    let artifact = Artifact::load_inference(&artifact).unwrap();
+    let backend = CandleBackend::cuda_wmt14_reference(0).unwrap();
+    let model = Wmt14Teacher::from_artifact(backend.clone(), &artifact).unwrap();
+    for batch in [1, 8, 9, 16] {
+        let output = model
+            .generate_cfg_uncached_eight_diagnostic(&input[..batch * 96], batch, 1.0)
+            .unwrap();
+        let mut codes = Vec::new();
+        let mut ids = Vec::new();
+        for chunk in input[..batch * 96].chunks(8 * 96) {
+            let expected = model
+                .generate_cfg_top1(chunk, chunk.len() / 96, 1.0)
+                .unwrap();
+            codes.extend(backend.read_indices(&expected.codes).unwrap());
+            ids.extend(backend.read_indices(&expected.ids).unwrap());
+        }
+        assert_eq!(output.codes, codes);
+        assert_eq!(output.ids, ids);
+    }
+    assert!(
+        model
+            .generate_cfg_uncached_eight_diagnostic(&input, 0, 1.0)
+            .is_err()
+    );
+    assert!(
+        model
+            .generate_cfg_uncached_eight_diagnostic(&input, 16, f64::NAN)
+            .is_err()
+    );
+    drop(model);
+    let cached = Wmt14Teacher::from_artifact_cached_experimental(backend, &artifact).unwrap();
+    assert!(
+        cached
+            .generate_cfg_uncached_eight_diagnostic(&input[..96], 1, 1.0)
+            .is_err()
+    );
+}
