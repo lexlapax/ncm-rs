@@ -668,3 +668,26 @@ and `1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`.
 The controlled CUDA tie did not translate into a free-generation fix. The
 path is experimental; the default inference and frozen exact gate are
 unchanged.
+
+
+A [standalone Metal FMA screen](../../../tools/reference/xsum_projection_fma_metal_probe.py)
+compared 20 explicit accumulation orders against PyTorch CUDA at the same
+projection geometry, using the captured latent and four CPU-seeded synthetic
+inputs. Two contiguous 192-element FMA accumulators summed before the bias had
+the fewest differences: 1,528/4,608 on the captured input and 1,488–1,528
+on the synthetic inputs. For a separate CUDA capture with zero bias, this
+same order matched every one of 23,040 values. The nonzero-bias CUDA results
+still differ, so bias handling or an algorithm difference remains; this is
+not an inference change or a gate result.
+
+The nonzero-bias input/result SHA-256 values are
+`3ad2d6a984197e6a10390eac8964512568af717b5443e08271b7e3469eb1699b` /
+`c029b48b416eab3724e6edb20988b9ee2c64b306dd1fd79aeb61e6b7f66560e9`;
+the zero-bias input/result values are
+`fa81cc3bd7d185feec621753021692a554224255aee246fe1f518ea325a0edd8` /
+`ff1364abd5a580731d26f6ec7dbc5fa27478fe37ea0071341fc00b32575542f4`.
+Mac input hashes were checked before and after, and local and remote receipt
+hashes match. The ignored preparation scripts hash to
+`a76fabcc8c36a525a7c632520d7398d4517f7f44f3140f893725b37f54d0061d` and
+`4c2e50109dba515d3bbf531107f2a3fb58fe1a5321c42bebb4c746698d35ed81`.
+A separate Metal bias-epilogue screen is prepared; its result is pending.
