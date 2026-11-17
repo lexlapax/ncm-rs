@@ -559,6 +559,20 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             ))
         }
     }
+    fn lm1b_penalty_fp64(&self, logits: &Tensor, allowance: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        {
+            crate::xsum_penalty::select_lm1b(self, logits, allowance)
+                .map_err(|e| Error::Backend(e.to_string()))
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            let _ = (logits, allowance);
+            Err(Error::Backend(
+                "device LM1B FP64 selection is unsupported".into(),
+            ))
+        }
+    }
     fn pack_qkv(
         &self,
         x: &Tensor,

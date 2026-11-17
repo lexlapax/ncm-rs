@@ -20,8 +20,11 @@ fn development_seed(seed: u64) -> Result<u64, Box<dyn Error>> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 4 {
-        return Err("usage: lm1b_small_device_development_capture ARTIFACT SEED OUTPUT".into());
+    if !(4..=5).contains(&args.len()) || args.get(4).is_some_and(|x| x != "device-penalty") {
+        return Err(
+            "usage: lm1b_small_device_development_capture ARTIFACT SEED OUTPUT [device-penalty]"
+                .into(),
+        );
     }
     let seed = development_seed(args[2].parse()?)?;
     let output = Path::new(&args[3]);
@@ -49,7 +52,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     for batch in 0..32_u64 {
         // Distinct deterministic request streams; do not claim PyTorch seed equivalence.
         let request_seed = (seed << 32) | batch;
-        let result = model.sample_seeded_device(&[101; 8], 8, request_seed)?;
+        let result = if args.len() == 5 {
+            model.sample_seeded_fully_device(&[101; 8], 8, request_seed)?
+        } else {
+            model.sample_seeded_device(&[101; 8], 8, request_seed)?
+        };
         let values = backend.read_indices(&result.codes)?;
         if values.len() != 8 * 641
             || result.ids.len() != 8 * 128
@@ -72,6 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let report = serde_json::json!({"scope": "experimental Rust LM1B-small device sampling non-held-out development; not a quality gate",
         "size": "small", "seed": seed, "count": 256, "batch_size": 8,
         "rng": "SplitMix64 request seed (development_seed << 32) | zero_based_batch; CUDA FP64 inverse CDF with CPU level-zero sampling",
+        "penalty": if args.len() == 5 { "CUDA FP64" } else { "CPU FP64" },
         "artifact_manifest_sha256": "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76",
         "codes": codes, "raw_ids": raw_ids});
     let mut bytes = serde_json::to_vec(&report)?;

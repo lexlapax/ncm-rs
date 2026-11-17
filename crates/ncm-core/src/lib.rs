@@ -154,6 +154,16 @@ pub trait GeneratorBackend: CodecBackend {
             "device XSum FP64 selection is unsupported".into(),
         ))
     }
+    /// Explicit LM1B FP64 penalties; invalid rows return u32::MAX.
+    fn lm1b_penalty_fp64(
+        &self,
+        _logits: &Self::Tensor,
+        _allowance: &Self::Tensor,
+    ) -> Result<Self::Indices> {
+        Err(Error::Backend(
+            "device LM1B FP64 selection is unsupported".into(),
+        ))
+    }
     /// Select unique finite maxima from 4096-way rows. Ties and nonfinite rows
     /// produce u32::MAX, which must be checked before returning a result.
     fn unique_max_4096(&self, _logits: &Self::Tensor) -> Result<Self::Indices> {

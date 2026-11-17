@@ -270,6 +270,39 @@ extern "C" __global__ void ncm_xsum_penalty_step(const float* logits,const float
     }
     if(tid==0){partial[row*tiles+blockIdx.x]=scores[0];partial_id[row*tiles+blockIdx.x]=ids[0];}
 }
+extern "C" __global__ void ncm_lm1b_penalty_step(const float* logits,const float* allow,const unsigned* counts,
+                     const unsigned* history,double* partial,unsigned* partial_id,
+                     unsigned* bad,int vocab,int time,int t,int tiles) {
+    unsigned tid=threadIdx.x,row=blockIdx.y,v=blockIdx.x*256+tid;
+    __shared__ double scores[256];__shared__ unsigned ids[256];
+    double score=-CUDART_INF;unsigned id=0xffffffffU;
+    if(v<unsigned(vocab)) {
+        float x=logits[((size_t)row*time+t)*vocab+v],a=allow[v];
+        if(!isfinite(x)||!isfinite(a)||a<0) atomicOr(&bad[row],1);
+        else {
+            double allowed=__dmul_rn(double(a),double(time));
+            double count=double(counts[(size_t)row*vocab+v]);
+            double excess=fmax(__dsub_rn(count,allowed),0.0);
+            double deficit=fmax(__dsub_rn(allowed,count),0.0);
+            double remaining=__ddiv_rn(double(time-t),double(time));
+            score=__dsub_rn(double(x),__dmul_rn(11.5,excess));
+            score=__dadd_rn(score,__dmul_rn(__dmul_rn(2.0,remaining),deficit));
+            const double penalties[4]={-10.0,-5.0,-2.5,-1.25};
+            for(int j=0;j<4&&j<t;j++)
+                if(history[row*time+t-j-1]==v)score=__dadd_rn(score,penalties[j]);
+            id=v;
+        }
+    }
+    scores[tid]=score;ids[tid]=id;__syncthreads();
+    for(unsigned stride=128;stride;stride>>=1) {
+        if(tid<stride&&(scores[tid+stride]>scores[tid]||
+         (scores[tid+stride]==scores[tid]&&ids[tid+stride]<ids[tid]))) {
+            scores[tid]=scores[tid+stride];ids[tid]=ids[tid+stride];
+        }
+        __syncthreads();
+    }
+    if(tid==0){partial[row*tiles+blockIdx.x]=scores[0];partial_id[row*tiles+blockIdx.x]=ids[0];}
+}
 extern "C" __global__ void ncm_xsum_penalty_finish(const double* partial,const unsigned* partial_id,unsigned* counts,
                        unsigned* out,unsigned* bad,int vocab,int time,int t,int tiles) {
     unsigned tid=threadIdx.x,row=blockIdx.x;

@@ -9,6 +9,7 @@ struct Select {
     init: CudaFunction,
     step: CudaFunction,
     finish: CudaFunction,
+    lm1b: bool,
 }
 impl CustomOp2 for Select {
     fn name(&self) -> &'static str {
@@ -34,7 +35,8 @@ impl CustomOp2 for Select {
         let [batch, time, vocab] = layout.dims() else {
             candle_core::bail!("XSum logits must be rank 3")
         };
-        if !(1..=128).contains(batch)
+        if (self.lm1b && (!(1..=32).contains(batch) || *time != 128 || *vocab != 30528))
+            || !(1..=128).contains(batch)
             || !(1..=512).contains(time)
             || !(1..=50304).contains(vocab)
             || allow_layout.dims() != [*vocab]
@@ -156,6 +158,23 @@ pub fn select(
     logits: &Tensor,
     allowance: &Tensor,
 ) -> Result<Tensor> {
+    select_profile(backend, logits, allowance, false)
+}
+
+pub fn select_lm1b(
+    backend: &crate::CandleBackend,
+    logits: &Tensor,
+    allowance: &Tensor,
+) -> Result<Tensor> {
+    select_profile(backend, logits, allowance, true)
+}
+
+fn select_profile(
+    backend: &crate::CandleBackend,
+    logits: &Tensor,
+    allowance: &Tensor,
+    lm1b: bool,
+) -> Result<Tensor> {
     if !backend.device().is_cuda()
         || !logits.device().same_device(backend.device())
         || !allowance.device().same_device(backend.device())
@@ -176,8 +195,13 @@ pub fn select(
         &allowance.contiguous()?,
         &Select {
             init: load("ncm_xsum_penalty_init")?,
-            step: load("ncm_xsum_penalty_step")?,
+            step: load(if lm1b {
+                "ncm_lm1b_penalty_step"
+            } else {
+                "ncm_xsum_penalty_step"
+            })?,
             finish: load("ncm_xsum_penalty_finish")?,
+            lm1b,
         },
     )
 }

@@ -2766,6 +2766,7 @@ pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
     post_conv: Box<[Affine<B::Tensor>]>,
     geometry: Vec<LevelGeometry<B::Tensor>>,
     allowance: Vec<f32>,
+    device_allowance: B::Tensor,
     initial_distribution: Vec<f32>,
 }
 
@@ -2845,6 +2846,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             .tensor("level0_unigram")
             .map_err(|e| Error::Weights(e.to_string()))?;
         let initial_distribution = upload_values(t.data())?.into_owned();
+        let device_allowance = backend.upload_f32(&allowance, &[30528])?;
         Ok(Self {
             codec,
             backend,
@@ -2857,6 +2859,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             post_conv: post_conv.into_boxed_slice(),
             geometry,
             allowance,
+            device_allowance,
             initial_distribution,
         })
     }
@@ -2871,7 +2874,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, Some(codes), &[], batch, trace, None, false)
+        self.run_impl(prefix, Some(codes), &[], batch, trace, None, false, false)
             .map(|_| ())
     }
 
@@ -2883,7 +2886,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, None, initial, batch, trace, None, false)
+        self.run_impl(prefix, None, initial, batch, trace, None, false, false)
             .map(|_| ())
     }
 
@@ -2896,7 +2899,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, trace, false)
+        self.sample_seeded_impl(prefix, batch, seed, trace, false, false)
     }
 
     /// Explicit experimental CUDA sampling; unsupported backends return an error.
@@ -2907,7 +2910,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, trace, true)
+        self.sample_seeded_impl(prefix, batch, seed, trace, true, false)
     }
 
     /// Explicit device categorical sampling with host final penalties.
@@ -2920,6 +2923,17 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         self.sample_seeded_device_traced(prefix, batch, seed, &mut crate::NoTrace)
     }
 
+    /// Explicit diagnostic with CUDA sampling and CUDA FP64 final penalties.
+    pub fn sample_seeded_fully_device(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_impl(prefix, batch, seed, &mut crate::NoTrace, true, true)
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn sample_seeded_impl(
         &self,
         prefix: &[u32],
@@ -2927,6 +2941,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
         device: bool,
+        device_penalty: bool,
     ) -> Result<Lm1bSample<B>> {
         if !(1..=32).contains(&batch) {
             return Err(Error::Input("invalid LM1B sample batch".into()));
@@ -2948,6 +2963,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             trace,
             Some(&mut random),
             device,
+            device_penalty,
         )
     }
 
@@ -2966,6 +2982,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         trace: &mut impl crate::TraceSink<B>,
         mut random: Option<&mut SplitMix64>,
         device: bool,
+        device_penalty: bool,
     ) -> Result<Lm1bSample<B>> {
         validate_lm1b_request(prefix, codes, initial, batch)?;
         let b = &self.backend;
@@ -3095,7 +3112,16 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             .decode_latent_outputs(&cumulative.expect("levels"), &mut crate::NoTrace)?;
         trace.tensor("generator.final_logits", &logits)?;
         trace.indices("generator.greedy_ids", &greedy)?;
-        let penalized = lm1b_penalized_ids(&b.read_f32(&logits)?, &self.allowance, batch, 128)?;
+        let penalized = if device_penalty {
+            let selected = b.lm1b_penalty_fp64(&logits, &self.device_allowance)?;
+            let ids = b.read_indices(&selected)?;
+            if ids.len() != batch * 128 || ids.iter().any(|&x| x >= 30528) {
+                return Err(Error::Backend("invalid LM1B device penalty output".into()));
+            }
+            ids
+        } else {
+            lm1b_penalized_parallel(&b.read_f32(&logits)?, &self.allowance, batch)?
+        };
         trace.indices(
             "generator.penalized_ids",
             &b.upload_indices(&penalized, &[batch, 128])?,
@@ -3164,6 +3190,34 @@ fn validate_lm1b_request(
 }
 
 #[cfg(feature = "lm1b-experimental")]
+fn lm1b_penalized_parallel(logits: &[f32], allowance: &[f32], batch: usize) -> Result<Vec<u32>> {
+    let row_len = 128 * 30528;
+    if !(1..=32).contains(&batch) || logits.len() != batch * row_len || allowance.len() != 30528 {
+        return Err(Error::Input("invalid LM1B penalty dimensions".into()));
+    }
+    let mut result = Vec::with_capacity(batch * 128);
+    for chunk in logits.chunks(4 * row_len) {
+        let rows = std::thread::scope(|scope| {
+            let handles: Vec<_> = chunk
+                .chunks_exact(row_len)
+                .map(|row| scope.spawn(move || lm1b_penalized_ids(row, allowance, 1, 128)))
+                .collect();
+            let mut output = Vec::with_capacity(handles.len() * 128);
+            for handle in handles {
+                output.extend(
+                    handle
+                        .join()
+                        .map_err(|_| Error::Backend("LM1B penalty worker failed".into()))??,
+                );
+            }
+            Ok::<_, Error>(output)
+        })?;
+        result.extend(rows);
+    }
+    Ok(result)
+}
+
+#[cfg(feature = "lm1b-experimental")]
 fn lm1b_penalized_ids(
     logits: &[f32],
     allowance: &[f32],
@@ -3215,7 +3269,8 @@ fn lm1b_penalized_ids(
 #[cfg(all(test, feature = "lm1b-experimental"))]
 mod lm1b_teacher_tests {
     use super::{
-        SplitMix64, lm1b_choose, lm1b_penalized_ids, lm1b_sample_logits, validate_lm1b_request,
+        SplitMix64, lm1b_choose, lm1b_penalized_ids, lm1b_penalized_parallel, lm1b_sample_logits,
+        validate_lm1b_request,
     };
 
     #[test]
@@ -3251,5 +3306,17 @@ mod lm1b_teacher_tests {
         logits[0] = f32::NAN;
         assert!(lm1b_penalized_ids(&logits, &allowance, 1, 128).is_err());
         assert!(lm1b_penalized_ids(&logits[..1], &allowance, 1, 128).is_err());
+    }
+
+    #[test]
+    fn parallel_penalties_preserve_order_and_reject_bad_input() {
+        let allowance = vec![0.0; 30528];
+        let logits = vec![0.0; 5 * 128 * 30528];
+        let expected = lm1b_penalized_ids(&logits, &allowance, 5, 128).unwrap();
+        assert_eq!(
+            lm1b_penalized_parallel(&logits, &allowance, 5).unwrap(),
+            expected
+        );
+        assert!(lm1b_penalized_parallel(&logits[..1], &allowance, 5).is_err());
     }
 }
