@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **Session handoff:** [RESUME.md](RESUME.md) captures the current Phase 4 objective, open gates, machine/service state, authorizations, and next actions for another CLI session. Recheck live state before acting.
+
 - **XSum six-part Metal screens:** after explicit user approval, three combinations ran on both retained batches with `dotsetup.rmlx` stopped; all six outputs are byte-identical to the earlier candidate, retaining the row-4937 exact mismatch. Mac release Clippy/build pass, input hashes remain unchanged, and the service was restored and verified running. An initial asynchronous shutdown/restoration attempt aborted before testing and was recovered; [details](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md). XSum Metal and LM1B-small CUDA quality gates remain open.
 
 - **Linux validation scheduling:** three independently isolated existing report tests overlap after all others run serially. The scheduler checks full test identities and fails on omissions or failures; all 520 prior tests plus four scheduler tests and 18 CUDA device cases pass. A single suite comparison saved about 21 seconds (167.35 to about 146.48 s); [evidence](docs/results/2026-11-17-phase4-check-scheduling.md). No model or acceptance gate changed.
