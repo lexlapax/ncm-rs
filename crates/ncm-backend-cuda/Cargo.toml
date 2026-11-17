@@ -204,3 +204,7 @@ required-features = ["wmt14-experimental"]
 [[example]]
 name = "wmt14_screen"
 required-features = ["wmt14-experimental"]
+
+[[example]]
+name = "wmt14_capture"
+required-features = ["wmt14-experimental"]
