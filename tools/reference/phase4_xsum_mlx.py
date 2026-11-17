@@ -135,9 +135,12 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--batch', type=int, default=32)
     parser.add_argument('--bench', action='store_true')
+    parser.add_argument('--warmups', type=int, default=2)
+    parser.add_argument('--trials', type=int, default=5)
     args = parser.parse_args()
-    if args.output.exists() or not 1 <= args.batch <= 32:
-        raise ValueError('new output and batch 1..32 required')
+    if (args.output.exists() or not 1 <= args.batch <= 32 or
+            not 1 <= args.warmups <= 100 or not 1 <= args.trials <= 100):
+        raise ValueError('new output, batch 1..32 and warmup/trial counts 1..100 required')
     raw = args.inputs.read_bytes()
     if digest(raw) != INPUT_SHA:
         raise ValueError('unexpected input')
@@ -148,7 +151,7 @@ def main():
     model = XsumGenerator(args.artifact)
     timings = []
     signature = None
-    for trial in range(7 if args.bench else 1):
+    for trial in range(args.warmups + args.trials if args.bench else 1):
         mx.synchronize()
         start = time.perf_counter()
         codes, ids = model.generate(rows)
@@ -157,11 +160,11 @@ def main():
         if signature is not None and signature != current:
             raise ValueError('output changed between trials')
         signature = current
-        if args.bench and trial >= 2:
+        if args.bench and trial >= args.warmups:
             timings.append(elapsed)
         gc.collect()
     result = {'runtime': 'python-mlx-adapted', 'batch': args.batch, 'codes': codes, 'ids': ids,
-              'outputs_sha256_u32le': signature, 'warmups': 2 if args.bench else 0,
+              'outputs_sha256_u32le': signature, 'warmups': args.warmups if args.bench else 0,
               'trials_seconds': timings, 'scope': 'generation and CPU FP64 output selection; load excluded',
               'mlx_memory': {'active': mx.get_active_memory(), 'peak': mx.get_peak_memory(), 'cache': mx.get_cache_memory()}}
     with args.output.open('x') as f:

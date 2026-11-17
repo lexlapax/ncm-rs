@@ -74,6 +74,20 @@ loader was used in CUDA, and the changed CUDA driver is disclosed in its report.
 The source-bound result is `reports/phase4-xsum-top1-batch-shape-cuda-v1/result.json`,
 SHA-256 `31ee0b0d4a0f521e832ffa82a01f96537a358e6e08e312f498636abe61a579f1`.
 
+The remaining code-difference rows were subsequently checked in their original
+contiguous 32-row batches (starts 9792 and 9984). The explicitly rebuilt
+borrowed-upload CUDA CLI matched the retained interleaved Python codes and IDs
+on both entire batches. Metal differed from same-batch CUDA by one code at row
+9813 and five codes across rows 10009 and 10015, with no raw-ID differences in
+either batch. The command was `setpriv --inh-caps=-all env OMP_NUM_THREADS=1
+TOKENIZERS_PARALLELISM=false .reference/venv/bin/python
+tools/bench/check_xsum_top1_batch_shape.py --starts 9792 9984 --cli-result
+reports/phase4-xsum-borrowed-upload-cli-v2/result.json --output
+reports/phase4-xsum-top1-remaining-batches-cuda-v2`; its result SHA-256 is
+`cf6c7cc6a28151393490930bbfccbe309bc04cea99a053787983109063e9c5d2`.
+The v1 diagnostic used the old CLI due to an example-only build; it reached the
+same numerical result and is retained, but is not candidate-CLI evidence.
+
 For row 4937's first code divergence (global position 8, level 1 position 4),
 the saved batch-32 Python choice is 3182 and the batch-32 Metal choice is 3690.
 In the separate batch-2 CUDA teacher run with the saved Python history, 3690 is

@@ -1,4 +1,4 @@
-"""Compare CUDA and saved Metal top-1 for the two divergent contiguous batches."""
+"""Compare CUDA and saved Metal top-1 for selected contiguous batches."""
 import argparse
 import json
 import os
@@ -32,9 +32,18 @@ def differences(a, b, start):
     return result
 
 
+def validate_starts(starts):
+    if (not starts or len(set(starts)) != len(starts) or
+            any(start < 0 or start % 32 or start + 32 > 11334 for start in starts)):
+        raise ValueError('invalid contiguous batch starts')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--starts', type=int, nargs='+', default=[4864, 4928])
+    parser.add_argument('--cli-result', type=Path,
+                        default=ROOT / 'reports/phase4-xsum-owned-loader-cli-v1/result.json')
     args = parser.parse_args()
     output = args.output.resolve()
     if args.output.exists() or args.output.is_symlink() or not output.is_relative_to((ROOT / 'reports').resolve()):
@@ -42,20 +51,22 @@ def main():
     if any(os.environ.get(k) for k in ('LD_PRELOAD', 'LD_AUDIT', 'LD_LIBRARY_PATH', 'CUDA_VISIBLE_DEVICES',
                                       'CUDA_LAUNCH_BLOCKING', 'CUBLAS_WORKSPACE_CONFIG', 'NVIDIA_TF32_OVERRIDE')):
         raise ValueError('environment overrides unsupported')
-    inputs = [DATA, PYTHON, CAPTURE / 'manifest.json', ARTIFACT / 'manifest.json', BINARY, Path(__file__).resolve()]
+    validate_starts(args.starts)
+    inputs = [DATA, PYTHON, CAPTURE / 'manifest.json', ARTIFACT / 'manifest.json', BINARY,
+              Path(__file__).resolve(), args.cli_result.resolve()]
     hashes = {str(p): digest(p) for p in inputs}
     if (hashes[str(DATA)] != DATA_SHA or hashes[str(PYTHON)] != PYTHON_SHA
             or hashes[str(CAPTURE / 'manifest.json')] != METAL_MANIFEST_SHA
             or hashes[str(ARTIFACT / 'manifest.json')] != ARTIFACT_SHA):
         raise ValueError('input identity differs')
-    cli_reference = json.loads((ROOT / 'reports/phase4-xsum-owned-loader-cli-v1/result.json').read_bytes())
+    cli_reference = json.loads(args.cli_result.read_bytes())
     if hashes[str(BINARY)] != cli_reference['source_sha256'][str(BINARY)]:
         raise ValueError('CUDA binary differs from prior CLI comparison')
     data, reference = json.loads(DATA.read_bytes()), json.loads(PYTHON.read_bytes())
     gpu = subprocess.check_output(['nvidia-smi', '--query-gpu=uuid,driver_version', '--format=csv,noheader,nounits'], text=True).strip()
     output.mkdir()
     results = {}
-    for start in (4864, 4928):
+    for start in args.starts:
         path = CAPTURE / f'input-{start:05}.json'
         rows = data['inputs'][start:start + 32]
         prefixes = [(row[:512] + [50257] * 512)[:512] for row in rows]
@@ -80,7 +91,7 @@ def main():
     if any(digest(Path(p)) != sha for p, sha in hashes.items()):
         raise ValueError('source or input changed during diagnostic')
     summary = {'source_sha256': hashes, 'gpu_identity_and_driver': gpu, 'batches': results,
-               'scope': 'two contiguous batches; CUDA uses candidate loader, saved Python used interleaved batches'}
+               'scope': 'selected contiguous batches; saved Python used interleaved batches'}
     (output / 'result.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')
     print(json.dumps(summary, sort_keys=True))
 

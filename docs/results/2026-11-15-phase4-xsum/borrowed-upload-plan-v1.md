@@ -22,9 +22,18 @@ The focused aligned/unaligned bit-preservation unit test and full
 `reports/phase4-xsum-borrowed-upload-cuda-check-v2.log`, SHA-256
 `e111983b8fddf69084caf86060e08547dfe4ff16b88e207f95f808e0d3ebf5b0`.
 The first check stopped at a corrected Clippy style error and remains retained.
-The rebuilt strict-CUDA CLI matched the pinned Python 32-row codes and IDs;
-`reports/phase4-xsum-borrowed-upload-cli-v1/result.json` hashes to
-`8429cde7ec63c2fd32891570556216ff7f4d407c4873f4c292843ac3cc61b650`.
+The initial CLI comparison (`reports/phase4-xsum-borrowed-upload-cli-v1`) used
+the previous binary: the combined Cargo command selected examples but did not
+rebuild the CLI. Its match is baseline evidence only; an explicit candidate CLI
+rebuild and rerun subsequently passed on all 32 reference rows. The corrected
+binary SHA-256 is `2b32042990a96be5b6e5661b212b3367f62d12b91a998dd255f59e3b03b649ce`;
+`reports/phase4-xsum-borrowed-upload-cli-v2/result.json` hashes to
+`9401a2f712aa78864b6b6533b8d14cf5822c69f0bfa46e2849c3ba31c314a625`.
+The quality and performance examples were
+selected and rebuilt by that command: their captured executable hashes are
+`fa10891b75dd4f58f09308a215066a918bbfc308064a0a2b7155ace7f5598713` and
+`1834c2935faaf07fc2a05c710bcf93173a308b59027ffa69639366d8a67dd7b0`,
+respectively, both distinct from their retained owned-loader predecessors.
 
 On Linux, `setpriv --inh-caps=-all env RUSTC_WRAPPER= cargo run --release --locked -p ncm-io --example
 xsum_payload_alignment -- artifacts/canonical/xsum-inference-rope-v2-final`
