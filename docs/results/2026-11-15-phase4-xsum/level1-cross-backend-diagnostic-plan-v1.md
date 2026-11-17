@@ -332,6 +332,20 @@ model-level crossing. Input and receipt SHA-256 values are
 `1894c758a706ef8076c3ce5469f0aebf6741ee911c71f748a876dcf72178d73d`;
 local and Mac receipt copies match. No gate or runtime change follows.
 
+At `ca79e11`, the controlled screen also captured the CUDA head dot products
+and applied the remaining scaling and subtraction on Metal. Metal reproduced
+all 24,576 controlled CUDA logits exactly when given those CUDA dot products,
+including the `+9.5367e-7` pair margin. Independently computed Metal dot
+products matched 1,937/24,576 CUDA values, maximum absolute difference
+`5.3406e-5`; for codes 3182 and 3690, CUDA produced
+23.597530365/23.695962906 and Metal 23.597528458/23.695970535. The
+hash-bound input and receipt SHA-256 values are
+`d4a435ff62e472de4d575cfa8ee5da38054caa347116ab0fe276dc45f8b321da` and
+`fd214d65ec37ddc229acd3251b496f45f77154fe4eac9096cbb495dcbf2e3115`;
+local and Mac receipt copies match. These results localize this controlled
+crossing to the dot product, but the controlled CUDA calculation is not an
+exact replay of every retained reference logit and this is not a gate pass.
+
 The same six backends were screened on the 32-row batch beginning at 4864.
 Default Metal matched all CUDA codes but retained one raw-ID difference at
 row 4883 position 40. Each of the five experimental variants matched all
