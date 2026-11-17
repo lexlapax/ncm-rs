@@ -186,3 +186,16 @@ second norm, `8.5831e-6` at the MLP input projection, `5.7220e-6` after GELU,
 and `1.5259e-5` after block 0. The largest block-level difference is in prefix
 positions. These stages receive already-different inputs, so this comparison
 does not assign causality to an individual operation or establish a fix.
+
+The captured CUDA first-MLP input and GELU output were packed as a same-input
+probe (SHA-256 `ac8b934c98ca34d9590afdededad8dfba2bb5b4e3c555d382190819f0f9c95d0`).
+PyTorch CUDA reproduced all 1,591,296 retained GELU outputs exactly. At pushed
+commit `a1a70f0`, standalone Metal composed GELU matched 1,034,783 values;
+maximum absolute difference was `7.1526e-7`, mean `6.2985e-8`. A separately
+compiled Python MLX graph matched 324,499 values, maximum `5.9605e-7`, mean
+`7.0696e-8`. The result SHA-256 is
+`164b7bd0703b147a8b12819460eee8dc1e00efe6a8395d552d4f18b4cbce8731`;
+local and Mac copies match. These comparisons isolate the operation on one
+captured row. The Python compiled graph uses a row-sized input, not the full
+32-row Rust graph, so its statistics do not prove exact Rust backend behavior
+or causality for the code crossing. Full output and quality gates remain open.

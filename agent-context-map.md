@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum same-input GELU probe:** a standalone Metal comparison is prepared using the captured first-block MLP input and CUDA GELU output. PyTorch CUDA reproduces all 1,591,296 retained values exactly; local syntax passes. Metal execution remains pending and no inference behavior changes.
+- **XSum same-input GELU probe:** the [standalone Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) uses captured first-block MLP input and CUDA GELU output. PyTorch CUDA reproduces all 1,591,296 values; Metal composed matches 1,034,783, maximum difference `7.1526e-7`. A row-sized compiled Python graph has different statistics and does not prove full-batch Rust behavior. The exact Metal gate remains open.
 
 - **XSum first-block MLP trace:** a [fresh 39-tensor CUDA forced-history capture](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) reproduces every retained CUDA tensor exactly and compares the three later MLP-stage tensors with the existing Metal candidate. The largest first-block difference is in a prefix position; input differences prevent attributing causality to an operation. The exact Metal gate remains failed.
 
