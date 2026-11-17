@@ -240,3 +240,19 @@ groups, including group 5, but gives the lower neighboring value for group 4.
 CUDA's pre-inverse variance was not captured, so these comparisons are
 conditional on Metal's rounded variance being identical to CUDA's; they do
 not prove CUDA's inverse is incorrectly rounded or justify a runtime change.
+
+An isolated CUDA probe copied the existing 512-thread reference kernel and
+added an output for its mean, inverse and rounded variance-plus-epsilon. Built
+with `nvcc -O3 -arch=compute_75`, it reproduced all 4,608 retained CUDA
+normalization outputs exactly. All eight captured CUDA means and variances
+match the Metal values bit-for-bit. Group 5's inverse remains one FP32 step
+lower on CUDA; for group 4, CUDA's inverse is one step above the CPU
+double-precision `1 / sqrt` rounded to FP32. The probe source, input, output
+and statistics are retained under `reports/phase4-xsum-cuda-variance-probe-v1/`;
+their respective SHA-256 values are
+`3f12bd54aeceb1eed160a50e9016a0eb6761464eba7aebc831b4b16d28567a48`,
+`622ee717f51f4ea74ca609515866f82cb4a46dd6b9834c372f3c42288f148ab6`,
+`521b7ca798e98ed456a2996f8e4e5a406f88e0c4adee62358a0fcc57cfb92b14`, and
+`5823e6b346f86b54a392465558d3f12f578a034e45fedf7a887db83d7594f4a0`.
+This is one inspected row; correctly rounded inverse alone cannot reproduce
+all CUDA results here and no inference or tolerance change follows.
