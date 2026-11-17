@@ -244,3 +244,37 @@ seed/held-out quality result, or establish Rust parity.
 
 The repository standard `tools/check.sh` passed; log SHA-256
 `72ecfcecd74b94475838d533f52476df486424fda8b5d4fa16774518df672b58`.
+
+## Five-seed development baseline and held-out criteria
+
+The pinned LM1B-small CUDA generator produced 256 samples for each separate
+development seed 11–15, in batch eight. These seeds do not overlap the official
+`[42, 0, 1, 2, 3]`. Seed 11's first 32 rows match the earlier independent
+capture, and a complete seed-15 capture reproduced byte-for-byte. Each seed's
+FLM score matched the pinned upstream scorer exactly; a fresh seed-15 score
+reproduced byte-for-byte. The five results were:
+
+| Development seed | Corpus PPL | Mean raw-ID entropy |
+| ---: | ---: | ---: |
+| 11 | 92.428020 | 4.309705 |
+| 12 | 90.220961 | 4.309918 |
+| 13 | 91.645407 | 4.310045 |
+| 14 | 93.132655 | 4.313579 |
+| 15 | 97.452219 | 4.314438 |
+
+The hash-checked `tools/reference/lm1b_dev_protocol.py` summary records all
+capture and score identities, sample standard deviations and deterministic
+seed bootstrap intervals. Its output SHA-256 is
+`95d56432cdf64fe2c3c72598976b21ce6e9e9840062fafdb2f18c56680824e73`;
+the summary source SHA-256 is
+`52a83261d9b063f15d658bb2f24901647c7be4d5676bc22381dfae86eb22c4e7`.
+An initial summary invocation rejected a mistyped seed-15 score hash before
+writing output; the corrected invocation passed. Capture and scorer sources
+hash to `99d45fd08fd424872af8ac4069648b67cef2551202408642078e4fc4f06d32e1`
+and `f9596618217f70fc44808fb6704403ccdde0b293e6a36315678f9e32f057e6d3`.
+The pre-held-out [protocol](heldout-protocol-v1.md) freezes small-model quality
+criteria based on this observed variation; it is not an official result or
+Rust parity evidence. Raw files and logs remain under ignored `reports/`.
+
+The repository standard `tools/check.sh` passed; log SHA-256
+`350e6024a699fb9a22d1f9ad54724a0c40a2a4a5d47b9e0ab43224499b5b5f9c`.

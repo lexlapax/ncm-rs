@@ -27,6 +27,8 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--size', choices=tuple(CONFIGS), required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--seed', type=int, choices=(11, 12, 13, 14, 15), default=11)
+    parser.add_argument('--count', type=int, choices=(32, 256), default=32)
     args = parser.parse_args()
     output = args.output.resolve()
     if args.output.is_symlink() or output.exists() or not output.is_relative_to((ROOT / 'reports').resolve()):
@@ -74,10 +76,11 @@ def main():
     scope = {'torch': torch, 'freq': 11.5, 'mu': 2.0, 'ADJ': [10.0, 4.0, 0.5],
              'ALLOW': inference['token_unigram'].double().cuda()}
     exec(decoder, scope)
-    # Seed 11 is development-only; official seeds are 42, 0, 1, 2 and 3.
-    torch.manual_seed(11)
+    if args.seed in set(cfg.eval.seeds) or cfg.eval.batch_size != 8 or cfg.eval.n_samples != 256:
+        raise ValueError('development seed or evaluation settings differ')
+    torch.manual_seed(args.seed)
     code_values, id_values = [], []
-    for _ in range(4):
+    for _ in range(args.count // 8):
         level0 = torch.multinomial(inference['level0_unigram'].float().cpu(), 8, replacement=True).view(8, 1).cuda()
         with torch.no_grad():
             codes = model.generate(level0, torch.full((8, 1), 101, device='cuda', dtype=torch.long),
@@ -87,7 +90,7 @@ def main():
             ids = scope['pick_tokens'](codec.decoder(levels[-1]))
         code_values.extend(codes.tolist())
         id_values.extend(ids.tolist())
-    if (len(code_values) != 32 or len(id_values) != 32 or
+    if (len(code_values) != args.count or len(id_values) != args.count or
             any(len(row) != 641 or any(not 0 <= x < 8192 for x in row) for row in code_values) or
             any(len(row) != 128 or any(not 0 <= x < 30528 for x in row) for row in id_values)):
         raise ValueError('unexpected output shape or range')
@@ -97,8 +100,8 @@ def main():
         raise ValueError('probe source changed')
     if subprocess.check_output(['git', '-C', str(upstream), 'status', '--porcelain'], text=True).strip():
         raise ValueError('upstream checkout changed')
-    json_file(output, {'scope': '32 upstream CUDA development samples, batch 8; not held-out quality or Rust parity',
-                       'size': args.size, 'seed': 11, 'batch_size': 8, 'count': 32, 'upstream': rev, 'torch': torch.__version__,
+    json_file(output, {'scope': 'upstream CUDA development samples, batch 8; not held-out quality or Rust parity',
+                       'size': args.size, 'seed': args.seed, 'batch_size': 8, 'count': args.count, 'upstream': rev, 'torch': torch.__version__,
                        'source_sha256': before, 'input_sha256': {name: sha for name, (_, sha) in paths.items()},
                        'config_identity': 'verified against existing pinned checkpoint revision',
                        'prefix': [101], 'codes': code_values, 'raw_ids': id_values,

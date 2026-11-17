@@ -71,6 +71,7 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--repeat', type=int, choices=(1, 6), default=1)
     p.add_argument('--development-capture', type=Path)
+    p.add_argument('--development-sha256')
     args = p.parse_args()
     if args.output.exists() or args.output.is_symlink() or not args.output.resolve().is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('output must be new and under reports')
@@ -100,14 +101,19 @@ def main():
         if args.repeat != 1:
             raise ValueError('development capture cannot be repeated')
         paths = {'development': args.development_capture}
-        sample_hashes = {'development': '5c961e193f0ea101afc2282f673eb3fde02ae6c752e8dd6dde069c3b25a8f90d'}
+        sample_hashes = {'development': args.development_sha256 or '5c961e193f0ea101afc2282f673eb3fde02ae6c752e8dd6dde069c3b25a8f90d'}
         path = paths['development']
         verify_input(path, path.stat().st_size, sample_hashes['development'])
         sample = json.loads(path.read_bytes())
-        if (sample['size'], sample['seed'], sample['count'], sample['batch_size']) != ('small', 11, 32, 8):
+        if (sample['size'] != 'small' or sample['seed'] not in (11, 12, 13, 14, 15) or
+                sample['count'] not in (32, 256) or sample['batch_size'] != 8 or
+                len(sample['raw_ids']) != sample['count'] or
+                (args.development_sha256 is None and (sample['seed'], sample['count']) != (11, 32))):
             raise ValueError('unexpected development capture')
         rows = sample['raw_ids']
     else:
+        if args.development_sha256 is not None:
+            raise ValueError('development hash requires a capture')
         paths = {size: ROOT / f'reports/phase4-lm1b-{size}-cpu-probe-v1.json' for size in SAMPLES}
         sample_hashes = SAMPLES
         for size, path in paths.items():
