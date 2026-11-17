@@ -84,3 +84,20 @@ tolerance or an assertion about the first causal operation. Input reconstruction
 and block arithmetic both need investigation; the exact raw-ID gate remains
 failed. Raw traces are retained under ignored
 `reports/phase4-xsum-block-{cuda-v1,mlx-captured-v1}/`.
+
+## First-block follow-up
+
+A further forced-history trace observes first-block normalization, QKV
+projection, merged attention, and attention residual. The CUDA capture retains
+all 25 prior tensors bit-for-bit and adds four observations; SHA-256
+`74986c330e7a2076f835475f5f4e52d4021588633cb358bbee2721cecdc51b77`.
+Strict feature-specific Clippy passed after correcting a style failure, whose
+initial log remains retained. The full CUDA check and matching Metal capture
+are pending. This traces arithmetic but does not alter selection or tolerances.
+The first full CUDA check stopped in the unrelated
+`test_default_budget_handoff_preserves_deadline_and_all_eighteen_real_observations`
+process-observer fixture after an unexpected live executable identity; it did
+not reach CUDA checks. The failure is retained in
+`reports/phase4-xsum-first-block-cuda-check-v1.log`; a full rerun is in progress.
+The full rerun passed, including 18 CUDA cases; its log SHA-256 is
+`8f6b5fcf4f3920f6e6f0aaf8d23b52575bc61fd9955d75b37f542191676eb13e`.

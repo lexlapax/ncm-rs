@@ -588,13 +588,33 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
     }
     for (index, block) in blocks.iter().enumerate() {
         let normalized = norm(&block.ln_1, &x)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_norm", &normalized)?;
+        }
         let qkv = linear(&block.qkv, &normalized)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_qkv", &qkv)?;
+        }
         let [q, k, v] = b.split_qkv(&qkv, batch, seq, heads, head)?;
         let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
         let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
         let attn = b.attention(&q, &k, &v, Some(&geometry.mask))?;
         let attn = b.merge_heads(&attn, batch, seq, heads, head)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_attention", &attn)?;
+        }
         x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        if index == 0
+            && let Some(trace) = trace.as_deref_mut()
+        {
+            trace.tensor("diagnostic.level_01.first_residual", &x)?;
+        }
         let normalized = norm(&block.ln_2, &x)?;
         let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
         x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
