@@ -53,6 +53,18 @@ def main():
         diff = np.abs(actual - expected)
         results[name] = [{'different': int(np.count_nonzero(row)),
                           'total': int(row.size), 'max_abs': float(row.max())} for row in diff]
+    matmul_results = []
+    for i in range(5):
+        batch = mx.concatenate([mx.zeros((9, 6, 384)), data['input'][i:i + 1],
+                                mx.zeros((22, 6, 384))], axis=0).reshape(192, 384)
+        w = mx.transpose(data['weight'])
+        first = mx.addmm(data['bias'], batch[:, :192], w[:192, :])
+        second = batch[:, 192:] @ w[192:, :]
+        actual = np.asarray((first + second).reshape(32, 6, 768)[9])
+        diff = np.abs(actual - expected[i])
+        matmul_results.append({'different': int(np.count_nonzero(diff)),
+                               'total': int(diff.size), 'max_abs': float(diff.max())})
+    results['matmul_first_then_bias'] = matmul_results
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,

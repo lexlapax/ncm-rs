@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum projection FMA screen:** two contiguous FP32 FMA accumulators exactly reproduce CUDA zero-bias projection on one captured and four seeded synthetic inputs; with bias, the result differs. A [standalone epilogue screen](tools/reference/xsum_projection_epilogue_metal_probe.py) is prepared. No inference change or gate pass.
+- **XSum projection FMA screen:** two contiguous FP32 FMA accumulators exactly reproduce CUDA zero-bias projection on one captured and four seeded synthetic inputs; with bias, the result differs. A [standalone epilogue screen](tools/reference/xsum_projection_epilogue_metal_probe.py) exactly matches all five inputs when bias is added to the first accumulator before the second; equivalent Metal matrix products remain to be checked. No inference change or gate pass.
 
 - **XSum three-part projection diagnostic:** an explicitly selected Metal candidate combines the prior refinement diagnostic with three-part projection on the six-vector target. Full `tools/check.sh --cuda` passed including 18 device cases. Both Metal free-generation batches are byte-identical to the prior refinement candidate, retaining three code and five raw-ID differences on row 4937. It remains experimental; the exact gate fails.
 

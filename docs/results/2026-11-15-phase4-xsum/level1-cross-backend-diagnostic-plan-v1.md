@@ -690,4 +690,11 @@ Mac input hashes were checked before and after, and local and remote receipt
 hashes match. The ignored preparation scripts hash to
 `a76fabcc8c36a525a7c632520d7398d4517f7f44f3140f893725b37f54d0061d` and
 `4c2e50109dba515d3bbf531107f2a3fb58fe1a5321c42bebb4c746698d35ed81`.
-A separate Metal bias-epilogue screen is prepared; its result is pending.
+A separate Metal bias-epilogue screen matched every CUDA value on all five
+inputs when adding bias to the first accumulator before adding the second.
+The other two parenthesizations differed in at least 1,287 values per input.
+The receipt SHA-256 is
+`f5de92e011c48b86d30bdcbc872919fb105bc63945ef408f514c8bb89998a212`;
+local and Mac copies agree, and the input hash passed before and after.
+This is a bounded custom-kernel result, not a full-model or quality result;
+the equivalent native Metal matrix products are being tested.
