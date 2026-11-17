@@ -897,3 +897,9 @@ Mac with SHA-256 values
 All four post-fix Metal free-generation captures were byte-identical to their
 preceding counterparts. This validates the compatibility changes, not the
 still-failed XSum exact raw-ID gate.
+
+During investigation the installed CUDA device library was disassembled before
+its SDK license restriction on disassembly was noticed. The temporary output was
+deleted; no vendor implementation was copied into the project or used for a
+candidate. Do not repeat that approach. Any further GELU implementation work
+must use independently developed or appropriately licensed material.
