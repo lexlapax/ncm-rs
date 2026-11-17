@@ -525,3 +525,35 @@ extern "C" __global__ void ncm_xsum_reference_rope(const float* x, const float* 
     y[k] = __fadd_rn(__fmul_rn(a, cv), __fmul_rn(-b, sv));
     y[k + 32] = __fadd_rn(__fmul_rn(b, cv), __fmul_rn(a, sv));
 }
+
+// WMT14 diagnostic: first index of the maximum in a 151680-way FP32 row.
+// NaNs are ignored, matching Candle's fmax reduction followed by equality;
+// an all-NaN row returns the same u32::MAX sentinel as the generic path.
+extern "C" __global__ void ncm_wmt14_first_max_151680(const float* logits, unsigned int* output) {
+    constexpr unsigned width = 151680;
+    const unsigned tid = threadIdx.x, row = blockIdx.x;
+    const float* input = logits + size_t(row) * width;
+    __shared__ float maxima[256];
+    __shared__ unsigned indices[256];
+    float best = -CUDART_INF_F;
+    unsigned index = 0xffffffffu;
+    for (unsigned i = tid; i < width; i += 256) {
+        float value = input[i];
+        if (!isnan(value) && (value > best || (value == best && i < index))) {
+            best = value; index = i;
+        }
+    }
+    maxima[tid] = best; indices[tid] = index;
+    __syncthreads();
+    for (unsigned stride = 128; stride > 0; stride >>= 1) {
+        if (tid < stride) {
+            float other = maxima[tid + stride];
+            unsigned other_index = indices[tid + stride];
+            if (other > maxima[tid] || (other == maxima[tid] && other_index < indices[tid])) {
+                maxima[tid] = other; indices[tid] = other_index;
+            }
+        }
+        __syncthreads();
+    }
+    if (tid == 0) output[row] = indices[0];
+}

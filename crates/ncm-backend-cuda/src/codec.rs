@@ -143,6 +143,13 @@ impl CodecBackend for CandleBackend {
     }
     fn select_last(&self, x: &Tensor, largest: bool) -> Result<Tensor> {
         op!(self, [x], {
+            #[cfg(feature = "cuda-cudnn")]
+            if self.wmt14_fast_argmax
+                && largest
+                && matches!(x.dims(), [batch, 64, 151680] if (1..=32).contains(batch))
+            {
+                return crate::wmt14_argmax::select(self, x);
+            }
             // Native CUDA argmin/argmax does not guarantee the first tied index.
             // Reduce values, then reduce masked indices, entirely on-device.
             let count = u32::try_from(x.dim(D::Minus1)?)

@@ -8,6 +8,8 @@ pub struct CandleBackend {
     #[cfg(feature = "cuda-cudnn")]
     pub(crate) wmt14_reference: bool,
     #[cfg(feature = "cuda-cudnn")]
+    pub(crate) wmt14_fast_argmax: bool,
+    #[cfg(feature = "cuda-cudnn")]
     pub(crate) strict_cudnn: bool,
     #[cfg(feature = "cuda-cudnn")]
     pub(crate) cudnn_algorithms: crate::cudnn_convolution::AlgorithmCache,
@@ -31,6 +33,7 @@ impl Clone for CandleBackend {
             cloned.strict_cudnn = self.strict_cudnn;
             cloned.xsum_reference = self.xsum_reference;
             cloned.wmt14_reference = self.wmt14_reference;
+            cloned.wmt14_fast_argmax = self.wmt14_fast_argmax;
             cloned
         }
         #[cfg(not(feature = "cuda-cudnn"))]
@@ -48,6 +51,8 @@ impl CandleBackend {
             xsum_reference: false,
             #[cfg(feature = "cuda-cudnn")]
             wmt14_reference: false,
+            #[cfg(feature = "cuda-cudnn")]
+            wmt14_fast_argmax: false,
             #[cfg(feature = "cuda-cudnn")]
             strict_cudnn: false,
             #[cfg(feature = "cuda-cudnn")]
@@ -118,6 +123,13 @@ impl CandleBackend {
     pub fn cuda_wmt14_reference(ordinal: usize) -> Result<Self> {
         let mut backend = Self::cuda(ordinal)?;
         backend.wmt14_reference = true;
+        Ok(backend)
+    }
+    /// Explicit experimental WMT14 reference backend with bounded final selection.
+    #[cfg(feature = "cuda-cudnn")]
+    pub fn cuda_wmt14_fast_argmax_experimental(ordinal: usize) -> Result<Self> {
+        let mut backend = Self::cuda_wmt14_reference(ordinal)?;
+        backend.wmt14_fast_argmax = true;
         Ok(backend)
     }
     /// Whether the explicitly selected backend uses strict cuDNN convolution.

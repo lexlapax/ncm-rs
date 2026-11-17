@@ -381,3 +381,23 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "wmt14_cfg_uncached_eight_perf"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_internal_stage_profile"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_selection_profile"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_fast_argmax_perf"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_fast_argmax_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_fast_argmax_cfg_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
