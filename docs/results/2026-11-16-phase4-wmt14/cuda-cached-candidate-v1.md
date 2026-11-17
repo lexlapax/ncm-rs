@@ -127,3 +127,35 @@ external groups of 32 and internal groups of four matched all Python codes and
 IDs, including the three-row external tail; SHA-256
 `f21f3314085d1e729c3c113e23376876a492e7f580744979cd15711a49c7158c`.
 Full source-bound capture and repeated API benchmark remain pending.
+
+## Explicit microbatch API replay
+
+At `4fbe4e6`, the source-bound API capture used external groups up to 32 and
+internal groups of four. Both its 35-row smoke and complete 3,003-row replay
+matched every reference code and raw ID. The full capture SHA-256 is
+`9191e04fbf50328d207a378f8171379cac8a543767adea5eb8db55059af6fa98`;
+the comparison SHA-256 is
+`f40a1e374f6af91e583ca9831d36943cf746b8a9f3f7067f54f0a4bec0459b88`.
+The frozen base scorer and independent offline replay passed byte-identically
+with SHA-256 `84a87dcf08a7ca8e9498aab4cc198fa3e53bca341637d8124d83ea5e1e8e7eda`.
+This reuses previously inspected rows and is not a new blind study.
+
+The committed API benchmark repeated the external batch-16 and batch-32
+comparisons with three alternating processes, five warmups and 30 trials per
+process. Every code and raw ID matched. Pooled median/p95 milliseconds were
+651.06/653.39 Python versus 336.55/337.73 Rust at batch 16, and
+1279.47/1281.18 Python versus 670.59/672.27 Rust at batch 32. Process medians
+were 333.60/336.87/336.70 ms Rust and 649.57/650.99/652.59 ms Python at batch
+16; 668.14/671.43/670.79 and 1277.98/1279.47/1280.28 ms at batch 32.
+Peak RSS was 1844 MiB Rust versus 2093 MiB Python. Approximate sampled
+process GPU peaks were 1606 MiB Rust versus 2300/3726 MiB Python at batches
+16/32. Rust CUDA-event spans (328.21/662.22 ms) include intermediate host
+readbacks and idle time. There were 343 telemetry samples, no query errors,
+observed temperatures 53.03–72.41 °C, and desktop GPU processes were present.
+The manifest, measurements and telemetry hashes are
+`6cd8953b3ce9d2bff2c9338d6d733ba588d95c493a241bee1c49f914c47a1c01`,
+`2e505429377b740ffdda401af72c9a39ee360b5e9402c94af16fe8c5bca3b5ab`, and
+`de249e1f70f9f773b989421f58f3fdf0da16ad234534d5c72aa07740a39fbcfb`.
+Raw records remain in ignored `reports/phase4-wmt14-microbatch-api-*`.
+These measurements remain nonexclusive and do not qualify the known-failing
+cached CFG path or the WMT Metal gate.
