@@ -77,3 +77,23 @@ original above; its binary name is `lm1b_small_controlled_reference_ops`.
 The comparator exits 1 for this retained failure. Logs and outputs remain in
 `reports/phase4-lm1b-reference-ops-*` and
 `reports/phase4-lm1b-small-controlled-reference-ops-*`.
+
+
+## Level-seven same-input continuation
+
+A bounded pinned-Python CUDA replay loaded the unchanged upstream model and
+reconstructed the level-seven input from each retained capture's latent and
+post-convolution output. With reference inputs it reproduced all 1,048,576
+captured logits exactly. The reference CDF boundary at row 1, position 43
+is `0.700740463967027`, below the draw `0.7007409624056891`. With either
+the original Rust or reference-operator Rust inputs, the same Python CUDA
+continuation produces boundary `0.7007403004565222`, also below the draw and
+therefore selecting the reference code 3215. Recomputing the convolution in
+Python from the original Rust latent yields the same logits as using its
+captured convolution output. Thus the retained Rust input differences alone
+do not cause this first crossing under the Python continuation; differences in
+the subsequent target projection, transformer or head can independently do
+so. This is one controlled history and does not isolate a unique operation or
+establish a fix. The ignored script/log SHA-256 values are
+`fa658b78611eec06ad66ee3c318f0cc22029c1e361b60a1ae7335a67521c5806` /
+`bf3d32c75147e4cf822515225270cf282de12643fa8a81c520e7c83f5d65b6bc`.

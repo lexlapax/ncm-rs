@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **LM1B controlled-draw reference-operator diagnostic:** a standalone CUDA example selects the existing reference-order backend for the retained two-row stochastic trace. Clippy/build pass, but the unchanged comparison still fails 21/51 tensors with the same first controlled-draw divergence; 83 codes and 31 penalized IDs differ. It is experimental and changes no default or tolerance.
+- **LM1B controlled-draw reference-operator diagnostic:** a standalone CUDA example selects the existing reference-order backend for the retained two-row stochastic trace. Clippy/build pass, but the unchanged comparison still fails 21/51 tensors with the same first controlled-draw divergence; 83 codes and 31 penalized IDs differ. A same-input pinned-Python CUDA replay exactly reproduces reference level-seven logits and selects the reference code even when supplied either Rust candidate’s captured latent/convolution values, locating an independently sufficient difference downstream. It remains experimental; no default or tolerance changed.
 
 - **WMT14 allocator evidence preparation:** explicit Rust CUDA-pool and pinned-Python allocator probes record load, live output and post-drop snapshots for the qualified selection candidate. [Source-bound seven-cell observations](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md) completed with matching outputs and recorded load, peak and post-drop counters. CUDA pool and PyTorch allocator scopes and startup boundaries differ; WMT14 Metal and Phase 4 remain pending.
 
