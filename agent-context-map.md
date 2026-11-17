@@ -4,7 +4,9 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum refined-normalization trace preparation:** a separate opt-in Metal forced-row example will capture the existing refined candidate at row 4937 to locate its remaining differences. Full Linux/CUDA validation passes (18 device cases); the Mac trace is pending and the exact gate remains failed.
+- **XSum refined-normalization GELU isolation:** the forced Metal row still selects the wrong code. Its first-MLP-input CUDA substitution retains the reference choice, but GELU-output substitution flips it; [bounded evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md). Two explicit refined/GELU combinations pass full CUDA checks (18 device cases); Metal screens are pending.
+
+- **XSum refined-normalization trace preparation:** a separate opt-in Metal forced-row example will capture the existing refined candidate at row 4937 to locate its remaining differences. Full Linux/CUDA validation passes (18 device cases); the Mac trace and subsequent replay are recorded above. The exact gate remains failed.
 
 - **LM1B Python self-control:** the same frozen metric comparison between the five Python development seeds and five Python held-out seeds also fails the entropy interval (lower endpoint -0.006221). The [descriptive control](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md) repeats exactly; it does not waive the candidate failure or change the gate.
 

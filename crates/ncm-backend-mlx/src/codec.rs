@@ -231,6 +231,18 @@ impl MlxBackend {
         backend.xsum_refined_norm_experimental = true;
         Ok(backend)
     }
+    /// Explicit refined normalization plus the CUDA-order GELU diagnostic.
+    pub fn gpu_xsum_refined_norm_gelu_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_refined_norm_experimental()?;
+        backend.xsum_gelu_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit refined normalization plus compiled CUDA-order GELU.
+    pub fn gpu_xsum_refined_norm_compiled_gelu_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_refined_norm_experimental()?;
+        backend.xsum_compiled_gelu_experimental = true;
+        Ok(backend)
+    }
     /// Explicit split-head diagnostic with experimental group normalization.
     pub fn gpu_xsum_head_split_groupnorm_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_groupnorm_experimental()?;

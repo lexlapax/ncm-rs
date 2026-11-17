@@ -815,3 +815,31 @@ The first batch matches CUDA; the second retains three code and five raw-ID
 differences on row 4937. Input hashes passed postflight. This bounded screen
 does not pass full quality, performance or the exact Metal raw-ID gate; the
 default inference path is unchanged.
+
+The explicit refined-normalization candidate was captured with the forced
+row-4937 history on the clean Mac checkout. The trace SHA-256 is
+`9147eaf4bf36060151ae91e53cfe17fdafbccb82c41578fd69916d76a37b863c`;
+its receipt is identical to the preceding candidate, SHA-256
+`97fc103ef17c2b1851bf2a0a88341a44da795ef1eb03d1d1190f14805a30a6ea`.
+Both input hashes matched local copies before and after. The capture succeeded;
+a wrapper's subsequent receipt-filename check exited 1 because the receipt was
+written to the log rather than a separate JSON file.
+
+The refined first normalization differs from the previous Metal candidate in
+146,022/397,824 values and from the retained CUDA history in 31,540 values;
+its forced level-one margin remains `-9.536743e-7`, choosing 3690 rather than
+3182. The histories have different inputs, so these counts are not a same-input
+operator accuracy claim. In separate CUDA continuations from this candidate's
+input, substituting its first MLP input retains 3182, but substituting its GELU
+output independently selects 3690. Substituting its first norm, QKV, attention,
+or first residual yields an exact tie and selects 3182; second norm also
+retains 3182. These distinct interventions do not prove a unique full-model
+cause or pass the gate. The first-stage replay script/log hashes are
+`382bf9fb5ab88572e873a64a5b7310aa020025b71864b8e716911c8295700b54` /
+`0985f4ff9aff8f1eaef1cbd2bc00cc77ff1eb000ce1232b0a8d544a1bc047764`;
+the block-boundary script/log hashes are
+`fc621d027484bdca738aee9b74a555be89b342d9223712c4157413b492100b20` /
+`1c3feaa6e7627b84b5812e81f8280a95b72a28b0c7223390196446da70b4d366`.
+The new opt-in GELU combinations pass full `tools/check.sh --cuda`, including
+18 real-device cases (`reports/phase4-xsum-refined-gelu-cuda-check-v1.log`);
+their Metal screens remain pending.
