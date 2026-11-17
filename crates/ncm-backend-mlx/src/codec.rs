@@ -83,6 +83,7 @@ pub struct MlxTensor(Array);
 pub struct MlxBackend {
     stream: Stream,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+    xsum_target_projection_experimental: bool,
     xsum_refinement_experimental: bool,
     xsum_norm_experimental: bool,
     xsum_upsample_experimental: bool,
@@ -123,6 +124,7 @@ impl MlxBackend {
         let backend = Self {
             stream,
             compiled_gelu: Rc::new(RefCell::new(None)),
+            xsum_target_projection_experimental: false,
             xsum_refinement_experimental: false,
             xsum_norm_experimental: false,
             xsum_upsample_experimental: false,
@@ -204,6 +206,12 @@ impl MlxBackend {
     pub fn gpu_xsum_refinement_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_head_split_experimental()?;
         backend.xsum_refinement_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit XSum target projection diagnostic with the refinement candidate.
+    pub fn gpu_xsum_target_projection_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_refinement_experimental()?;
+        backend.xsum_target_projection_experimental = true;
         Ok(backend)
     }
     /// Explicit split-head diagnostic with experimental group normalization.
@@ -374,6 +382,21 @@ impl CodecBackend for MlxBackend {
         weight: &MlxTensor,
         bias: &MlxTensor,
     ) -> Result<MlxTensor> {
+        if self.xsum_target_projection_experimental
+            && weight.0.shape() == [768, 384]
+            && matches!(x.0.shape(), [_, 6, 384])
+        {
+            let mut value =
+                self.project(&self.slice(x, 2, 0, 128)?, &self.slice(weight, 1, 0, 128)?)?;
+            for start in [128, 256] {
+                let part = self.project(
+                    &self.slice(x, 2, start, 128)?,
+                    &self.slice(weight, 1, start, 128)?,
+                )?;
+                value = self.add(&value, &part)?;
+            }
+            return self.add(&value, bias);
+        }
         if weight.0.shape().len() != 2 || bias.0.shape() != [weight.0.shape()[0]] {
             return self.add(&self.project(x, weight)?, bias);
         }
