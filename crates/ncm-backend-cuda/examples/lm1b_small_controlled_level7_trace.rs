@@ -59,8 +59,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         CandleBackend::cuda_cudnn(0)?.xsum_reference_backend()?
     };
-    let teacher =
+    let mut teacher =
         Lm1bSmallTeacher::from_artifact_level_seven_diagnostic(backend.clone(), &artifact)?;
+    if let Some(path) = std::env::var_os("NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC") {
+        let data = fs::read(path)?;
+        if sha256(&data) != "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc" {
+            return Err("unexpected diagnostic rotary tables".into());
+        }
+        let tensors = SafeTensors::deserialize(&data)?;
+        let values = |name| -> Result<Vec<f32>, Box<dyn Error>> {
+            let tensor = tensors.tensor(name)?;
+            if tensor.dtype() != Dtype::F32 || tensor.shape() != [128, 32] {
+                return Err("unexpected rotary tensor shape or type".into());
+            }
+            Ok(tensor
+                .data()
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .map(|x| f32::from_le_bytes(*x))
+                .collect())
+        };
+        teacher = teacher.with_reference_rope_diagnostic(&values("cosine")?, &values("sine")?)?;
+    }
     let b = &backend;
     let mut captured = Captured::default();
     let result = teacher.sample_seeded_traced(&tokens, input.shape()[0], 11, &mut captured)?;

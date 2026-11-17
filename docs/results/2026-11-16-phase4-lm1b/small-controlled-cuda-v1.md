@@ -188,3 +188,41 @@ controlled rotary difference. The script and log hashes are
 The 80-tensor capture also reproduces all 73 tensors from the earlier candidate.
 Feature-specific clippy passed, as did `tools/check.sh --cuda` including 18
 device cases (`reports/phase4-lm1b-rotary-trace-cuda-check-v1.log`).
+
+## Explicit reference-table intervention
+
+An opt-in diagnostic supplies upstream-computed, nonpersistent rotary tables to
+the existing reference-operator and 1 MiB QKV candidate. On the retained two-row
+controlled trace, **all 51 tensors pass the unchanged comparison**, and all
+1,282 generated codes and all penalized IDs match exactly. The capture is
+experimental and does not modify the canonical artifact, its schema, or normal
+inference. This is a bounded result for this combination of interventions; it
+does not prove the table change alone causes the pass, general sampling parity,
+held-out quality, performance or the CUDA/Metal profile gates.
+
+The offline export uses the pinned upstream function, rejects a changed source,
+and reproduces the same table file twice (SHA-256
+`9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc`):
+
+```sh
+.reference/venv/bin/python tools/reference/lm1b_reference_rope_diagnostic.py --upstream .reference/upstream-ncm --output reports/phase4-lm1b-level7-replay-v1/reference-rope-tables.safetensors
+setpriv --inh-caps=-all env NCM_LM1B_QKV_DIAGNOSTIC=1 NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC="$PWD/reports/phase4-lm1b-level7-replay-v1/reference-rope-tables.safetensors" RUSTC_WRAPPER= LIBRARY_PATH="$PWD/reports/phase4-wmt14-uncached-cfg-link-v1" LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" cargo run --locked -p ncm-backend-cuda --release --features lm1b-experimental,cuda-cudnn --example lm1b_small_controlled_level7_trace -- artifacts/canonical/lm1b-small-inference-v1 reports/phase4-lm1b-small-controlled-cuda-reference-v1 reports/phase4-lm1b-reference-rope-candidate-v1
+```
+
+The 80-tensor trace, filtered 51-tensor comparable payload and comparison report
+have SHA-256 values
+`2301837423f1b834cde4b52096107020ae4eca81154fb8374d1604515870c48a`,
+`8223711230e1efff8bdaf2fbcec6e256ff8112a74771d743c046bec5e460bb90`, and
+`25c78750ac947048b7e79378aff4ef4d7d3fde5db7bd7eb028a9ff4d2b4e94e6`.
+The diagnostic validates table dimensions and finiteness; a targeted unit test
+and diagnostic feature clippy pass. `tools/check.sh --cuda` passed including
+18 real-device cases (`reports/phase4-lm1b-reference-rope-cuda-check-v1.log`).
+The final-source combined capture is byte-identical to the retained candidate.
+With the same reference tables but without the 1 MiB QKV intervention, 21/51
+tensors fail, with 103 code and 31 penalized-ID differences; this does not
+establish general necessity beyond this case. Its trace, filtered trace and
+comparison hashes are
+`89aadd61606a46d945055bcce70ccf8235aafa015d274f210338cbd288345ded`,
+`78e60d3fff128a2944d50e1c73d35bb6d0c33d5df5973b0348306410bd60f525`, and
+`6043c4bef55d0cad0b65f93f6106ed72c83e699b5de5ada17a2c01383be30989`.
+Broader quality and performance evidence remain pending.

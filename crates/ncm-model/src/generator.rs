@@ -478,6 +478,26 @@ fn prepare_geometry<B: ncm_core::GeneratorBackend>(
     prepare_geometry_with_rope(b, levels, prefix_len, width, heads, rope_base, None)
 }
 
+fn validate_reference_rope(
+    levels: &[usize],
+    prefix_len: usize,
+    head: usize,
+    cosine: &[f32],
+    sine: &[f32],
+) -> Result<()> {
+    let max_position = levels.iter().copied().max().unwrap_or(0).max(prefix_len);
+    let required = max_position
+        .checked_mul(head / 2)
+        .ok_or_else(|| Error::Input("rotary reference size overflow".into()))?;
+    if cosine.len() != required
+        || sine.len() != required
+        || cosine.iter().chain(sine).any(|x| !x.is_finite())
+    {
+        return Err(Error::Weights("invalid rotary reference tables".into()));
+    }
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn prepare_geometry_with_rope<B: ncm_core::GeneratorBackend>(
     b: &B,
@@ -490,15 +510,7 @@ fn prepare_geometry_with_rope<B: ncm_core::GeneratorBackend>(
 ) -> Result<Vec<LevelGeometry<B::Tensor>>> {
     let head = width / heads;
     if let Some((cosine, sine)) = reference_rope {
-        let required = prefix_len
-            .checked_mul(head / 2)
-            .ok_or_else(|| Error::Input("rotary reference size overflow".into()))?;
-        if cosine.len() != required
-            || sine.len() != required
-            || levels.iter().any(|&n| n > prefix_len)
-        {
-            return Err(Error::Weights("invalid rotary reference dimensions".into()));
-        }
+        validate_reference_rope(levels, prefix_len, head, cosine, sine)?;
     }
     let mut result = Vec::with_capacity(levels.len());
     for &length in levels {
@@ -2700,6 +2712,16 @@ mod tests {
     use safetensors::tensor::{TensorView, serialize};
     use std::{cell::Cell, rc::Rc};
 
+    #[test]
+    fn reference_rotary_tables_validate_longer_target_and_finite_values() {
+        let cos = vec![1.0; 128 * 32];
+        let mut sin = vec![0.0; 128 * 32];
+        assert!(validate_reference_rope(&[1, 64, 128], 1, 64, &cos, &sin).is_ok());
+        assert!(validate_reference_rope(&[1, 64, 128], 1, 64, &cos[..32], &sin).is_err());
+        sin[13] = f32::NAN;
+        assert!(validate_reference_rope(&[1, 64, 128], 1, 64, &cos, &sin).is_err());
+    }
+
     #[derive(Clone, Default)]
     struct Counter(Rc<Cell<usize>>);
     impl WeightBackend for Counter {
@@ -2969,6 +2991,20 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             device_allowance,
             initial_distribution,
         })
+    }
+
+    /// Explicit same-input diagnostic using externally supplied reference rotary tables.
+    pub fn with_reference_rope_diagnostic(mut self, cosine: &[f32], sine: &[f32]) -> Result<Self> {
+        self.geometry = prepare_geometry_with_rope(
+            &self.backend,
+            self.codec.config().levels(),
+            1,
+            768,
+            12,
+            10000,
+            Some((cosine, sine)),
+        )?;
+        Ok(self)
     }
 
     /// Capture the level-seven transformer internals for an explicit diagnostic.
