@@ -765,5 +765,9 @@ fast math each differed in 60 reciprocal standard deviations and 198,459
 outputs. The input/result SHA-256 values are
 `249ed8d48f81283b2b8df34150d6a857975319903ac33e0daa57790664f5dba0` /
 `088873a918959e8ea5ea8a03cfb0b30ba09de28815fd720d70893527b93ecc18`.
-The receipt input was checked before and after; the forced-statistics control
-is pending. These observations cover one candidate history, not a gate.
+The receipt input was checked before and after. Supplying CUDA mean and
+reciprocal standard deviation to the safe Metal output expression reproduced
+all 397,824 CUDA outputs exactly; the forced-control receipt SHA-256 is
+`50f5626b4f44fca61ae5592757d9be8e03b076da2709cda6774a976f5880d47b`.
+An extracted project CUDA normalization kernel reproduces all CUDA outputs,
+means and reciprocal standard deviations exactly, enabling a variance probe. These observations cover one candidate history, not a gate.
