@@ -37,3 +37,23 @@ comparison. Do not change the margin, bootstrap, oracle or seed set to hide
 this result. Controlled two-row parity and development quality are separate
 results; the held-out CUDA quality gate, other LM1B gates and Phase 4 remain
 open.
+
+## Descriptive Python self-control
+
+As a diagnostic after the held-out run, the same frozen metric comparison was
+applied between Python's five already-scored development seeds 11–15 and its
+five held-out seeds. The comparison requires its five configured seed labels;
+the development rows were mapped in order to those labels only to satisfy its
+schema. The bootstrap samples independently, so the mapping does not imply
+paired random streams. The control also fails the entropy interval: development
+minus held-out is -0.003167 nats, with interval [-0.006221, 0.000180].
+Perplexity difference is -2.895863 with interval [-5.477730, 0.044911]. The
+control indicates that this observed frozen check can fail between two samples
+from the same reference implementation. It neither proves the Rust candidate
+correct nor changes or waives the actual failed held-out gate.
+
+`tools/reference/lm1b_python_self_control.py` validates the retained held-out
+summary and development capture/scorer hashes before and after the comparison.
+Two outputs were byte-identical, SHA-256
+`5104bf266d98153b0d8251443a7fb99f0fdb43663fad149c6c9418941abcbbb0`;
+existing metric-comparator tests pass.
