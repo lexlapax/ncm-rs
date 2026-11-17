@@ -559,3 +559,23 @@ second cascade convolution
 and reconstruction
 `7c69d171ccc4b7981f058e7852f33755cc5a86f9b3b82063c8094bc9a2bd8416` /
 `e6e575ccf935bd58f00521512e51d4b06ca94aab1e025d9ae7a459b74fbdea0d`.
+
+
+The [standalone Metal refinement probe](../../../tools/reference/xsum_refinement_metal_probe.py)
+then used the captured Metal cascade convolution as the *same input* to CUDA
+and Metal, each with original batch 32 and the row in slot 9. CUDA used the
+control described above. Metal independently reproduced every value of the
+captured Metal reconstruction. Its refinement convolution differs from CUDA
+in 16,653/18,432 values, maximum `3.8147e-6`; the resulting reconstruction
+differs in 16,378 values, maximum `1.9073e-6`. The input SHA-256 is
+`e6a550e694cea63fce4c393290f89a84ea45a009076dafad5ab18b444aae0f57`
+and receipt SHA-256 is
+`f2db0d8648866fb93732be3b4bacd66835393373237b937d058ff5a75e7b45e8`;
+local and Mac receipt copies agree. Mac command: `.reference/mlx-venv/bin/python
+tools/reference/xsum_refinement_metal_probe.py --input
+reports/phase4-xsum-refinement-comparison-v1/input.safetensors --input-sha256
+e6a550e694cea63fce4c393290f89a84ea45a009076dafad5ab18b444aae0f57
+--output reports/phase4-xsum-refinement-comparison-v1/result.json`. The
+receipt checks the input hash before and after. This locates same-input
+refinement arithmetic differences for one captured row; no default, tolerance,
+quality or performance gate has changed.
