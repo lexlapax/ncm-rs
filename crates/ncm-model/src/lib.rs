@@ -116,6 +116,16 @@ impl<B: WeightBackend> Codec<B> {
         Self::from_safetensors_with_limit(backend, config, bytes, 640 * 1024 * 1024 + 1024 * 1024)
     }
 
+    /// Development-only LM1B-small codec; normal model loading remains disabled.
+    #[cfg(feature = "lm1b-experimental")]
+    pub fn from_lm1b_small_artifact_experimental(backend: B, artifact: &Artifact) -> Result<Self> {
+        let config = lm1b_small::codec_config(artifact)?;
+        let bytes = artifact
+            .file("codec.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        Self::from_safetensors_with_limit(backend, config, bytes, 448 * 1024 * 1024)
+    }
+
     fn from_safetensors_with_limit(
         backend: B,
         config: CodecConfig,

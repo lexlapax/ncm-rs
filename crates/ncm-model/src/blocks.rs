@@ -107,7 +107,11 @@ impl<B: CodecBackend> Codec<B> {
                 value = b.group_norm(&value, 8, 1e-5)?;
             }
             let index = if q.learned_l1_cascade_norm { i * 2 } else { i };
-            let name = format!("vq.learned_{}_l1.{index}", if up { "up" } else { "down" });
+            let name = if q.learned_l1_cascade {
+                format!("vq.learned_{}_l1.{index}", if up { "up" } else { "down" })
+            } else {
+                format!("vq.learned_{}_l1", if up { "up" } else { "down" })
+            };
             value = b.conv1d(
                 &value,
                 self.weight(&format!("{name}.weight"))?,
@@ -177,12 +181,38 @@ impl<B: CodecBackend> Codec<B> {
         x: &B::Tensor,
         trace: &mut impl TraceSink<B>,
     ) -> Result<B::Tensor> {
+        let mut value = if self.config.raw().dec_positional {
+            let positions: Vec<u32> = (0..self.config.raw().context_length as u32).collect();
+            trace.indices(
+                "decoder.wpe.input",
+                &self
+                    .backend
+                    .upload_indices(&positions, &[positions.len()])?,
+            )?;
+            trace.tensor("decoder.wpe.output", self.weight("decoder.wpe.weight")?)?;
+            self.backend.add(x, self.weight("decoder.wpe.weight")?)?
+        } else {
+            x.clone()
+        };
+        value = self.decoder_layer_traced(&value, "decoder.middle_block", trace)?;
+        for index in 0..self.config.raw().dec_layers - 1 {
+            value =
+                self.decoder_layer_traced(&value, &format!("decoder.extra_blocks.{index}"), trace)?;
+        }
+        Ok(value)
+    }
+    fn decoder_layer_traced(
+        &self,
+        x: &B::Tensor,
+        name: &str,
+        trace: &mut impl TraceSink<B>,
+    ) -> Result<B::Tensor> {
         let shape = self.check_latent(x, self.config.raw().context_length)?;
         let b = &self.backend;
-        trace.tensor("decoder.middle_block.input", x)?;
-        let norm = self.norm_accelerated("decoder.middle_block.ln_1", x, true, trace)?;
-        trace.tensor("decoder.middle_block.attn.input", &norm)?;
-        let qkv = self.linear("decoder.middle_block.attn.c_attn", &norm, true, trace)?;
+        trace.tensor(&format!("{name}.input"), x)?;
+        let norm = self.norm_accelerated(&format!("{name}.ln_1"), x, true, trace)?;
+        trace.tensor(&format!("{name}.attn.input"), &norm)?;
+        let qkv = self.linear(&format!("{name}.attn.c_attn"), &norm, true, trace)?;
         let (batch, length, width) = (shape[0], shape[1], shape[2]);
         let heads = self.config.raw().n_layers;
         // Group Q/K/V in one layout conversion. On eager backends, reshaping
@@ -205,37 +235,37 @@ impl<B: CodecBackend> Codec<B> {
         let mut q = split(0)?;
         let mut k = split(1)?;
         let v = split(2)?;
-        trace.tensor("decoder.middle_block.attn.q_norm.input", &q)?;
+        trace.tensor(&format!("{name}.attn.q_norm.input"), &q)?;
         q = b.rms_norm(
             &q,
-            self.weight("decoder.middle_block.attn.q_norm.weight")?,
+            self.weight(&format!("{name}.attn.q_norm.weight"))?,
             1e-6,
         )?;
-        trace.tensor("decoder.middle_block.attn.q_norm.output", &q)?;
-        trace.tensor("decoder.middle_block.attn.k_norm.input", &k)?;
+        trace.tensor(&format!("{name}.attn.q_norm.output"), &q)?;
+        trace.tensor(&format!("{name}.attn.k_norm.input"), &k)?;
         k = b.rms_norm(
             &k,
-            self.weight("decoder.middle_block.attn.k_norm.weight")?,
+            self.weight(&format!("{name}.attn.k_norm.weight"))?,
             1e-6,
         )?;
-        trace.tensor("decoder.middle_block.attn.k_norm.output", &k)?;
+        trace.tensor(&format!("{name}.attn.k_norm.output"), &k)?;
         let attention = b.reshape(
             &b.permute(&b.attention(&q, &k, &v, None)?, &[0, 2, 1, 3])?,
             &[batch, length, width],
         )?;
-        let attention = self.linear("decoder.middle_block.attn.c_proj", &attention, true, trace)?;
-        trace.tensor("decoder.middle_block.attn.output", &attention)?;
+        let attention = self.linear(&format!("{name}.attn.c_proj"), &attention, true, trace)?;
+        trace.tensor(&format!("{name}.attn.output"), &attention)?;
         let residual = b.add(x, &attention)?;
-        let norm = self.norm_accelerated("decoder.middle_block.ln_2", &residual, true, trace)?;
-        trace.tensor("decoder.middle_block.mlp.input", &norm)?;
-        let hidden = self.linear("decoder.middle_block.mlp.c_fc", &norm, true, trace)?;
-        trace.tensor("decoder.middle_block.mlp.gelu.input", &hidden)?;
+        let norm = self.norm_accelerated(&format!("{name}.ln_2"), &residual, true, trace)?;
+        trace.tensor(&format!("{name}.mlp.input"), &norm)?;
+        let hidden = self.linear(&format!("{name}.mlp.c_fc"), &norm, true, trace)?;
+        trace.tensor(&format!("{name}.mlp.gelu.input"), &hidden)?;
         let hidden = b.gelu(&hidden)?;
-        trace.tensor("decoder.middle_block.mlp.gelu.output", &hidden)?;
-        let mlp = self.linear("decoder.middle_block.mlp.c_proj", &hidden, true, trace)?;
-        trace.tensor("decoder.middle_block.mlp.output", &mlp)?;
+        trace.tensor(&format!("{name}.mlp.gelu.output"), &hidden)?;
+        let mlp = self.linear(&format!("{name}.mlp.c_proj"), &hidden, true, trace)?;
+        trace.tensor(&format!("{name}.mlp.output"), &mlp)?;
         let output = b.add(&residual, &mlp)?;
-        trace.tensor("decoder.middle_block.output", &output)?;
+        trace.tensor(&format!("{name}.output"), &output)?;
         Ok(output)
     }
     pub(crate) fn linear(

@@ -124,7 +124,7 @@ impl CodecConfig {
         Self::validate(serde_json::from_slice(bytes)?)
     }
     pub fn validate(raw: RawCodecConfig) -> Result<Self> {
-        Self::validate_with_width(raw, 256, 1, 65536, 256 * 1024 * 1024)
+        Self::validate_with_width(raw, 256, 1, 65536, 256 * 1024 * 1024, false)
     }
     /// Explicit pinned TinyStories codec profile; does not widen Sudoku bounds.
     pub fn validate_tinystories(raw: RawCodecConfig) -> Result<Self> {
@@ -140,7 +140,7 @@ impl CodecConfig {
                 "unsupported TinyStories codec profile".into(),
             ));
         }
-        Self::validate_with_width(raw, 384, 1, 65536, 256 * 1024 * 1024)
+        Self::validate_with_width(raw, 384, 1, 65536, 256 * 1024 * 1024, false)
     }
     /// Explicit pinned XSum codec profile with a four-position initial level.
     pub fn validate_xsum(raw: RawCodecConfig) -> Result<Self> {
@@ -156,7 +156,7 @@ impl CodecConfig {
         {
             return Err(Error::Config("unsupported XSum codec profile".into()));
         }
-        Self::validate_with_width(raw, 384, 4, 65536, 256 * 1024 * 1024)
+        Self::validate_with_width(raw, 384, 4, 65536, 256 * 1024 * 1024, false)
     }
     /// Host-only semantic configuration for the pinned WMT14 codec. This does
     /// not enable codec execution or widen the existing profiles' bounds.
@@ -183,7 +183,29 @@ impl CodecConfig {
         {
             return Err(Error::Config("unsupported WMT14 codec profile".into()));
         }
-        Self::validate_with_width(raw, 384, 1, 151680, 640 * 1024 * 1024)
+        Self::validate_with_width(raw, 384, 1, 151680, 640 * 1024 * 1024, false)
+    }
+    /// Experimental semantic profile for the pinned LM1B-small codec.
+    pub fn validate_lm1b_small(raw: RawCodecConfig) -> Result<Self> {
+        let levels = [1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128];
+        if raw.in_vocab_size != 30528
+            || raw.context_length != 128
+            || raw.embed_dim != 384
+            || raw.n_layers != 6
+            || raw.pre_quant_groupnorm != 4
+            || raw.dec_layers != 4
+            || raw.enc_positional
+            || !raw.dec_positional
+            || raw.vqvae_vocab_size != [8192; 12]
+            || raw.vector_quantizer_config.levels.manual_levels != levels
+            || raw.vector_quantizer_config.learned_l1_cascade
+            || raw.vector_quantizer_config.learned_l1_cascade_norm
+            || raw.vector_quantizer_config.learned_l1_cascade_norm_final
+            || raw.vector_quantizer_config.quant_resi.ratio != 0.5
+        {
+            return Err(Error::Config("unsupported LM1B-small codec profile".into()));
+        }
+        Self::validate_with_width(raw, 384, 1, 65536, 448 * 1024 * 1024, true)
     }
     fn validate_with_width(
         raw: RawCodecConfig,
@@ -191,6 +213,7 @@ impl CodecConfig {
         first_level: usize,
         max_vocab: usize,
         max_weight_bytes: usize,
+        lm1b: bool,
     ) -> Result<Self> {
         let q = &raw.vector_quantizer_config;
         let levels = &q.levels.manual_levels;
@@ -223,12 +246,12 @@ impl CodecConfig {
                 && raw.enc_conv_layers == 0
                 && raw.enc_attn_window == 0
                 && raw.enc_conv_kernel == 3
-                && raw.dec_layers == 1,
+                && raw.dec_layers == if lm1b { 4 } else { 1 },
             "unsupported encoder/decoder architecture",
         )?;
         require(
-            raw.enc_positional
-                && !raw.dec_positional
+            raw.enc_positional != lm1b
+                && raw.dec_positional == lm1b
                 && raw.use_qk_norm
                 && raw.pre_quant_norm_type == "group",
             "unsupported positioning or normalization",
@@ -238,14 +261,12 @@ impl CodecConfig {
             "checkpoint path is metadata only and must be tokenizer.pt",
         )?;
         require(
-            [
-                raw.dropout,
-                raw.pre_quant_dropout,
-                q.decay,
-                q.aux.fine_drop.prob,
-            ]
-            .into_iter()
-            .all(|x| x.is_finite() && (0.0..1.0).contains(&x)),
+            [raw.dropout, raw.pre_quant_dropout, q.decay]
+                .into_iter()
+                .all(|x| x.is_finite() && (0.0..1.0).contains(&x))
+                && q.aux.fine_drop.prob.is_finite()
+                && (0.0..=1.0).contains(&q.aux.fine_drop.prob)
+                && (lm1b || q.aux.fine_drop.prob < 1.0),
             "invalid dropout/decay probability",
         )?;
         require(
@@ -259,7 +280,7 @@ impl CodecConfig {
             q.clss == "multiscale_residual_vector_quantizer"
                 && !q.learned_all_sampling
                 && q.learned_l1_sampling
-                && q.learned_l1_cascade
+                && q.learned_l1_cascade != lm1b
                 && !q.ema_scale_by_world_size,
             "unsupported quantizer or sampling mode",
         )?;
@@ -301,7 +322,7 @@ impl CodecConfig {
         )?;
         let mut remaining = raw.context_length / first_level;
         let mut strides = Vec::new();
-        while remaining > 1 {
+        while remaining > 1 && !lm1b {
             let mut factor = q.learned_l1_cascade_base.min(remaining);
             while factor > 1 && !remaining.is_multiple_of(factor) {
                 factor -= 1;
@@ -311,6 +332,9 @@ impl CodecConfig {
             }
             strides.push(factor);
             remaining /= factor;
+        }
+        if lm1b {
+            strides.push(remaining);
         }
         let code_length = levels.iter().sum(); // bounded by 32 * 256 above
         let config = Self {
@@ -351,34 +375,37 @@ impl CodecConfig {
             shapes.insert(name, shape);
         };
         put("encoder.wte.weight".into(), vec![r.in_vocab_size, d]);
-        put("encoder.wpe.weight".into(), vec![r.context_length, d]);
+        if r.enc_positional {
+            put("encoder.wpe.weight".into(), vec![r.context_length, d]);
+        }
+        if r.dec_positional {
+            put("decoder.wpe.weight".into(), vec![r.context_length, d]);
+        }
         put("decoder.ln_f.weight".into(), vec![d]);
         put(
             "decoder.output_layer.weight".into(),
             vec![r.in_vocab_size, d],
         );
-        for layer in ["ln_1", "ln_2"] {
-            for suffix in ["weight", "bias"] {
-                put(format!("decoder.middle_block.{layer}.{suffix}"), vec![d]);
+        for block in std::iter::once("decoder.middle_block".to_owned())
+            .chain((0..r.dec_layers - 1).map(|i| format!("decoder.extra_blocks.{i}")))
+        {
+            for layer in ["ln_1", "ln_2"] {
+                for suffix in ["weight", "bias"] {
+                    put(format!("{block}.{layer}.{suffix}"), vec![d]);
+                }
             }
-        }
-        for layer in ["q_norm", "k_norm"] {
-            put(
-                format!("decoder.middle_block.attn.{layer}.weight"),
-                vec![d / r.n_layers],
-            );
-        }
-        for (layer, output, input) in [
-            ("attn.c_attn", 3 * d, d),
-            ("attn.c_proj", d, d),
-            ("mlp.c_fc", 4 * d, d),
-            ("mlp.c_proj", d, 4 * d),
-        ] {
-            put(
-                format!("decoder.middle_block.{layer}.weight"),
-                vec![output, input],
-            );
-            put(format!("decoder.middle_block.{layer}.bias"), vec![output]);
+            for layer in ["q_norm", "k_norm"] {
+                put(format!("{block}.attn.{layer}.weight"), vec![d / r.n_layers]);
+            }
+            for (layer, output, input) in [
+                ("attn.c_attn", 3 * d, d),
+                ("attn.c_proj", d, d),
+                ("mlp.c_fc", 4 * d, d),
+                ("mlp.c_proj", d, 4 * d),
+            ] {
+                put(format!("{block}.{layer}.weight"), vec![output, input]);
+                put(format!("{block}.{layer}.bias"), vec![output]);
+            }
         }
         for (level, &size) in r.vqvae_vocab_size.iter().enumerate() {
             put(format!("vq.embeddings.{level}.weight"), vec![size, d]);
@@ -390,6 +417,11 @@ impl CodecConfig {
             ("up", self.strides.iter().rev().copied().collect()),
         ] {
             for (i, stride) in strides.into_iter().enumerate() {
+                if !r.vector_quantizer_config.learned_l1_cascade {
+                    put(format!("vq.learned_{name}_l1.weight"), vec![d, d, stride]);
+                    put(format!("vq.learned_{name}_l1.bias"), vec![d]);
+                    continue;
+                }
                 let index = if r.vector_quantizer_config.learned_l1_cascade_norm {
                     2 * i
                 } else {

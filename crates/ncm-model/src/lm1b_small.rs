@@ -1,11 +1,50 @@
 //! Host-only preflight of pinned LM1B-small generator preparation bytes.
 use crate::{has_nonfinite_f32_le, xsum_generator};
-use ncm_core::{Error, Result};
+use ncm_core::{CodecConfig, Error, RawCodecConfig, Result};
+use ncm_io::Artifact;
 use safetensors::{Dtype, SafeTensors, tensor::TensorView};
 use std::collections::BTreeMap;
 
 const CONFIG_SHA: &str = "1bc5e0c10050c8221ec72c277d8510a9a541117db5705cb12173f12b733a1475";
 const LEVELS: [usize; 12] = [1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128];
+
+pub(crate) fn codec_config(artifact: &Artifact) -> Result<CodecConfig> {
+    if artifact.manifest().profile != "lm1b-small-inference-v1" {
+        return Err(Error::Config("unsupported LM1B artifact profile".into()));
+    }
+    let config = artifact
+        .file("config.json")
+        .map_err(|e| Error::Weights(e.to_string()))?;
+    if ncm_io::sha256(config) != CONFIG_SHA {
+        return Err(Error::Config("unexpected pinned LM1B config".into()));
+    }
+    // This exact pinned configuration includes training-only fields outside the
+    // shared inference wire schema. Remove only those known fields after hashing.
+    let mut document: serde_json::Value = serde_json::from_slice(config)?;
+    let vq = document
+        .pointer_mut("/tokenizer/vqvae")
+        .ok_or_else(|| Error::Config("missing codec config".into()))?;
+    let quant = vq
+        .get_mut("vector_quantizer_config")
+        .and_then(|v| v.as_object_mut())
+        .ok_or_else(|| Error::Config("missing quantizer".into()))?;
+    quant.insert("learned_l1_cascade_norm".into(), false.into());
+    quant.insert("learned_l1_cascade_norm_final".into(), false.into());
+    let aux = quant
+        .get_mut("aux")
+        .and_then(|v| v.as_object_mut())
+        .ok_or_else(|| Error::Config("missing aux".into()))?;
+    aux.remove("code_corruption");
+    let fine = aux
+        .get_mut("fine_drop")
+        .and_then(|v| v.as_object_mut())
+        .ok_or_else(|| Error::Config("missing fine drop".into()))?;
+    for name in ["dual", "w_full", "w_trunc"] {
+        fine.remove(name);
+    }
+    let raw: RawCodecConfig = serde_json::from_value(vq.clone())?;
+    CodecConfig::validate_lm1b_small(raw)
+}
 
 fn expected_shapes() -> BTreeMap<String, Vec<usize>> {
     let mut shapes = BTreeMap::new();

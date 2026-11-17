@@ -112,8 +112,8 @@ impl CustomOp2 for Conv<'_> {
             || !(1..=1024).contains(input_channels)
             || !(1..=1024).contains(&output_channels)
             || !(1..=1024).contains(input_len)
-            || !(1..=16).contains(kernel)
-            || !(1..=16).contains(&self.stride)
+            || !((1..=16).contains(kernel) && (1..=16).contains(&self.stride)
+                || (*kernel == 128 && self.stride == 128 && self.padding == 0))
             || self.padding > 16
             || *input_channels != weight_input
         {

@@ -45,10 +45,12 @@ impl<B: CodecBackend> Codec<B> {
         trace.indices("encode.encoder.input", &ids)?;
         // Validated inputs always span the full positional table. Gathering
         // 0..length only copies the same immutable rows and uploads redundant IDs.
-        let encoder = b.add(
-            &b.embedding(self.weight("encoder.wte.weight")?, &ids)?,
-            self.weight("encoder.wpe.weight")?,
-        )?;
+        let encoder = b.embedding(self.weight("encoder.wte.weight")?, &ids)?;
+        let encoder = if config.enc_positional {
+            b.add(&encoder, self.weight("encoder.wpe.weight")?)?
+        } else {
+            encoder
+        };
         trace.tensor("encode.encoder.output", &encoder)?;
         let mut residual = b.group_norm(&encoder, config.pre_quant_groupnorm, 1e-5)?;
         trace.tensor("encode.pre_quant", &residual)?;

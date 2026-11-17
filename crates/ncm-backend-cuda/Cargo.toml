@@ -15,6 +15,7 @@ cuda = ["cpu", "candle-core/cuda", "dep:candle-nn"]
 cuda-cudnn = ["cuda", "dep:cudarc"]
 cudnn-probe = ["cuda-cudnn", "candle-core/cudnn"]
 wmt14-experimental = ["cuda", "ncm-model/wmt14-experimental"]
+lm1b-experimental = ["cuda", "ncm-model/lm1b-experimental"]
 
 [dependencies]
 ncm-core = { path = "../ncm-core" }
@@ -316,3 +317,7 @@ required-features = ["wmt14-experimental", "cuda-cudnn"]
 [[example]]
 name = "lm1b_small_unsupported_probe"
 required-features = ["cpu"]
+
+[[example]]
+name = "lm1b_small_codec_trace"
+required-features = ["lm1b-experimental", "cuda-cudnn"]
