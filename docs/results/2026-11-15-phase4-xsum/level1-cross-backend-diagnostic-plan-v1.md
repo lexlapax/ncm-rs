@@ -173,3 +173,16 @@ These observations locate the first captured difference but do not prove its
 causal responsibility for the later near tie. The full Metal raw-ID gate
 remains failed. Raw traces remain under ignored
 `reports/phase4-xsum-cascade-row-{cuda-v1,mlx-captured-v1}/`.
+
+After the later three first-block MLP traces were added, the corrected
+39-tensor CUDA forced-history capture reproduced every tensor shared with the
+retained CUDA cascade capture bit-for-bit. Its SHA-256 is
+`3723d9fda929e4d503614961f2f2126a18b6cefa563accb51c9cb3b8eb54ce0f`;
+the capture and build log are retained under `reports/phase4-xsum-mlp-cuda-v1/`
+and `reports/phase4-xsum-mlp-cuda-build-v1.log`. Compared with the experimental
+Metal group-normalization model trace, maximum absolute differences across the
+selected row were `1.3113e-6` at the first residual, `2.0266e-6` at the
+second norm, `8.5831e-6` at the MLP input projection, `5.7220e-6` after GELU,
+and `1.5259e-5` after block 0. The largest block-level difference is in prefix
+positions. These stages receive already-different inputs, so this comparison
+does not assign causality to an individual operation or establish a fix.
