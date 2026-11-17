@@ -697,4 +697,10 @@ The receipt SHA-256 is
 `f5de92e011c48b86d30bdcbc872919fb105bc63945ef408f514c8bb89998a212`;
 local and Mac copies agree, and the input hash passed before and after.
 This is a bounded custom-kernel result, not a full-model or quality result;
-the equivalent native Metal matrix products are being tested.
+equivalent native Metal matrix products also match all five controlled
+inputs exactly; the receipt SHA-256 is
+`5ab1fbdf234461130f857e214d0596df95a1581352052bc268f5b5c1a2f95a62`.
+An explicit runtime diagnostic passes `tools/check.sh --cuda`, including 18
+CUDA device cases (`reports/phase4-xsum-reference-projection-cuda-check-v1.log`);
+Metal regression and free-generation checks remain pending. The default
+backend is unchanged.

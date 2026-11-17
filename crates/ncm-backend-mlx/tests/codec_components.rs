@@ -274,3 +274,19 @@ fn experimental_xsum_upsample_preserves_layout_and_bias() {
         .collect();
     assert_eq!(b.read_f32(&output).unwrap(), expected);
 }
+
+#[test]
+fn experimental_xsum_projection_preserves_reference_bias_order() {
+    let b = MlxBackend::gpu_xsum_reference_projection_experimental().unwrap();
+    let x = b.upload_f32(&vec![1.0; 6 * 384], &[1, 6, 384]).unwrap();
+    let mut weights = vec![0.0; 768 * 384];
+    for row in weights.chunks_exact_mut(384) {
+        row[0] = 100_000_000.0;
+        row[192] = -100_000_000.0;
+    }
+    let w = b.upload_f32(&weights, &[768, 384]).unwrap();
+    let bias = b.upload_f32(&[3.0; 768], &[768]).unwrap();
+    let result = b.project_bias(&x, &w, &bias).unwrap();
+    assert_eq!(b.shape(&result), [1, 6, 768]);
+    assert!(b.read_f32(&result).unwrap().iter().all(|&v| v == 0.0));
+}

@@ -27,6 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "head-split" => MlxBackend::gpu_xsum_head_split_experimental()?,
         "refinement" => MlxBackend::gpu_xsum_refinement_experimental()?,
         "target-projection" => MlxBackend::gpu_xsum_target_projection_experimental()?,
+        "reference-projection" => MlxBackend::gpu_xsum_reference_projection_experimental()?,
         "double-head-split" => MlxBackend::gpu_xsum_double_head_split_experimental()?,
         "six-head-split" => MlxBackend::gpu_xsum_six_head_split_experimental()?,
         "head-split-groupnorm" => MlxBackend::gpu_xsum_head_split_groupnorm_experimental()?,

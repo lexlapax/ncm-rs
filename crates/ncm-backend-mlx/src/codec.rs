@@ -83,6 +83,7 @@ pub struct MlxTensor(Array);
 pub struct MlxBackend {
     stream: Stream,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+    xsum_reference_projection_experimental: bool,
     xsum_target_projection_experimental: bool,
     xsum_refinement_experimental: bool,
     xsum_norm_experimental: bool,
@@ -124,6 +125,7 @@ impl MlxBackend {
         let backend = Self {
             stream,
             compiled_gelu: Rc::new(RefCell::new(None)),
+            xsum_reference_projection_experimental: false,
             xsum_target_projection_experimental: false,
             xsum_refinement_experimental: false,
             xsum_norm_experimental: false,
@@ -212,6 +214,12 @@ impl MlxBackend {
     pub fn gpu_xsum_target_projection_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_refinement_experimental()?;
         backend.xsum_target_projection_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit XSum two-part projection with reference bias order.
+    pub fn gpu_xsum_reference_projection_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_refinement_experimental()?;
+        backend.xsum_reference_projection_experimental = true;
         Ok(backend)
     }
     /// Explicit split-head diagnostic with experimental group normalization.
@@ -382,6 +390,21 @@ impl CodecBackend for MlxBackend {
         weight: &MlxTensor,
         bias: &MlxTensor,
     ) -> Result<MlxTensor> {
+        if self.xsum_reference_projection_experimental
+            && weight.0.shape() == [768, 384]
+            && matches!(x.0.shape(), [_, 6, 384])
+        {
+            let first = self.project_bias(
+                &self.slice(x, 2, 0, 192)?,
+                &self.slice(weight, 1, 0, 192)?,
+                bias,
+            )?;
+            let second = self.project(
+                &self.slice(x, 2, 192, 192)?,
+                &self.slice(weight, 1, 192, 192)?,
+            )?;
+            return self.add(&first, &second);
+        }
         if self.xsum_target_projection_experimental
             && weight.0.shape() == [768, 384]
             && matches!(x.0.shape(), [_, 6, 384])
