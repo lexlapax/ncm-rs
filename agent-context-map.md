@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum independent mathematical GELU diagnostic:** an erf-table/Taylor approximation matches 1,494,171/1,591,296 CUDA values on the refined row and 1,516,010 on a synthetic input. A CUDA continuation reaches an exact tie (not a robust pass). An explicit full-model candidate with independently generated mathematical tables is prepared; the first CUDA check failed an unrelated process-observer fixture, which passed in isolation. The full CUDA rerun passes 18 real-device cases; Metal, free-generation and performance validation are pending. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
+- **XSum independent mathematical GELU diagnostic:** an erf-table/Taylor approximation matches 1,494,171/1,591,296 CUDA values on the refined row and 1,516,010 on a synthetic input. A CUDA continuation reaches an exact tie (not a robust pass). An explicit full-model candidate passed CUDA and targeted Metal checks but its two Metal outputs were byte-identical to the prior candidate and retain the failure. The unqualified runtime candidate was removed; its mathematical probe and bounded evidence remain. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
 
 - **XSum vendor-library restriction:** an investigation disassembled the installed CUDA device library before noticing the SDK license restriction; temporary output was deleted and no vendor implementation was copied or used. Do not repeat; use independently developed or appropriately licensed material.
 

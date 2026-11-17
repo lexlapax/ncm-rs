@@ -933,3 +933,17 @@ The first CUDA-check attempt failed the process-observer lifecycle fixture with
 (`reports/phase4-xsum-math-gelu-cuda-check-v1.log`); the same test passed in
 isolation. The full rerun passed, including 18 real-device CUDA cases
 (`reports/phase4-xsum-math-gelu-cuda-check-v2.log`).
+
+On Mac, the full-model mathematical GELU diagnostic passed feature lint, the
+mathematical table reference-point test, and a real-Metal finite/nonfinite and
+partial-threadgroup edge test. Both 32-row free-generation outputs were
+byte-identical to the prior refined candidate (hashes
+`8a7ef47db698d66906f238d61085b43ff2e49d7d29154754e8e05eeb7026beb6` and
+`1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`).
+The row-4937 exact failure remains. Because this did not improve the model
+output, the unqualified runtime kernel and its backend option were removed;
+the independent mathematical probe is retained as
+`tools/reference/xsum_math_gelu_metal_probe.py`. All affected MLX runtime,
+example and test files were verified byte-identical to `ccda683`, which has
+full passing CUDA and Metal checks. The probe passes Python compilation. No
+runtime, artifact, oracle, or gate change is claimed.

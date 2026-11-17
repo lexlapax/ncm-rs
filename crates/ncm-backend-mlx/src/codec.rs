@@ -83,7 +83,6 @@ pub struct MlxTensor(Array);
 pub struct MlxBackend {
     stream: Stream,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
-    xsum_math_gelu_table: Option<Array>,
     xsum_refined_norm_experimental: bool,
     xsum_reference_projection_experimental: bool,
     xsum_target_projection_experimental: bool,
@@ -127,7 +126,6 @@ impl MlxBackend {
         let backend = Self {
             stream,
             compiled_gelu: Rc::new(RefCell::new(None)),
-            xsum_math_gelu_table: None,
             xsum_refined_norm_experimental: false,
             xsum_reference_projection_experimental: false,
             xsum_target_projection_experimental: false,
@@ -243,17 +241,6 @@ impl MlxBackend {
     pub fn gpu_xsum_refined_norm_compiled_gelu_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_refined_norm_experimental()?;
         backend.xsum_compiled_gelu_experimental = true;
-        Ok(backend)
-    }
-    /// Explicit refined normalization plus independent mathematical GELU diagnostic.
-    pub fn gpu_xsum_refined_norm_math_gelu_experimental() -> Result<Self> {
-        let mut backend = Self::gpu_xsum_refined_norm_experimental()?;
-        let values = crate::xsum_gelu_math_experimental::table_values();
-        backend.xsum_math_gelu_table = Some(
-            backend
-                .array_op(&[], || Ok(Array::from_slice(&values, &[8193, 3])))?
-                .0,
-        );
         Ok(backend)
     }
     /// Explicit split-head diagnostic with experimental group normalization.
@@ -596,9 +583,6 @@ impl CodecBackend for MlxBackend {
     }
     fn gelu(&self, x: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x], || {
-            if let Some(table) = &self.xsum_math_gelu_table {
-                return crate::xsum_gelu_math_experimental::apply(&x.0, table);
-            }
             if self.xsum_compiled_gelu_experimental {
                 let mut slot = self
                     .compiled_gelu

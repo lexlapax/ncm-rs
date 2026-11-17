@@ -29,7 +29,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "target-projection" => MlxBackend::gpu_xsum_target_projection_experimental()?,
         "reference-projection" => MlxBackend::gpu_xsum_reference_projection_experimental()?,
         "refined-norm" => MlxBackend::gpu_xsum_refined_norm_experimental()?,
-        "refined-norm-math-gelu" => MlxBackend::gpu_xsum_refined_norm_math_gelu_experimental()?,
         "refined-norm-gelu" => MlxBackend::gpu_xsum_refined_norm_gelu_experimental()?,
         "refined-norm-compiled-gelu" => {
             MlxBackend::gpu_xsum_refined_norm_compiled_gelu_experimental()?

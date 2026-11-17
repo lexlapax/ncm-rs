@@ -15,8 +15,6 @@ mod qk_rope;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 mod xsum_categorical;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-mod xsum_gelu_math_experimental;
-#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 mod xsum_groupnorm_experimental;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 mod xsum_norm_experimental;
