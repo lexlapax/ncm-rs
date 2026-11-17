@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum same-input head screen:** a standalone Metal probe is prepared with captured CUDA projection, codebook, controlled CUDA norms/scales and the original 32-row geometry. The PyTorch CUDA comparison reproduces the relevant reference margin but differs in 5,692/24,576 logits, so it is an independent controlled arithmetic screen, not an exact replay. Local syntax passes; Metal result is pending.
+
 - **XSum head precision diagnostic:** on row 4937's captured CUDA projection, an [FP64 unrounded distance recomputation](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) favors code 3690 while the pinned FP32 reference chooses 3182. A generic higher-precision near-tie fallback would not preserve this reference decision; no rule or tolerance changed.
 
 - **XSum free-generation diagnostic:** an explicit Metal example captures complete codes and raw IDs for 32 rows using selected experimental backends; it does not change inference defaults. `tools/check.sh` passed and prior CUDA runtime validation remains applicable. The [bounded Metal screens](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found all five variants correct the row-4883 raw-ID difference but byte-identical to default on the batch containing row 4937, retaining three code and five raw-ID differences there. The exact Metal gate remains failed.
