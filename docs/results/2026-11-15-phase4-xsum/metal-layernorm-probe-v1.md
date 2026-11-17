@@ -20,3 +20,19 @@ in the linked comparison. Python syntax checking passed. The authorized Mac
 will receive the hash-checked payload under ignored reports and execute the
 committed standalone probe in its existing MLX environment. No model behavior,
 artifact, threshold or quality gate changes; Metal result remains pending.
+
+On the authorized Mac at `cb27b14`, the probe completed on the 512 identical
+prefix rows. The existing fast layer norm matched 234,772 of 393,216 CUDA
+values exactly, with maximum absolute difference `1.1921e-7` and mean absolute
+`7.9592e-10`. The safe-math Welford probe matched 363,025 values exactly;
+maximum difference was also `1.1921e-7`, mean absolute `3.8816e-10`. The
+result SHA-256 is
+`1178738b930dedffd748b59280b83b528e4ba97fa28cfcbb14a4d2d0a26aa916`;
+the local copy matches the remote file. It is a single captured batch, uses
+previously inspected data, and leaves many differences. It does not establish a
+model-level improvement or resolve the full Metal gate.
+
+A follow-up explicitly checks for 32-lane SIMD groups and compares Metal safe,
+relaxed and fast compiler math modes on this same diagnostic payload. These
+variants remain diagnostic, and neither a numerical tolerance nor the runtime
+backend is changed. Their results are pending.

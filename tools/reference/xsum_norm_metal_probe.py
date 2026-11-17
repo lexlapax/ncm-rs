@@ -27,6 +27,10 @@ uint tid = thread_position_in_threadgroup.x;
 uint lane = tid % 32u;
 uint warp = tid / 32u;
 uint row = threadgroup_position_in_grid.x;
+if (threads_per_simdgroup != 32u) {
+    for (uint col = tid; col < 768u; col += 128u) out[row * 768u + col] = NAN;
+    return;
+}
 threadgroup float mean_buf[4];
 threadgroup float sigma_buf[4];
 threadgroup float count_buf[4];
@@ -72,6 +76,7 @@ def main():
     p.add_argument('--input', type=Path, required=True)
     p.add_argument('--input-sha256', required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--math-mode', choices=['safe', 'relaxed', 'fast'], default='safe')
     args = p.parse_args()
     if args.output.exists() or sha(args.input) != args.input_sha256:
         raise ValueError('output exists or input digest differs')
@@ -81,7 +86,7 @@ def main():
     x, gamma, beta = data['x'], data['gamma'], data['beta']
     kernel = mx.fast.metal_kernel(name='ncm_xsum_welford_probe', input_names=['x', 'gamma', 'beta'],
                                  output_names=['out'], source=SOURCE, header=HEADER,
-                                 compile_options={'math_mode': 'safe'})
+                                 compile_options={'math_mode': args.math_mode})
     (candidate,) = kernel(inputs=[x, gamma, beta], grid=(512 * 128, 1, 1), threadgroup=(128, 1, 1),
                           output_shapes=[(512, 768)], output_dtypes=[mx.float32])
     baseline = mx.fast.layer_norm(x, gamma, beta, 1e-6)
@@ -95,7 +100,7 @@ def main():
                         'max_abs': float(diff.max()), 'mean_abs': float(diff.mean())}
     if sha(args.input) != args.input_sha256:
         raise ValueError('input changed')
-    args.output.write_text(json.dumps({'input_sha256': args.input_sha256, 'scope': '512 identical prefix rows; non-production diagnostic', 'results': result}, indent=2) + '\n')
+    args.output.write_text(json.dumps({'input_sha256': args.input_sha256, 'math_mode': args.math_mode, 'scope': '512 identical prefix rows; non-production diagnostic', 'results': result}, indent=2) + '\n')
 
 
 if __name__ == '__main__':
