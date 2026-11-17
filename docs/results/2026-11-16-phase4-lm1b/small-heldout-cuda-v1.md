@@ -68,3 +68,27 @@ control passes with zero point differences and entropy interval
 `[-0.0046, 0.0046]` limits. It shows that these reference samples do not force
 an identical comparison to fail; it does not qualify the Rust output, change
 the independent-resampling protocol, or undo the actual held-out failure.
+
+## Observed reference partition control
+
+`tools/reference/lm1b_reference_split_control.py` uses the five retained
+Python development seeds and the five retained Python held-out seeds. It
+checks the pinned summary and development capture/score digests, then applies
+the frozen comparison to every ordered choice of five reference seeds and its
+complement. It reproduces the comparator's deterministic independent bootstrap
+draws, checks nine partition results against the comparator itself to `1e-12`
+and confirms identical pass/fail decisions, and checks
+the input hashes again afterward.
+
+Of the 252 overlapping assignments, 169 fail the entropy interval, six fail
+the entropy point bound, and 16 fail the perplexity interval; the union is
+169. No assignment fails the perplexity point bound. The assignments overlap
+and include reverse orientations, so they are not 252 independent trials or
+an estimate of a population failure rate. All ten seeds were already observed;
+this post-hoc control is not new held-out evidence, a candidate qualification,
+or a change to the frozen protocol. It supports reviewing the protocol's
+sensitivity alongside the existing failed Python self-control.
+
+Run with `env PYTHONDONTWRITEBYTECODE=1 .reference/venv/bin/python
+tools/reference/lm1b_reference_split_control.py` from the repository root.
+The result repeated with 252 assignments and nine comparator cross-checks.

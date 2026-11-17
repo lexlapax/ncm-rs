@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B observed-reference partitions:** 169 of 252 overlapping five-versus-five splits of the ten observed Python seeds fail the frozen entropy interval; nine splits cross-check against the comparator; the control reproduced twice and its Python syntax check passed. These are dependent, post-hoc descriptive controls, not a population failure rate or Rust qualification. The protocol remains unchanged while the operator decision on a separately labeled alternative is pending. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#observed-reference-partition-control).
+
 - **Bounded precision and quality controls:** the captured XSum row's CUDA head decision changes when its codebook dot is evaluated in FP64, even with the CUDA hidden state; this does not produce a portable fix. The frozen LM1B comparator passes identical retained Python scores on both sides, while the actual candidate still fails. All three diagnostics ran, CUDA on the real device; Python syntax, three comparator tests and diff checks pass. [XSum](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md#head-precision-control), [LM1B](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#identical-reference-control). Next: resolve the unchanged XSum Metal and LM1B CUDA gates.
 
 - **Session handoff:** [RESUME.md](RESUME.md) captures the current Phase 4 objective, open gates, machine/service state, authorizations, and next actions for another CLI session. Recheck live state before acting.
