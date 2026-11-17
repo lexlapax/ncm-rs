@@ -64,6 +64,7 @@ for (uint v = tid; v < 192u; v += 128u) {
 }
 "#;
 
+#[allow(unsafe_code)]
 pub(crate) fn apply(x: &Array, gamma: &Array, beta: &Array) -> crate::ops::Result<Array> {
     let shape = x.shape();
     if shape.is_empty()

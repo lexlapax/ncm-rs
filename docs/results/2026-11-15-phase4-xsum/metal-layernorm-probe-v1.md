@@ -64,3 +64,10 @@ passed, including 18 real CUDA operator cases; log SHA-256
 `c1b4378b1e7704ec4bf47ff08ce9b1b32fe7ca3c9767021f27d1b65b88cf4feb`.
 This validates the shared Linux regression, not compilation or execution of
 the macOS-only experimental backend, which remains pending.
+
+The first Mac check at `e6973f0` stopped at compile time because the new audited
+kernel launch lacked the explicit `unsafe_code` allowance required by the
+project's lint policy. No candidate inference ran. The failed check is retained
+on the Mac under `reports/phase4-xsum-norm-candidate-mlx-v1/check.log`; the
+allowance is now scoped to the validated launch wrapper, as for existing Metal
+kernels. A fresh Mac check and candidate capture remain pending.
