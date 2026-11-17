@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B held-out tool preparation:** separate Python and Rust capture paths enforce the frozen seeds and 256-sample batch-eight protocol; a separate scorer checks generation identities and requires exact agreement with pinned upstream. No official samples have been generated or scored. Seed guard, feature lint, metric-comparator tests, missing-input rejection and full CUDA validation pass (18 device cases).
+
 - **LM1B candidate device/performance screen:** CUDA inverse-CDF and penalty match candidate CPU codes/IDs on all 1,280 development samples. Three-process non-held-out paired screens favor the candidate in median/p95 and process RSS at batches 1/4/16; desktop activity and sampled-memory limits apply. [Details](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md). Feature lint, focused tests and full CUDA validation pass (18 device cases); official gates remain pending.
 
 - **LM1B candidate development quality:** the opt-in reference-table/QKV candidate was scored on five non-held-out 256-sample seeds; candidate-minus-Python mean perplexity is -0.225208 and entropy -0.000109, with all pinned scorers matching upstream. These are descriptive, not held-out results. Feature lint, seed guard, seed-11 capture/scorer byte-for-byte repeat and full CUDA validation pass (18 device cases); official quality remains pending. [Details](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md).

@@ -413,3 +413,7 @@ required-features = ["lm1b-experimental", "cuda-cudnn"]
 [[example]]
 name = "lm1b_small_controlled_level7_trace"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "lm1b_small_heldout_capture"
+required-features = ["lm1b-experimental", "cuda-cudnn"]

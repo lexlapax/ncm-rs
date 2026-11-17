@@ -46,3 +46,23 @@ Tokenizer and teacher-forced numerical parity, controlled stochastic draws,
 resource measurements, CUDA and Metal gates, and other LM1B sizes are separate
 requirements. The observed scorer batch fit is a development run with desktop
 GPU activity, not a guarantee that all official scoring runs fit.
+
+The separate held-out capture tools are `tools/reference/lm1b_cuda_heldout_capture.py`
+and `lm1b_small_heldout_capture`; each accepts only the five frozen seeds and
+256 samples in batch-eight requests. The Rust path explicitly requires the
+reference-table/QKV diagnostic candidate and uses CUDA inverse-CDF and FP64
+penalty with CPU level-zero sampling. The reference path checks the pinned
+upstream checkout, checkpoint and generation configuration. The separate
+`tools/reference/lm1b_heldout_score.py` verifies capture hashes, runtime-specific
+model identities, shapes and ranges, then compares its scorer exactly with the
+pinned upstream functions. Its five-seed metric comparison remains the existing
+`lm1b_quality_compare.py`. The capture records the Rust executable hash; the
+scorer verifies that hash, the Python capture source, and its own source identity.
+`lm1b_heldout_summary.py` binds all ten captures and scores before applying
+the existing comparison. The Rust seed guard, feature-specific lint, existing
+metric-comparator tests and missing-input rejection pass; full CUDA validation
+passed, including 18 CUDA device cases
+(`reports/phase4-lm1b-heldout-final-tools-cuda-check-v1.log`). The initial
+scorer help invocation lacked the tokenizer environment; the corrected
+invocation passed. No held-out samples have been generated or scored at this
+preparation point.
