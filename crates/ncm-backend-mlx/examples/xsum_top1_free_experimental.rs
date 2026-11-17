@@ -24,6 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "gelu" => MlxBackend::gpu_xsum_gelu_experimental()?,
         "compiled-gelu" => MlxBackend::gpu_xsum_compiled_gelu_experimental()?,
         "all" => MlxBackend::gpu_xsum_all_experimental()?,
+        "head-split" => MlxBackend::gpu_xsum_head_split_experimental()?,
         _ => return Err("unknown diagnostic backend".into()),
     };
     let input: Vec<u32> = rows.into_iter().flatten().collect();

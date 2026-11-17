@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum head-layout screen:** the controlled same-input Metal probe now compares flattened, row-only, two-way and four-way dot-product layouts. Local syntax passes; Metal results pending. These are diagnostic alternatives, not runtime or gate changes.
+- **XSum head-layout screen:** the [controlled Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found two 192-wide products sum to exact controlled CUDA dots on the inspected row and four fresh synthetic inputs. An explicitly selected split-head plus upsampling model diagnostic is prepared; full CUDA check passes 18 device cases. Rust Metal compilation, free-generation and quality/performance gates remain pending; default inference is unchanged.
 
 - **XSum controlled head-stage probe:** the [same-input comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found Metal post-dot arithmetic exactly matches all 24,576 controlled CUDA logits when supplied CUDA dot products; independently computed Metal dots differ and retain the pair crossing. This localizes the controlled discrepancy to the dot product, not full model causality or a gate pass. No inference change.
 

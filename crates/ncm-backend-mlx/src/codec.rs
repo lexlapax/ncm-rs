@@ -88,6 +88,7 @@ pub struct MlxBackend {
     xsum_groupnorm_experimental: bool,
     xsum_gelu_experimental: bool,
     xsum_compiled_gelu_experimental: bool,
+    xsum_head_split_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -124,6 +125,7 @@ impl MlxBackend {
             xsum_groupnorm_experimental: false,
             xsum_gelu_experimental: false,
             xsum_compiled_gelu_experimental: false,
+            xsum_head_split_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
@@ -172,6 +174,12 @@ impl MlxBackend {
     pub fn gpu_xsum_all_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_compiled_gelu_experimental()?;
         backend.xsum_norm_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit diagnostic for two-part XSum head projections and upsampling.
+    pub fn gpu_xsum_head_split_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_upsample_experimental()?;
+        backend.xsum_head_split_experimental = true;
         Ok(backend)
     }
     fn array_op(
@@ -266,6 +274,17 @@ impl CodecBackend for MlxBackend {
         self.array_op(&[x], || Ok(x.0.sum_axis(-1, true)?))
     }
     fn project(&self, x: &MlxTensor, weight: &MlxTensor) -> Result<MlxTensor> {
+        if self.xsum_head_split_experimental
+            && weight.0.shape() == [4096, 384]
+            && matches!(x.0.shape(), [_, _, 384])
+        {
+            let left = self.project(&self.slice(x, 2, 0, 192)?, &self.slice(weight, 1, 0, 192)?)?;
+            let right = self.project(
+                &self.slice(x, 2, 192, 192)?,
+                &self.slice(weight, 1, 192, 192)?,
+            )?;
+            return self.add(&left, &right);
+        }
         self.array_op(&[x, weight], || {
             let &[output, input] = weight.0.shape() else {
                 return Err("projection weight must be rank two".into());

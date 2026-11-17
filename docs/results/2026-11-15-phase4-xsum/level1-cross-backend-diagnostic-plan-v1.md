@@ -346,6 +346,20 @@ local and Mac receipt copies match. These results localize this controlled
 crossing to the dot product, but the controlled CUDA calculation is not an
 exact replay of every retained reference logit and this is not a gate pass.
 
+The controlled head probe tested equivalent Metal dot-product layouts. At
+`98c621a`, a sum of two 192-wide matrix products matched all 24,576 controlled
+CUDA dot products and selected code 3182 on the inspected row; flattened,
+row-only and four-part alternatives retained the wrong choice. The receipt
+SHA-256 is `a378f6940da332599aad365b98b96ae498f141c6a4b1ba7c292e3a51283254b2`.
+The same two-part layout also matched all 24,576 controlled CUDA dots in each
+of four fresh synthetic input screens (seed `841627`, captured codebook and
+32-row geometry), retained under `reports/phase4-xsum-head-layout-synthetic-v1/`
+on both machines. An explicitly selected Metal model diagnostic combines
+two-part XSum head projection with the earlier upsampling candidate; the
+default backend is unchanged. Full CUDA checks passed (18 device cases;
+`reports/phase4-xsum-head-split-cuda-check-v1.log`). Rust Metal compilation,
+free-generation, full quality and performance remain pending.
+
 The same six backends were screened on the 32-row batch beginning at 4864.
 Default Metal matched all CUDA codes but retained one raw-ID difference at
 row 4883 position 40. Each of the five experimental variants matched all
