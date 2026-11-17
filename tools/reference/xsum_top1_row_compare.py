@@ -31,24 +31,49 @@ def scores_at(logits, unigram, history, position):
     return scores
 
 
+def cuda_identity(row, trace, result, sha):
+    supplied = (trace, result, sha)
+    if row < 0 or (any(x is not None for x in supplied) and not all(x is not None for x in supplied)):
+        raise ValueError('invalid row or incomplete CUDA trace identity')
+    if all(x is None for x in supplied):
+        if row not in CUDA_SHA:
+            raise ValueError('unknown row requires an explicit CUDA trace identity')
+        return (ROOT / f'reports/phase4-xsum-top1-row-cuda-v1/row-{row}.safetensors',
+                ROOT / f'reports/phase4-xsum-top1-row-cuda-v1/row-{row}.json', CUDA_SHA[row])
+    return supplied
+
+
+def validate_result(result, row):
+    if (result.get('batch') != 32 or result.get('row_slot') != row % 32 or
+            result.get('forced_codes') != 200 or
+            not isinstance(result.get('selected_ids'), list) or len(result['selected_ids']) != 48):
+        raise ValueError('trace result does not identify the requested row')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--row', type=int, choices=(4883, 4937), required=True)
+    parser.add_argument('--row', type=int, required=True)
+    parser.add_argument('--cuda-trace', type=Path)
+    parser.add_argument('--cuda-result', type=Path)
+    parser.add_argument('--cuda-sha256')
     parser.add_argument('--metal-trace', type=Path, required=True)
     parser.add_argument('--metal-result', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if args.output.exists() or args.output.is_symlink():
         raise FileExistsError(args.output)
-    cuda_trace = ROOT / f'reports/phase4-xsum-top1-row-cuda-v1/row-{args.row}.safetensors'
-    cuda_result = ROOT / f'reports/phase4-xsum-top1-row-cuda-v1/row-{args.row}.json'
-    if digest_file(cuda_trace) != CUDA_SHA[args.row] or digest_file(MANIFEST) != MANIFEST_SHA:
+    cuda_trace, cuda_result, cuda_sha = cuda_identity(args.row, args.cuda_trace, args.cuda_result, args.cuda_sha256)
+    if digest_file(cuda_trace) != cuda_sha or digest_file(MANIFEST) != MANIFEST_SHA:
         raise ValueError('CUDA trace or artifact manifest differs')
     manifest = json.loads(MANIFEST.read_bytes())
     if digest_file(INFERENCE) != manifest['files']['inference.safetensors']['sha256']:
         raise ValueError('inference payload differs')
     watched = [cuda_trace, cuda_result, args.metal_trace, args.metal_result, INFERENCE, MANIFEST, Path(__file__).resolve()]
     before = {str(path): digest_file(path) for path in watched}
+    cuda_metadata = json.loads(cuda_result.read_bytes())
+    metal_metadata = json.loads(args.metal_result.read_bytes())
+    validate_result(cuda_metadata, args.row)
+    validate_result(metal_metadata, args.row)
     cuda, metal = load_file(cuda_trace), load_file(args.metal_trace)
     expected = {'generator.final_logits'} | {f'generator.level_{i:02}.logits' for i in range(9)}
     if set(cuda) != expected or set(metal) != expected:
@@ -68,7 +93,7 @@ def main():
     cuda_logits, metal_logits = cuda['generator.final_logits'].numpy(), metal['generator.final_logits'].numpy()
     cuda_ids = select(cuda_logits, unigram)[0].tolist()
     metal_ids = select(metal_logits, unigram)[0].tolist()
-    if cuda_ids != json.loads(cuda_result.read_bytes())['selected_ids'] or metal_ids != json.loads(args.metal_result.read_bytes())['selected_ids']:
+    if cuda_ids != cuda_metadata['selected_ids'] or metal_ids != metal_metadata['selected_ids']:
         raise ValueError('independent FP64 selector differs from native output')
     positions = [i for i, (a, b) in enumerate(zip(cuda_ids, metal_ids)) if a != b]
     first = None

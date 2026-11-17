@@ -88,6 +88,69 @@ reports/phase4-xsum-top1-remaining-batches-cuda-v2`; its result SHA-256 is
 The v1 diagnostic used the old CLI due to an example-only build; it reached the
 same numerical result and is retained, but is not candidate-CLI evidence.
 
+For the three remaining code-difference rows, the strict-CUDA same-batch tracer
+was rebuilt on the borrowed-upload source and run against the corrected v2
+CUDA outputs. Its forced-history selected IDs match free CUDA IDs for all three
+rows, and source/input postflight checks passed. The trace SHA-256 values for
+rows 9813, 10009 and 10015 are respectively
+`40f280fcb906a70d8d0046cdf2f9d423352baebdb8e7cea3578f12c221ff11f6`,
+`dc4045147993aca40de76543fb191618e7b54ebbb4b754eaf9c67bdda6ae55f8`, and
+`100e2817844d2542d9ce37ad1a60f522489ae90af2582b04748a2bbd5981b26b`.
+The command pattern was `setpriv --inh-caps=-all env OMP_NUM_THREADS=1
+LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+target/release/examples/xsum_top1_row_trace
+artifacts/canonical/xsum-inference-rope-v2-final INPUT CUDA_OUTPUT SLOT OUTPUT`.
+Inputs were the captured `input-09792.json` and corrected `cuda-9792.json` for
+slot 21, and `input-09984.json` with `cuda-9984.json` for slots 25 and 31;
+outputs are under `reports/phase4-xsum-top1-remaining-row-cuda-v1/`.
+Corresponding Metal traces were subsequently captured on commit `6d72013`
+after the repeated benchmark. The CUDA outputs and batch inputs were copied or
+checked on Mac against their Linux SHA-256 identities; binary and input
+postflight passed. The Metal trace hashes for rows 9813, 10009 and 10015 are
+`22ec53f624df36a3096214e60c62203a222d34e377b55f6469b5b50b0bea099d`,
+`3166696abc13b15399aeb2686dcd3b954dcead0c0e1a8be371af81c73e2042e7`, and
+`e89c73e05cfa72f88076e4dc7627f6944458189d6162f39d050ba15ad55529a6`.
+The Metal command used the same `xsum_top1_row_trace ARTIFACT INPUT CUDA_OUTPUT
+SLOT OUTPUT` argument pattern, with the copied CUDA outputs under
+`reports/phase4-xsum-top1-remaining-row-mlx-v1/`, the Mac capture inputs and
+the same respective slots. Outputs and pre/postflight receipts are retained
+on Mac in that directory and copied to
+`reports/phase4-xsum-top1-remaining-row-mlx-captured-v1/` on Linux.
+
+The row-comparison helper was extended to accept an explicit CUDA trace, result
+and expected hash for these rows while retaining its existing pinned defaults;
+it also verifies that both trace results identify the requested row slot.
+Focused tests passed, and rerunning the two original row comparisons reproduced
+their numerical results exactly after excluding the changed input/source hash
+inventory. This prepares the comparison; it is not a Metal trace result.
+
+At each row's first free-generation code difference, the forced CUDA head
+selects the saved CUDA code and the saved Metal code ranks second. CUDA's logit
+margin over that Metal choice is `2.14577e-5` for row 9813 (level 7, position
+17), `6.19888e-6` for row 10009 (level 5, position 15), and `3.33786e-6` for
+row 10015 (level 8, position 18). These are read directly from the hashed CUDA
+traces above; they identify narrow CUDA margins, not Metal logits or the cause
+of the crossings. Later code positions can have different histories. The
+calculation loaded each `row-ROW.safetensors` with `safetensors.torch.load_file`,
+selected `generator.level_LL.logits[0, POSITION]`, and computed the FP32
+difference and rank of the CUDA/Metal code pairs `(2854, 3206)`, `(3758, 3032)`
+and `(2298, 605)` respectively.
+
+Each subsequent CUDA/Metal forced-history comparison covered 3,233,792 floats,
+all within the existing accumulated band, and found one head argmax crossing
+at the first differing code above. For the same CUDA-minus-Metal-choice logit
+pairs, Metal's margins were `-3.33786e-6`, `-1.57356e-5`, and `-9.05991e-6`
+for rows 9813, 10009 and 10015 respectively. The forced final IDs matched
+between CUDA and Metal, and each matched that row's free Metal final IDs. These
+observations directly identify score-order crossings in the forced executions;
+they do not establish a specific underlying operation or prove every later code
+difference. Detailed records are [row 9813](mlx-top1-row-9813-v1.json),
+[row 10009](mlx-top1-row-10009-v1.json), and [row 10015](mlx-top1-row-10015-v1.json)
+with SHA-256 values `52718240472c792b5b871790029b3f1824d7fc0ad00e9d69f0af69812ebf391c`,
+`83c562466b804ca6157c31a6fa5756ab7a34bc67674c7f92db0099cc00a2d388`, and
+`4ae309ab8c0e6ad7cc3570b5c4880fbdb1a0dfd6b19d04c1885dd62512b49305`.
+The existing exact raw-ID gate remains failed; no tolerance changed.
+
 For row 4937's first code divergence (global position 8, level 1 position 4),
 the saved batch-32 Python choice is 3182 and the batch-32 Metal choice is 3690.
 In the separate batch-2 CUDA teacher run with the saved Python history, 3690 is

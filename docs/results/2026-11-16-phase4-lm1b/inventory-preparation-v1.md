@@ -29,7 +29,8 @@ The observed config identities are small: 2,749 bytes / SHA-256
 2,754 bytes / `93a42e0923b38f06f186072fdc37c1a2b4db5298c7577755390dd36c651d8142`,
 and large: 2,753 bytes /
 `4410e3710360cae162f8be4186a44a0c7c473be674a1ac3d1d940bfe45d5e70c`.
-These are local observations, not independently verified upstream config pins.
+These were local observations at inventory time; subsequent verification
+against the pinned checkpoint revision is recorded below.
 Two focused tests passed for tensor metadata, alias reporting and malformed input
 rejection. Runtime bounds, export, all three model implementations, tokenization,
 quality and CUDA/Metal gates remain open.
@@ -46,6 +47,18 @@ This establishes metadata properties, not sampling parity. Result:
 `reports/phase4-lm1b-unigram-inspect-v1.json`, SHA-256
 `15d33d83b681bce3d95a8ec9554f9cb0b04dd6f82da5bb61fc6d10f9d2491698`.
 The combined four inventory/unigram unit tests pass under the reference venv.
+
+Each config was subsequently fetched over HTTPS from the existing checkpoint
+revision at [small](https://huggingface.co/hazyresearch/ncm-checkpoints/resolve/d342ce8aaea58830eef3b8ad473664673e41f692/lm1b/small/config.yaml),
+[medium](https://huggingface.co/hazyresearch/ncm-checkpoints/resolve/d342ce8aaea58830eef3b8ad473664673e41f692/lm1b/medium/config.yaml),
+and [large](https://huggingface.co/hazyresearch/ncm-checkpoints/resolve/d342ce8aaea58830eef3b8ad473664673e41f692/lm1b/large/config.yaml).
+Each downloaded file matched its local counterpart byte-for-byte and had the
+respective SHA-256 above. Each read used `curl -fsSL --max-time 20
+https://huggingface.co/hazyresearch/ncm-checkpoints/resolve/d342ce8aaea58830eef3b8ad473664673e41f692/lm1b/SIZE/config.yaml
+-o reports/phase4-lm1b-SIZE-upstream-config-v1.yaml` with `SIZE` replaced by
+the corresponding model size. This
+verifies the config identities at the existing revision without changing the
+upstream revision or claiming an accepted runtime artifact.
 
 The pinned upstream `scripts/eval_merge.py::genppl_flm` describes a distinct
 LM1B scoring path: it decodes raw generated IDs with special tokens retained,

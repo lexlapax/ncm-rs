@@ -6,7 +6,8 @@ The script checks the previously documented checkpoint
 sizes and SHA-256 values before `torch.load(weights_only=True, mmap=True)`; it also
 binds the locally available config (2,177 bytes, SHA-256
 `6401af2a14d41c6582c3181a0b683e8970c1eeefe8cf7afaf74f1597da3fcd72`).
-The config hash is an observed local identity, not a separately verified upstream pin.
+At the initial inventory, the config hash was a local observation; subsequent
+verification against the pinned checkpoint revision is recorded below.
 
 The generator has 186 tensors, 480,523,968 tensor bytes: 185 FP32 and one
 I64 (`lvl_1L`, shape `[1, 312]`). The tokenizer checkpoint has 96 tensors,
@@ -72,6 +73,24 @@ strict Clippy check passed. Log: `reports/phase4-wmt14-tokenizer-corpus-v1.log`.
 This establishes only source-side tokenization for these inputs; decoder parity,
 model execution and BLEU remain unqualified.
 
+The later decoding screen constructed two synthetic sequences from each of the
+3,003 verified source-ID rows: a 64-token prefix and a variant with PAD, a
+special token, EOS and trailing data. The pinned local Transformers tokenizer
+captured the evaluator's EOS truncation, PAD filtering and special-token-skipping
+decode via `setpriv --inh-caps=-all env TOKENIZERS_PARALLELISM=false
+.reference/tokenizers-venv/bin/python tools/reference/wmt14_decode_reference.py
+--output reports/phase4-wmt14-decode-reference-v1.json`; that reference hashes
+to `d38eaa32c1d92e55d421f524bae456765bb64e9a06f2a75fa2ba5f0f73081c98`.
+`setpriv --inh-caps=-all env RUSTC_WRAPPER= CARGO_BUILD_JOBS=4 cargo run
+--release --locked -p ncm-tokenizers --example wmt14_decode_probe --
+artifacts/canonical/tokenizers-qualified/qwen3
+reports/phase4-wmt14-decode-reference-v1.json` matched all 6,006 decoded texts;
+focused strict Clippy passed. Reference and probe source SHA-256 values are
+`ceb3394e7b5ad2fe33f079646ea16db22b0f1dbab296909da43c3d41516d1f71` and
+`20b7bdecbfae8d76fae88c8915d63b01350aa38da7afc6fb59f6b1765f3dc933`.
+These synthetic source-derived sequences do not qualify generated translations,
+model execution, BLEU, or all possible token sequences.
+
 In the pinned generator, omitted `query_level0` defaults to false. With WMT14's
 `predict_level0: true`, generation first runs the prefix through the transformer,
 selects the position indexed by the non-padding token count minus one (clamped
@@ -101,12 +120,21 @@ setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .refe
 Each serialized tensor was reloaded and compared for name, dtype, shape and
 exact bytes. The exporter checks the checkpoint and locally observed config
 hashes and the pinned tokenizer inputs before and after export; it does not
-promote the local config identity into a separately verified upstream pin. Its
+itself independently verify the local config against upstream. Its
 manifest SHA-256 is `3653e4c5bede7b0d8b89148ecccf580ac5cc87617697b737582e8173586334de`;
 the exporter SHA-256 is `10f6eacdb97eb7f1a3e282f3dab06728a72684d148c24382291956a0f5480c28`.
 Seven focused WMT14 tests passed, including bit-preserving roundtrip and
 existing-output rejection (`reports/phase4-wmt14-export-preparation-tests-v1.log`).
 The full runtime schema, implementation and GPU comparisons remain pending.
+
+The config was subsequently fetched over HTTPS from the existing checkpoint
+revision at [wmt14/config.yaml](https://huggingface.co/hazyresearch/ncm-checkpoints/resolve/d342ce8aaea58830eef3b8ad473664673e41f692/wmt14/config.yaml)
+using `curl -fsSL --max-time 20 https://huggingface.co/hazyresearch/ncm-checkpoints/resolve/d342ce8aaea58830eef3b8ad473664673e41f692/wmt14/config.yaml -o
+reports/phase4-wmt14-upstream-config-v1.yaml`. `cmp` and SHA-256 confirmed the
+download and local config are byte-identical at the hash above. The first
+sandboxed fetch failed DNS resolution; the authorized network-enabled read
+succeeded. This verifies the config at the existing revision without changing
+the upstream revision or an accepted runtime artifact.
 
 Comparing this preparation manifest with the pinned XSum v2 manifest gives
 175 common generator names (three shape differences), 11 WMT14-only and 19

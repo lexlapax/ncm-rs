@@ -55,6 +55,13 @@ The WMT14 and LM1B checkpoints at the same immutable revision have been fetched 
 | `lm1b/large/generator.pt` | 2,901,184,267 | `ec34d6c56a81f428303b2fa3a8e1615ceee81b7dec7f59380427f46808ec224c` |
 | `lm1b/tokenizer.pt` | 597,840,331 | `d88aa17b66d730f2cb1fb31c5dbe63888a10da47ed8bea29dcb1f89423c3059c` |
 
+At the same existing checkpoint revision, the local WMT14 and LM1B config
+files were independently fetched and matched byte-for-byte. Their SHA-256
+identities and source links are recorded in the [WMT14](results/2026-11-16-phase4-wmt14/inventory-preparation-v1.md)
+and [LM1B](results/2026-11-16-phase4-lm1b/inventory-preparation-v1.md) preparation
+records. This verifies those config identities; it does not change the revision
+or qualify a runtime artifact.
+
 These downloads need explicit per-profile memory bounds, implementation and GPU validation; they do not establish support. The pinned OWT directory still contains only `TODO.md`; no released checkpoint or quality gate is asserted.
 
 The original GPT-2-large scorer ran out of memory on this 8 GiB GPU at batch 32 with the desktop present. A proposed memory-bounded scorer keeps the upstream batch-32 tokenizer, attention masks and FP32 transformer forward pass, but projects/log-softmaxes output rows in smaller chunks and disables unused KV-cache output. Before using it for any held-out score, compare each sample's token count and mean NLL with the unmodified upstream scorer on development inputs at a batch size that fits. Require exactly equal token counts and maximum absolute per-token mean-NLL difference at most `1e-4`; record the measured differences. This is a newly declared evaluator-implementation tolerance, not a change to a previously passed oracle. Preserve and disclose the original batch-32 OOM and the chunked evaluator rather than calling it an unmodified run.
