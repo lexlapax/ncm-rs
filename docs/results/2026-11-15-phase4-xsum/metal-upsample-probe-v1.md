@@ -230,3 +230,13 @@ but made group 4's inverse one FP32 step lower than CUDA. The output matched
 absolute difference `4.7684e-7`. The local and Mac receipt SHA-256 is
 `6201b7800fa0c21e441bd8df0ef219d75d6da1bbaa20d29aeda4f0893e1f2994`.
 This inspected-row result is not a general CUDA approximation or runtime fix.
+
+At `b926ff6`, the safe reference-layout probe additionally captured each
+Metal variance-plus-epsilon input (receipt SHA-256
+`365ee930752eb667c52e4cf62cbe81e908bcb5c89b7a005c5f5cccd51774aa2f`,
+with matching local and Mac copies). Computing `1 / sqrt` in CPU double
+precision and rounding to FP32 agrees with CUDA's recorded inverse for seven
+groups, including group 5, but gives the lower neighboring value for group 4.
+CUDA's pre-inverse variance was not captured, so these comparisons are
+conditional on Metal's rounded variance being identical to CUDA's; they do
+not prove CUDA's inverse is incorrectly rounded or justify a runtime change.
