@@ -223,3 +223,10 @@ standalone Metal probe corrected group 5 but introduced differences in groups
 2, 4 and 6; 3,036/4,608 values matched exactly. Its result hash is
 `a019fd79077082d6484586369a01744be82b290d45e2b2e25696700f7c960b2a`.
 This one-row diagnostic is not evidence for changing the runtime operation.
+
+At `7d82987`, an FMA-based reciprocal-square-root refinement fixed group 5
+but made group 4's inverse one FP32 step lower than CUDA. The output matched
+4,094/4,608 values exactly, with all 514 differences in group 4 and maximum
+absolute difference `4.7684e-7`. The local and Mac receipt SHA-256 is
+`6201b7800fa0c21e441bd8df0ef219d75d6da1bbaa20d29aeda4f0893e1f2994`.
+This inspected-row result is not a general CUDA approximation or runtime fix.
