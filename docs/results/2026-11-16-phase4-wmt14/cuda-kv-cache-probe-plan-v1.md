@@ -32,3 +32,22 @@ records this correction rather than presenting it as upstream behavior. The
 same 32-row no-cache capture remains the comparison. This is an exploratory
 reference fix: exact outputs, speed and broad quality remain to be measured,
 and no implementation or tolerance change is assumed.
+
+The explicitly padding-corrected diagnostic matched all 10,016 codes and
+2,048 raw IDs in the 32-row no-cache sample. Its single-process median was
+552.31 ms versus 1267.83 ms for the earlier no-cache process; this is not a
+repeated or exclusive-device performance comparison. The output SHA-256 is
+`6711d08ac95de2ef71e034c20d88875472031a470908544643344cfb76c3a6a6`.
+The hooks were applied only during cached attention and removed afterward;
+the pinned upstream checkout and frozen reference remained unchanged.
+
+An explicitly selected Rust cache candidate is planned. It will retain
+prefix K/V from each block after processing the padded prefix with the
+qualified mask, apply that padding bias to each target query, use the same
+rotary positions, and never reuse a previous target's K/V. The default
+no-cache path remains available and unchanged. First validate exact outputs
+and numerical bands on real CUDA at batch boundaries, including padding and
+CFG; full corpus, frozen quality and repeated performance/memory evidence are
+required before qualification. This path is a new implementation, not a
+silent adoption of the incorrect upstream cache mode, and the 32-row result
+is on previously inspected data.
