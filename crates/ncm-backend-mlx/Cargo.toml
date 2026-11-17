@@ -154,3 +154,7 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_top1_row_all_experimental"
 required-features = ["mlx"]
+
+[[example]]
+name = "xsum_top1_free_experimental"
+required-features = ["mlx"]

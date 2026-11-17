@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum free-generation diagnostic:** an explicit Metal example captures complete codes and raw IDs for 32 rows using selected experimental backends; it does not change inference defaults. `tools/check.sh` passed (`reports/phase4-xsum-free-screen-check-v1.log`), and prior CUDA runtime validation remains applicable to the unchanged runtime. Metal compilation and bounded free-generation comparisons are pending.
+
 - **XSum all-operation diagnostic:** an explicitly selected Metal backend combines experimental upsampling, group normalization, Welford layer normalization and compiled GELU. Default inference is unchanged. Full `tools/check.sh --cuda` passed including 18 device cases (`reports/phase4-xsum-all-candidate-cuda-check-v1.log`). The [row-4937 Metal trace](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) still has the wrong level-1 code and a worse margin than the previous candidate. No gate is claimed.
 
 - **XSum compiled GELU screen:** the [standalone Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found more CUDA matches for compiled multiplication than compiled division on the captured and synthetic inputs, though fewer than uncompiled multiplication. The explicit Metal model diagnostic's row-4937 capture is byte-identical to the prior uncompiled candidate and retains the code crossing. Full CUDA checks pass including 18 device cases; default inference is unchanged and the Metal gate remains open.
