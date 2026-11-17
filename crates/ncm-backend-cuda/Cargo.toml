@@ -365,3 +365,11 @@ required-features = ["lm1b-experimental"]
 [[example]]
 name = "lm1b_small_capacity_probe"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cfg_uncached_microbatch_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cfg_uncached_microbatch_perf"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
