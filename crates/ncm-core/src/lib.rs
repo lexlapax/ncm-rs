@@ -113,6 +113,16 @@ pub trait CodecBackend: WeightBackend {
         padding: usize,
         transposed: bool,
     ) -> Result<Self::Tensor>;
+    /// WMT14's first residual convolution. Backends may provide an explicitly
+    /// selected reference-order implementation; the ordinary path is unchanged.
+    fn wmt14_initial_refinement(
+        &self,
+        x: &Self::Tensor,
+        weight: &Self::Tensor,
+        bias: &Self::Tensor,
+    ) -> Result<Self::Tensor> {
+        self.conv1d(x, weight, bias, 1, 1, false)
+    }
     fn area1d(&self, x: &Self::Tensor, length: usize) -> Result<Self::Tensor>;
     fn linear1d(&self, x: &Self::Tensor, length: usize) -> Result<Self::Tensor>;
     /// Materialize lazy results and wait for device completion for measurements.

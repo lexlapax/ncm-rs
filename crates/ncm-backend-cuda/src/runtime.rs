@@ -6,6 +6,8 @@ pub struct CandleBackend {
     device: Device,
     pub(crate) xsum_reference: bool,
     #[cfg(feature = "cuda-cudnn")]
+    pub(crate) wmt14_reference: bool,
+    #[cfg(feature = "cuda-cudnn")]
     pub(crate) strict_cudnn: bool,
     #[cfg(feature = "cuda-cudnn")]
     pub(crate) cudnn_algorithms: crate::cudnn_convolution::AlgorithmCache,
@@ -28,6 +30,7 @@ impl Clone for CandleBackend {
             let mut cloned = Self::from_device(self.device.clone());
             cloned.strict_cudnn = self.strict_cudnn;
             cloned.xsum_reference = self.xsum_reference;
+            cloned.wmt14_reference = self.wmt14_reference;
             cloned
         }
         #[cfg(not(feature = "cuda-cudnn"))]
@@ -43,6 +46,8 @@ impl CandleBackend {
         Self {
             device,
             xsum_reference: false,
+            #[cfg(feature = "cuda-cudnn")]
+            wmt14_reference: false,
             #[cfg(feature = "cuda-cudnn")]
             strict_cudnn: false,
             #[cfg(feature = "cuda-cudnn")]
@@ -106,6 +111,13 @@ impl CandleBackend {
     pub fn cuda_cudnn(ordinal: usize) -> Result<Self> {
         let mut backend = Self::cuda(ordinal)?;
         backend.strict_cudnn = true;
+        Ok(backend)
+    }
+    /// Explicit experimental WMT14 reference-order initial reconstruction.
+    #[cfg(feature = "cuda-cudnn")]
+    pub fn cuda_wmt14_reference(ordinal: usize) -> Result<Self> {
+        let mut backend = Self::cuda(ordinal)?;
+        backend.wmt14_reference = true;
         Ok(backend)
     }
     /// Whether the explicitly selected backend uses strict cuDNN convolution.

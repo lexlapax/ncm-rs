@@ -130,14 +130,13 @@ impl<B: CodecBackend> Codec<B> {
         let b = &self.backend;
         let ratio = self.config.raw().vector_quantizer_config.quant_resi.ratio;
         let name = format!("vq.quant_resi.{level}");
-        let conv = b.conv1d(
-            x,
-            self.weight(&format!("{name}.weight"))?,
-            self.weight(&format!("{name}.bias"))?,
-            1,
-            1,
-            false,
-        )?;
+        let weight = self.weight(&format!("{name}.weight"))?;
+        let bias = self.weight(&format!("{name}.bias"))?;
+        let conv = if level == 0 && self.config.raw().in_vocab_size == 151680 {
+            b.wmt14_initial_refinement(x, weight, bias)?
+        } else {
+            b.conv1d(x, weight, bias, 1, 1, false)?
+        };
         b.add(&b.scale(x, 1.0 - ratio)?, &b.scale(&conv, ratio)?)
     }
     pub fn decoder_block(&self, x: &B::Tensor) -> Result<B::Tensor> {

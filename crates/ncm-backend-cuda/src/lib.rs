@@ -26,6 +26,8 @@ pub mod resample;
 mod runtime;
 #[cfg(feature = "cuda")]
 mod unique_top1;
+#[cfg(feature = "cuda-cudnn")]
+mod wmt14_groupnorm;
 #[cfg(feature = "cuda")]
 mod xsum_gelu;
 #[cfg(feature = "cuda")]

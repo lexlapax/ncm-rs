@@ -246,6 +246,17 @@ impl CodecBackend for CandleBackend {
     }
     fn group_norm(&self, x: &Tensor, groups: usize, eps: f64) -> Result<Tensor> {
         op!(self, [x], {
+            #[cfg(feature = "cuda-cudnn")]
+            if self.wmt14_reference
+                && x.dims().len() == 3
+                && (1..=32).contains(&x.dims()[0])
+                && [4, 16].contains(&x.dims()[1])
+                && x.dims()[2] == 384
+                && groups == 8
+                && eps == 1e-5
+            {
+                return crate::wmt14_groupnorm::apply(self, x);
+            }
             #[cfg(feature = "cuda")]
             if self.xsum_reference
                 && x.dims().len() == 3
@@ -363,7 +374,15 @@ impl CodecBackend for CandleBackend {
                 candle_core::bail!("convolution output is empty or overflows")
             }
             #[cfg(feature = "cuda-cudnn")]
-            if self.strict_cudnn {
+            if self.strict_cudnn
+                || (self.wmt14_reference
+                    && transposed
+                    && stride == 4
+                    && padding == 0
+                    && [1, 4, 16].contains(&length)
+                    && input == 384
+                    && output == 384)
+            {
                 return crate::cudnn_convolution::convolve(
                     &self.cudnn_algorithms,
                     x,
@@ -393,6 +412,36 @@ impl CodecBackend for CandleBackend {
             };
             value.transpose(1, 2)?.broadcast_add(bias)
         })
+    }
+    fn wmt14_initial_refinement(
+        &self,
+        x: &Tensor,
+        weight: &Tensor,
+        bias: &Tensor,
+    ) -> Result<Tensor> {
+        #[cfg(feature = "cuda-cudnn")]
+        if self.wmt14_reference {
+            return op!(self, [x, weight, bias], {
+                if x.dims().len() != 3
+                    || !(1..=32).contains(&x.dims()[0])
+                    || x.dims()[1..] != [64, 384]
+                    || weight.dims() != [384, 384, 3]
+                    || bias.dims() != [384]
+                {
+                    candle_core::bail!("invalid WMT14 initial refinement shape")
+                }
+                crate::cudnn_convolution::convolve(
+                    &self.cudnn_algorithms,
+                    x,
+                    weight,
+                    bias,
+                    1,
+                    1,
+                    false,
+                )
+            });
+        }
+        self.conv1d(x, weight, bias, 1, 1, false)
     }
     fn area1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
         op!(self, [x], { self.resample(x, length, true) })

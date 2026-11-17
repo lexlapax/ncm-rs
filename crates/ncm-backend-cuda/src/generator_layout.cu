@@ -398,6 +398,32 @@ extern "C" __global__ void ncm_pytorch_groupnorm(const float* x, float* y) {
         y[size_t(blockIdx.x) * width + i] = (input[i] - mean) * inverse;
 }
 
+// WMT14 initial-cascade widths 48*4 and 48*16. The thread dispatch follows
+// pinned PyTorch group_norm_kernel.cu: one warp below 512 elements, else 512.
+extern "C" __global__ void ncm_wmt14_groupnorm(const float* x, float* y, int width) {
+    int t = threadIdx.x;
+    const float* input = x + size_t(blockIdx.x) * width;
+    GroupStats value{0, 0, 0};
+    for (int j = t; j < width / 4; j += blockDim.x)
+        for (int k = 0; k < 4; ++k) value = group_add(value, input[j * 4 + k]);
+    value = group_reduce(value);
+    __shared__ GroupStats warps[16];
+    if (blockDim.x > 32) {
+        if (t % 32 == 0) warps[t / 32] = value;
+        __syncthreads();
+        value = t < 16 ? warps[t] : GroupStats{0, 0, 0};
+        if (t < 32) value = group_reduce(value);
+    }
+    __shared__ float mean, inverse;
+    if (t == 0) {
+        mean = value.mean;
+        inverse = rsqrtf(value.m2 / value.count + 1e-5f);
+    }
+    __syncthreads();
+    for (int i = t; i < width; i += blockDim.x)
+        y[size_t(blockIdx.x) * width + i] = (input[i] - mean) * inverse;
+}
+
 extern "C" __global__ void ncm_pytorch_gelu(const float* x, float* y, unsigned n) {
     unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) { float v = x[i]; y[i] = v * 0.5f * (1.f + erff(v * 0.7071067811865475244f)); }

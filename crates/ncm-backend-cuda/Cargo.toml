@@ -212,3 +212,27 @@ required-features = ["wmt14-experimental"]
 [[example]]
 name = "wmt14_cfg_capture"
 required-features = ["wmt14-experimental"]
+
+[[example]]
+name = "wmt14_cfg_row_trace"
+required-features = ["wmt14-experimental"]
+
+[[example]]
+name = "wmt14_cfg_row_strict"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_groupnorm_probe"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cfg_row_reference"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_reference_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_reference_cfg_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
