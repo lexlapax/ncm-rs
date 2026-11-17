@@ -2858,28 +2858,49 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        if !(1..=32).contains(&batch)
-            || prefix.len() != batch
-            || prefix.iter().any(|&x| x != 101)
-            || codes.len() != batch * 641
-            || codes.iter().any(|&x| x >= 8192)
-        {
-            return Err(Error::Input("invalid LM1B fixed-history inputs".into()));
-        }
+        self.run_impl(prefix, Some(codes), &[], batch, trace)
+    }
+
+    /// Uncached greedy continuation from an explicitly supplied initial code.
+    pub fn generate_greedy_traced(
+        &self,
+        prefix: &[u32],
+        initial: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<()> {
+        self.run_impl(prefix, None, initial, batch, trace)
+    }
+
+    fn run_impl(
+        &self,
+        prefix: &[u32],
+        codes: Option<&[u32]>,
+        initial: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<()> {
+        validate_lm1b_request(prefix, codes, initial, batch)?;
         let b = &self.backend;
         let prefix_ids = b.upload_indices(prefix, &[batch, 1])?;
-        let codes = b.upload_indices(codes, &[batch, 641])?;
+        let codes = codes
+            .map(|values| b.upload_indices(values, &[batch, 641]))
+            .transpose()?;
+        let initial = if let Some(codes) = &codes {
+            trace.indices("generator.forced_codes", codes)?;
+            b.narrow_indices(codes, 1, 0, 1)?
+        } else {
+            b.upload_indices(initial, &[batch, 1])?
+        };
         trace.indices("generator.prefix_ids", &prefix_ids)?;
-        trace.indices("generator.forced_codes", &codes)?;
-        trace.indices(
-            "generator.initial_codes",
-            &b.narrow_indices(&codes, 1, 0, 1)?,
-        )?;
+        trace.indices("generator.initial_codes", &initial)?;
         let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
         let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
         let mut cumulative = None;
         let mut offset = 0;
+        let mut selected_levels = Vec::with_capacity(12);
         for (level, &length) in self.codec.config().levels().iter().enumerate() {
+            let mut generated = None;
             if level > 0 {
                 let latent = b.area1d(cumulative.as_ref().expect("previous level"), length)?;
                 trace.tensor(
@@ -2912,8 +2933,21 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                 )?;
                 let logits = b.project_bias(&hidden, &self.head, &self.head_bias[level])?;
                 trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
+                if codes.is_none() {
+                    if b.read_f32(&logits)?.iter().any(|x| !x.is_finite()) {
+                        return Err(Error::Backend("nonfinite LM1B greedy logits".into()));
+                    }
+                    generated = Some(b.select_last(&logits, true)?);
+                }
             }
-            let selected = b.narrow_indices(&codes, 1, offset, length)?;
+            let selected = if let Some(codes) = &codes {
+                b.narrow_indices(codes, 1, offset, length)?
+            } else if level == 0 {
+                initial.clone()
+            } else {
+                generated.expect("generated level")
+            };
+            selected_levels.push(selected.clone());
             offset += length;
             let embedding = b.embedding(
                 self.codec
@@ -2930,6 +2964,12 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
             cumulative = Some(sum);
         }
+        if codes.is_none() {
+            trace.indices(
+                "generator.generated_codes",
+                &b.concat_indices(&selected_levels, 1)?,
+            )?;
+        }
         let (logits, greedy) = self
             .codec
             .decode_latent_outputs(&cumulative.expect("levels"), &mut crate::NoTrace)?;
@@ -2942,6 +2982,25 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         )?;
         Ok(())
     }
+}
+
+#[cfg(feature = "lm1b-experimental")]
+fn validate_lm1b_request(
+    prefix: &[u32],
+    codes: Option<&[u32]>,
+    initial: &[u32],
+    batch: usize,
+) -> Result<()> {
+    if !(1..=32).contains(&batch)
+        || prefix.len() != batch
+        || prefix.iter().any(|&x| x != 101)
+        || codes
+            .is_some_and(|values| values.len() != batch * 641 || values.iter().any(|&x| x >= 8192))
+        || (codes.is_none() && (initial.len() != batch || initial.iter().any(|&x| x >= 8192)))
+    {
+        return Err(Error::Input("invalid LM1B generator inputs".into()));
+    }
+    Ok(())
 }
 
 #[cfg(feature = "lm1b-experimental")]
@@ -2995,7 +3054,18 @@ fn lm1b_penalized_ids(
 
 #[cfg(all(test, feature = "lm1b-experimental"))]
 mod lm1b_teacher_tests {
-    use super::lm1b_penalized_ids;
+    use super::{lm1b_penalized_ids, validate_lm1b_request};
+
+    #[test]
+    fn validates_greedy_and_forced_inputs_before_execution() {
+        assert!(validate_lm1b_request(&[101], None, &[8191], 1).is_ok());
+        assert!(validate_lm1b_request(&[101], None, &[8192], 1).is_err());
+        assert!(validate_lm1b_request(&[0], None, &[0], 1).is_err());
+        assert!(validate_lm1b_request(&[101], None, &[], 1).is_err());
+        assert!(validate_lm1b_request(&[101], Some(&vec![0; 641]), &[], 1).is_ok());
+        assert!(validate_lm1b_request(&[101], Some(&[0]), &[], 1).is_err());
+        assert!(validate_lm1b_request(&[], None, &[], 0).is_err());
+    }
 
     #[test]
     fn penalty_selects_first_available_id_and_rejects_invalid_inputs() {
