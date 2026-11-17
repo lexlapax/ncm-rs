@@ -262,3 +262,27 @@ CUDA operator cases (log SHA-256
 feature-enabled strict Clippy, and all three artifact-backed CUDA cache tests
 (log SHA-256
 `5e49d84f422d9eb384a098f120e669436d53c1131c38099803ec146521c66eae`).
+
+## Explicit near-tie recomputation diagnostic
+
+An opt-in diagnostic reads each guided cached head's scores and recomputes the
+whole level without the cache if any top-two margin is at most `1e-4`. The
+margin controls diagnostic recomputation; it is not a numerical tolerance or
+an established bound on cache error. The normal cached CFG constructor remains
+guarded. Invalid margins, malformed scores and nonfinite scores fail.
+
+On the two previously inspected four-row batches, this diagnostic matches every
+Python code and raw ID. It recomputed level 5 on row 2181's batch and level 9
+on row 2658's batch. The respective trace SHA-256 values are
+`32409f1819e792d01b0cdd1765a82e99f597b607041e7092f99621bdc0249251` and
+`451fc9a1ce0fdf4f85c8b481938681567fd1d05d3fbcdf7c2b7d27fc3cd6169d`.
+A separate 35-row smoke matches the retained Python codes and raw IDs; its
+output SHA-256 is
+`c62c44e40d35d4ca31441d72cd8601d627e2f9b4f4549fe631f4e1e4e8b546c8`.
+These are reused inputs; full-corpus replay, scoring and performance remain
+pending. The host score readback can be expensive, and no speed or memory
+claim is made. The first strict Clippy run found a chunk-iteration style issue;
+the corrected rerun passed. Full `tools/check.sh --cuda` passed 18 device
+operator cases; log SHA-256
+`253e386a1c025bfd6049eeef8f2711dab6ce7a086c281334fb89a0003ae59f62`.
+The margin unit test and all three artifact-backed CUDA cache tests passed.

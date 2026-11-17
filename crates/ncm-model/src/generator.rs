@@ -650,6 +650,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     cached_cfg_diagnostic: bool,
     cfg_internals_diagnostic: bool,
     cfg_shape_matched_diagnostic: bool,
+    cfg_recompute_margin_diagnostic: Option<f32>,
 }
 
 /// Host-resident output from explicitly microbatched experimental WMT14 generation.
@@ -721,6 +722,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             cached_cfg_diagnostic: false,
             cfg_internals_diagnostic: false,
             cfg_shape_matched_diagnostic: false,
+            cfg_recompute_margin_diagnostic: None,
         })
     }
 
@@ -751,6 +753,21 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
     ) -> Result<Self> {
         let mut model = Self::from_artifact_cfg_internals_diagnostic(backend, artifact, true)?;
         model.cfg_shape_matched_diagnostic = true;
+        Ok(model)
+    }
+
+    /// Experimental CFG: recompute a whole level without cache when its top-two
+    /// margin is small. This heuristic has no full-corpus correctness guarantee.
+    pub fn from_artifact_cfg_recompute_diagnostic(
+        backend: B,
+        artifact: &Artifact,
+        margin: f32,
+    ) -> Result<Self> {
+        if !margin.is_finite() || !(0.0..=1.0).contains(&margin) || margin == 0.0 {
+            return Err(Error::Input("invalid WMT14 diagnostic margin".into()));
+        }
+        let mut model = Self::from_artifact_cached_cfg_diagnostic(backend, artifact)?;
+        model.cfg_recompute_margin_diagnostic = Some(margin);
         Ok(model)
     }
 
@@ -926,6 +943,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 cosine: base.cosine.clone(),
                 sine: base.sine.clone(),
             };
+            let mut recompute_target = None;
             let hidden = if level == 0 {
                 if self.cached_prefix_experimental {
                     let (hidden, cache) = wmt14_prefix_transformer_cached(
@@ -951,6 +969,9 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                     &b.project_bias(&latent, &self.input.weight, &self.input.bias)?,
                     &b.narrow(&self.level_embedding, 0, level - 1, 1)?,
                 )?;
+                if self.cfg_recompute_margin_diagnostic.is_some() && cfg.is_some() {
+                    recompute_target = Some(target.clone());
+                }
                 if let Some(cache) = &prefix_cache {
                     wmt14_cached_target_transformer(
                         b,
@@ -1001,7 +1022,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 hidden
             };
             let head_logits = b.project(&hidden, &self.heads[level])?;
-            let head_logits = if let Some((original, scale)) = cfg {
+            let mut head_logits = if let Some((original, scale)) = cfg {
                 let t = scale * level as f64 / (levels.len() - 1) as f64;
                 let conditioned = b.narrow(&head_logits, 0, 0, original)?;
                 let null = b.narrow(&head_logits, 0, original, original)?;
@@ -1009,6 +1030,34 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             } else {
                 head_logits
             };
+            if let (Some(margin), Some(target), Some((original, scale))) =
+                (self.cfg_recompute_margin_diagnostic, recompute_target, cfg)
+            {
+                let uncertain = wmt14_margin_uncertain(&b.read_f32(&head_logits)?, margin)?;
+                trace.indices(
+                    &format!("diagnostic.recomputed.level_{level:02}"),
+                    &b.upload_indices(&[u32::from(uncertain)], &[1])?,
+                )?;
+                if uncertain {
+                    let hidden = decode_transformer(
+                        b,
+                        &self.blocks,
+                        &self.final_norm,
+                        &geometry,
+                        &prefix,
+                        &target,
+                        96,
+                        12,
+                        768,
+                        length,
+                    )?;
+                    let logits = b.project(&hidden, &self.heads[level])?;
+                    let t = scale * level as f64 / (levels.len() - 1) as f64;
+                    let conditioned = b.narrow(&logits, 0, 0, original)?;
+                    let null = b.narrow(&logits, 0, original, original)?;
+                    head_logits = b.sub(&b.scale(&conditioned, 1.0 + t)?, &b.scale(&null, t)?)?;
+                }
+            }
             trace.tensor(&format!("generator.level_{level:02}.logits"), &head_logits)?;
             let selected = if let Some(codes) = &forced {
                 b.narrow_indices(codes, 1, offset, length)?
@@ -1070,6 +1119,50 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         trace.indices("generator.greedy_ids", &ids)?;
         Ok(Generated { codes, logits, ids })
     }
+}
+
+#[cfg(feature = "wmt14-experimental")]
+fn wmt14_margin_uncertain(scores: &[f32], margin: f32) -> Result<bool> {
+    if scores.is_empty()
+        || !scores.len().is_multiple_of(4096)
+        || !margin.is_finite()
+        || margin <= 0.0
+    {
+        return Err(Error::Input("invalid WMT14 diagnostic scores".into()));
+    }
+    let mut uncertain = false;
+    for row in scores.as_chunks::<4096>().0 {
+        let mut first = f32::NEG_INFINITY;
+        let mut second = f32::NEG_INFINITY;
+        for &value in row {
+            if !value.is_finite() {
+                return Err(Error::Backend("nonfinite WMT14 diagnostic scores".into()));
+            }
+            if value > first {
+                second = first;
+                first = value;
+            } else if value > second {
+                second = value;
+            }
+        }
+        uncertain |= first - second <= margin;
+    }
+    Ok(uncertain)
+}
+
+#[cfg(all(test, feature = "wmt14-experimental"))]
+#[test]
+fn wmt14_diagnostic_margin_detects_ties_and_rejects_bad_values() {
+    let mut row = vec![0.0; 4096];
+    row[0] = 2.0;
+    row[1] = 1.5;
+    assert!(!wmt14_margin_uncertain(&row, 0.1).unwrap());
+    row[1] = 2.0;
+    assert!(wmt14_margin_uncertain(&row, 0.1).unwrap());
+    row[2] = f32::NAN;
+    assert!(wmt14_margin_uncertain(&row, 0.1).is_err());
+    assert!(wmt14_margin_uncertain(&row[..1], 0.1).is_err());
+    assert!(wmt14_margin_uncertain(&row, f32::INFINITY).is_err());
 }
 
 #[cfg(feature = "wmt14-experimental")]
