@@ -64,6 +64,8 @@ RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -D warnings" \
     cargo doc --workspace --features ncm-backend-cuda/cpu --no-deps --locked
 if [[ "$(uname -s)" == Darwin ]]; then
     python3 tools/bench/run_macos_report_tests.py
+elif [[ "$(uname -s)" == Linux ]]; then
+    python3 tools/bench/run_linux_report_tests.py
 else
     python3 -m unittest discover -s tools/bench -p 'test_*.py' -v
 fi
