@@ -4,7 +4,9 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **LM1B held-out tool preparation:** separate Python and Rust capture paths enforce the frozen seeds and 256-sample batch-eight protocol; a separate scorer checks generation identities and requires exact agreement with pinned upstream. No official samples have been generated or scored. Seed guard, feature lint, metric-comparator tests, missing-input rejection and full CUDA validation pass (18 device cases).
+- **LM1B-small CUDA held-out quality fails:** the frozen five-seed candidate comparison passes perplexity and entropy point checks but fails the entropy bootstrap lower bound (-0.007118 versus -0.0046). [Results](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md), scores and reproducible failed summary are retained. The seed set is now observed; later same-seed runs are retests. Do not change the frozen margin or claim the CUDA/Phase 4 gate.
+
+- **LM1B held-out tool preparation:** separate Python and Rust capture paths enforce the frozen seeds and 256-sample batch-eight protocol; a separate scorer checks generation identities and requires exact agreement with pinned upstream. The subsequent official run is reported above. Seed guard, feature lint, metric-comparator tests, missing-input rejection and full CUDA validation pass (18 device cases).
 
 - **LM1B candidate device/performance screen:** CUDA inverse-CDF and penalty match candidate CPU codes/IDs on all 1,280 development samples. Three-process non-held-out paired screens favor the candidate in median/p95 and process RSS at batches 1/4/16; desktop activity and sampled-memory limits apply. [Details](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md). Feature lint, focused tests and full CUDA validation pass (18 device cases); official gates remain pending.
 
