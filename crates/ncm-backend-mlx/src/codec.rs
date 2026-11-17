@@ -168,6 +168,12 @@ impl MlxBackend {
         backend.xsum_compiled_gelu_experimental = true;
         Ok(backend)
     }
+    /// Explicit diagnostic combining the experimental XSum operations.
+    pub fn gpu_xsum_all_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_compiled_gelu_experimental()?;
+        backend.xsum_norm_experimental = true;
+        Ok(backend)
+    }
     fn array_op(
         &self,
         inputs: &[&MlxTensor],

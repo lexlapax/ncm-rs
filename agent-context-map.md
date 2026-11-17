@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum all-operation diagnostic:** an explicitly selected Metal backend combines experimental upsampling, group normalization, Welford layer normalization and compiled GELU. Default inference is unchanged. Full `tools/check.sh --cuda` passed including 18 device cases (`reports/phase4-xsum-all-candidate-cuda-check-v1.log`); Metal build and forced-history result are pending.
+
 - **XSum compiled GELU screen:** the [standalone Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found more CUDA matches for compiled multiplication than compiled division on the captured and synthetic inputs, though fewer than uncompiled multiplication. The explicit Metal model diagnostic's row-4937 capture is byte-identical to the prior uncompiled candidate and retains the code crossing. Full CUDA checks pass including 18 device cases; default inference is unchanged and the Metal gate remains open.
 
 - **XSum second normalization same-input probe:** on 512 captured prefix vectors, [Metal fast and Welford normalization](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) matched 245,194 and 299,356 of 393,216 CUDA values respectively; pinned PyTorch CUDA matched all. This is a bounded operation comparison, not a causal fix or gate pass.
