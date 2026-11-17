@@ -10,6 +10,7 @@ publish = false
 
 [features]
 wmt14-experimental = []
+lm1b-experimental = []
 
 [dependencies]
 bytemuck = "=1.25.2"
@@ -21,3 +22,7 @@ serde_json = "1"
 
 [lints]
 workspace = true
+
+[[example]]
+name = "lm1b_small_preparation_probe"
+required-features = ["lm1b-experimental"]

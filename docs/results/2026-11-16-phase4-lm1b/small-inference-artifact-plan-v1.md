@@ -49,3 +49,28 @@ complete the ordered CUDA and Metal correctness, quality and performance gates.
 
 The repository standard `tools/check.sh` passed; log SHA-256
 `28cdd49394ad4d8e3be36839a6c41c102691dcd8c34293a523ef1eddf655040e`.
+
+## Host-only generator preflight
+
+The explicit `lm1b-experimental` feature adds a host-only small-generator
+inspection over preparation bytes. It requires the exact canonical config
+SHA-256, checks the complete 213-tensor generator inventory and expected
+shapes/dtypes, scans ordinary weights for nonfinite values, and verifies the
+level buffer and block-diagonal attention mask. It separately checks both
+inference distributions for shape, finite nonnegative values and sum within
+the existing `1e-6` distribution check. This accepts no artifact profile and
+does not construct a model or upload weights. Integrity of supplied bytes is
+the caller's responsibility; the local probe bounds and hashes its inputs.
+
+The actual preparation config, generator and inference files passed the CPU
+probe with 213 generator and two inference tensors. Unit tests cover the exact
+shape map, wrong config and malformed distributions; strict feature-enabled
+Clippy passes. The probe executable SHA-256 is
+`7c6d9e028427556345de6d4324df145d42004e7713d3b4071f20c4a74e0abc33`;
+its source and preflight module hashes are
+`03b33ce26ffd43d43d7e7504c2554498badaf036177dd9e43fc6019b265a4dc6` and
+`2bd96ad01a9fdbb025ec5e734cee770c0af9dd5518f475960a6d152b333af09c`.
+Full `tools/check.sh --cuda` passed 18 real-device operator cases (log SHA-256
+`5f19e381e9ba7189537341bb2c37655be6130c2d1297f91583e0189ad0615477`);
+all-feature model tests and strict all-target Clippy also pass. Codec semantic schema, artifact loader
+support, generator execution and all LM1B GPU/quality gates remain open.
