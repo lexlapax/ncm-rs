@@ -168,3 +168,12 @@ results repeated exactly. The result SHA-256 is
 `db5fee7e02a2f48431878e359456c1f8064928a02f923f099bf014a86f995c32`,
 and local and Mac copies match. This previously inspected row motivates a
 forced-history model test; it does not establish exact output or quality parity.
+
+An explicit diagnostic backend now combines the first-upsample candidate with
+a group-normalization kernel using the reference layout only on the validated
+`[batch, 12, 384]`, eight-group shape. The default backend remains unchanged.
+Full Linux `tools/check.sh --cuda` passed, including 18 real-device operator
+cases (`reports/phase4-xsum-groupnorm-candidate-cuda-check-v1.log`). Rust
+Metal compilation and forced-history behavior remain pending. The Rust kernel
+binding does not expose the Python probe's safe-math option, so equivalence to
+that probe must be measured, not assumed.

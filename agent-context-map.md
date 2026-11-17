@@ -4,6 +4,10 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum group-normalization model diagnostic:** an explicit experimental Metal backend combines the first-upsample candidate with the CUDA-layout group-normalization kernel, restricted to the validated XSum shape. The default backend is unchanged. Full `tools/check.sh --cuda` passed (18 real-device operator cases); the Rust Metal build, probe equivalence and forced-history comparisons remain pending. The Metal kernel's Rust binding may use different compiler options from the Python safe-math probe, so numerical equivalence must be measured.
+
+- **Mac testing pushes:** the user approved all pushes needed for Mac testing via pulls going forward. Review scope before each push; do not overwrite unrelated remote work.
+
 - **XSum group-normalization probe:** the [bounded Metal diagnostic](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) compares operations on a hash-bound captured row. The reference-layout 512-thread reduction matched 4,117/4,608 CUDA values exactly versus 3,033 for the current composed operation; maximum absolute difference remains `4.7684e-7`. A forced-history model test is the next step; the Metal gate remains open.
 
 - **WMT14 eight-row uncached follow-up:** the [diagnostic](docs/results/2026-11-16-phase4-wmt14/cuda-uncached-cfg-eight-v1.md) exactly matches all 3,003 pinned CUDA Python codes and IDs, and independently replayed frozen scoring passes. In the repeated batch-16 comparison Rust median was 1.58% slower than Python, so performance is not accepted. Prioritize the earliest failing XSum Metal gate; avoid further later-profile optimization until it is unblocked. Full candidate Metal work requires the separately requested push authorization.

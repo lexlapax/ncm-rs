@@ -59,6 +59,7 @@ pub struct MlxBackend {
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
     xsum_norm_experimental: bool,
     xsum_upsample_experimental: bool,
+    xsum_groupnorm_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -92,6 +93,7 @@ impl MlxBackend {
             compiled_gelu: Rc::new(RefCell::new(None)),
             xsum_norm_experimental: false,
             xsum_upsample_experimental: false,
+            xsum_groupnorm_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
@@ -115,6 +117,13 @@ impl MlxBackend {
         let mut backend = Self::gpu()?;
         backend.xsum_norm_experimental = true;
         backend.xsum_upsample_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit upsampling and group-normalization diagnostic backend.
+    pub fn gpu_xsum_groupnorm_experimental() -> Result<Self> {
+        let mut backend = Self::gpu()?;
+        backend.xsum_upsample_experimental = true;
+        backend.xsum_groupnorm_experimental = true;
         Ok(backend)
     }
     fn array_op(
@@ -354,7 +363,16 @@ impl CodecBackend for MlxBackend {
         })
     }
     fn group_norm(&self, x: &MlxTensor, groups: usize, eps: f64) -> Result<MlxTensor> {
-        self.array_op(&[x], || ops::group_norm(&x.0, groups, eps))
+        self.array_op(&[x], || {
+            if self.xsum_groupnorm_experimental
+                && matches!(x.0.shape(), [_, 12, 384])
+                && groups == 8
+                && eps == 1e-5
+            {
+                return crate::xsum_groupnorm_experimental::apply(&x.0);
+            }
+            ops::group_norm(&x.0, groups, eps)
+        })
     }
     fn gelu(&self, x: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x], || {
