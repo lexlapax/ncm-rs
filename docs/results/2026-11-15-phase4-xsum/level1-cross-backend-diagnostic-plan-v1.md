@@ -275,3 +275,10 @@ is prepared to test the compiled multiplication graph with the prior cascade
 diagnostics. The full CUDA check passed, including 18 device cases
 (`reports/phase4-xsum-compiled-gelu-cuda-check-v1.log`); Metal model results
 remain pending. This is not a quality or performance gate.
+
+The compiled multiplication model diagnostic built and ran on Metal at
+`fdd7a24`. Its row-4937 forced-history tensor capture hashes to
+`0d9364a314d78c6609e41261873c3d143f6d6c68b13ee811ab162d1594940dc7`,
+identical to the prior uncompiled candidate; the JSON hash also matches. It
+therefore retains the same level-1 code crossing and matching forced final IDs.
+This result applies to the captured row, not all inputs or a performance gate.
