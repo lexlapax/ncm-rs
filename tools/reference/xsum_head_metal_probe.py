@@ -30,7 +30,16 @@ def main():
     dot = (z @ mx.transpose(d['book']))[9:10]
     value = ((dot * 2.0 - d['norm']) * d['scales'][0]) * d['scales'][1]
     forced_dot_value = ((d['cuda_dot'] * 2.0 - d['norm']) * d['scales'][0]) * d['scales'][1]
-    mx.eval(value, dot, forced_dot_value)
+    flat = mx.reshape(z, (192, 384))
+    transposed_book = mx.transpose(d['book'])
+    flattened = mx.reshape(flat @ transposed_book, (32, 6, 4096))[9:10]
+    row_only = d['z'] @ transposed_book
+    split2 = mx.reshape(flat[:, :192] @ transposed_book[:192] +
+                        flat[:, 192:] @ transposed_book[192:], (32, 6, 4096))[9:10]
+    split4 = mx.reshape(sum((flat[:, i:i + 96] @ transposed_book[i:i + 96]
+                             for i in range(0, 384, 96))), (32, 6, 4096))[9:10]
+    alternatives = [('flattened', flattened), ('row_only', row_only), ('split2', split2), ('split4', split4)]
+    mx.eval(value, dot, forced_dot_value, *(v for _, v in alternatives))
     actual, expected = np.asarray(value), np.asarray(d['cuda'])
     if not np.isfinite(actual).all():
         raise ValueError('nonfinite output')
@@ -42,6 +51,17 @@ def main():
         raise ValueError('nonfinite intermediate output')
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
+    candidates = {}
+    for name, candidate in alternatives:
+        candidate = np.asarray(candidate)
+        if not np.isfinite(candidate).all():
+            raise ValueError('nonfinite alternative output')
+        scores = ((candidate * np.float32(2.0) - np.asarray(d['norm'])) *
+                  np.asarray(d['scales'])[0]) * np.asarray(d['scales'])[1]
+        candidates[name] = {'dot_exact_elements': int(np.count_nonzero(candidate == expected_dot)),
+            'dot_max_abs': float(np.abs(candidate - expected_dot).max()),
+            'pair_margin': float(scores[0, 4, 3182] - scores[0, 4, 3690]),
+            'choice': int(scores[0, 4].argmax())}
     result = {'input_sha256': args.input_sha256,
         'scope': 'one projection row with controlled CUDA norms and scales, original batch geometry',
         'exact_elements': int(np.count_nonzero(diff == 0)), 'total_elements': int(diff.size),
@@ -55,7 +75,8 @@ def main():
         'metal_dot_pair': [float(metal_dot[0, 4, i]) for i in (3182, 3690)],
         'forced_dot_exact_elements': int(np.count_nonzero(forced_dot == expected)),
         'forced_dot_pair_margin': float(forced_dot[0, 4, 3182] - forced_dot[0, 4, 3690]),
-        'cuda_choice': int(expected[0, 4].argmax()), 'metal_choice': int(actual[0, 4].argmax())}
+        'cuda_choice': int(expected[0, 4].argmax()), 'metal_choice': int(actual[0, 4].argmax()),
+        'alternative_layouts': candidates}
     args.output.write_text(json.dumps(result, indent=2) + '\n')
 
 

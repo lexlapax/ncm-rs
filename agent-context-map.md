@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum head-layout screen:** the controlled same-input Metal probe now compares flattened, row-only, two-way and four-way dot-product layouts. Local syntax passes; Metal results pending. These are diagnostic alternatives, not runtime or gate changes.
+
 - **XSum controlled head-stage probe:** the [same-input comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found Metal post-dot arithmetic exactly matches all 24,576 controlled CUDA logits when supplied CUDA dot products; independently computed Metal dots differ and retain the pair crossing. This localizes the controlled discrepancy to the dot product, not full model causality or a gate pass. No inference change.
 
 - **XSum same-input head screen:** the [controlled Metal and CUDA comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) uses identical captured CUDA projection, codebook, CUDA norms/scales and 32-row geometry. It still crosses 3182/3690, showing the head arithmetic can independently produce the difference. Controlled PyTorch CUDA reproduces the reference pair margin but differs in 5,692/24,576 logits, so this is not an exact replay or gate pass.
