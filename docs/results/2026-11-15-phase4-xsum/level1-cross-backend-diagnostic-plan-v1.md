@@ -158,3 +158,18 @@ Feature-specific strict Clippy passed. Full CUDA check and the corresponding
 Metal trace remain pending. The default untraced cascade is unchanged.
 The full CUDA check passed, including 18 operator cases; log SHA-256
 `effe8c19e8d9a4e792a3f04ef0f71f3e97c7764fdc8970256bf72c303f4946e6`.
+
+The matching Metal trace at `4749514` passed the full Metal check, including
+18 operator cases (log SHA-256
+`97292be7872830927e4c744b2d5feb3056933e38c56992419f027dcb87c2067b`).
+All 32 previous Metal tensors are bit-identical; input hashes were unchanged.
+The trace SHA-256 is
+`c56fef74e46b6a301c5eb794e66cdf79012dafc635af277589cfdab0592c6242`
+and the local copy matches the Mac. The codebook output is exactly equal to
+CUDA, but the first upsampling convolution already differs in 1,309 of 4,608
+elements (maximum absolute `2.3842e-6`). The following group normalization
+has maximum difference `3.5763e-6`, and the second convolution `2.4885e-6`.
+These observations locate the first captured difference but do not prove its
+causal responsibility for the later near tie. The full Metal raw-ID gate
+remains failed. Raw traces remain under ignored
+`reports/phase4-xsum-cascade-row-{cuda-v1,mlx-captured-v1}/`.

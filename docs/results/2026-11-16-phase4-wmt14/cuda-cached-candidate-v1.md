@@ -159,3 +159,15 @@ The manifest, measurements and telemetry hashes are
 Raw records remain in ignored `reports/phase4-wmt14-microbatch-api-*`.
 These measurements remain nonexclusive and do not qualify the known-failing
 cached CFG path or the WMT Metal gate.
+
+A same-four-row cached-CFG diagnostic reproduced the full capture's row 2181
+failure. At the first difference (level 5, position 6), Python chose code 32
+with scores 6.35247755 versus 6.35247612 for code 1071; cached Rust chose
+1071 with scores 6.35247517 versus 6.35247850. All compared level 0–5 logits
+remain within the existing accumulated band, with one level-5 argmax crossing.
+The captured trace SHA-256 is
+`85155099da0fd67ea41a71223d2260ddb5f4dbba8cf52aeadc958e24918cb5dd`;
+the comparison SHA-256 is
+`5f13e04aac88d4640034691bb7de009991c7812e4cd864764cd9d3d84433bdb3`.
+The separate row-2658 divergence remains untraced. This does not waive the
+exact CFG gate; the ordinary cache constructor continues to reject CFG.
