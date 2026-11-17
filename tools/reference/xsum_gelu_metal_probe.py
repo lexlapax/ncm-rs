@@ -31,10 +31,19 @@ def main():
     x = data['x']
     composed = gelu(x)
     compiled = mx.compile(gelu)(x)
-    mx.eval(composed, compiled)
+    cuda_order = []
+    for mode in ('safe', 'relaxed', 'fast'):
+        kernel = mx.fast.metal_kernel(name=f'ncm_xsum_gelu_cuda_order_{mode}',
+            input_names=['x'], output_names=['out'],
+            source='uint i = thread_position_in_grid.x; float v = x[i]; out[i] = v * 0.5f * (1.0f + erf(v * 0.7071067811865475244f));',
+            ensure_row_contiguous=True, compile_options={'math_mode': mode})
+        (value,) = kernel(inputs=[x], grid=(1591296, 1, 1), threadgroup=(256, 1, 1),
+                          output_shapes=[(1, 518, 3072)], output_dtypes=[mx.float32])
+        cuda_order.append((f'cuda_order_{mode}', value))
+    mx.eval(composed, compiled, *(value for _, value in cuda_order))
     expected = np.asarray(data['cuda'])
     result = {}
-    for name, value in [('composed', composed), ('compiled', compiled)]:
+    for name, value in [('composed', composed), ('compiled', compiled), *cuda_order]:
         value = np.asarray(value)
         if not np.isfinite(value).all():
             raise ValueError('nonfinite output')
