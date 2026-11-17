@@ -666,7 +666,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_internal(prefix_tokens, Some(forced_codes), batch, trace)
+        self.run_internal(prefix_tokens, Some(forced_codes), batch, trace, None)
     }
 
     /// Experimental CFG-0 top-1 generation; tied or nonfinite heads fail.
@@ -676,7 +676,19 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_internal(prefix_tokens, None, batch, trace)
+        self.run_internal(prefix_tokens, None, batch, trace, None)
+    }
+
+    /// Experimental guided top-1 with the upstream EOS/PAD null prefix.
+    pub fn generate_cfg_top1_traced(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<()> {
+        let combined = wmt14_cfg_prefixes(prefix_tokens, batch, scale)?;
+        self.run_internal(&combined, None, batch * 2, trace, Some((batch, scale)))
     }
 
     fn run_internal(
@@ -685,6 +697,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         forced_codes: Option<&[u32]>,
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
+        cfg: Option<(usize, f64)>,
     ) -> Result<()> {
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
@@ -711,7 +724,12 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         let forced = forced_codes
             .map(|codes| b.upload_indices(codes, &[batch, total]))
             .transpose()?;
-        trace.indices("generator.prefix_ids", &prefix_ids)?;
+        let observed_prefix = if let Some((original, _)) = cfg {
+            b.narrow_indices(&prefix_ids, 0, 0, original)?
+        } else {
+            prefix_ids.clone()
+        };
+        trace.indices("generator.prefix_ids", &observed_prefix)?;
         if let Some(codes) = &forced {
             trace.indices("generator.forced_codes", codes)?;
         }
@@ -768,6 +786,14 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 hidden
             };
             let head_logits = b.project(&hidden, &self.heads[level])?;
+            let head_logits = if let Some((original, scale)) = cfg {
+                let t = scale * level as f64 / (levels.len() - 1) as f64;
+                let conditioned = b.narrow(&head_logits, 0, 0, original)?;
+                let null = b.narrow(&head_logits, 0, original, original)?;
+                b.sub(&b.scale(&conditioned, 1.0 + t)?, &b.scale(&null, t)?)?
+            } else {
+                head_logits
+            };
             trace.tensor(&format!("generator.level_{level:02}.logits"), &head_logits)?;
             let selected = if let Some(codes) = &forced {
                 b.narrow_indices(codes, 1, offset, length)?
@@ -778,7 +804,11 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                         "tied or nonfinite WMT14 head maximum is unsupported".into(),
                     ));
                 }
-                selected
+                if cfg.is_some() {
+                    b.concat_indices(&[selected.clone(), selected], 0)?
+                } else {
+                    selected
+                }
             };
             offset += length;
             selected_levels.push(selected.clone());
@@ -795,19 +825,54 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             } else {
                 contribution
             };
-            trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
+            let observed_sum = if let Some((original, _)) = cfg {
+                b.narrow(&sum, 0, 0, original)?
+            } else {
+                sum.clone()
+            };
+            trace.tensor(&format!("reconstruction.level_{level:02}"), &observed_sum)?;
             cumulative = Some(sum);
         }
         if forced.is_none() {
-            trace.indices("generator.codes", &b.concat_indices(&selected_levels, 1)?)?;
+            let codes = b.concat_indices(&selected_levels, 1)?;
+            let observed = if let Some((original, _)) = cfg {
+                b.narrow_indices(&codes, 0, 0, original)?
+            } else {
+                codes
+            };
+            trace.indices("generator.codes", &observed)?;
         }
+        let latent = cumulative.expect("validated levels");
+        let latent = if let Some((original, _)) = cfg {
+            b.narrow(&latent, 0, 0, original)?
+        } else {
+            latent
+        };
         let (logits, ids) = self
             .codec
-            .decode_latent_outputs(&cumulative.expect("validated levels"), &mut crate::NoTrace)?;
+            .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
         trace.tensor("generator.final_logits", &logits)?;
         trace.indices("generator.greedy_ids", &ids)?;
         Ok(())
     }
+}
+
+#[cfg(feature = "wmt14-experimental")]
+fn wmt14_cfg_prefixes(prefix_tokens: &[u32], batch: usize, scale: f64) -> Result<Vec<u32>> {
+    if !(1..=16).contains(&batch)
+        || prefix_tokens.len() != batch * 96
+        || !scale.is_finite()
+        || scale <= 0.0
+    {
+        return Err(Error::Input("invalid WMT14 CFG inputs".into()));
+    }
+    let mut combined = Vec::with_capacity(batch * 192);
+    combined.extend_from_slice(prefix_tokens);
+    for _ in 0..batch {
+        combined.push(151645);
+        combined.extend(std::iter::repeat_n(151643, 95));
+    }
+    Ok(combined)
 }
 
 #[cfg(feature = "wmt14-experimental")]
@@ -829,6 +894,21 @@ fn wmt14_level_zero_uses_upstream_nonpadding_count() {
     row[10] = 12;
     assert_eq!(wmt14_prefix_position(&row), 2);
     assert_eq!(wmt14_prefix_position(&[10; 96]), 95);
+}
+
+#[cfg(all(test, feature = "wmt14-experimental"))]
+#[test]
+fn wmt14_cfg_uses_eos_then_padding_and_rejects_bad_inputs() {
+    let original = vec![7; 192];
+    let both = wmt14_cfg_prefixes(&original, 2, 1.0).unwrap();
+    assert_eq!(&both[..192], original);
+    for row in both[192..].as_chunks::<96>().0 {
+        assert_eq!(row[0], 151645);
+        assert!(row[1..].iter().all(|&x| x == 151643));
+    }
+    assert!(wmt14_cfg_prefixes(&original, 2, f64::NAN).is_err());
+    assert!(wmt14_cfg_prefixes(&original, 2, 0.0).is_err());
+    assert!(wmt14_cfg_prefixes(&original, 3, 1.0).is_err());
 }
 
 #[cfg(feature = "wmt14-experimental")]

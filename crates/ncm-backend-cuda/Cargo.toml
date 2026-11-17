@@ -196,3 +196,7 @@ required-features = ["wmt14-experimental"]
 [[example]]
 name = "wmt14_top1_trace"
 required-features = ["wmt14-experimental"]
+
+[[example]]
+name = "wmt14_cfg_trace"
+required-features = ["wmt14-experimental"]
