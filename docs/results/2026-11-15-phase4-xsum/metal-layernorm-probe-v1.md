@@ -49,3 +49,18 @@ SHA-256 values for safe, relaxed and fast are
 The copied files match remote hashes. These comparisons still do not establish
 model-level behavior or acceptance; the safe variant warrants a bounded
 forced-history investigation before any production integration.
+
+An explicitly selected experimental Metal backend and forced-history example
+are being prepared to test the safe Welford operation in the complete model.
+The normal backend remains unchanged. Before any Metal run, local CUDA checks
+must pass; the first model-level test will compare row 4937 with retained CUDA
+and default Metal traces. The experiment is not a qualified profile and will
+not change the frozen acceptance rules. A 32-lane SIMD assumption is checked by
+the kernel; unsupported widths produce nonfinite diagnostic results and fail
+capture rather than silently falling back.
+
+The Linux `setpriv --inh-caps=-all env RUSTC_WRAPPER= ./tools/check.sh --cuda`
+passed, including 18 real CUDA operator cases; log SHA-256
+`c1b4378b1e7704ec4bf47ff08ce9b1b32fe7ca3c9767021f27d1b65b88cf4feb`.
+This validates the shared Linux regression, not compilation or execution of
+the macOS-only experimental backend, which remains pending.

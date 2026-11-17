@@ -1,4 +1,5 @@
 """Compare a bounded Metal Welford normalization with captured CUDA output."""
+# Reduction order adapted from PyTorch v2.15.0; see third-party/pytorch-BSD.txt.
 import argparse
 import hashlib
 import json

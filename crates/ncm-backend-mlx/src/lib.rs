@@ -15,6 +15,8 @@ mod qk_rope;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 mod xsum_categorical;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+mod xsum_norm_experimental;
+#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 mod xsum_top1;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 pub use codec::{MlxBackend, MlxTensor};

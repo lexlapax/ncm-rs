@@ -57,6 +57,7 @@ pub struct MlxTensor(Array);
 pub struct MlxBackend {
     stream: Stream,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+    xsum_norm_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -88,10 +89,17 @@ impl MlxBackend {
         let backend = Self {
             stream,
             compiled_gelu: Rc::new(RefCell::new(None)),
+            xsum_norm_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
         backend.evaluate(&[backend.add(&one, &one)?])?;
+        Ok(backend)
+    }
+    /// Explicit diagnostic backend; this is not a qualified inference profile.
+    pub fn gpu_xsum_norm_experimental() -> Result<Self> {
+        let mut backend = Self::gpu()?;
+        backend.xsum_norm_experimental = true;
         Ok(backend)
     }
     fn array_op(
@@ -300,6 +308,10 @@ impl CodecBackend for MlxBackend {
         }
         self.array_op(&[x, weight], || {
             let width = x.0.shape().last().copied();
+            if self.xsum_norm_experimental && width == Some(768) && eps == 1e-6 {
+                let bias = bias.ok_or("experimental XSum normalization requires bias")?;
+                return crate::xsum_norm_experimental::apply(&x.0, &weight.0, &bias.0);
+            }
             let affine_shape = weight.0.shape().len() == 1
                 && weight.0.shape().first().copied() == width
                 && bias.is_none_or(|b| b.0.shape() == weight.0.shape());
