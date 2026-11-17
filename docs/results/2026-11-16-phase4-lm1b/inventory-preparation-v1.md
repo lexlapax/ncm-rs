@@ -95,3 +95,41 @@ Raw reports and logs are under `reports/phase4-lm1b-*-cpu-probe-v1` with `.json`
 and `.log` suffixes; the small repeat is v2. These are CPU preparation fixtures,
 not the evaluator's batch-eight CUDA sampling, a quality comparison, or any
 runtime or GPU qualification.
+
+## Lossless CPU export preparation
+
+`tools/reference/lm1b_export_preparation.py` verifies the pinned checkpoint
+and config identities plus the existing qualified BERT tokenizer inputs before
+and after CPU-only `torch.load(weights_only=True, mmap=True)`. It preserves
+all generator, codec and inference tensors in separate safetensors files,
+round-tripping names, shapes, dtypes and bytes, and checks both distributions.
+It retains all codec state without classifying training-only tensors. Existing
+outputs are rejected. These are experimental preparation artifacts, not
+runtime artifacts or evidence of model, CUDA, Metal or quality support.
+
+With `setpriv --inh-caps=-all env OMP_NUM_THREADS=1
+TOKENIZERS_PARALLELISM=false .reference/venv/bin/python
+tools/reference/lm1b_export_preparation.py --source artifacts/upstream/lm1b-phase4
+--tokenizer-asset artifacts/canonical/tokenizers-qualified/bert --size SIZE
+--output artifacts/canonical/lm1b-SIZE-preparation-v1`, the three sizes produced:
+
+| Size | Generator / codec / inference tensors | Manifest SHA-256 |
+| --- | --- | --- |
+| small | 213 / 136 / 2 | `0be260578b8a61aebfb945e1da6b461177e9d913467652a51b592021162d9c70` |
+| medium | 381 / 136 / 2 | `8c8aa3db9a15d5992b2ccd9c00a95abf96f4eaa14701390c830920b618ccbae8` |
+| large | 549 / 136 / 2 | `ddb6fc17c59e89eaabb3f1ff79dde0f086f100b6b12aab4576825b7692c006a0` |
+
+All three codec files are byte-identical, SHA-256
+`badd506a9325168a5842582be36653235c1d8bc4c481241548f5ec3b90909853`;
+the inference files also match, SHA-256
+`d6e38383177c8fcf039ceca8f7031acd11a1cf2c686028bcde4c9956dd5bc640`.
+The small export repeated in a separate output directory and every file
+matched byte-for-byte. The exporter SHA-256 is
+`6f6102ac950595d78f3e4f180c4762f083a2e03c306d9f2f0ddf8855430b6902`.
+Three focused tests pass for round trips, malformed metadata/distributions and
+overwrite rejection. Logs and artifacts remain ignored local evidence. Runtime
+loader limits, model semantics and all GPU gates remain open.
+
+The repository standard `tools/check.sh` completed successfully; log SHA-256
+`4a13ff7ce406f9a75e6a4b50edc902770db31c3028ac2442ff05b8f55828654e`.
+It does not establish model quality or GPU validation.
