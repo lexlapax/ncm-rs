@@ -134,3 +134,12 @@ values with reciprocal-square-root/multiplication (maximum differences
 `4.7684e-7` and `7.1526e-7`, respectively). This single-row diagnostic
 indicates that reduction arithmetic matters; neither decomposition is a
 qualified replacement and no Metal result or causal fix is implied.
+
+A standalone Metal diagnostic `tools/reference/xsum_groupnorm_metal_probe.py`
+is prepared to compare the current composed operation, MLX fast layer norm,
+and a safe-math Welford reduction on those exact eight groups of 576 values.
+The payload under `reports/phase4-xsum-groupnorm-probe-input-v1.safetensors`
+has SHA-256 `787774bc0753e424963efe7d17460105f3c3f4c88d6809f2edf20fd275372d9d`;
+preparation checked that CUDA and upsampling-only Metal first-convolution
+values are bit-identical. Python syntax checking passed locally. A real Metal
+run is pending; this probe is not production inference or gate evidence.
