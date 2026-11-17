@@ -903,3 +903,33 @@ its SDK license restriction on disassembly was noticed. The temporary output was
 deleted; no vendor implementation was copied into the project or used for a
 candidate. Do not repeat that approach. Any further GELU implementation work
 must use independently developed or appropriately licensed material.
+
+An independent mathematical approximation generated erf and derivative tables
+from the function itself, then used a short local Taylor interpolation on Metal.
+It uses no vendor implementation. On the captured refined MLP input it matched
+1,494,171/1,591,296 CUDA GELU values (maximum error `4.7684e-7`), compared
+with 1,181,365 for the best prior expression. On a separate retained synthetic
+input it matched 1,516,010/1,591,296, with the same maximum error. The script
+SHA-256 is `30c986ce1607a1f37189be01ad21fb8923e203d2b761ccdd3a7f68d7b2b84341`;
+the captured/synthetic receipts are
+`9f8e524847ae1f9e1c8526c52683296f9eac6b5be03da3784443dbce9a08465f` /
+`ff6248ccc47f60b2f83dbe569dd8f9d47fb74eb8fd2a943778f7d09e4dc7418d`.
+Replacing the first-block GELU output with this row-sized Metal result in the
+controlled CUDA continuation yields an exact tie and selects reference code
+3182. The CUDA-only control also selects 3182 with positive margin. This tie is
+not a robust parity result or a full-model result; later Metal blocks and full
+batch geometry differ. The candidate tensor and continuation script/log hashes
+are `6f58df6800635f3d161255623cb4a02833fe593b28c7494881823a205eec57ed`,
+`5a4ad9f17fb0ae3266ee1245acf55bafc20042452ee67986ba0cb449854f0c8c` and
+`15c3f02b3c4599f37fcad66d578712a8df117abea589c0d575fce0a052356986`.
+
+An opt-in full-model diagnostic now builds its table using the positive-term
+erf power series and derivative rather than captured outputs, and evaluates
+the same interpolation in a bounds-checked Metal kernel. No model artifact,
+reference, threshold or default backend changes. CUDA validation, Metal edge
+regression, free-generation parity and performance are pending.
+The first CUDA-check attempt failed the process-observer lifecycle fixture with
+`unexpected live executable identity` before reaching the device probe
+(`reports/phase4-xsum-math-gelu-cuda-check-v1.log`); the same test passed in
+isolation. The full rerun passed, including 18 real-device CUDA cases
+(`reports/phase4-xsum-math-gelu-cuda-check-v2.log`).

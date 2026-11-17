@@ -314,3 +314,37 @@ fn experimental_xsum_refined_norm_matches_layer_norm_contract() {
         assert!(actual.is_finite() && (actual - expected).abs() <= 1e-5);
     }
 }
+
+#[test]
+fn experimental_xsum_math_gelu_covers_edges_and_partial_threadgroup() {
+    let b = MlxBackend::gpu_xsum_refined_norm_math_gelu_experimental().unwrap();
+    let x = b
+        .upload_f32(
+            &[
+                -3.0,
+                -1.0,
+                0.0,
+                1.0,
+                3.0,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+                f32::NAN,
+            ],
+            &[8],
+        )
+        .unwrap();
+    let actual = b.read_f32(&b.gelu(&x).unwrap()).unwrap();
+    let expected = [
+        -0.004_049_694_f32,
+        -0.158_655_26,
+        0.0,
+        0.841_344_7,
+        2.995_950_2,
+    ];
+    for (actual, expected) in actual.iter().zip(expected) {
+        assert!((actual - expected).abs() < 1e-5, "{actual} != {expected}");
+    }
+    assert_eq!(actual[5], f32::INFINITY);
+    assert!(actual[6].is_nan());
+    assert!(actual[7].is_nan());
+}

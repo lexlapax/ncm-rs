@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum independent mathematical GELU diagnostic:** an erf-table/Taylor approximation matches 1,494,171/1,591,296 CUDA values on the refined row and 1,516,010 on a synthetic input. A CUDA continuation reaches an exact tie (not a robust pass). An explicit full-model candidate with independently generated mathematical tables is prepared; the first CUDA check failed an unrelated process-observer fixture, which passed in isolation. The full CUDA rerun passes 18 real-device cases; Metal, free-generation and performance validation are pending. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
+
 - **XSum vendor-library restriction:** an investigation disassembled the installed CUDA device library before noticing the SDK license restriction; temporary output was deleted and no vendor implementation was copied or used. Do not repeat; use independently developed or appropriately licensed material.
 
 - **Mac full-check compatibility:** the first full MLX check failed before Metal tests because Rust 1.99 Clippy rejects three existing constant-size chunk iterators. Equivalent fixed-size chunk fixes pass full Linux/CUDA and Mac/Metal validation (18 device cases each); all four Metal screens reproduce byte-for-byte. A separate native `metal::erf` probe failed to compile; no model change. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
