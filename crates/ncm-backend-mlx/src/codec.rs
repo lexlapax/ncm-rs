@@ -90,6 +90,7 @@ pub struct MlxBackend {
     xsum_compiled_gelu_experimental: bool,
     xsum_head_split_experimental: bool,
     xsum_head_projection_split_experimental: bool,
+    xsum_head_projection_six_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -128,6 +129,7 @@ impl MlxBackend {
             xsum_compiled_gelu_experimental: false,
             xsum_head_split_experimental: false,
             xsum_head_projection_split_experimental: false,
+            xsum_head_projection_six_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
@@ -188,6 +190,12 @@ impl MlxBackend {
     pub fn gpu_xsum_double_head_split_experimental() -> Result<Self> {
         let mut backend = Self::gpu_xsum_head_split_experimental()?;
         backend.xsum_head_projection_split_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit diagnostic with six-part hidden and two-part codebook projections.
+    pub fn gpu_xsum_six_head_split_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_head_split_experimental()?;
+        backend.xsum_head_projection_six_experimental = true;
         Ok(backend)
     }
     /// Explicit split-head diagnostic with experimental group normalization.
@@ -300,6 +308,21 @@ impl CodecBackend for MlxBackend {
         self.array_op(&[x], || Ok(x.0.sum_axis(-1, true)?))
     }
     fn project(&self, x: &MlxTensor, weight: &MlxTensor) -> Result<MlxTensor> {
+        if self.xsum_head_projection_six_experimental
+            && weight.0.shape() == [384, 768]
+            && matches!(x.0.shape(), [_, _, 768])
+        {
+            let mut value =
+                self.project(&self.slice(x, 2, 0, 128)?, &self.slice(weight, 1, 0, 128)?)?;
+            for start in (128..768).step_by(128) {
+                let part = self.project(
+                    &self.slice(x, 2, start, 128)?,
+                    &self.slice(weight, 1, start, 128)?,
+                )?;
+                value = self.add(&value, &part)?;
+            }
+            return Ok(value);
+        }
         if self.xsum_head_projection_split_experimental
             && weight.0.shape() == [384, 768]
             && matches!(x.0.shape(), [_, _, 768])

@@ -442,3 +442,18 @@ versus default Metal SHA-256
 Input hashes passed before and after; local and Mac copies match. This confirms
 the partial row-4883 improvement in free generation, while all variants still
 fail the previously described row-4937 batch. Neither screen is full quality.
+
+At `9c3db94`, a controlled chain used the captured CUDA hidden row, the
+original 32-row geometry, CUDA-derived norms and scales, and a split codebook
+dot product. Splitting the preceding hidden projection into six products
+reproduced the controlled CUDA pair margin `+9.5367e-7`; two, three and four
+parts produced ties, and the unsplit projection chose 3690. On four synthetic
+hidden inputs (seed `427193`), six parts had the most exact score matches of
+the screened layouts, but still differed on most of the 24,576 logits. The
+captured-row receipt SHA-256 is
+`327409f8ea274dab2e3949dc5ec23406cc2b26c8d635f3099e83e5f04f7585a2`;
+synthetic inputs and receipts are retained under
+`reports/phase4-xsum-head-chain-synthetic-v1/`. This is controlled diagnostic
+evidence, not an exact reference replay or quality gate. A six-part model
+variant passes the full CUDA check, including 18 device cases; Metal
+free-generation and performance results remain pending.
