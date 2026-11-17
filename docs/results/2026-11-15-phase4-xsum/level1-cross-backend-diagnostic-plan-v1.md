@@ -608,4 +608,29 @@ Input hashes passed postflight and local/Mac output hashes match. The first
 build attempt omitted the required `mlx` feature and failed before compilation;
 the corrected build passed. These are bounded screens, not full corpus quality
 or performance. The exact Metal raw-ID gate remains failed. A forced-history
-trace is pending to determine what changed inside this candidate.
+trace was subsequently captured as described below.
+
+
+The forced-history candidate trace records the same level-one choice 3690
+(margin `-1.9073e-6`) versus CUDA choice 3182 (margin `+9.5367e-7`). Its
+first cascade convolution is exact, while its reconstruction differs from
+CUDA in 16,838/18,432 values (maximum `9.5367e-7`), and its input differs
+in 4,166/397,824 values (maximum `5.9605e-7`). The trace and receipt SHA-256
+values are `12bc470fecf2367e1535b87fed4709cf24395d8165ca1052769897d765ee06c5`
+and `97fc103ef17c2b1851bf2a0a88341a44da795ef1eb03d1d1190f14805a30a6ea`;
+local and Mac copies agree.
+
+The exact CUDA continuation of the candidate's captured transformer input
+selects 3690 (margin `-9.5367e-7`), whereas projecting its captured latent
+with CUDA and continuing in CUDA selects 3182 (margin `+9.5367e-7`). The
+CUDA-latent control exactly reproduces the retained CUDA input and hidden.
+Thus target projection or its interaction with the target embedding is a
+further independently sufficient difference in this one controlled history.
+The ignored intervention script/log hashes are
+`d726d821829e630eed46f1529a3be721dc06e2b878e2a2e9551a7e731d52eea1` /
+`9f48f17b45c0f69e9b5727ac4c613fd85d852ad5deee06a8b30b80e5fd6f04eb`
+for block boundaries, and
+`d3f06f3764161e9444fa81569b5f755dbb49b830d9aa75345d708d437638539e` /
+`b79e27b1aa215f919c23c107f28f1cf15102a8c9c95e3b37660b988edab1744a`
+for latent intervention. This is not proof of a unique cause, a candidate
+fix, or full-corpus evidence.
