@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum GELU model diagnostic:** an explicit experimental Metal backend combines the previous cascade probes with an uncompiled MLX CUDA-order GELU expression. The default backend is unchanged. Full `tools/check.sh --cuda` passed, including 18 device cases (`reports/phase4-xsum-gelu-model-cuda-check-v1.log`); Metal compilation and forced-history comparison remain pending. The MLX graph is distinct from the standalone custom-kernel probe and needs independent validation.
+
 - **XSum GELU order screen:** the [standalone Metal same-input probe](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) compared a CUDA-order expression under safe, relaxed and fast math. After two documented JIT header failures, all modes matched 1,180,744/1,591,296 CUDA values versus 1,034,783 for composed GELU. This is a single inspected row, not a Rust model or performance result; no runtime behavior changes.
 
 - **XSum same-input GELU probe:** the [standalone Metal comparison](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) uses captured first-block MLP input and CUDA GELU output. PyTorch CUDA reproduces all 1,591,296 values; Metal composed matches 1,034,783, maximum difference `7.1526e-7`. A row-sized compiled Python graph has different statistics and does not prove full-batch Rust behavior. The exact Metal gate remains open.

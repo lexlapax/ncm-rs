@@ -60,6 +60,7 @@ pub struct MlxBackend {
     xsum_norm_experimental: bool,
     xsum_upsample_experimental: bool,
     xsum_groupnorm_experimental: bool,
+    xsum_gelu_experimental: bool,
 }
 fn error(e: impl std::fmt::Display) -> Error {
     Error::Backend(e.to_string())
@@ -94,6 +95,7 @@ impl MlxBackend {
             xsum_norm_experimental: false,
             xsum_upsample_experimental: false,
             xsum_groupnorm_experimental: false,
+            xsum_gelu_experimental: false,
         };
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
@@ -124,6 +126,12 @@ impl MlxBackend {
         let mut backend = Self::gpu()?;
         backend.xsum_upsample_experimental = true;
         backend.xsum_groupnorm_experimental = true;
+        Ok(backend)
+    }
+    /// Explicit CUDA-order GELU diagnostic combined with the XSum cascade probes.
+    pub fn gpu_xsum_gelu_experimental() -> Result<Self> {
+        let mut backend = Self::gpu_xsum_groupnorm_experimental()?;
+        backend.xsum_gelu_experimental = true;
         Ok(backend)
     }
     fn array_op(
@@ -376,6 +384,14 @@ impl CodecBackend for MlxBackend {
     }
     fn gelu(&self, x: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x], || {
+            if self.xsum_gelu_experimental {
+                return Ok(x.0.multiply(Array::from_f32(0.5))?.multiply(
+                    mlx_rs::ops::erf(
+                        x.0.multiply(Array::from_f32(std::f32::consts::FRAC_1_SQRT_2))?,
+                    )?
+                    .add(Array::from_f32(1.))?,
+                )?);
+            }
             if matches!(x.0.shape(), [batch, _, 3072] if *batch >= 16) {
                 let mut slot = self
                     .compiled_gelu

@@ -142,3 +142,7 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_top1_row_groupnorm_experimental"
 required-features = ["mlx"]
+
+[[example]]
+name = "xsum_top1_row_gelu_experimental"
+required-features = ["mlx"]
