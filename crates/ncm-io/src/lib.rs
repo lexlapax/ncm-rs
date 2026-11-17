@@ -25,6 +25,9 @@ const TINYSTORIES_MAX_TOTAL: u64 = 640 * 1024 * 1024;
 // Pinned XSum files total about 628 MiB; keep its limits independent of other profiles.
 const XSUM_MAX_FILE: u64 = 384 * 1024 * 1024;
 const XSUM_MAX_TOTAL: u64 = 640 * 1024 * 1024;
+// WMT14's larger vocabulary and generator have separate bounded budgets.
+const WMT14_MAX_FILE: u64 = 640 * 1024 * 1024;
+const WMT14_MAX_TOTAL: u64 = 1280 * 1024 * 1024;
 const FILES: [&str; 6] = [
     "codec.safetensors",
     "generator.safetensors",
@@ -54,6 +57,16 @@ const XSUM_FILES: [&str; 9] = [
     "generator.safetensors",
     "training.safetensors",
     "inference.safetensors",
+    "config.json",
+    "tokenizer.json",
+    "tokenizer-manifest.json",
+    "tokenizer.LICENSE",
+    "provenance.json",
+];
+const WMT14_FILES: [&str; 8] = [
+    "codec.safetensors",
+    "generator.safetensors",
+    "training.safetensors",
     "config.json",
     "tokenizer.json",
     "tokenizer-manifest.json",
@@ -328,6 +341,7 @@ impl Artifact {
                     XSUM_MAX_FILE,
                     XSUM_MAX_TOTAL,
                 ),
+                "wmt14-inference-v1" => (&WMT14_FILES, &BUNDLES, WMT14_MAX_FILE, WMT14_MAX_TOTAL),
                 _ => return Err(invalid("unsupported schema, profile or source pins")),
             };
         // Exact flat filename sets reject unknown files, absolute paths, traversal and aliases.

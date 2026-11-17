@@ -124,7 +124,7 @@ impl CodecConfig {
         Self::validate(serde_json::from_slice(bytes)?)
     }
     pub fn validate(raw: RawCodecConfig) -> Result<Self> {
-        Self::validate_with_width(raw, 256, 1)
+        Self::validate_with_width(raw, 256, 1, 65536, 256 * 1024 * 1024)
     }
     /// Explicit pinned TinyStories codec profile; does not widen Sudoku bounds.
     pub fn validate_tinystories(raw: RawCodecConfig) -> Result<Self> {
@@ -140,7 +140,7 @@ impl CodecConfig {
                 "unsupported TinyStories codec profile".into(),
             ));
         }
-        Self::validate_with_width(raw, 384, 1)
+        Self::validate_with_width(raw, 384, 1, 65536, 256 * 1024 * 1024)
     }
     /// Explicit pinned XSum codec profile with a four-position initial level.
     pub fn validate_xsum(raw: RawCodecConfig) -> Result<Self> {
@@ -156,12 +156,41 @@ impl CodecConfig {
         {
             return Err(Error::Config("unsupported XSum codec profile".into()));
         }
-        Self::validate_with_width(raw, 384, 4)
+        Self::validate_with_width(raw, 384, 4, 65536, 256 * 1024 * 1024)
+    }
+    /// Host-only semantic configuration for the pinned WMT14 codec. This does
+    /// not enable codec execution or widen the existing profiles' bounds.
+    pub fn validate_wmt14(raw: RawCodecConfig) -> Result<Self> {
+        let expected_levels = [1, 4, 8, 14, 20, 26, 32, 40, 48, 56, 64];
+        if raw.in_vocab_size != 151680
+            || raw.context_length != 64
+            || raw.embed_dim != 384
+            || raw.n_layers != 6
+            || raw.pre_quant_groupnorm != 8
+            || raw.dropout != 0.1
+            || raw.pre_quant_dropout != 0.25
+            || raw.vqvae_vocab_size != [4096; 11]
+            || raw.vector_quantizer_config.levels.manual_levels != expected_levels
+            || raw.vector_quantizer_config.learned_l1_cascade_base != 4
+            || !raw.vector_quantizer_config.learned_l1_cascade_norm
+            || !raw.vector_quantizer_config.learned_l1_cascade_norm_final
+            || raw.vector_quantizer_config.quant_resi.ratio != 0.5
+            || raw.vector_quantizer_config.decay != 0.99
+            || raw.vector_quantizer_config.epsilon != 1e-5
+            || raw.vector_quantizer_config.commitment_cost != 0.25
+            || raw.vector_quantizer_config.aux.fine_drop.prob != 0.5
+            || raw.vector_quantizer_config.aux.fine_drop.min_keep != 1
+        {
+            return Err(Error::Config("unsupported WMT14 codec profile".into()));
+        }
+        Self::validate_with_width(raw, 384, 1, 151680, 640 * 1024 * 1024)
     }
     fn validate_with_width(
         raw: RawCodecConfig,
         max_width: usize,
         first_level: usize,
+        max_vocab: usize,
+        max_weight_bytes: usize,
     ) -> Result<Self> {
         let q = &raw.vector_quantizer_config;
         let levels = &q.levels.manual_levels;
@@ -173,8 +202,8 @@ impl CodecConfig {
             }
         };
         require(
-            (2..=65536).contains(&raw.in_vocab_size),
-            "vocabulary must be in 2..=65536",
+            (2..=max_vocab).contains(&raw.in_vocab_size),
+            "vocabulary outside profile bounds",
         )?;
         require(
             (2..=256).contains(&raw.context_length) && (8..=max_width).contains(&raw.embed_dim),
@@ -294,7 +323,10 @@ impl CodecConfig {
             .values()
             .map(|s| s.iter().product::<usize>() * 4)
             .sum();
-        require(bytes <= 256 * 1024 * 1024, "codec weights exceed 256 MiB")?;
+        require(
+            bytes <= max_weight_bytes,
+            "codec weights exceed profile limit",
+        )?;
         Ok(config)
     }
     pub fn raw(&self) -> &RawCodecConfig {

@@ -25,3 +25,16 @@ self-comparison SHA-256 is
 `70e56b06063a483a9b60de992bf28135fd2292ab9818cede1c89fc375b2ddcbf`.
 Publish the tools without changing the qualified XSum runtime source, then run
 a one-batch Metal smoke and unchanged resume before capturing all five seeds.
+
+On clean Mac commit `a10f358935ec13f43f6adfad54d494ecc868c103`, the seed-4
+one-batch smoke matched the retained Metal codes and IDs, and an unchanged
+resume passed. Its manifest SHA-256 is
+`136564f8719fe9fcd4bbf77b9aa1afa719051a61d2e05dbbf257b10530f05902`.
+The five full seeds are running sequentially using
+`.reference/mlx-venv/bin/python tools/bench/capture_xsum_mlx_stochastic_candidate.py
+--head a10f358935ec13f43f6adfad54d494ecc868c103 --binary-sha256
+a580ba2ca6c8a2e1a43d4e7a0b3a7b6645b6576f7424ec2ea3adb711a2429414
+--qualification reports/phase4-xsum-borrowed-upload-mlx-cli-v3/result.json
+--qualification-sha256 30415fa65a9346989ea8b4924a27d565bfd448ece82c310cb09adc148d7f3d12
+--seed SEED --output reports/phase4-xsum-borrowed-upload-mlx-stochastic-seed-SEED-v1`
+for seeds 4 through 8. Partial captures are not a quality result.

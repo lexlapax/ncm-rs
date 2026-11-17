@@ -173,3 +173,13 @@ required-features = ["cuda-cudnn"]
 [[example]]
 name = "xsum_top1_row_trace"
 required-features = ["cuda-cudnn"]
+
+[[example]]
+name = "wmt14_unsupported_probe"
+required-features = ["cpu"]
+
+[[example]]
+name = "wmt14_codec_preflight"
+
+[[example]]
+name = "wmt14_generator_preflight"

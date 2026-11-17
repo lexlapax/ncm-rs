@@ -214,7 +214,7 @@ fn decode_rope_tensor(tensor: &TensorView<'_>, expected: &str) -> Result<Vec<f32
         .collect())
 }
 
-fn validate_levels(level: &TensorView<'_>, lengths: &[usize]) -> Result<()> {
+pub(crate) fn validate_levels(level: &TensorView<'_>, lengths: &[usize]) -> Result<()> {
     let total: usize = lengths.iter().sum();
     let expected = lengths
         .iter()
@@ -230,15 +230,15 @@ fn validate_levels(level: &TensorView<'_>, lengths: &[usize]) -> Result<()> {
             .map(|x| i64::from_le_bytes(*x))
             .eq(expected)
     {
-        return Err(Error::Weights("incorrect XSum level buffer".into()));
+        return Err(Error::Weights("incorrect generator level buffer".into()));
     }
     Ok(())
 }
 
-fn validate_mask(mask: &TensorView<'_>, lengths: &[usize], prefix: usize) -> Result<()> {
+pub(crate) fn validate_mask(mask: &TensorView<'_>, lengths: &[usize], prefix: usize) -> Result<()> {
     let seq = prefix + lengths.iter().sum::<usize>();
     if mask.dtype() != Dtype::F32 || mask.shape() != [1, 1, seq, seq] {
-        return Err(Error::Weights("invalid XSum attention mask".into()));
+        return Err(Error::Weights("invalid generator attention mask".into()));
     }
     let mut levels = vec![usize::MAX; prefix];
     for (i, &len) in lengths.iter().enumerate() {
@@ -253,7 +253,7 @@ fn validate_mask(mask: &TensorView<'_>, lengths: &[usize], prefix: usize) -> Res
             f32::NEG_INFINITY.to_bits()
         };
         if u32::from_le_bytes(*raw) != expected {
-            return Err(Error::Weights("incorrect XSum attention mask".into()));
+            return Err(Error::Weights("incorrect generator attention mask".into()));
         }
     }
     Ok(())

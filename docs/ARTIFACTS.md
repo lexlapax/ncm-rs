@@ -78,6 +78,19 @@ export and its digest are recorded in [the Phase 4 contract](PHASE4-TEXT.md).
 
 An opt-in `xsum-inference-v2` profile additionally carries two hash-pinned rotary reference tensors. Its format and initial table-only quality failure are documented in the [experimental profile report](results/2026-11-15-phase4-xsum/rotary-artifact-profile-v2.md); the subsequent native CUDA implementation is recorded in the [CUDA report](results/2026-11-15-phase4-xsum/cuda-reference-native-v1.md). The v1 profile remains supported; neither artifact profile on its own establishes the XSum runtime gate.
 
+## WMT14 inspection profile
+
+The explicit `wmt14-inference-v1` artifact contains `codec.safetensors`,
+`generator.safetensors`, `training.safetensors`, `config.json`, `tokenizer.json`,
+`tokenizer-manifest.json`, `tokenizer.LICENSE` and `provenance.json`. The
+generation-path codec and generator bundles contain 63 and 186 tensors; the 33
+EMA/hit tensors are retained in the training bundle. There is no inference
+metadata bundle. The separate loader profile permits at most 640 MiB per file
+and 1280 MiB total without widening other profiles. Full and inference-only CPU
+loads and reproducible exports are described in the [artifact record](results/2026-11-16-phase4-wmt14/artifact-plan-v1.md).
+This profile currently supports artifact and host semantic inspection only;
+WMT14 model execution and GPU parity remain explicitly unsupported.
+
 ## Proposed general runtime layout
 
 ```text

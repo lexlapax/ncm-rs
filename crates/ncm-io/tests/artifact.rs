@@ -390,3 +390,56 @@ fn xsum_profile_accepts_only_its_explicit_bundles_and_budget() {
     save(dir.path(), &manifest);
     assert!(Artifact::load(dir.path()).is_err());
 }
+
+#[test]
+fn wmt14_profile_has_exact_inventory_and_independent_bounds() {
+    let (dir, mut manifest) = fixture();
+    manifest.profile = "wmt14-inference-v1".into();
+    for (name, bytes) in [
+        ("tokenizer-manifest.json", b"{}".as_slice()),
+        ("tokenizer.LICENSE", b"notice".as_slice()),
+    ] {
+        fs::write(dir.path().join(name), bytes).unwrap();
+        manifest.files.insert(
+            name.into(),
+            FileRecord {
+                bytes: bytes.len() as u64,
+                sha256: sha256(bytes),
+            },
+        );
+    }
+    save(dir.path(), &manifest);
+    let full = Artifact::load(dir.path()).unwrap();
+    let inference = Artifact::load_inference(dir.path()).unwrap();
+    assert_eq!(full.manifest().profile, "wmt14-inference-v1");
+    assert!(!full.file("training.safetensors").unwrap().is_empty());
+    assert!(inference.file("training.safetensors").is_err());
+    assert!(inference.file("inference.safetensors").is_err());
+
+    manifest.files.insert(
+        "inference.safetensors".into(),
+        FileRecord {
+            bytes: 0,
+            sha256: sha256(b""),
+        },
+    );
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+    manifest.files.remove("inference.safetensors");
+    manifest.files.get_mut("codec.safetensors").unwrap().bytes = 640 * 1024 * 1024 + 1;
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+    manifest.files.get_mut("codec.safetensors").unwrap().bytes = 639 * 1024 * 1024;
+    manifest
+        .files
+        .get_mut("generator.safetensors")
+        .unwrap()
+        .bytes = 639 * 1024 * 1024;
+    manifest
+        .files
+        .get_mut("training.safetensors")
+        .unwrap()
+        .bytes = 3 * 1024 * 1024;
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+}

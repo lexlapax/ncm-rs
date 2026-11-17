@@ -3,6 +3,7 @@
 mod blocks;
 mod codec;
 mod generator;
+mod wmt14_generator;
 mod xsum_decode;
 mod xsum_generator;
 pub use blocks::{NoTrace, TraceSink, codebook_distances};
@@ -11,6 +12,7 @@ pub use generator::{
     Generated, Generator, GeneratorConfig, GeneratorWeights, TinyStoriesGeneratorInspection,
     TinyStoriesTeacher, XsumGenerated, XsumTeacher, XsumTeacherOutput,
 };
+pub use wmt14_generator::Wmt14GeneratorInspection;
 pub use xsum_decode::select_xsum_tokens_cpu;
 pub use xsum_generator::XsumGeneratorInspection;
 
