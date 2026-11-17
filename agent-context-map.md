@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum CUDA intervention replay:** the [bounded row-4937 replay](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) exactly reproduces CUDA hidden states and the decisive head margin from captured block boundaries. Substituting only Metal target input, or Metal latent followed by CUDA projection, flips the choice under CUDA replay. This implicates an upstream difference for this forced history; it does not qualify a fix or pass the Metal gate.
+
 - **XSum Metal-hidden head-chain screen:** the [controlled chain probe](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) tried five head layouts on the captured Metal split-head hidden state; all select 3690. Its CUDA reference scores use a different hidden state, so exact-match counts are not same-input accuracy. No inference change or gate pass.
 
 - **XSum head-chain probe:** the [standalone Metal screen](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) found six-part projection reproduced the decisive controlled CUDA margin on the inspected CUDA hidden state and had the most exact matches on four synthetic screens, but most logits still differed. The explicit six-part model passes full CUDA checks and Metal bounded screens, but its outputs match the prior split-head candidate and retain the row-4937 failure. Default inference is unchanged; the exact gate remains open.

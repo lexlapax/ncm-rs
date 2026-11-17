@@ -476,3 +476,59 @@ candidate: batch 4864 matches CUDA, while batch 4928 retains three code and
 five raw-ID differences. Input hashes passed postflight; local and Mac output
 hashes agree. The controlled head-chain improvement did not resolve this
 free-generation failure. Full corpus quality and performance remain pending.
+
+
+## CUDA intervention replay of the row-4937 crossing
+
+A local diagnostic replay uses the pinned upstream `Block`, captured row in
+its original slot 9 of a zero-filled batch of 32, the original 518-token
+geometry, captured rotary tables and the actual prefix padding mask. The
+initial PyTorch math-SDPA replay exactly matched the first normalization and
+QKV, but its attention differed in 324,028 values (maximum `2.5239e-7`),
+so it was not an exact baseline. Replacing SDPA with the repository CUDA
+masked-softmax kernel and the same contiguous matrix products made block 0
+match all 397,824 captured outputs exactly, including the recorded internal
+stages. The extracted kernel uses the repository build's `compute_75` and
+`-O3` options; these are bounded diagnostics, not changes to inference.
+
+Using that replay through the remaining blocks, captured CUDA states at the
+input and after blocks 0, 5, 10 and 11 each reproduced the captured CUDA final
+hidden exactly and the reference head pair margin `+9.5367e-7` (choice 3182).
+For each corresponding Metal state, replay chose 3690, with respective margins
+`-9.5367e-7`, `-1.9073e-6`, `-1.9073e-6`, `-2.8610e-6`, and `-2.8610e-6`.
+The head projection and codebook dot products must use flattened batch geometry;
+a preliminary three-dimensional projection yielded an incorrect CUDA baseline
+and is not used for attribution. These experiments do not prove a unique cause.
+
+The captured prefix input is identical between backends. Substituting only the
+Metal prefix into CUDA input preserves the CUDA result; substituting only the
+six Metal target vectors changes 4,232 input elements (maximum `9.5367e-7`)
+and flips the replayed choice to 3690. Separately, the CUDA input projection
+of the captured CUDA latent exactly reproduces the captured projection and
+input, whereas projecting the Metal latent with CUDA and then running CUDA
+transformer/head also chooses 3690 (margin `-1.9073e-6`). The captured
+level-zero codebook embeddings and first cascade convolution match exactly,
+while the subsequent cascade normalization and reconstruction differ. These
+findings establish that upstream target/latent differences can independently
+cause this one crossing; they do not establish which operation to change,
+whether a candidate fixes free generation, or full-corpus parity.
+
+The ignored local artifacts are under `reports/phase4-xsum-block-replay-v1/`.
+The exact-block script, kernel source and log SHA-256 values are respectively
+`c6f2d1ff0257c617444135dc1ce4b7b35548c50abfeed4e9d057ed83bf6ac2e8`,
+`c760c3efeb761498705a22a129ff990fa4bf2afe8e5aaf37af203f4bc3844b83` and
+`8938b5298ec743fcb8f09a3561ec3a02254b8a4eb63890bd6bdc673faea7a135`.
+Boundary intervention script/log hashes are
+`9cf85cdceee1b5a90e9093d151c50cf7c0db123b63d6a2c5564f592c8cd4b9d4` /
+`aff41abb1160024184f6e29a3efe015d8c8d1a1facf73e306ab0b909856405ff`;
+input split script/log hashes are
+`5fa4967c22e793cb1a584b7fe83a55af64dbab64aab529c244142cb8ef51fdf0` /
+`a845d575b2c672cd44af2e47d743f00b7b4df57e79f0eb50e7aad5d5edc3d607`;
+latent intervention script/log hashes are
+`8b0e32ff0b20a7160946ef4c75f645a87c01ec5baf74ba3680b6fd69a7dc31a5` /
+`c4c47be44dd166c658dbf18ade95f24ca2d0beec443b6cf770001a74b160e8bd`.
+Run the Python probes with `setpriv --inh-caps=-all env OMP_NUM_THREADS=1
+.reference/venv/bin/python` followed by the script path; compile the extracted
+kernel with `/opt/cuda/bin/nvcc --shared -Xcompiler -fPIC -O3
+--gpu-architecture=compute_75 softmax.cu -o softmax.so`. The full quality
+and performance gates remain open.
