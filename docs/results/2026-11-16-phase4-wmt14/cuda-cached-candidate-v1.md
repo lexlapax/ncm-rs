@@ -357,3 +357,30 @@ comparator now checks Python batch 4 against candidate external 16/internal
 matching output, altered ID detection and rejection of the wrong internal
 batch size. Capture metadata now records both batch sizes. Strict lint passes;
 a new source-bound full replay and memory benchmark remain pending.
+
+The corrected source-bound full replay at `fdf08a4` matched every one of
+3,003 Python code and raw-ID rows. The capture, explicit-batching comparison
+and manifest SHA-256 values are
+`6968b30a6f277568356e6b0a52dc279129c3aed4083e912db2e3bbe7528eef66`,
+`e643731714afd9d64c9c891fae1f2ef56913d858ea6141f0637a7ef9234d37b0`, and
+`b82bcfa7b3565df9a7bb497a7517c2fdc179279317d320474ce5b9ae29a676e4`.
+The frozen full and held-out scorer passed, reproducing the previous diagnostic
+score byte-for-byte (SHA-256
+`915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`).
+This remains a replay of previously inspected data, not an unseen-input bound.
+
+A source-bound alternating batch-16 comparison used three fresh processes per
+runtime, five warmups and 30 trials each; every benchmark code and ID matched.
+Pooled median/p95 was 551.60/554.89 ms Rust versus 1235.80/1239.98 ms
+Python. Process medians were 550.23/551.43/553.65 ms Rust and
+1223.16/1236.13/1239.14 ms Python. Peak host RSS was 1856.65 MiB Rust
+versus 2093.19 MiB Python. Approximate sampled GPU process peaks were 1736
+MiB Rust versus 3072 MiB Python, not native allocator peaks. There were 204
+telemetry samples, zero query failures, temperatures 46.94–71.41 °C and other
+desktop GPU processes. Manifest, measurement and telemetry hashes are
+`ac04378f612cab270a461b4f3492201a84797ad656747c04d510f605a651a389`,
+`ed0154c744d7a286cf8e7d93265d56c439feec056d0c04776102601ce051d7ab`, and
+`1f5c53af7afb2469bb44845eed1a6a278a7196248ecb1c15448b67cf360de71d`.
+This addresses the observed batch-16 sampled memory regression in this
+nonexclusive comparison; it does not establish full Phase 4 or WMT Metal
+qualification, and the normal cached CFG path remains guarded.
