@@ -177,3 +177,17 @@ cases (`reports/phase4-xsum-groupnorm-candidate-cuda-check-v1.log`). Rust
 Metal compilation and forced-history behavior remain pending. The Rust kernel
 binding does not expose the Python probe's safe-math option, so equivalence to
 that probe must be measured, not assumed.
+
+The first Metal forced-history run failed because the shared tracer still
+expected 36 tensors after three diagnostic tensors were added. The failed log
+is retained in `reports/phase4-xsum-groupnorm-model-v1/` on Mac. After the
+guard was corrected to 39, the full CUDA check passed (18 device cases) and
+the corrected Mac capture completed at `ddb0aa1`. Row 4937's first convolution
+is exact versus the retained CUDA trace; group normalization differs in 491 of
+4,608 values, the same count and maximum `4.7684e-7` as the standalone probe.
+At level 1 position 4, CUDA still selects code 3182 and Metal selects 3690;
+the forced final IDs match. The capture SHA-256 is
+`6d81a2e4afc828f5c9384f878db85d91e4497ceaf33e29042bd44612d0c1324e`,
+and the copied file matches the Mac. Matching aggregate probe statistics does
+not prove the outputs are bit-identical. The candidate does not resolve the
+known crossing and does not qualify full generation or the Metal gate.
