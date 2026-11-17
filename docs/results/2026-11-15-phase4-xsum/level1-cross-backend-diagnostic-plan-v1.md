@@ -292,3 +292,15 @@ with margin `-5.7220e-6`; forced final IDs match. The tensor SHA-256 is
 `6bf249c311a636410eb9aafba54e4ee9e4c1ef822f5a4da09eab99e8c0554630`,
 and local and Mac copies match. This fails to resolve the known crossing and
 does not qualify full generation, quality or performance.
+
+At `9847c47`, the bounded free-generation example compared the default Metal
+backend with the upsample, groupnorm, GELU, compiled-GELU and all-operation
+diagnostic backends on the same 32-row batch beginning at row 4928. Every
+capture was byte-identical (SHA-256
+`1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`),
+and the default capture also reproduces the retained default Metal batch.
+Compared with the retained same-batch CUDA capture, each has three code and
+five raw-ID differences, all on row 4937. Input hashes passed before and after
+the runs; local and Mac captures match. This explicitly tests free generation
+on one previously inspected batch, not the full corpus or a quality gate. It
+rules out these candidates as exact fixes for this batch.
