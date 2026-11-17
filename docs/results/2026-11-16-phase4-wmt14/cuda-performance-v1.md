@@ -30,6 +30,21 @@ not an allocator peak. Host memory is the largest process peak RSS.
 | 1 | 16 | Python | 1238.95 / 1240.75 | 1236.83–1240.03 | 2093 | 3072 |
 | 1 | 16 | Rust | 1223.69 / 1225.43 | 1223.10–1224.07 | 1875 | 2600 |
 
+At the pooled median, throughput is as follows. “Positions” counts all 64
+decoder output positions per sample, including those after EOS. “Text IDs”
+counts generated IDs before the first EOS, excluding the pinned tokenizer’s
+special IDs; it does not count decoded words. Counts vary with the fixed
+prefixes and are identical between runtimes.
+
+| CFG | Batch | Text IDs/batch | Python samples / positions / text IDs per second | Rust samples / positions / text IDs per second |
+|---:|---:|---:|---:|---:|
+| 0 | 1 | 8 | 15.6 / 998.6 / 124.8 | 16.7 / 1070.6 / 133.8 |
+| 0 | 4 | 75 | 22.4 / 1434.5 / 420.3 | 22.8 / 1457.9 / 427.1 |
+| 0 | 16 | 385 | 24.5 / 1570.1 / 590.3 | 24.2 / 1547.5 / 581.8 |
+| 1 | 1 | 12 | 9.8 / 626.1 / 117.4 | 10.1 / 647.7 / 121.5 |
+| 1 | 4 | 83 | 12.1 / 772.5 / 250.5 | 12.4 / 793.9 / 257.4 |
+| 1 | 16 | 416 | 12.9 / 826.5 / 335.8 | 13.1 / 836.8 / 340.0 |
+
 The corresponding pooled median CUDA-event spans (Python/Rust, ms) were:
 CFG=0, batches 1/4/16: 64.04/59.71, 178.42/172.12, 652.11/643.56;
 CFG=1: 102.18/98.75, 331.33/318.02, 1238.85/1205.54. Events bracket
@@ -48,8 +63,8 @@ samples with no query errors; four desktop GPU processes persisted throughout,
 so the run was not GPU-exclusive. Sampled GPU utilization ranged 0–100%,
 temperature 44.12–72.53 °C. Clock policy was not changed. The device-only
 spans above are not pure kernel time; stage breakdowns, maximum capacity,
-steady-state allocator accounting, actual non-special token throughput and
-strictly exclusive-device measurements remain pending. Thus this report alone
+steady-state allocator accounting and strictly exclusive-device measurements
+remain pending. Thus this report alone
 does not satisfy every reporting requirement or establish the WMT CUDA gate.
 
 The source-bound run command was:
