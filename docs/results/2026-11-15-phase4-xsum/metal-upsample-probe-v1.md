@@ -200,3 +200,14 @@ competing level-1 logits are exactly the same in the original Metal,
 upsampling-only and group-normalization candidate traces: 9.411467552 for
 code 3182 and 9.411472321 for code 3690. These inspected values do not prove
 causality; they narrow a subsequent normalization-arithmetic probe to group 5.
+
+At `1105884`, the standalone reference-layout reduction was rerun with
+explicit safe, relaxed and fast Metal math modes. Safe reproduced 4,117/4,608
+exact matches, with all 491 differences in group 5. Both relaxed and fast
+matched 2,523/4,608, with differences in seven groups. The three hash-bound
+receipts remain under `reports/phase4-xsum-groupnorm-math-*-v1.json` on both
+machines; their respective SHA-256 values are
+`4abebfca74b51fb9cc52c38dc19792f2c7789efc1156777158658282acc7f071`,
+`f765ed53627d3c3daf1cc1bee45008ebd91c76a9283394b6c4485e34f2c37f96`, and
+`9e8d5effd2fcc4665c1c3373878c837922bcb1fd01e354b484f553f9ef31955b`.
+These are one-row diagnostic results, not production or quality acceptance.
