@@ -224,3 +224,15 @@ forced final IDs match CUDA. The captured tensor SHA-256 is
 `0d9364a314d78c6609e41261873c3d143f6d6c68b13ee811ab162d1594940dc7`,
 with matching local and Mac copies. This does not resolve the crossing or
 qualify a full generation, quality or performance gate.
+
+A fresh synthetic standard-normal `[1, 518, 3072]` input generated with Torch
+CPU seed `735027` was scored by pinned PyTorch CUDA GELU and compared using
+the existing Metal probe. The input SHA-256 is
+`7b1dd78ef1062804010e816fa6564bda7240706526ad933950a2100a1f414bfb`;
+the result SHA-256 is
+`a13e47c6a9a552db13097d6371549ddfee32b888e159e6a2ad8de6ce7939f170`.
+Composed Metal matched 1,080,669/1,591,296 values exactly; the standalone
+CUDA-order Metal expression matched 1,203,197, with maximum absolute
+differences `7.1526e-7` and `5.9605e-7`, respectively. All three Metal math
+modes had the same reported results. This one synthetic input is not a
+model-quality, performance or full-parity result.

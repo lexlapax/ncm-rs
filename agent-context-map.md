@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum synthetic GELU screen:** a [fresh synthetic input](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) shows 1,203,197/1,591,296 exact CUDA matches for the standalone CUDA-order Metal expression versus 1,080,669 for composed Metal. It remains a bounded operation test; the model candidate still fails the known crossing and the Metal gate remains open.
+
 - **XSum GELU model diagnostic:** an explicit experimental Metal backend combines the previous cascade probes with an uncompiled MLX CUDA-order GELU expression. The default backend is unchanged. Full `tools/check.sh --cuda` passed, including 18 device cases (`reports/phase4-xsum-gelu-model-cuda-check-v1.log`); the [Metal row-4937 trace](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) still selects the wrong level-1 code, although the margin narrowed slightly. No quality or performance gate is claimed.
 
 - **XSum GELU order screen:** the [standalone Metal same-input probe](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md) compared a CUDA-order expression under safe, relaxed and fast math. After two documented JIT header failures, all modes matched 1,180,744/1,591,296 CUDA values versus 1,034,783 for composed GELU. This is a single inspected row, not a Rust model or performance result; no runtime behavior changes.
