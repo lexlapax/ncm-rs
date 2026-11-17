@@ -756,3 +756,14 @@ local and Mac copies agree. The continuation script/log hashes are
 `02b1e98636dae03974a54cd86f024e7b6137efd602c8ec84ccb98cdd793a9732`.
 A statistics comparison is prepared. These do not qualify a model change or
 a gate.
+
+
+The safe Welford [statistics comparison](../../../tools/reference/xsum_candidate_norm_stats_metal_probe.py)
+matched all 518 CUDA means; 53 of 518 reciprocal standard deviations differed
+(maximum `4.7684e-7`), and 31,190 of 397,824 outputs differed. Relaxed and
+fast math each differed in 60 reciprocal standard deviations and 198,459
+outputs. The input/result SHA-256 values are
+`249ed8d48f81283b2b8df34150d6a857975319903ac33e0daa57790664f5dba0` /
+`088873a918959e8ea5ea8a03cfb0b30ba09de28815fd720d70893527b93ecc18`.
+The receipt input was checked before and after; the forced-statistics control
+is pending. These observations cover one candidate history, not a gate.

@@ -49,6 +49,22 @@ def main():
             diff = np.abs(a - b)
             results[mode][name] = {'different': int(np.count_nonzero(diff)),
                                    'total': int(diff.size), 'max_abs': float(diff.max())}
+    forced_source = SOURCE.replace(marker, 'float inv = rstd[row];').replace(
+        'x[row * 768u + col] - mean_buf[0]', 'x[row * 768u + col] - mean[row]')
+    if forced_source == SOURCE:
+        raise ValueError('forced statistics insertion failed')
+    forced_kernel = mx.fast.metal_kernel(name='ncm_xsum_norm_forced_stats',
+        input_names=['x', 'gamma', 'beta', 'mean', 'rstd'], output_names=['out'],
+        source=forced_source, header=HEADER, compile_options={'math_mode': 'safe'})
+    (forced,) = forced_kernel(inputs=[d['x'], d['gamma'], d['beta'], d['mean'], d['rstd']],
+        grid=(518 * 128, 1, 1), threadgroup=(128, 1, 1),
+        output_shapes=[(518, 768)], output_dtypes=[mx.float32])
+    a, b = np.asarray(forced), np.asarray(d['cuda'])
+    if not np.isfinite(a).all() or not np.isfinite(b).all():
+        raise ValueError('nonfinite comparison')
+    diff = np.abs(a - b)
+    results['forced_cuda_statistics'] = {'different': int(np.count_nonzero(diff)),
+        'total': int(diff.size), 'max_abs': float(diff.max())}
     if digest(args.input) != args.input_sha256:
         raise ValueError('input changed')
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
