@@ -186,3 +186,26 @@ LM1B runtime parity claim. Official sampling and the full scorer remain open.
 
 The repository standard `tools/check.sh` passed; log SHA-256
 `dbfeaf609c7656fc5476b98c6f69fbbd2c08423e0bd113843b2cf68e029470ef`.
+
+## Official-size scorer batch development check
+
+The same three inspected samples were each repeated six times, producing 18
+rows and exercising one scorer batch of 16 plus a two-row tail. The pinned
+upstream and diagnostic expressions matched exactly on CUDA in two fresh
+processes. Both reports have SHA-256
+`6da0ca7fbf67ac34fa198791f8765e47d52922d9a3639c0dc7ecdaef3cbbb45e`;
+the updated diagnostic source SHA-256 is
+`8cb8c54f12c2ce618366de0738cf0681136a77344dffa41729f82f2cfaba1d40`.
+Each report records 2,286 valid targets, NLL sum 10499.0439453125 and
+perplexity 98.76641633880666. PyTorch's process-level peak allocated and
+reserved counters were 4,439,650,304 and 5,538,578,432 bytes, respectively,
+across both upstream and diagnostic passes. Desktop GPU activity was present;
+these are allocator counters, not total GPU or process peak memory. The run
+used `--repeat 6` on the bounded scorer command above.
+
+This establishes that the original full-batch operation fit and matched in
+this single repeated-sample setting. It does not test 256 distinct samples,
+a quality margin, a Rust model or the full evaluation's resource envelope.
+
+The repository standard `tools/check.sh` passed; log SHA-256
+`357331545d482b5717225040fee5bef2f07b074f28dff3a3f8d0cf888aff6525`.

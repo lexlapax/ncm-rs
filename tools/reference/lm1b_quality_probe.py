@@ -69,6 +69,7 @@ def main():
     p.add_argument('--model', type=Path, required=True)
     p.add_argument('--bert', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--repeat', type=int, choices=(1, 6), default=1)
     args = p.parse_args()
     if args.output.exists() or args.output.is_symlink() or not args.output.resolve().is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('output must be new and under reports')
@@ -101,6 +102,7 @@ def main():
         if sample['size'] != size or len(sample['raw_ids']) != 128 or any(type(x) is not int or not 0 <= x < 30528 for x in sample['raw_ids']):
             raise ValueError('invalid sample')
         rows.append(sample['raw_ids'])
+    rows = rows * args.repeat
     bert = AutoTokenizer.from_pretrained(args.bert, local_files_only=True, trust_remote_code=False)
     ref = AutoTokenizer.from_pretrained(args.model, local_files_only=True, trust_remote_code=False)
     if ref.pad_token is None:
@@ -124,11 +126,13 @@ def main():
     if before != {str(path): digest_file(path) for path in watched}:
         raise ValueError('scorer inputs changed during probe')
     check_upstream()
-    json_file(args.output, {'scope': 'three inspected CPU samples; scorer development only, not quality or held-out validation',
+    json_file(args.output, {'scope': 'repeated inspected CPU samples; scorer development only, not quality or held-out validation',
                              'upstream': UPSTREAM, 'evaluator_sha256': EVALUATOR_SHA, 'sample_sha256': SAMPLES,
-                             'count': len(rows), 'ppl': actual, 'nll_sum': nll, 'token_count': count,
+                             'count': len(rows), 'repeat': args.repeat, 'ppl': actual, 'nll_sum': nll, 'token_count': count,
                              'entropy': actual_entropy, 'upstream_exact': True,
-                             'torch': torch.__version__, 'gpu': torch.cuda.get_device_name(0)})
+                             'torch': torch.__version__, 'gpu': torch.cuda.get_device_name(0),
+                             'peak_allocated_bytes': torch.cuda.max_memory_allocated(),
+                             'peak_reserved_bytes': torch.cuda.max_memory_reserved()})
     print(json.dumps({'ppl': actual, 'token_count': count, 'upstream_exact': True,
                       'report_sha256': digest_file(args.output)}, sort_keys=True))
 
