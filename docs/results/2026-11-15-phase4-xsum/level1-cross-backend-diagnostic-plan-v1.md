@@ -131,3 +131,18 @@ capture remain pending. This is diagnostic and does not change selection or
 qualification rules.
 The full CUDA check passed, including 18 operator cases; log SHA-256
 `870f5aaf57d082ac64fee66c467e798cdc2968b588ba85317dcf51d1d41c30c6`.
+
+The corresponding Metal capture at `09d6c04` passed the full Metal check,
+including 18 operator cases; log SHA-256
+`338328af45b060beefdb7073d2d700296f023d619a266396fb2a694cc621dc97`.
+The Metal trace SHA-256 is
+`4eae7ba83c8a945e4c9c7beb850e963db0a6a4367a57dab3c00df14448cbf1d5`;
+the local copy matches the remote hash, inputs were unchanged, and all 29
+previous Metal tensors match bit-for-bit. The CUDA/Metal first reconstruction
+already differs in 17,521 of 18,432 elements (maximum absolute `1.9073e-6`,
+RMS `2.3264e-7`). The resized latent differs in 2,206 of 2,304 elements
+(maximum `3.8743e-7`), and the target projection in 4,401 of 4,608 (maximum
+`7.1526e-7`). These observations locate a difference before the resize but do
+not identify the first differing codec operation or prove causation for the
+head near tie. The exact Metal gate remains failed. Raw evidence is retained
+under ignored `reports/phase4-xsum-target-{cuda-v1,mlx-captured-v1}/`.
