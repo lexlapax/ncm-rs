@@ -952,3 +952,34 @@ regression passed and the retained, shape-checked mathematical probe reproduced
 both the prior receipt and tensor byte-for-byte. The checked-in probe is the
 validated version; the earlier hash identifies the exploratory version used
 for the original two-input screen.
+
+An independently computed high-precision-erf intervention evaluates `erf` in
+CPU FP64 at the FP32-scaled captured MLP input, rounds it to FP32, and applies
+the FP32 GELU expression. It matches 1,493,683/1,591,296 same-input CUDA
+outputs exactly (maximum difference `4.7684e-7`). In the controlled CUDA
+continuation it selects 3690 with margin `-9.5367e-7`; substituting the exact
+same-input CUDA GELU instead selects reference code 3182 with margin
+`+9.5367e-7`. Thus greater mathematical accuracy alone is not a reliable
+reference-order fix for this case. This is a bounded intervention, not a
+full-model result.
+
+Partitioning the high-precision intervention gives 3690 when substituting only
+prefix positions 0–511, and 3182 when substituting only target positions
+512–517. Substituting only prefix positions 0–127 gives 3690; positions 128–255
+produce a tie selecting 3182, and either later 128-position segment retains
+3182 with positive margin. Both independent halves of positions 0–127 select
+3690. The source input's first 128 positions contain actual prefix tokens;
+the later segments include padding. These are separate interventions and do
+not establish a unique causative element or a portable tolerance.
+
+The checked-in preparation tool `tools/reference/xsum_precise_gelu_probe.py`
+reproduced the initial intervention tensor byte-for-byte, SHA-256
+`bb76d1102657be7d4a3e0cd5979934aca96094cb969c3b3ec96df695c9bb6dbf`, and
+rejects a mismatched input hash. The full/partition/control replay script and
+log hashes, in order, are:
+
+- Full: `6dec87b650acad0f0dc3f57a2a33683e3d9d7eeb4ac8c538b90ad2b478b8db46` / `6976173fa329a93647d9327adea5ccfb5ea618fdcb8848cae37bdd2b60a41108`.
+- Prefix/target: `47effaaed50ab9ba8ebfc795091055ca4e1e701ef2a3482c32b5c352f1f8e392` / `6660ac0f2557bdb177cd978240abca05fe3ef2c073c0ffa556db77d17ccee3a2`.
+- Prefix quarters: `ffd25d23eb3afb4f189899b3c60c6397b8633cb4cce8dc77d73294fc57db55ab` / `1e61cf95a6ac9bd2428aa1d1df61e060107610a9b941f038b4aa2ff40c0a450b`.
+- First-quarter halves: `0a22578e955e19715d8c9a01e661603eed75216de7b61f3f9db63e38d63060cd` / `47658af0797fc3b1ac4e227e782673252ad59db7ccddcb0ebcb83e84bd6ffd2d`.
+- Exact CUDA control: `017b1ab7c18ab85fadcdfb5ceb51021bc9939b0c3c54af27d96a8d5d9e588ceb` / `acbc370b5e6a60e8c2104227d620ea4760da76a48383c3d20a5f87771d3d3141`.
