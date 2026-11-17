@@ -20,8 +20,25 @@ tests for changed outputs and wrong internal batching.
 One nonexclusive batch-16 timing smoke with five warmups and 30 trials had
 Rust median/p95 1.232480/1.236935 seconds, versus the earlier independent
 Python median of 1.237539 seconds. This small difference is not a repeated
-paired performance result or a gate pass. A clean-source full 3,003-row exact
-replay, frozen scorer and repeated performance/memory comparison are pending.
+paired performance result or a gate pass.
+
+At clean source `1acc06771e2178b6b69fff5537c051247965bdc6`, the source-bound
+full capture matched all 3,003 Python rows in both codes and raw IDs. Candidate
+SHA-256 is `47c4d3f93681af3851d66fdcfba2d042c5f4d5f81f78abac4571c0603cf32556`;
+comparison receipt SHA-256 is
+`b32b7f381175e942715647acdb367bbfadf912d1b8535087e377aa7191d4e711`.
+Two independent frozen scorer environments produced the same passing full and
+held-out result, SHA-256
+`915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`.
+This is a replay of previously inspected data, not a fresh held-out study.
+
+In a fresh alternating three-process-per-runtime batch-16 benchmark, each with
+five warmups and 30 timed trials, pooled median/p95 were 1.240296/1.307808 s
+for Python and 1.259900/1.301218 s for Rust. Rust's median was 1.58% slower;
+the favorable preliminary smoke did not reproduce. The benchmark completed its
+output checks. GPU activity was sampled, not controlled exclusively, and these
+timings do not establish a performance gate pass. Retain the measurements and
+telemetry under `reports/phase4-wmt14-uncached-eight-bench-v1/`.
 
 Commands:
 
@@ -33,6 +50,8 @@ setpriv --inh-caps=-all env OMP_NUM_THREADS=1 LD_LIBRARY_PATH="$PWD/.reference/v
 .reference/venv/bin/python -m unittest discover -s tools/reference -p test_compare_wmt14_cfg_eight_capture.py
 setpriv --inh-caps=-all env RUSTC_WRAPPER= LIBRARY_PATH="$PWD/reports/phase4-wmt14-uncached-cfg-link-v1" LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" cargo clippy --locked -p ncm-model -p ncm-backend-cuda --all-features --all-targets -- -D warnings
 setpriv --inh-caps=-all env RUSTC_WRAPPER= ./tools/check.sh --cuda > reports/phase4-wmt14-uncached-eight-check-v1.log 2>&1
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/bench/capture_wmt14_cfg_uncached_eight.py --mode cfg1 --head 1acc06771e2178b6b69fff5537c051247965bdc6 --binary-sha256 d3270aaeb3cdf225dbdca95b17b38edb91f7947cc6be9887fbf82a5f5676a053 --protocol-sha256 26f5f13aeb440da2f95f56091a482e221fa0c311934494a334566d9bc5ff8de1 --rows 3003 --output reports/phase4-wmt14-uncached-eight-full-v1
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false .reference/venv/bin/python tools/bench/run_wmt14_cfg_uncached_eight_bench.py --output reports/phase4-wmt14-uncached-eight-bench-v1 --repetitions 3 --batches 16 --modes 1
 ```
 
 All-feature lint and the full CUDA check passed, including 18 device operator
