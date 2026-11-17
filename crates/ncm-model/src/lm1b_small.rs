@@ -51,6 +51,84 @@ fn expected_shapes() -> BTreeMap<String, Vec<usize>> {
     shapes
 }
 
+fn expected_codec_shapes() -> BTreeMap<String, Vec<usize>> {
+    let mut shapes = BTreeMap::new();
+    for (name, shape) in [
+        ("decoder.ln_f.weight", vec![384]),
+        ("decoder.output_layer.weight", vec![30528, 384]),
+        ("decoder.wpe.weight", vec![128, 384]),
+        ("encoder.wte.weight", vec![30528, 384]),
+        ("vq.learned_down_l1.weight", vec![384, 384, 128]),
+        ("vq.learned_down_l1.bias", vec![384]),
+        ("vq.learned_up_l1.weight", vec![384, 384, 128]),
+        ("vq.learned_up_l1.bias", vec![384]),
+    ] {
+        shapes.insert(name.into(), shape);
+    }
+    for level in 0..12 {
+        shapes.insert(format!("vq.embeddings.{level}.weight"), vec![8192, 384]);
+        shapes.insert(format!("vq.quant_resi.{level}.weight"), vec![384, 384, 3]);
+        shapes.insert(format!("vq.quant_resi.{level}.bias"), vec![384]);
+    }
+    let blocks = std::iter::once("decoder.middle_block".to_owned())
+        .chain((0..3).map(|i| format!("decoder.extra_blocks.{i}")));
+    for block in blocks {
+        for (name, shape) in [
+            ("ln_1.weight", vec![384]),
+            ("ln_1.bias", vec![384]),
+            ("ln_2.weight", vec![384]),
+            ("ln_2.bias", vec![384]),
+            ("attn.c_attn.weight", vec![1152, 384]),
+            ("attn.c_attn.bias", vec![1152]),
+            ("attn.c_proj.weight", vec![384, 384]),
+            ("attn.c_proj.bias", vec![384]),
+            ("attn.q_norm.weight", vec![64]),
+            ("attn.k_norm.weight", vec![64]),
+            ("mlp.c_fc.weight", vec![1536, 384]),
+            ("mlp.c_fc.bias", vec![1536]),
+            ("mlp.c_proj.weight", vec![384, 1536]),
+            ("mlp.c_proj.bias", vec![384]),
+        ] {
+            shapes.insert(format!("{block}.{name}"), shape);
+        }
+    }
+    shapes
+}
+
+/// Host-only preparation inspection; it does not construct a codec, authenticate
+/// an artifact, allocate a backend, or enable LM1B inference.
+pub struct Lm1bSmallCodecInspection {
+    pub codec_tensors: usize,
+}
+impl Lm1bSmallCodecInspection {
+    pub fn from_preparation_bytes(config: &[u8], codec: &[u8]) -> Result<Self> {
+        if ncm_io::sha256(config) != CONFIG_SHA {
+            return Err(Error::Config(
+                "unexpected pinned LM1B-small preparation config".into(),
+            ));
+        }
+        let tensors = SafeTensors::deserialize(codec).map_err(|e| Error::Weights(e.to_string()))?;
+        let shapes = expected_codec_shapes();
+        if tensors.len() != shapes.len() {
+            return Err(Error::Weights("LM1B codec inventory differs".into()));
+        }
+        for (name, shape) in &shapes {
+            let value = tensors
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            if value.dtype() != Dtype::F32
+                || value.shape() != shape
+                || has_nonfinite_f32_le(value.data())
+            {
+                return Err(Error::Weights(format!("invalid LM1B codec tensor {name}")));
+            }
+        }
+        Ok(Self {
+            codec_tensors: tensors.len(),
+        })
+    }
+}
+
 fn validate_distribution(tensor: &TensorView<'_>, width: usize) -> Result<()> {
     if tensor.dtype() != Dtype::F32 || tensor.shape() != [width] {
         return Err(Error::Weights(
@@ -139,7 +217,10 @@ impl Lm1bSmallGeneratorInspection {
 
 #[cfg(test)]
 mod tests {
-    use super::{Lm1bSmallGeneratorInspection, expected_shapes, validate_distribution};
+    use super::{
+        Lm1bSmallCodecInspection, Lm1bSmallGeneratorInspection, expected_codec_shapes,
+        expected_shapes, validate_distribution,
+    };
     use safetensors::{Dtype, tensor::TensorView};
 
     #[test]
@@ -150,6 +231,20 @@ mod tests {
         assert_eq!(shapes["post_upsample_convs.11.weight"], [384, 384, 3]);
         assert!(!shapes.contains_key("lm_heads.0.weight"));
         assert!(Lm1bSmallGeneratorInspection::from_preparation_bytes(b"{}", b"", b"").is_err());
+    }
+
+    #[test]
+    fn exact_codec_shape_inventory() {
+        let shapes = expected_codec_shapes();
+        assert_eq!(shapes.len(), 100);
+        assert_eq!(shapes["decoder.wpe.weight"], [128, 384]);
+        assert_eq!(
+            shapes["decoder.extra_blocks.2.attn.c_attn.weight"],
+            [1152, 384]
+        );
+        assert_eq!(shapes["vq.learned_up_l1.weight"], [384, 384, 128]);
+        assert!(!shapes.contains_key("vq.ema_w_0"));
+        assert!(Lm1bSmallCodecInspection::from_preparation_bytes(b"{}", b"").is_err());
     }
 
     #[test]

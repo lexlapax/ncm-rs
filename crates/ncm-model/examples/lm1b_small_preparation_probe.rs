@@ -1,6 +1,6 @@
 //! Host-only LM1B-small preparation inspection; never creates a backend.
 use ncm_io::sha256;
-use ncm_model::Lm1bSmallGeneratorInspection;
+use ncm_model::{Lm1bSmallCodecInspection, Lm1bSmallGeneratorInspection};
 use std::{error::Error, fs, io::Read, path::Path};
 
 fn read_checked(path: &Path, maximum: u64, expected: &str) -> Result<Vec<u8>, Box<dyn Error>> {
@@ -54,9 +54,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
     let result =
         Lm1bSmallGeneratorInspection::from_preparation_bytes(&config, &generator, &inference)?;
+    drop(generator);
+    let codec = read_checked(
+        &root.join("codec.safetensors"),
+        448 * 1024 * 1024,
+        "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+    )?;
+    let codec_result = Lm1bSmallCodecInspection::from_preparation_bytes(&config, &codec)?;
     println!(
         "{}",
-        serde_json::json!({"scope":"host generator preparation preflight only; no runtime or GPU qualification", "generator_tensors":result.generator_tensors, "inference_tensors":result.inference_tensors})
+        serde_json::json!({"scope":"host generator and codec preparation preflight only; no runtime or GPU qualification", "generator_tensors":result.generator_tensors, "inference_tensors":result.inference_tensors, "codec_tensors":codec_result.codec_tensors})
     );
     Ok(())
 }

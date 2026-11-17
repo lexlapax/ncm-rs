@@ -72,5 +72,28 @@ its source and preflight module hashes are
 `2bd96ad01a9fdbb025ec5e734cee770c0af9dd5518f475960a6d152b333af09c`.
 Full `tools/check.sh --cuda` passed 18 real-device operator cases (log SHA-256
 `5f19e381e9ba7189537341bb2c37655be6130c2d1297f91583e0189ad0615477`);
-all-feature model tests and strict all-target Clippy also pass. Codec semantic schema, artifact loader
-support, generator execution and all LM1B GPU/quality gates remain open.
+all-feature model tests and strict all-target Clippy also pass. Codec execution, artifact loader support, generator execution and all LM1B
+GPU/quality gates remain open.
+
+## Host-only codec preflight
+
+The same explicit experimental feature now checks the 100-tensor codec
+inventory against the pinned small config and exact expected names, FP32
+shapes and finite values. It includes the positional decoder embedding, the
+middle block plus three additional blocks, all twelve codebooks and residual
+convolutions, and learned first-level up/down convolutions. The separately
+retained training-state bundle is not loaded by this preflight. It does not
+construct a codec or establish execution parity; callers still need bounded,
+integrity-checked input bytes.
+
+The bounded local CPU probe passed the real preparation files with 100 codec,
+213 generator and two inference tensors. Feature-enabled tests check the codec
+shape inventory and wrong config; all-feature strict Clippy passes. The updated
+module, probe source and executable SHA-256 values are
+`d9568664c383de898e969a13380756e183c031e7e2956a2fd4e8a72b76c2f207`,
+`8e37a4a9f6701c7ea2782bc42eeca7087bd186b85743d50cd27f829f913de66d`, and
+`b4450c231d0391d256f81f67db8a6c65cd200a9eaf7dea5747493f489c16aad6`.
+Full `tools/check.sh --cuda` passed 18 real-device operator cases; log SHA-256
+`178dde3653b3b993729a01a7b379f2361a46680ed17a0555c8ff78879b508e83`.
+All-feature model tests and strict all-target Clippy pass. No model, loader,
+quality or GPU support is implied.
