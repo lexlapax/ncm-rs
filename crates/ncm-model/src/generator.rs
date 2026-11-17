@@ -638,6 +638,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     blocks: Box<[GeneratorBlock<B::Tensor>]>,
     heads: Box<[B::Tensor]>,
     geometry: Vec<LevelGeometry<B::Tensor>>,
+    cached_prefix_experimental: bool,
 }
 
 #[cfg(feature = "wmt14-experimental")]
@@ -698,7 +699,15 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             blocks: blocks.into_boxed_slice(),
             heads: heads.into_boxed_slice(),
             geometry,
+            cached_prefix_experimental: false,
         })
+    }
+
+    /// Explicit unqualified cache candidate; the standard constructor stays no-cache.
+    pub fn from_artifact_cached_experimental(backend: B, artifact: &Artifact) -> Result<Self> {
+        let mut model = Self::from_artifact(backend, artifact)?;
+        model.cached_prefix_experimental = true;
+        Ok(model)
     }
 }
 
@@ -806,6 +815,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         let mut cumulative: Option<B::Tensor> = None;
         let mut selected_levels = Vec::with_capacity(levels.len());
         let mut offset = 0;
+        let mut prefix_cache = None;
         for (level, &length) in levels.iter().enumerate() {
             let target_length = if level == 0 { 0 } else { length };
             let seq = 96 + target_length;
@@ -825,25 +835,48 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 sine: base.sine.clone(),
             };
             let hidden = if level == 0 {
-                wmt14_prefix_transformer(b, &self.blocks, &self.final_norm, &geometry, &prefix)?
+                if self.cached_prefix_experimental {
+                    let (hidden, cache) = wmt14_prefix_transformer_cached(
+                        b,
+                        &self.blocks,
+                        &self.final_norm,
+                        &geometry,
+                        &prefix,
+                    )?;
+                    prefix_cache = Some(cache);
+                    hidden
+                } else {
+                    wmt14_prefix_transformer(b, &self.blocks, &self.final_norm, &geometry, &prefix)?
+                }
             } else {
                 let latent = b.area1d(cumulative.as_ref().expect("preceding level"), length)?;
                 let target = b.add(
                     &b.project_bias(&latent, &self.input.weight, &self.input.bias)?,
                     &b.narrow(&self.level_embedding, 0, level - 1, 1)?,
                 )?;
-                decode_transformer(
-                    b,
-                    &self.blocks,
-                    &self.final_norm,
-                    &geometry,
-                    &prefix,
-                    &target,
-                    96,
-                    12,
-                    768,
-                    length,
-                )?
+                if let Some(cache) = &prefix_cache {
+                    wmt14_cached_target_transformer(
+                        b,
+                        &self.blocks,
+                        &self.final_norm,
+                        &geometry,
+                        &target,
+                        cache,
+                    )?
+                } else {
+                    decode_transformer(
+                        b,
+                        &self.blocks,
+                        &self.final_norm,
+                        &geometry,
+                        &prefix,
+                        &target,
+                        96,
+                        12,
+                        768,
+                        length,
+                    )?
+                }
             };
             let hidden = if level == 0 {
                 let mut rows = Vec::with_capacity(batch);
@@ -1003,6 +1036,92 @@ fn wmt14_prefix_transformer<B: ncm_core::GeneratorBackend>(
             &b.attention(&q, &k, &v, Some(&geometry.mask))?,
             batch,
             96,
+            12,
+            64,
+        )?;
+        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let hidden = b.gelu(&linear(&block.mlp_in, &norm(&block.ln_2, &x)?)?)?;
+        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+    }
+    norm(final_norm, &x)
+}
+
+#[cfg(feature = "wmt14-experimental")]
+type Wmt14PrefixCache<T> = Vec<(T, T)>;
+
+#[cfg(feature = "wmt14-experimental")]
+fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    blocks: &[GeneratorBlock<B::Tensor>],
+    final_norm: &Affine<B::Tensor>,
+    geometry: &LevelGeometry<B::Tensor>,
+    prefix: &B::Tensor,
+) -> Result<(B::Tensor, Wmt14PrefixCache<B::Tensor>)> {
+    let batch = b.shape(prefix)[0];
+    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &a.weight, &a.bias);
+    let norm =
+        |a: &Affine<B::Tensor>, x: &B::Tensor| b.layer_norm(x, &a.weight, Some(&a.bias), 1e-6);
+    let mut x = prefix.clone();
+    let mut cache = Vec::with_capacity(blocks.len());
+    for block in blocks {
+        let qkv = linear(&block.qkv, &norm(&block.ln_1, &x)?)?;
+        let [q, k, v] = b.split_qkv(&qkv, batch, 96, 12, 64)?;
+        let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
+        let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
+        let attn = b.merge_heads(
+            &b.attention(&q, &k, &v, Some(&geometry.mask))?,
+            batch,
+            96,
+            12,
+            64,
+        )?;
+        cache.push((k, v));
+        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let hidden = b.gelu(&linear(&block.mlp_in, &norm(&block.ln_2, &x)?)?)?;
+        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+    }
+    Ok((norm(final_norm, &x)?, cache))
+}
+
+#[cfg(feature = "wmt14-experimental")]
+fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    blocks: &[GeneratorBlock<B::Tensor>],
+    final_norm: &Affine<B::Tensor>,
+    geometry: &LevelGeometry<B::Tensor>,
+    target: &B::Tensor,
+    cache: &Wmt14PrefixCache<B::Tensor>,
+) -> Result<B::Tensor> {
+    let shape = b.shape(target);
+    let [batch, length, 768] = shape.as_slice() else {
+        return Err(Error::Input("invalid WMT14 cached target shape".into()));
+    };
+    if cache.len() != blocks.len() || *batch == 0 || *length == 0 {
+        return Err(Error::Input("invalid WMT14 prefix cache".into()));
+    }
+    let cosine = b.narrow(&geometry.cosine, 0, 96, *length)?;
+    let sine = b.narrow(&geometry.sine, 0, 96, *length)?;
+    let mask = b.narrow(&geometry.mask, 2, 96, *length)?;
+    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &a.weight, &a.bias);
+    let norm = |a: &Affine<B::Tensor>, x: &B::Tensor| {
+        if *batch < 16 {
+            b.layer_norm(x, &a.weight, Some(&a.bias), 1e-6)
+        } else {
+            b.layer_norm_accelerated(x, &a.weight, Some(&a.bias), 1e-6)
+        }
+    };
+    let mut x = target.clone();
+    for (block, (prefix_k, prefix_v)) in blocks.iter().zip(cache) {
+        let qkv = linear(&block.qkv, &norm(&block.ln_1, &x)?)?;
+        let [q, k, v] = b.split_qkv(&qkv, *batch, *length, 12, 64)?;
+        let q = b.rms_rope(&q, &block.q_norm, &cosine, &sine, 1e-6)?;
+        let k = b.rms_rope(&k, &block.k_norm, &cosine, &sine, 1e-6)?;
+        let keys = b.concat_f32(&[prefix_k.clone(), k], 2)?;
+        let values = b.concat_f32(&[prefix_v.clone(), v], 2)?;
+        let attn = b.merge_heads(
+            &b.attention(&q, &keys, &values, Some(&mask))?,
+            *batch,
+            *length,
             12,
             64,
         )?;

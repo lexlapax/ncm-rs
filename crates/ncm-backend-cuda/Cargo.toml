@@ -248,3 +248,15 @@ required-features = ["cuda-cudnn"]
 [[example]]
 name = "wmt14_stage_profile"
 required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cached_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cached_cfg_capture"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "wmt14_cached_perf_screen"
+required-features = ["wmt14-experimental", "cuda-cudnn"]
