@@ -78,3 +78,32 @@ A batch-32 microbatch smoke matched all retained Python codes and IDs and had
 a single-process median of 655.55 ms (result SHA-256
 `6c6cc0aaf7afb245cba75b655f6ef4b16507a5bb8a689c6dd278f3f0c977c2d3`).
 This smoke does not establish peak GPU memory or a repeated performance gate.
+
+## Explicit batch-of-four scheduling experiment
+
+At `915515a`, the separate benchmark processed external base batches in
+sequential cached groups of at most four. All codes and raw IDs matched the
+same-batch Python output across three alternating processes, five warmups and
+30 measured batches per process. The same 3,003-row base cache retest above
+used groups of four and matched every reference output. This benchmark is an
+explicit scheduling experiment, not yet a production API or a fresh corpus.
+
+| External batch | Python median / p95 ms | Microbatched Rust median / p95 ms | Host MiB Python / Rust | Sampled GPU MiB Python / Rust |
+|---:|---:|---:|---:|---:|
+| 16 | 647.84 / 652.16 | 335.57 / 336.91 | 2093 / 1844 | 2300 / 1606 |
+| 32 | 1278.08 / 1351.89 | 683.52 / 711.26 | 2093 / 1844 | 3726 / 1734 |
+
+Rust was 1.93× and 1.87× faster at the pooled median, with lower sampled host
+and GPU process memory for these workloads. Individual process medians were
+329.97/335.65/336.39 ms at batch 16 and 667.94/686.50/693.16 ms at batch 32;
+Python's were 643.98/647.84/651.70 and 1277.04/1277.35/1303.82 ms. This
+variation and the high batch-32 p95 are reported rather than hidden. The
+CUDA-event spans include intermediate host readbacks and idle time, so they
+are not pure GPU execution. There were 346 telemetry samples with no query
+errors; desktop GPU processes remained present. The measurement is not an
+exclusive-device gate and sampled driver memory is not an allocator peak.
+Manifest, measurements and telemetry SHA-256 values are
+`569a90153da587c77bb282ccc7306ba7b8d71bd3e5f6a7251ef41a3f0cab7928`,
+`1d1052ab3694f4bc76ede56b3214cbeb937c8a49a608d97d477f58a86611b6ed`, and
+`ec072880e88c67e41cff25bb2357fcb4e3be17fccf3dc256202b40b7e24addfe`.
+Raw files are retained under ignored `reports/phase4-wmt14-cache-microbatch-perf-v1/`.
