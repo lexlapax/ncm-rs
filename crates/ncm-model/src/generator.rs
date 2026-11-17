@@ -667,6 +667,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
         self.run_internal(prefix_tokens, Some(forced_codes), batch, trace, None)
+            .map(|_| ())
     }
 
     /// Experimental CFG-0 top-1 generation; tied or nonfinite heads fail.
@@ -677,6 +678,12 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
         self.run_internal(prefix_tokens, None, batch, trace, None)
+            .map(|_| ())
+    }
+
+    /// Return experimental CFG-zero top-1 outputs for explicit offline validation.
+    pub fn generate_top1(&self, prefix_tokens: &[u32], batch: usize) -> Result<Generated<B>> {
+        self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, None)
     }
 
     /// Experimental guided top-1 with the upstream EOS/PAD null prefix.
@@ -689,6 +696,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
     ) -> Result<()> {
         let combined = wmt14_cfg_prefixes(prefix_tokens, batch, scale)?;
         self.run_internal(&combined, None, batch * 2, trace, Some((batch, scale)))
+            .map(|_| ())
     }
 
     fn run_internal(
@@ -698,7 +706,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
         cfg: Option<(usize, f64)>,
-    ) -> Result<()> {
+    ) -> Result<Generated<B>> {
         let levels = self.codec.config().levels();
         let total: usize = levels.iter().sum();
         if !(1..=32).contains(&batch)
@@ -833,14 +841,14 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             trace.tensor(&format!("reconstruction.level_{level:02}"), &observed_sum)?;
             cumulative = Some(sum);
         }
+        let codes = b.concat_indices(&selected_levels, 1)?;
+        let codes = if let Some((original, _)) = cfg {
+            b.narrow_indices(&codes, 0, 0, original)?
+        } else {
+            codes
+        };
         if forced.is_none() {
-            let codes = b.concat_indices(&selected_levels, 1)?;
-            let observed = if let Some((original, _)) = cfg {
-                b.narrow_indices(&codes, 0, 0, original)?
-            } else {
-                codes
-            };
-            trace.indices("generator.codes", &observed)?;
+            trace.indices("generator.codes", &codes)?;
         }
         let latent = cumulative.expect("validated levels");
         let latent = if let Some((original, _)) = cfg {
@@ -853,7 +861,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
         trace.tensor("generator.final_logits", &logits)?;
         trace.indices("generator.greedy_ids", &ids)?;
-        Ok(())
+        Ok(Generated { codes, logits, ids })
     }
 }
 
