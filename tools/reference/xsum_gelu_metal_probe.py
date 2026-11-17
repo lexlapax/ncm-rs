@@ -35,6 +35,7 @@ def main():
     for mode in ('safe', 'relaxed', 'fast'):
         kernel = mx.fast.metal_kernel(name=f'ncm_xsum_gelu_cuda_order_{mode}',
             input_names=['x'], output_names=['out'],
+            header='#include "mlx/backend/metal/kernels/erf.h"',
             source='uint i = thread_position_in_grid.x; float v = x[i]; out[i] = v * 0.5f * (1.0f + erf(v * 0.7071067811865475244f));',
             ensure_row_contiguous=True, compile_options={'math_mode': mode})
         (value,) = kernel(inputs=[x], grid=(1591296, 1, 1), threadgroup=(256, 1, 1),
