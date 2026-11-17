@@ -111,6 +111,7 @@ def main():
     parser.add_argument('--input-sha256', required=True)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--reference-math-mode', choices=['safe', 'relaxed', 'fast'], default='safe')
+    parser.add_argument('--reference-inverse', choices=['rsqrt', 'sqrt-div'], default='rsqrt')
     args = parser.parse_args()
     if args.output.exists() or digest(args.input) != args.input_sha256:
         raise ValueError('output exists or input digest differs')
@@ -126,8 +127,12 @@ def main():
                                   compile_options={'math_mode': 'safe'})
     (candidate,) = kernel(inputs=[x], grid=(8 * 128, 1, 1), threadgroup=(128, 1, 1),
                           output_shapes=[(8, 576)], output_dtypes=[mx.float32])
+    source = REFERENCE_SOURCE
+    if args.reference_inverse == 'sqrt-div':
+        source = source.replace('rsqrt(value.m2 / value.count + 1.0e-5f)',
+                                '(1.0f / sqrt(value.m2 / value.count + 1.0e-5f))')
     reference_kernel = mx.fast.metal_kernel(name='ncm_xsum_groupnorm_reference_order_probe',
-        input_names=['x'], output_names=['out', 'stats'], source=REFERENCE_SOURCE,
+        input_names=['x'], output_names=['out', 'stats'], source=source,
         header=REFERENCE_HEADER, compile_options={'math_mode': args.reference_math_mode})
     reference_order, stats = reference_kernel(inputs=[x], grid=(8 * 512, 1, 1),
         threadgroup=(512, 1, 1), output_shapes=[(8, 576), (8, 2)],
@@ -152,6 +157,7 @@ def main():
         raise ValueError('input changed')
     args.output.write_text(json.dumps({'input_sha256': args.input_sha256,
         'reference_math_mode': args.reference_math_mode,
+        'reference_inverse': args.reference_inverse,
         'reference_group_mean_rstd': stats_values.tolist(),
         'scope': 'one previously inspected forced-history row; non-production diagnostic',
         'results': results}, indent=2) + '\n')

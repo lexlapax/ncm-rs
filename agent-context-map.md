@@ -4,7 +4,7 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **XSum group statistics diagnostic:** the standalone Metal reference-order probe now exposes its eight group means and inverse standard deviations for comparison to pinned CUDA; local syntax checking passed and Metal execution is pending. No inference behavior changes.
+- **XSum group statistics diagnostic:** CUDA and Metal reference-order means match in all eight groups for the inspected row; inverse standard deviations match except group 5, where Metal is one FP32 step higher. An explicit reciprocal-of-square-root diagnostic is prepared for comparison; no inference behavior changes.
 
 - **XSum group-normalization math-mode screen:** the [standalone Metal probe](docs/results/2026-11-15-phase4-xsum/metal-upsample-probe-v1.md) compared safe, relaxed and fast reference-kernel math on the captured row. Safe matched 4,117/4,608 CUDA values, with all 491 differences in group 5; relaxed and fast matched 2,523, with differences in seven groups. No model backend change or gate acceptance follows.
 
