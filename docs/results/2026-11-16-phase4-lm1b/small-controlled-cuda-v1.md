@@ -587,3 +587,92 @@ the result SHA-256 is
 The script passed Python syntax checking. Run it on the local CUDA device with
 `setpriv --inh-caps=-all env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 .reference/venv/bin/python reports/phase4-lm1b-probability-evidence-v1/ncm-lm1b-sampling-probability-v5.py`.
+
+### Top-p cutoff ties and the existing CUDA sort
+
+The two captured histories above each have a single mask transition on every
+masked row, with no transition through equal sorted logits. That observation
+is limited to those histories. To test ties separately, a deterministic
+synthetic fixture rounds 1,024 normally distributed 8,192-way FP32 rows to
+multiples of 1/8. The pinned upstream top-p path masks entries in five rows;
+in all five, its cutoff splits equal logits. Its default and explicitly stable
+sorts produce the same masked sets for these synthetic rows. The five selected
+rows reproduce the full-batch PyTorch sort indices when sorted on their own.
+
+On those same five synthetic rows, Candle's existing CUDA descending sort
+produces numerically equal sorted values but 39,943 different sorted indices.
+Applying the *upstream sorted-position mask* to Candle's order changes 76
+original token-mask entries across all five rows. Holding the later FP32
+softmax fixed, the largest distribution total variation caused by this mask
+change is `1.3432e-8`. This deliberately isolates tie ordering: it is not a
+Candle top-p implementation or a full-model result. It shows that simply
+using the existing sort with the upstream mask positions is not exact on this
+fixture; it does not prove a particular sort rule works generally.
+
+An initial comparison incorrectly required identical float bit patterns and
+failed on signed zeros. The corrected control confirms that 250 sorted
+positions differ only by the sign bit of zero and that every sorted value is
+numerically equal. The fixture, masks and result repeat byte-for-byte. The
+retained diagnostic sources, binary, synthetic fixture and logs are under
+`reports/phase4-lm1b-probability-evidence-v1/tie-order-v1/`. The fixture
+SHA-256 is `6dc06555bba8ef1a780f16584b440c65cec5bcb0c7fee197af5b14b3b2e8506c`;
+the signed-zero control log SHA-256 is
+`dd3231a69f733f634198a1c65840cf2cf9afbc02ab914b66ef5034ecf4ae28a9`;
+the fixed-softmax probability result SHA-256 is
+`9aefcbdf50208114073c6ed5d2b7bf1a8cc9c10f46d9c2f1ff413d13c65558f3`.
+Python syntax checks and the real-CUDA comparisons passed. No production
+sampler or quality criterion was changed.
+
+### Isolated FP32 top-p probability prototypes
+
+An isolated CUDA experiment reconstructed the pinned PyTorch `top_p=1`
+probability calculation, including sort, FP32 softmax and cumulative sum,
+without changing the production sampler. On this RTX 3060 Ti, independently
+implemented component probes reproduced all probability elements in each of
+both 1,280-row captured histories, 1,024 synthetic quantized rows and five
+cutoff-tie rows. This is evidence for those inputs and this software/hardware
+combination, not a general cross-device equivalence guarantee. The scan and
+softmax were developed from public PyTorch source; any production adaptation
+requires a license and compatibility review. The experiment still draws with
+NCM's SplitMix64 uniforms and FP64 inverse CDF, not PyTorch's multinomial RNG.
+
+A native opt-in prototype matched pinned reference choices on 2,565 crafted
+boundary rows, while the current sampler differed on 2,508; invalid-input and
+single-row controls were also checked. The experimental implementation rejects
+single-row inputs and has not received the production safety or full-suite
+review. A fused variant reduced its scratch storage from five to
+three full row-by-vocabulary buffers. It produced byte-identical outputs on
+all five previously observed development seeds, and matching signatures across
+the timing screen, but is not the same as a proof of probability equivalence
+for every input.
+
+Three alternating fresh processes per variant, with two warmups and eight
+measured generations per process, gave the following medians. This bounded
+screen includes generation and readback, but is not the frozen performance
+qualification and does not compare against a simultaneous Python run.
+
+| Batch | Current sampler | First prototype | Fused prototype |
+| ---: | ---: | ---: | ---: |
+| 1 | 45.56 ms | 49.14 ms | 49.29 ms |
+| 4 | 109.75 ms | 120.85 ms | 124.18 ms |
+| 16 | 369.38 ms | 413.42 ms | 433.10 ms |
+
+The fused prototype was also regenerated and scored on the five **already
+observed** quality seeds, using the unchanged pinned evaluator and original
+Python references. All five scores matched the upstream scoring functions.
+Rust minus Python mean perplexity was `-1.962556`, interval
+`[-4.363115, 0.446628]`; mean entropy was `-0.002433581`, interval
+`[-0.007166052, 0.002060141]`. The entropy interval still fails the frozen
+`±0.0046` margin. A deterministic repeat produced the identical summary.
+These are retests, not fresh held-out evidence, and neither prototype is a
+quality or runtime gate pass. The original failure remains in force.
+
+Source archives, captures, failed attempts, timing telemetry and scores are
+retained in ignored `reports/phase4-lm1b-top-p-native-diagnostic-v1/`. The
+summary SHA-256 is
+`b9e594bc7e78858a2d1c01ee1c9992cff4e244bf75f587e1800038229a43edeb`;
+the timing result SHA-256 is
+`366a3b17458a7d24c869fa0e8062d2de13ae0363c72a4f66c17795159fd82ba6`.
+The first timing launch could not access the sandboxed GPU; the first scoring
+launch omitted the existing tokenizer dependency path. Both failures and the
+corrected runs are retained. The prototype remains outside production.
