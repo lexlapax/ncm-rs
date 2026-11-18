@@ -193,3 +193,52 @@ Manifest, completion receipt and telemetry SHA-256 values are
 The individual snapshots and their hashes are in the completion receipt.
 This remains an opt-in CUDA candidate; WMT14 Metal and the Phase 4 gates
 remain pending.
+
+## Local corpus retest after the Metal CLI changes
+
+After the combined Metal changes, the Linux corpus recorder captured
+all 751 frozen four-row batches, including the three-row tail,
+at CFG zero and one. All 3,003 rows in each mode match the pinned
+Python CUDA codes and raw IDs exactly. There were no rejections
+or retries. The executable, artifact manifest and prefix file
+hashes passed postflight. The normal CUDA CLI also reproduced the
+24 retained targeted rows byte-for-byte.
+
+The local raw receipts are in
+`reports/phase4-wmt14-local-cuda-replay-v1.uWmD67/`.
+The base and guided comparison SHA-256 values are
+`6f029883b64e0f3495d250aae8ea293da8378a31d274ebcd357edbc38b5a7a8f`
+and `21ad4d44c4c97a931e3ab8490886fb216bc997d5f7b5282c95d93ced5885a01f`.
+
+The two pinned evaluator environments agreed byte-for-byte for each
+fresh capture. Both passed full-corpus and held-out checks in both
+modes. The base scorer SHA-256 is
+`84a87dcf08a7ca8e9498aab4cc198fa3e53bca341637d8124d83ea5e1e8e7eda`
+and the guided scorer SHA-256 is
+`915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`.
+
+## CUDA deferred head check comparison
+
+The existing CUDA timing example compares immediate and deferred head
+validation on the RTX 3060 Ti. For each setting and cell, three
+alternating fresh processes ran five warmups and 30 synchronized
+generation and output-readback trials. All 24 processes match pinned
+codes and raw IDs. The timings exclude loading. Median process peak
+RSS differs by less than 0.21 MiB in each pair.
+
+| CFG | Batch | Median ms immediate / deferred | p95 ms immediate / deferred |
+| ---: | ---: | ---: | ---: |
+| 0 | 1 | 60.40 / 60.37 | 62.39 / 63.67 |
+| 0 | 4 | 173.42 / 173.91 | 178.92 / 179.87 |
+| 1 | 1 | 98.17 / 98.50 | 104.01 / 104.99 |
+| 1 | 4 | 315.98 / 316.31 | 328.83 / 330.24 |
+
+Median differences are below 0.4%. Pooled p95 is higher with deferred
+validation in every cell. The CUDA CLI uses immediate validation.
+The optional `deferred-head` argument is available for reproducing
+the timing comparison. Release build and Clippy passed with
+`wmt14-experimental,cuda-cudnn`.
+
+Raw timing, CUDA event and memory receipts are in
+`reports/phase4-wmt14-cuda-deferred-v1.PJrWFk/`. The summary SHA-256 is
+`3e05d2d2f2f7a514d124fdfc88dac009f23fb08b0e2aa7d5e10387507866fd03`.

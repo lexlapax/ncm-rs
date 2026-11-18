@@ -130,13 +130,16 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Finish the combined WMT14 CLI and corpus replay and retain the
-   repeated Metal comparison. The first four measured cells improve
-   median and process RSS. Base batch 16 has a multi-second Rust
-   latency tail and fails the current timing comparison. The timing
-   probe can test output release and a bounded process-local MLX
-   cache while preserving the original failure. Keep process RSS
-   and native MLX allocator counters visible separately.
+1. Continue WMT14 locally on Linux as requested. The six retained
+   [Metal timing cells](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#repeated-combined-comparison)
+   match pinned outputs and have lower process RSS. Base batches 16
+   and 32 fail repeated latency, guided batch 4 has higher MLX
+   allocator peak, and guided batch 16 was unfinished when Mac work
+   stopped. The queued Mac corpus replay was canceled. Both fresh
+   Linux CUDA modes match all 3,003 rows and pass both frozen scorer
+   environments. A separate [CUDA timing control](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md#cuda-deferred-head-check-comparison)
+   found no material median benefit from deferring the guard, so the
+   CUDA CLI uses immediate checks. Metal verification remains open.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

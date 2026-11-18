@@ -265,6 +265,39 @@ loader. The retained summary under
 `corpus/owned-loader/phase4-wmt14-mlx-deferred-head-large-v1.5Ol4Vj/`
 hashes to `090d66892f28353159b85afd96744b192549ec6bd28fe07dc28ccf360b1a2a2b`.
 
+## Repeated combined comparison
+
+The combined Rust candidate at `fe55e5b` used the reclaimable
+buffer and deferred head validation. Three alternating fresh
+processes per runtime ran five warmups and 30 synchronized trials.
+Every retained output in the six completed cells matches the
+pinned Python CUDA codes and raw IDs. The Python performance
+baseline was the separately adapted Python MLX implementation.
+Model load was about 2.02–2.06 seconds for Rust and 0.66–0.67 for
+Python. The generation measurements exclude model load.
+
+| CFG | Batch | Median ms Rust / Python | p95 ms Rust / Python | Peak RSS MiB Rust / Python | MLX peak MiB Rust / Python |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 1 | 96.33 / 107.43 | 97.02 / 108.59 | 1561.23 / 1657.39 | 1162.73 / 1174.55 |
+| 0 | 4 | 216.87 / 237.22 | 220.68 / 241.40 | 1561.45 / 1657.91 | 1621.24 / 1665.64 |
+| 0 | 16 | 681.85 / 631.73 | 4479.36 / 729.33 | 1561.27 / 1660.73 | 2599.19 / 3274.29 |
+| 0 | 32 | 1310.04 / 1284.05 | 1788.67 / 1686.31 | 1561.56 / 1658.77 | 2835.18 / 3925.68 |
+| 1 | 1 | 138.30 / 150.32 | 139.48 / 154.65 | 1561.27 / 1658.25 | 1315.58 / 1319.22 |
+| 1 | 4 | 354.56 / 382.90 | 358.87 / 386.30 | 1561.30 / 1658.88 | 2153.81 / 2142.62 |
+
+Base batches 16 and 32 fail the repeated latency comparison.
+Guided batch 4 has a higher native MLX allocator peak. The user
+directed work to continue on Linux, so the last guided batch-16
+cell and the queued optimized Metal corpus replay are unfinished.
+The first six cells are preserved in the three local snapshots under
+`corpus/owned-loader/optimized-*-snapshot.*/`. Their exact comparison
+SHA-256 values are `b564720c9897d20d1619fd048b41c7113ccee8fb1cfc6c22425cbf478a9693dd`
+for the four small cells,
+`d562282be73245202dae9a4f2547e68b05512b88db667fc699a14f6b1f423b02`
+for base batch 16, and
+`04c36285087a8ea604b3fc7cbb034e0f0d88182ffc908a4dbbb6462d3e731521`
+for base batch 32.
+
 ## Long-run latency follow-up
 
 The combined Rust candidate passed all pinned output checks at base

@@ -9,9 +9,15 @@ use std::{error::Error, fs, time::Instant};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 5 {
-        return Err("usage: wmt14_fast_argmax_perf ARTIFACT PREFIXES BATCH CFG".into());
-    }
+    let deferred_head = match args.as_slice() {
+        [_, _, _, _, _] => false,
+        [_, _, _, _, _, mode] if mode == "deferred-head" => true,
+        _ => {
+            return Err(
+                "usage: wmt14_fast_argmax_perf ARTIFACT PREFIXES BATCH CFG [deferred-head]".into(),
+            );
+        }
+    };
     let batch: usize = args[3].parse()?;
     let cfg: u32 = args[4].parse()?;
     if ![1, 4, 16, 32].contains(&batch) || cfg > 1 || (cfg == 1 && batch > 16) {
@@ -48,6 +54,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let artifact = Artifact::load_inference(&args[1])?;
     let backend = CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?;
     let model = Wmt14Teacher::from_artifact(backend.clone(), &artifact)?;
+    let model = if deferred_head {
+        model.with_deferred_head_check_experimental()
+    } else {
+        model
+    };
     let mut samples = Vec::new();
     let mut device_samples = Vec::new();
     let mut signature = None;
@@ -95,7 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let id_rows: Vec<_> = ids.chunks_exact(ids.len() / batch).collect();
     println!(
         "{}",
-        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"outputs":{"codes":code_rows,"ids":id_rows}})
+        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"deferred_head":deferred_head,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"outputs":{"codes":code_rows,"ids":id_rows}})
     );
     Ok(())
 }
