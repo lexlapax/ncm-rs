@@ -140,8 +140,9 @@ Before every commit include an updated
    `[-0.006796252, -0.000604899]`. The
    [default-attention control](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#default-pytorch-attention-control)
    identifies efficient SDPA as the source of the first remaining controlled
-   draw difference, at level 6. Replay the efficient attention operator
-   on identical Q/K/V and masks before further sampler changes.
+   draw difference, at level 6. A retained replay supplies identical
+   Q/K/V and masks plus both attention outputs for all 12 blocks. Use
+   those operands to check candidate attention arithmetic.
 2. Complete the remaining LM1B-small gates before medium and large in the
    approved order. Any new acceptance protocol needs explicit review.
 3. For each changed runtime, run the applicable full checks and reproducible

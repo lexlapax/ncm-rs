@@ -913,3 +913,12 @@ and `3faa7faa4e3dea2491f8d99ebc0811c12605d108d6c3ba72948b1f02d7fd871f`.
 The first remaining model-level discrepancy is now localized to the
 attention dispatch. It does not establish the cause of the entropy
 interval failure across independent sample streams.
+
+A second replay ran both attention modes on the same Q, K, V and mask in
+all 12 blocks at the disputed level. Returning the default output at each
+block reproduced the captured evaluator head logits bit for bit. The two
+attention outputs differ at 931,840 of 976,896 values, with maximum
+absolute error `9.059906006e-6`. The retained `level6-sdpa-inputs.py`
+saves the operand values, original strides and both outputs. The
+`level6-sdpa-fixed-inputs.safetensors` SHA-256 is
+`1ee084cc10c595115b39e91776bf3ef3692f86b57c16e9eaa66050207a2f079a`.
