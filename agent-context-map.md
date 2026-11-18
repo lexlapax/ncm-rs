@@ -1,8 +1,12 @@
 # Agent context map
 
-Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
+Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
+
+- **XSum CUDA masked softmax:** full CUDA checks passed (524 report/data tests, 18 operator cases). All 11,334 top-1 and 1,280 previously observed seeded rows match the retained CUDA codes and raw IDs. The repeated top-1 benchmark has about 19% lower median latency than pinned Python at batches 1/4/32, with lower p95, RSS and sampled GPU memory. The paired previous-Rust comparison on the same inputs shows median reductions of 1.70%, 1.76% and 1.62% with identical sampled GPU peaks. [Results](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md#paired-previous-rust-comparison).
+
+- **XSum exact Metal gate:** six raw IDs differ after EOS. Smaller batches can resolve row 4883 but do not resolve row 4937. The ordered latent, split attention and combined arithmetic probes also retain the failure. The pinned tokenizer and scorer match all 11,334 decoded texts and per-row ROUGE scores, and the perplexity input tensors match. The exact rule is unchanged. The separate model arithmetic candidate also missed four frozen CUDA stochastic bounds. [Evidence](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md).
 
 - **XSum dynamically recomputed erf control:** recalculating the licensed CUDA-hosted approximation on actual MLP inputs selects 3690 both with and without captured Metal normalization; the earlier fixed-tensor tie does not transfer. Corrected, input-verified runs repeat; an initial library-handle collision crashed the diagnostic. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md#dynamically-recomputed-gpu-approximation-replay). No Metal or gate pass.
 

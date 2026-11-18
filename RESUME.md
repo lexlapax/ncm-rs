@@ -18,23 +18,50 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## State at handoff
 
-- Latest completed evidence commit before this handoff: `bec5af0`, pushed on
-  `main`. The Linux worktree had only unrelated untracked `.pi/`; preserve it.
+- Preserve the unrelated untracked `.pi/`. Check `git status` for the
+  current Linux head. The pre-softmax baseline is `8ba381f`.
+- The XSum CUDA masked-softmax change passes `tools/check.sh --cuda`
+  (524 report and data tests, 18 device cases). All 11,334 top-1 rows
+  and all 1,280 previously observed seeded rows match retained CUDA codes
+  and raw IDs exactly. The repeated comparison against pinned Python
+  lowers median latency by approximately 19% and also lowers p95, RSS,
+  and sampled GPU memory at batches 1/4/32. Against the rebuilt previous
+  Rust binary on that same fixture the paired median reductions are
+  1.70%, 1.76% and 1.62%, with identical sampled GPU peaks. The completed
+  reports and reproduction commands are in
+  [the XSum CUDA results](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md).
 - XSum Metal's exact full-corpus top-1 gate fails. On retained batch 04928,
   row 4937 differs by three codes and five raw IDs from pinned Python CUDA.
   Three newly tested six-part-head combinations produced outputs byte-identical
   to the earlier candidate on batches 04864 and 04928; they do not fix it.
   Details, earlier interventions, hashes, and limitations are in
   [the XSum diagnostic record](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
-  Avoid repeating already inconclusive candidate variations without a new
-  evidence-based hypothesis.
+  Smaller Metal batches resolve row 4883's single ID mismatch through size 8
+  but do not resolve row 4937. Split-scale attention, an ordered latent
+  reduction and a combined normalization/projection/attention probe also
+  did not resolve it. A pinned tokenizer and ROUGE replay matches Python CUDA
+  on all 11,334 retained Metal decoded texts and per-row scores. The pinned
+  perplexity tokenizer inputs and score masks match as well. The six
+  post-EOS raw-ID differences still fail the unchanged exact gate.
+  Avoid repeating these variations without new evidence.
+- TinyStories advanced under [the user's scoped exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md).
+  Keep those exceptions visible and retain the preceding regressions.
+- WMT14's CUDA [reference retest](docs/results/2026-11-16-phase4-wmt14/cuda-reference-candidate-retest-v1.md)
+  matched the 3,003-row corpus and passed the unchanged scorer. The
+  [repeated batch-16 CFG performance comparison](docs/results/2026-11-16-phase4-wmt14/cuda-uncached-cfg-eight-v1.md)
+  still has a 1.58% slower Rust median. The original CFG failure remains
+  recorded. Complete performance, memory and real Metal qualification in
+  profile order.
 - LM1B-small CUDA's frozen held-out quality comparison fails: the entropy
   confidence interval lower endpoint is -0.007118 versus -0.0046. Its five
   held-out seeds are observed; a rerun is a retest, not fresh held-out data.
   The Python self-control also fails but does not waive the candidate failure.
   See [results](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md)
   and [frozen protocol](docs/results/2026-11-16-phase4-lm1b/heldout-protocol-v1.md).
-  WMT14 and the remaining LM1B sizes and runtime gates are not all qualified.
+  LM1B medium and large have [checkpoint inventories](docs/results/2026-11-16-phase4-lm1b/inventory-preparation-v1.md)
+  but no qualified GPU runtime. OWT remains limited to the synthetic and
+  configuration scope in the [Phase 4 contract](docs/PHASE4-TEXT.md),
+  which records the missing released checkpoint.
 - Linux validation scheduling was improved without removing tests: 524 report
   tests and 18 CUDA device cases passed. The observed report suite time fell
   from 167.35 to about 146.48 seconds in a single comparison. See
@@ -58,9 +85,11 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Reassess XSum's exact Metal mismatch using the linked interventions and
-   pursue a substantive, reproducible fix; verify Linux first and run real
-   Metal testing only when the Mac is available. Retain all negative results.
+1. Resolve the exact XSum Metal gate using the retained evidence. The
+   shortened-batch and combined-arithmetic probes did not resolve it.
+   Use a new evidence-based hypothesis or the pending explicit scope
+   decision before advancing. Verify Linux first and run Metal only when
+   the Mac is available.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

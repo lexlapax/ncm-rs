@@ -6,7 +6,14 @@ use ncm_core::{CodecBackend, WeightBackend};
 #[test]
 fn fused_masked_softmax_matches_separate_cuda_operations() {
     let backend = CandleBackend::cuda(0).unwrap();
-    for (batch, heads, seq, mask_batch) in [(1, 2, 512, 1), (2, 2, 516, 2), (2, 2, 560, 1)] {
+    for (batch, heads, seq, mask_batch) in [
+        (1, 2, 512, 1),
+        (2, 2, 516, 2),
+        (2, 3, 544, 2),
+        (2, 1, 545, 2),
+        (2, 2, 560, 1),
+        (1, 1, 561, 1),
+    ] {
         let count = batch * heads * seq * seq;
         let mut state = 0x87e1_369bu32;
         let scores: Vec<f32> = (0..count)

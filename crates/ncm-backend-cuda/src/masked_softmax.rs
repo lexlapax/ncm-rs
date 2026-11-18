@@ -7,6 +7,7 @@ use candle_core::{CpuStorage, CudaStorage, CustomOp2, Layout, Result, Shape, Ten
 
 struct MaskedSoftmax {
     function: candle_core::cuda_backend::cudarc::driver::CudaFunction,
+    warps_per_block: u32,
 }
 impl CustomOp2 for MaskedSoftmax {
     fn name(&self) -> &'static str {
@@ -79,12 +80,17 @@ impl CustomOp2 for MaskedSoftmax {
             .arg(&h)
             .arg(&s)
             .arg(&mb);
+        let grid_dim = if self.warps_per_block == 4 {
+            ((h * s).div_ceil(self.warps_per_block), *batch as u32, 1)
+        } else {
+            ((*batch as u32 * h * s), 1, 1)
+        };
         // SAFETY: one 32-thread warp per checked score row; all arguments and
         // memory extents match the CUDA kernel, with cudarc event tracking.
         unsafe {
             launch.launch(LaunchConfig {
-                grid_dim: ((batch * heads * seq) as u32, 1, 1),
-                block_dim: (32, 1, 1),
+                grid_dim,
+                block_dim: (32 * self.warps_per_block, 1, 1),
                 shared_mem_bytes: 0,
             })
         }
@@ -106,14 +112,23 @@ pub fn apply(backend: &crate::CandleBackend, scores: &Tensor, mask: &Tensor) -> 
         candle_core::bail!("explicit matching CUDA device required")
     }
     let device = backend.device().as_cuda_device()?;
+    let (name, warps_per_block) = match scores.dims() {
+        [_, _, 512..=544, _] => ("ncm_masked_softmax_64_registers_17", 4),
+        [_, _, 545..=560, _] => ("ncm_masked_softmax_64_registers_18", 4),
+        _ => ("ncm_masked_softmax_64", 1),
+    };
     let function = device
         .get_or_load_custom_func(
-            "ncm_masked_softmax_64",
+            name,
             "ncm-generator-layout-v1",
             crate::generator_layout::PTX,
         )?
         .into_cuda_function();
-    scores
-        .contiguous()?
-        .apply_op2_no_bwd(&mask.contiguous()?, &MaskedSoftmax { function })
+    scores.contiguous()?.apply_op2_no_bwd(
+        &mask.contiguous()?,
+        &MaskedSoftmax {
+            function,
+            warps_per_block,
+        },
+    )
 }

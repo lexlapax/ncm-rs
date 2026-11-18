@@ -361,6 +361,64 @@ extern "C" __global__ void ncm_masked_softmax_64(const float* scores,const float
     for(unsigned col=lane;col<seq;col+=32) output[score_row+col]*=inverse;
 }
 
+// Keep a row's masked scores and exponentials in registers. Four independent
+// warps share a block without changing the original per-row reduction order.
+template <unsigned Iterations>
+__device__ void masked_softmax_64_registers(const float* scores, const float* mask,
+                                            float* output, unsigned heads, unsigned seq,
+                                            unsigned mask_batch) {
+    const unsigned row = blockIdx.x * 4 + threadIdx.x / 32;
+    const unsigned lane = threadIdx.x % 32;
+    if (row >= heads * seq) return;
+    const unsigned score_row = (blockIdx.y * heads * seq + row) * seq;
+    const unsigned mask_row = ((mask_batch == 1 ? 0 : blockIdx.y) * seq + row % seq) * seq;
+    float values[Iterations];
+    float maximum = -CUDART_INF_F;
+    #pragma unroll
+    for (unsigned i = 0; i < Iterations; ++i) {
+        const unsigned col = lane + i * 32;
+        if (col < seq) {
+            const float scaled = __fadd_rn(__fmul_rn(scores[score_row + col], 0.125f), 0.0f);
+            values[i] = __fadd_rn(scaled, mask[mask_row + col]);
+            maximum = fmaxf(maximum, values[i]);
+        }
+    }
+    #pragma unroll
+    for (int shift = 16; shift > 0; shift >>= 1) {
+        maximum = fmaxf(maximum, __shfl_xor_sync(0xffffffff, maximum, shift, 32));
+    }
+    float sum = 0.0f;
+    #pragma unroll
+    for (unsigned i = 0; i < Iterations; ++i) {
+        if (lane + i * 32 < seq) {
+            values[i] = expf(values[i] - maximum);
+            sum = __fadd_rn(sum, values[i]);
+        }
+    }
+    #pragma unroll
+    for (int shift = 16; shift > 0; shift >>= 1) {
+        sum = __fadd_rn(sum, __shfl_xor_sync(0xffffffff, sum, shift, 32));
+    }
+    const float inverse = float(1.0 / double(sum));
+    #pragma unroll
+    for (unsigned i = 0; i < Iterations; ++i) {
+        const unsigned col = lane + i * 32;
+        if (col < seq) output[score_row + col] = values[i] * inverse;
+    }
+}
+
+extern "C" __global__ void ncm_masked_softmax_64_registers_17(
+    const float* scores, const float* mask, float* output, unsigned heads,
+    unsigned seq, unsigned mask_batch) {
+    masked_softmax_64_registers<17>(scores, mask, output, heads, seq, mask_batch);
+}
+
+extern "C" __global__ void ncm_masked_softmax_64_registers_18(
+    const float* scores, const float* mask, float* output, unsigned heads,
+    unsigned seq, unsigned mask_batch) {
+    masked_softmax_64_registers<18>(scores, mask, output, heads, seq, mask_batch);
+}
+
 // Normalization arithmetic adapted from PyTorch v2.15.0; see third-party/pytorch-BSD.txt.
 #include <stddef.h>
 struct Stats { float mean, sigma, count; };

@@ -58,3 +58,7 @@ baseline's EOS-filtered decoder inputs match pinned Python on all rows, but no
 fresh Metal scorer was run. Its six post-EOS raw-ID differences versus Python
 still fail the frozen exact gate. This comparison does not qualify stochastic
 candidate output.
+
+A [subsequent tokenizer and ROUGE replay](cuda-combined-numerics-v1.md#full-corpus-metal-text-and-rouge-replay)
+independently reproduced all decoded text and per-row ROUGE from the
+retained Metal receipts. It confirmed the same six raw-ID differences.
