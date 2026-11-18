@@ -10,7 +10,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     io::Read,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 pub const UPSTREAM: &str = "c70274273f489abc73832b2b98584a8483b6b203";
@@ -193,6 +193,12 @@ pub fn sha256(bytes: &[u8]) -> String {
 }
 
 fn bounded_read(path: &Path, limit: u64) -> Result<Vec<u8>> {
+    let mut data = Vec::new();
+    bounded_read_into(path, limit, &mut data)?;
+    Ok(data)
+}
+
+fn bounded_read_into(path: &Path, limit: u64, data: &mut Vec<u8>) -> Result<()> {
     let meta = fs::symlink_metadata(path)?;
     if !meta.file_type().is_file() || meta.len() > limit {
         return Err(invalid(format!(
@@ -206,16 +212,14 @@ fn bounded_read(path: &Path, limit: u64) -> Result<Vec<u8>> {
     // reallocations. Freed intermediate buffers can remain resident on Darwin.
     let capacity =
         usize::try_from(meta.len() + 1).map_err(|_| invalid("file capacity overflow"))?;
-    let mut data = Vec::new();
+    data.clear();
     data.try_reserve_exact(capacity)
         .map_err(|_| invalid("file allocation failed"))?;
-    fs::File::open(path)?
-        .take(limit + 1)
-        .read_to_end(&mut data)?;
+    fs::File::open(path)?.take(limit + 1).read_to_end(data)?;
     if data.len() as u64 > limit {
         return Err(invalid("file grew beyond limit"));
     }
-    Ok(data)
+    Ok(())
 }
 
 // Training data is validated in one bounded pass and never enters the
@@ -299,6 +303,52 @@ fn validate_training_stream(
 pub struct Artifact {
     manifest: Manifest,
     payloads: BTreeMap<String, Vec<u8>>,
+    reusable_wmt14_root: Option<PathBuf>,
+}
+
+fn verify_payload(name: &str, bytes: &[u8], record: &FileRecord) -> Result<()> {
+    if bytes.len() as u64 != record.bytes || sha256(bytes) != record.sha256 {
+        return Err(invalid(format!("file size/hash mismatch: {name}")));
+    }
+    if name.ends_with(".json") {
+        let _: serde_json::Value = serde_json::from_slice(bytes)?;
+    }
+    Ok(())
+}
+
+fn verify_bundle(bundle: &str, bytes: &[u8], entries: &[TensorRecord]) -> Result<()> {
+    let tensors = SafeTensors::deserialize(bytes)?;
+    let names = entries
+        .iter()
+        .map(|entry| entry.name.as_str())
+        .collect::<BTreeSet<_>>();
+    if names.len() != entries.len() || names != tensors.names().into_iter().collect() {
+        return Err(invalid(format!("missing/extra/duplicate tensor: {bundle}")));
+    }
+    for entry in entries {
+        check_hash_format(&entry.sha256)?;
+        if entry.shape.len() > 8 {
+            return Err(invalid("tensor rank exceeds limit"));
+        }
+        let bytes = entry
+            .shape
+            .iter()
+            .try_fold(entry.dtype.size(), |size, dim| size.checked_mul(*dim))
+            .ok_or_else(|| invalid("tensor shape overflow"))?;
+        let tensor = tensors.tensor(&entry.name)?;
+        if bytes != entry.bytes
+            || tensor.shape() != entry.shape
+            || tensor.dtype() != entry.dtype.native()
+            || tensor.data().len() != entry.bytes
+            || sha256(tensor.data()) != entry.sha256
+        {
+            return Err(invalid(format!(
+                "tensor metadata/hash mismatch: {bundle}/{}",
+                entry.name
+            )));
+        }
+    }
+    Ok(())
 }
 
 impl Artifact {
@@ -306,14 +356,22 @@ impl Artifact {
     /// Inference payloads remain owned and immutable; `file("training.safetensors")`
     /// explicitly fails on this reduced view. `load` retains the full artifact.
     pub fn load_inference(root: impl AsRef<Path>) -> Result<Self> {
-        Self::load_impl(root.as_ref(), true)
+        Self::load_impl(root.as_ref(), true, false)
     }
 
     pub fn load(root: impl AsRef<Path>) -> Result<Self> {
-        Self::load_impl(root.as_ref(), false)
+        Self::load_impl(root.as_ref(), false, false)
     }
 
-    fn load_impl(root: &Path, inference: bool) -> Result<Self> {
+    /// Validate both WMT14 bundles with one host buffer. Only the generator
+    /// remains loaded. Swap bundles with `with_wmt14_bundle`, which checks the
+    /// reread against the already validated manifest before exposing it.
+    pub fn load_wmt14_inference_reusable(root: impl AsRef<Path>) -> Result<Self> {
+        let root = std::path::absolute(root)?;
+        Self::load_impl(&root, true, true)
+    }
+
+    fn load_impl(root: &Path, inference: bool, reusable: bool) -> Result<Self> {
         // Strip trailing separators/dot components before the no-symlink leaf check.
         let root = root.components().collect::<std::path::PathBuf>();
         if !fs::symlink_metadata(&root)?.file_type().is_dir() {
@@ -327,6 +385,9 @@ impl Artifact {
             || manifest.checkpoint_repository != "hazyresearch/ncm-checkpoints"
         {
             return Err(invalid("unsupported schema, profile or source pins"));
+        }
+        if reusable && manifest.profile != "wmt14-inference-v1" {
+            return Err(invalid("reusable bundle loader requires WMT14"));
         }
         let (files, bundles, max_file, max_total): (&[&str], &[&str], u64, u64) =
             match manifest.profile.as_str() {
@@ -381,57 +442,78 @@ impl Artifact {
             }
         }
         let mut payloads = BTreeMap::new();
+        if reusable {
+            let codec = &manifest.files["codec.safetensors"];
+            let generator = &manifest.files["generator.safetensors"];
+            let capacity = usize::try_from(codec.bytes.max(generator.bytes) + 1)
+                .map_err(|_| invalid("bundle capacity overflow"))?;
+            let mut bytes = Vec::new();
+            bytes
+                .try_reserve_exact(capacity)
+                .map_err(|_| invalid("bundle allocation failed"))?;
+            bounded_read_into(&root.join("codec.safetensors"), codec.bytes, &mut bytes)?;
+            verify_payload("codec.safetensors", &bytes, codec)?;
+            verify_bundle(
+                "codec.safetensors",
+                &bytes,
+                &manifest.tensors["codec.safetensors"],
+            )?;
+            bounded_read_into(
+                &root.join("generator.safetensors"),
+                generator.bytes,
+                &mut bytes,
+            )?;
+            verify_payload("generator.safetensors", &bytes, generator)?;
+            payloads.insert("generator.safetensors".to_owned(), bytes);
+        }
         for (name, record) in &manifest.files {
             if inference && name == "training.safetensors" {
                 validate_training_stream(&root.join(name), record, &manifest.tensors[name])?;
                 continue;
             }
+            if reusable && matches!(name.as_str(), "codec.safetensors" | "generator.safetensors") {
+                continue;
+            }
             let bytes = bounded_read(&root.join(name), record.bytes)?;
-            if bytes.len() as u64 != record.bytes || sha256(&bytes) != record.sha256 {
-                return Err(invalid(format!("file size/hash mismatch: {name}")));
-            }
-            if name.ends_with(".json") {
-                let _: serde_json::Value = serde_json::from_slice(&bytes)?;
-            }
+            verify_payload(name, &bytes, record)?;
             payloads.insert(name.clone(), bytes);
         }
         for (bundle, entries) in &manifest.tensors {
-            if inference && bundle == "training.safetensors" {
+            if (inference && bundle == "training.safetensors")
+                || (reusable && bundle == "codec.safetensors")
+            {
                 continue;
             }
-            let tensors = SafeTensors::deserialize(&payloads[bundle])?;
-            let names = entries
-                .iter()
-                .map(|entry| entry.name.as_str())
-                .collect::<BTreeSet<_>>();
-            if names.len() != entries.len() || names != tensors.names().into_iter().collect() {
-                return Err(invalid(format!("missing/extra/duplicate tensor: {bundle}")));
-            }
-            for entry in entries {
-                check_hash_format(&entry.sha256)?;
-                if entry.shape.len() > 8 {
-                    return Err(invalid("tensor rank exceeds limit"));
-                }
-                let bytes = entry
-                    .shape
-                    .iter()
-                    .try_fold(entry.dtype.size(), |size, dim| size.checked_mul(*dim))
-                    .ok_or_else(|| invalid("tensor shape overflow"))?;
-                let tensor = tensors.tensor(&entry.name)?;
-                if bytes != entry.bytes
-                    || tensor.shape() != entry.shape
-                    || tensor.dtype() != entry.dtype.native()
-                    || tensor.data().len() != entry.bytes
-                    || sha256(tensor.data()) != entry.sha256
-                {
-                    return Err(invalid(format!(
-                        "tensor metadata/hash mismatch: {bundle}/{}",
-                        entry.name
-                    )));
-                }
-            }
+            verify_bundle(bundle, &payloads[bundle], entries)?;
         }
-        Ok(Self { manifest, payloads })
+        Ok(Self {
+            manifest,
+            payloads,
+            reusable_wmt14_root: reusable.then_some(root),
+        })
+    }
+
+    /// Replace the current checked WMT14 weight bundle with the other one.
+    /// A file change or failed read consumes the incomplete view and returns an error.
+    pub fn with_wmt14_bundle(mut self, name: &str) -> Result<Self> {
+        let root = self
+            .reusable_wmt14_root
+            .as_ref()
+            .ok_or_else(|| invalid("not a reusable WMT14 artifact"))?;
+        let old = match name {
+            "codec.safetensors" => "generator.safetensors",
+            "generator.safetensors" => "codec.safetensors",
+            _ => return Err(invalid("unexpected WMT14 bundle")),
+        };
+        let mut bytes = self
+            .payloads
+            .remove(old)
+            .ok_or_else(|| invalid("previous WMT14 bundle is missing"))?;
+        let record = &self.manifest.files[name];
+        bounded_read_into(&root.join(name), record.bytes, &mut bytes)?;
+        verify_payload(name, &bytes, record)?;
+        self.payloads.insert(name.to_owned(), bytes);
+        Ok(self)
     }
 
     pub fn manifest(&self) -> &Manifest {

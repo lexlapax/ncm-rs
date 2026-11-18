@@ -93,9 +93,10 @@ SHA-256 values follow.
 | Guided retry exact comparison | `874c1ee5ac482b3b17ec4918cd1c50d2dc33ced522be70a4dd5565aaf462287c` |
 | Guided retry frozen scoring | `915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc` |
 
-The bounded retry is available through the capture example. Metal
-teacher-forced comparison, CLI integration of the retry and paired
-latency and memory qualification remain open.
+The bounded retry is available through the capture example. The
+[Metal teacher-forced comparison](teacher-cuda-reference-v1.md#metal-comparison)
+passes all 26 tensors. CLI integration of the retry and paired latency
+and memory qualification remain open.
 
 ## Startup memory preparation
 
@@ -114,3 +115,42 @@ owned loader, a reduction of `306.39 MiB` (17.3%). A Linux build
 was active, so the overlapping wall-time ranges do not qualify
 a speed change. The cold observation receipt hashes to
 `df9ee27828a8cf3d7300178ee9cbad2396b973d22c8abed60d4090793872b35e`.
+
+On Mac Studio, three fresh runs of each loader in each guidance mode
+also produced byte-identical outputs. Both loaders peaked near
+`2110 MiB` of process RSS. Heap snapshots found approximately
+`1.0 GiB` resident in empty large-allocation regions in the warmed
+Rust process versus `552.1 MiB` in the warmed Python process. In a
+separate control that allocated and freed the two artifact-sized Rust
+buffers, Apple allocator pressure relief returned zero bytes in all
+three runs. The snapshots are local to the measured processes.
+
+The Metal timing probe can opt into a reusable host buffer for the
+two bundles. It verifies both payloads and their tensor inventories
+before uploading weights, then rechecks file size and hash against
+the same manifest on each reread. A changed file fails the load. The
+normal CLI currently uses the owned loader. The reuse test checks
+allocation identity, byte identity and rejection of a same-size
+changed file. Paired Mac measurements of this candidate are pending.
+
+## Repeated small-batch baseline
+
+Three alternating fresh processes per runtime each ran five warmups
+and 30 measured generation-and-readback trials. All 24 process outputs
+matched the pinned prefix codes and raw IDs. Native Rust used the owned
+loader. The Python MLX comparison adapted the pinned implementation to
+Metal, and the service stayed running. RSS and MLX peak are separate
+process and allocator measurements. Startup is excluded from trial time.
+
+| CFG | Batch | Median ms Rust / Python | p95 ms Rust / Python | Peak RSS MiB Rust / Python | MLX peak MiB Rust / Python |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 1 | 160.08 / 107.71 | 190.54 / 108.46 | 2122.53 / 1657.59 | 1161.50 / 1174.55 |
+| 0 | 4 | 235.62 / 237.16 | 260.00 / 241.63 | 2123.94 / 1657.80 | 1621.24 / 1665.64 |
+| 1 | 1 | 212.25 / 151.77 | 246.03 / 155.11 | 2123.69 / 1658.16 | 1315.58 / 1319.22 |
+| 1 | 4 | 362.11 / 364.60 | 367.53 / 368.90 | 2124.66 / 1657.55 | 2153.81 / 2142.62 |
+
+Batch 1 remains slower in both modes and process RSS remains higher
+at both sizes. The per-process measurements and timing dispersion are
+retained under `corpus/owned-loader/phase4-wmt14-mlx-small-paired-v1.dAjuOA/`
+in the ignored run evidence directory above. The comparison SHA-256 is
+`e71648f7030c5cef0e798dffe30b45524fd6dd21415dbba5a4e09e7e346f6002`.

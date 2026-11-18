@@ -8,8 +8,25 @@ use std::{error::Error, fs, path::Path, time::Instant};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    let [_, artifact, prefixes, mode, batch, warmups, trials] = args.as_slice() else {
-        return Err("usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS".into());
+    let [
+        _,
+        artifact,
+        prefixes,
+        mode,
+        batch,
+        warmups,
+        trials,
+        extras @ ..,
+    ] = args.as_slice()
+    else {
+        return Err(
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable]".into(),
+        );
+    };
+    let reusable = match extras {
+        [] => false,
+        [load] if load == "reusable" => true,
+        _ => return Err("expected optional reusable loader".into()),
     };
     let guided = match mode.as_str() {
         "0" => false,
@@ -49,8 +66,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     drop(raw);
     let load_start = Instant::now();
     let backend = MlxBackend::gpu()?;
-    let artifact = Artifact::load_inference(artifact)?;
-    let model = Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?;
+    let model = if reusable {
+        let artifact = Artifact::load_wmt14_inference_reusable(artifact)?;
+        Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
+    } else {
+        let artifact = Artifact::load_inference(artifact)?;
+        Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+    };
     let load_seconds = load_start.elapsed().as_secs_f64();
     let mut samples = Vec::with_capacity(trials);
     let mut signature = None;
@@ -82,7 +104,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_json::json!({
             "backend": "mlx", "batch": batch, "cfg": u8::from(guided), "warmups": warmups,
             "scope": "generation and code/ID readback; model load excluded",
-            "load_seconds": load_seconds, "trials_seconds": samples, "codes": codes, "raw_ids": ids,
+            "load_seconds": load_seconds, "reusable_loader": reusable,
+            "trials_seconds": samples, "codes": codes, "raw_ids": ids,
             "mlx_memory": {"active": memory::active_memory()?, "peak": memory::peak_memory()?,
                            "cache": memory::cache_memory()?}
         }),

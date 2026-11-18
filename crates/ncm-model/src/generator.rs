@@ -733,6 +733,19 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
         Self::from_checked_parts(backend, &artifact, codec)
     }
 
+    /// Build a WMT14 model using one reusable, revalidated host weight buffer.
+    pub fn from_reusable_artifact(backend: B, artifact: Artifact) -> Result<Self> {
+        crate::Wmt14GeneratorInspection::from_artifact(&artifact)?;
+        let artifact = artifact
+            .with_wmt14_bundle("codec.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let codec = crate::Codec::from_wmt14_artifact_experimental(backend.clone(), &artifact)?;
+        let artifact = artifact
+            .with_wmt14_bundle("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        Self::from_checked_parts(backend, &artifact, codec)
+    }
+
     fn from_checked_parts(backend: B, artifact: &Artifact, codec: crate::Codec<B>) -> Result<Self> {
         let bytes = artifact
             .file("generator.safetensors")

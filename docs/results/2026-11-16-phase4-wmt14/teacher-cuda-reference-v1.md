@@ -51,3 +51,23 @@ its default checks began before the feature-only corrections, while its CUDA
 build and device cases ran afterward. This is a two-prefix
 development fixture, not a sampling, translation-quality, performance or Metal
 gate; the normal WMT14 inference path remains unsupported.
+
+## Metal comparison
+
+At `8bf8e3e`, the shared two-prefix example reproduced the CUDA trace
+byte-for-byte. The Metal build ran the same fixed inputs and teacher
+histories against the same pinned Python CUDA trace. The unchanged
+comparator passed all 26 tensors, including the 626 head argmax choices,
+forced codes, prefix IDs and greedy decoder IDs. The largest absolute
+difference was `0.000396728515625` in `generator.level_07.logits`.
+The Metal example passed release build and Clippy. This check covers
+fixed-history numerical parity. Free-generation and performance have
+separate comparisons.
+
+| Metal evidence | SHA-256 |
+| --- | --- |
+| Trace | `ffb88a7a15d908b4aa6bb29e5f07e6e0723c694963a959f499155a0310026556` |
+| Comparison | `155d4c19d6364e8d300d665d0735e0f96a1f019e59c2d15894e6326542816c70` |
+
+The trace, comparison and source identity receipt are retained in the
+ignored `reports/phase4-wmt14-guided-head-v1.vo6Wpv/corpus/teacher/`.

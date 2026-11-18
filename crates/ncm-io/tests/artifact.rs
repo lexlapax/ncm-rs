@@ -416,6 +416,31 @@ fn wmt14_profile_has_exact_inventory_and_independent_bounds() {
     assert!(inference.file("training.safetensors").is_err());
     assert!(inference.file("inference.safetensors").is_err());
 
+    let reusable = Artifact::load_wmt14_inference_reusable(dir.path()).unwrap();
+    assert!(reusable.file("codec.safetensors").is_err());
+    assert!(reusable.file("training.safetensors").is_err());
+    let generator = inference.file("generator.safetensors").unwrap();
+    let original = reusable.file("generator.safetensors").unwrap();
+    assert_eq!(original, generator);
+    let backing = original.as_ptr();
+    let reusable = reusable.with_wmt14_bundle("codec.safetensors").unwrap();
+    assert!(reusable.file("generator.safetensors").is_err());
+    let codec = reusable.file("codec.safetensors").unwrap();
+    assert_eq!(codec, inference.file("codec.safetensors").unwrap());
+    assert_eq!(codec.as_ptr(), backing);
+    let reusable = reusable.with_wmt14_bundle("generator.safetensors").unwrap();
+    assert_eq!(
+        reusable.file("generator.safetensors").unwrap().as_ptr(),
+        backing
+    );
+    let reusable = reusable.with_wmt14_bundle("codec.safetensors").unwrap();
+    let mut corrupt = generator.to_vec();
+    *corrupt.last_mut().unwrap() ^= 1;
+    let generator_path = dir.path().join("generator.safetensors");
+    fs::write(&generator_path, corrupt).unwrap();
+    assert!(reusable.with_wmt14_bundle("generator.safetensors").is_err());
+    fs::write(generator_path, generator).unwrap();
+
     manifest.files.insert(
         "inference.safetensors".into(),
         FileRecord {
