@@ -32,5 +32,9 @@ path = "src/main.rs"
 name = "wmt14_cfg_head_probe"
 required-features = ["wmt14-experimental"]
 
+[[example]]
+name = "wmt14_corpus_capture"
+required-features = ["wmt14-experimental"]
+
 [lints]
 workspace = true

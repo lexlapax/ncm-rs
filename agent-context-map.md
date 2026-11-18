@@ -4,6 +4,8 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **WMT14 corpus capture:** an explicit CUDA/Metal example reuses one loaded model for the frozen four-row batches, records outputs or rejected batch ranges, and exits nonzero if any request failed. It supports the full base and CFG replay without reloading the model per request.
+
 - **WMT14 guided head probe:** the retained four-row Metal run rejects one finite tie at row 2658, level 9, position 8 (codes 1813 and 1922). Pinned Python selects 1922 on its own scores and 1813 on the exact Metal scores. Two-row Metal calls complete, with two codes and one raw ID still differing at row 2658. The probe also records conditional and null scores for any rejected row. The normal selector stays strict.
 
 - **WMT14 opt-in CLI:** `sample-wmt14` uses the uncached teacher with the one-pass CUDA final selector or native MLX. CUDA exactly matches 12 retained rows per mode. Metal matches all 12 base and 8 of 12 guided rows in the original four-row fixture grouping. The remaining guided batch, starting at 2656, triggers the tied-or-nonfinite head guard. All four rows match when run individually. Full CUDA and Metal suites pass with 18 device cases each. [Ordered CLI evidence](docs/results/2026-11-16-phase4-wmt14/mlx-cli-smoke-v1.md).
