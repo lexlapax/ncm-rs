@@ -415,6 +415,47 @@ missing groups, reordered rows, malformed retries and output
 values outside the declared vocabularies. Supplying the base
 reference for a guided comparison was rejected.
 
+### Scoring a complete batchwise capture
+
+Replay the complete base and guided JSONL files on Linux with the
+pinned tokenizer environment `.reference/tokenizers-venv` and both
+[offline scorer environments](cuda-development-quality-v1.md)
+`.reference/wmt14-scorer-venv` and `.reference/wmt14-scorer-replay-venv`.
+Choose a fresh output directory for each mode.
+
+```sh
+python3 tools/reference/replay_wmt14_corpus_quality.py BASE.jsonl \
+  reports/wmt14-metal-base-quality --cfg 0 --runtime metal
+python3 tools/reference/replay_wmt14_corpus_quality.py GUIDED.jsonl \
+  reports/wmt14-metal-guided-quality --cfg 1 --runtime metal
+```
+
+The command uses the frozen CUDA output and decoded-text references in
+`reports/`. Use `--reference` and `--reference-text` if those files are
+stored elsewhere. The same hashes apply. Use `--runtime cuda` for a CUDA
+recorder capture.
+
+Keep `batch-comparison.json` with the scorer receipts. It records
+rejections, retries and all code and raw-ID differences. A rejected
+batch stops the replay before decoding and preserves that receipt.
+For a complete capture, the command verifies both scorers' full and
+held-out results and their byte equality. A passing replay is a
+frozen quality result. Intermediate code differences remain visible
+for numerical review, and device performance has its own gate.
+
+The tracked command reproduced the archived padded Metal captures
+and combined CUDA captures in both modes. For each of the four
+captures the normalized JSON, decoded text, comparison and both
+scorer receipts are byte-identical to the corresponding earlier
+artifacts. The Metal base receipt retains 13 differing codes at
+row 632 and no raw-ID differences. Replaying the unpadded native
+base capture retains its rejected batch at 1376 and exits before
+decoding. The evidence is under
+`reports/phase4-wmt14-scoring-replay-v1.wS1Msf/`.
+The focused replay, tokenizer and scorer tests passed. The full Linux
+suite passed all 531 report tests and its log hashes to
+`6595c6274db7eec83f01275a8619c19766bee0796674275e34718d197c02098c`.
+
 ## Repeating the Metal timing comparison
 
 Use the pinned native MLX install and Python MLX environment, the
