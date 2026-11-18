@@ -20,14 +20,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [simd-head]"
+                .into(),
         );
     };
-    let reusable = match extras {
-        [] => false,
-        [load] if load == "reusable" => true,
-        _ => return Err("expected optional reusable loader".into()),
-    };
+    let reusable = extras.iter().any(|x| x == "reusable");
+    let simd_head = extras.iter().any(|x| x == "simd-head");
+    if extras.len() != usize::from(reusable) + usize::from(simd_head) {
+        return Err("unexpected or duplicate WMT14 timing option".into());
+    }
     let guided = match mode.as_str() {
         "0" => false,
         "1" => true,
@@ -65,7 +66,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     drop(doc);
     drop(raw);
     let load_start = Instant::now();
-    let backend = MlxBackend::gpu()?;
+    let backend = if simd_head {
+        MlxBackend::gpu_wmt14_simd_head_experimental()?
+    } else {
+        MlxBackend::gpu()?
+    };
     let model = if reusable {
         let artifact = Artifact::load_wmt14_inference_reusable(artifact)?;
         Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
@@ -104,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_json::json!({
             "backend": "mlx", "batch": batch, "cfg": u8::from(guided), "warmups": warmups,
             "scope": "generation and code/ID readback; model load excluded",
-            "load_seconds": load_seconds, "reusable_loader": reusable,
+            "load_seconds": load_seconds, "reusable_loader": reusable, "simd_head": simd_head,
             "trials_seconds": samples, "codes": codes, "raw_ids": ids,
             "mlx_memory": {"active": memory::active_memory()?, "peak": memory::peak_memory()?,
                            "cache": memory::cache_memory()?}

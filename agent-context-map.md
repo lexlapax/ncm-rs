@@ -4,6 +4,7 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **WMT14 Metal SIMD head probe:** an explicit benchmark option spreads each 4,096-way unique-max row across 32 lanes using the same sentinel for ties or nonfinite scores. Linux format and host build checks passed. The Metal fixture tests same-lane and cross-lane ties, signed zero, nonfinite scores and end-of-row selection. Real Metal build, correctness and timing are next.
 - **WMT14 reusable host buffer:** Mac startup RSS stays near 2,110 MiB with owned release. Heap snapshots show up to 1 GiB of empty large-allocation regions and Apple pressure relief released zero bytes in the isolated two-buffer test. A WMT14-only reusable loader validates both payloads before model upload and rechecks each reread against the same manifest. It is opt-in in the Metal timing probe. The allocation reuse and changed-file regression passed, as did the full Linux CUDA checks with 18 device cases. The paired Mac startup comparison is next.
 
 - **WMT14 teacher trace:** the existing pinned two-row CUDA trace capture is shared with a Metal example. CUDA reproduced the earlier trace byte-for-byte. Metal passes all 26 tensors against the same pinned oracle. [Evidence](docs/results/2026-11-16-phase4-wmt14/teacher-cuda-reference-v1.md#metal-comparison).

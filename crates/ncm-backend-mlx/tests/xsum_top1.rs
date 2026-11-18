@@ -30,3 +30,38 @@ fn xsum_top1_honors_ties_and_rejects_nonfinite_values() {
     let wrong = backend.upload_f32(&[1.0; 32], &[1, 1, 32]).unwrap();
     assert!(backend.unique_max_4096(&wrong).is_err());
 }
+
+#[test]
+fn wmt14_simd_head_matches_serial_with_ties_and_nonfinite_scores() {
+    let serial = MlxBackend::gpu().unwrap();
+    let simd = MlxBackend::gpu_wmt14_simd_head_experimental().unwrap();
+    let mut data = vec![-4.0_f32; 8 * 4096];
+    data[4095] = 1.0;
+    data[4096 + 5] = 3.0;
+    data[4096 + 37] = 3.0;
+    data[2 * 4096 + 5] = 3.0;
+    data[2 * 4096 + 2049] = 3.0;
+    data[3 * 4096 + 5] = -0.0;
+    data[3 * 4096 + 9] = 0.0;
+    data[4 * 4096 + 42] = f32::NAN;
+    data[5 * 4096 + 99] = f32::INFINITY;
+    data[6 * 4096 + 101] = f32::NEG_INFINITY;
+    data[7 * 4096 + 96] = -1.0;
+    for backend in [serial, simd] {
+        let input = backend.upload_f32(&data, &[2, 4, 4096]).unwrap();
+        let selected = backend.unique_max_4096(&input).unwrap();
+        assert_eq!(
+            backend.read_indices(&selected).unwrap(),
+            [
+                4095,
+                u32::MAX,
+                u32::MAX,
+                u32::MAX,
+                u32::MAX,
+                u32::MAX,
+                u32::MAX,
+                96
+            ]
+        );
+    }
+}

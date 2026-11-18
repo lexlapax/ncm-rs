@@ -90,6 +90,7 @@ pub struct MlxBackend {
     xsum_norm_experimental: bool,
     xsum_upsample_experimental: bool,
     wmt14_upsample_experimental: bool,
+    wmt14_simd_head_experimental: bool,
     xsum_groupnorm_experimental: bool,
     xsum_gelu_experimental: bool,
     xsum_compiled_gelu_experimental: bool,
@@ -134,6 +135,7 @@ impl MlxBackend {
             xsum_norm_experimental: false,
             xsum_upsample_experimental: false,
             wmt14_upsample_experimental: false,
+            wmt14_simd_head_experimental: false,
             xsum_groupnorm_experimental: false,
             xsum_gelu_experimental: false,
             xsum_compiled_gelu_experimental: false,
@@ -150,6 +152,12 @@ impl MlxBackend {
     pub fn gpu_wmt14_upsample_experimental() -> Result<Self> {
         let mut backend = Self::gpu()?;
         backend.wmt14_upsample_experimental = true;
+        Ok(backend)
+    }
+    /// Use a parallel reduction for unique 4096-way head maxima.
+    pub fn gpu_wmt14_simd_head_experimental() -> Result<Self> {
+        let mut backend = Self::gpu()?;
+        backend.wmt14_simd_head_experimental = true;
         Ok(backend)
     }
     /// Explicit diagnostic backend; this is not a qualified inference profile.
@@ -808,9 +816,15 @@ impl ncm_core::GeneratorBackend for MlxBackend {
 
     fn unique_max_4096(&self, logits: &MlxTensor) -> Result<MlxTensor> {
         check(logits, Dtype::Float32)?;
-        with_stream(&self.stream, || crate::xsum_top1::select(&logits.0, true))
-            .map(MlxTensor)
-            .map_err(error)
+        with_stream(&self.stream, || {
+            if self.wmt14_simd_head_experimental {
+                crate::xsum_top1::select_unique_simd(&logits.0)
+            } else {
+                crate::xsum_top1::select(&logits.0, true)
+            }
+        })
+        .map(MlxTensor)
+        .map_err(error)
     }
 
     fn xsum_reference_top1_4096(&self, logits: &MlxTensor) -> Result<MlxTensor> {
