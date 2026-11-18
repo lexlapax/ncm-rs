@@ -382,3 +382,57 @@ sources are retained in the same evidence directory. Desktop GPU processes
 were present. Sampled device memory is not an allocator peak, and eight
 measurements per process do not meet the full performance gate. This screen
 does not establish held-out quality or Metal support.
+
+## Second controlled history and isolated arithmetic candidates
+
+A separate two-row controlled draw with seed 16 exercises the current
+intrinsic-rotary, 1 MiB QKV candidate. This is a numerical diagnostic, not a
+quality sample. Two pinned Python CUDA captures reproduced byte-for-byte;
+their trace SHA-256 is
+`9771b1d59dacf941e572096b471f3de5b13d12d08e7312245a485967db745dc9`.
+The current candidate fails 7 of 51 tensors under the unchanged comparison,
+with two code differences and no penalized-ID differences. The first is row 1,
+level 10 position 60: reference code 5429 and Rust code 5428 straddle draw
+`0.8566738954978064`, with cumulative boundaries `0.8566738952863275`
+and `0.8566739015165296`. Same-logit replay reproduces all 1,282 Rust choices.
+Supplying the exact pinned rotary table still gives two code differences and
+no ID differences. Comparison and replay audit SHA-256 values are
+`d97266519878d98f879c7d9f5e151bfa5fc90d8ca9fcbe063690bb85fd96d49b` and
+`357523a98023183e7670d925caf7c9c7f1347eb84c725c2006eaec34c5cc849b`.
+
+A pinned Python CUDA continuation from reference level-10 inputs reproduces
+all reference logits exactly. Replacing either its latent or its convolution
+output with the corresponding Rust tensor independently selects 5428 at that
+draw. Reconstruction first differs at level 1. On the same captured level-one
+embedding, an independently written CUDA fused multiply-add interpolation
+matches all 98,304 PyTorch values, whereas the existing separate operations
+differ in 19,340. It also matches on one synthetic input for each of the ten
+LM1B interpolation lengths. This is bounded operator evidence.
+
+An isolated backend candidate combines that interpolation with a 1 MiB
+cuBLASLt heuristic for the 384-to-768 input projection. On the captured
+level-seven target input the heuristic matches all Python target values; the
+previous 4 MiB choice differs in 32,949. A further explicit area-reduction
+variant multiplies the sum by an FP32 reciprocal. On the captured 128-to-108
+input that matches Python exactly; division differs in 4,059 values. Together
+the three changes make reconstruction levels 0–9 and level-10 latent,
+convolution, target, first normalization and QKV bit-identical in this one
+history, but the same two code differences remain.
+
+At that level, the intrinsic tables differ from Python in 194 cosine and 116
+sine values, each by at most one FP32 ULP; normalized Q/K and V match, but
+rotated Q/K and attention do not. A separately isolated split-scale attention
+variant reduces the first-attention mismatch count but still gives two code
+differences, with zero ID differences using intrinsic tables and one ID
+difference using the exact table. The interpolation-only candidate had 98 code
+and 30 ID differences, despite exact reconstruction through level 6. These
+results show interacting rounding effects, not a qualified fix. No default,
+artifact, numerical policy, or quality gate changed.
+
+The final isolated source snapshot SHA-256 is
+`6af7f2a86c687d05df0f31d819d6a906121e1dd833678eacde838b9081870d95`.
+It, the controlled traces, intervention outputs, probe sources and receipts
+are retained under `reports/phase4-lm1b-controlled-seed16-v1/`. The final
+candidate passed feature-specific Clippy only; full source/device checks,
+quality, performance and Metal qualification have not run for it. It is not
+integrated into the working tree.
