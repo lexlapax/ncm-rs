@@ -73,7 +73,10 @@ It emits 313 intermediate codes and 64 raw token IDs per row. CUDA uses the
 [one-pass final selector](results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md).
 The experimental Metal CLI uses a reclaimable copied weight buffer
 and checks the complete set of intermediate codes before decoding.
-On Apple Silicon, select `mlx-retry-padded` to opt into one bounded
+At scales zero and one it evaluates the reconstruction after level
+five and selects raw IDs from two-row decoder projections. At scale
+one with four prefixes it also evaluates the final transformer after
+its third block. On Apple Silicon, select `mlx-retry-padded` to opt into one bounded
 retry for batches of one to four prefixes. A tied or nonfinite head
 repeats input rows to eight internally. The same head check runs on
 the padded batch and the command returns only the original rows.

@@ -1264,3 +1264,38 @@ Repeat the candidate using the tracked paired runner.
   --cell 1:4 --materialize-after 5 --decoder-rows 2 --last-transformer-checkpoint 3 \
   --output reports/wmt14-metal-guided-last-transformer-block3
 ```
+
+### Repeated block-three comparison
+
+Three fresh processes per runtime matched the pinned codes and
+raw IDs. Each process ran five warmups and 30 synchronized measured
+trials. The repeated guided batch-four block-three configuration
+passes median latency, p95, process RSS, and native allocator peak.
+
+| Runtime | Median (ms) | p95 (ms) | Peak RSS (MiB) | MLX peak (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Rust Metal | 353.82 | 356.54 | 1561.19 | 2096.74 |
+| Adapted Python MLX | 364.55 | 368.53 | 1657.72 | 2142.62 |
+
+Linux reproduced the summary byte for byte. Its SHA-256 is
+`4ba93df48451c2598eb49583a59c57d55138bcc3c260ae0767b9171ceea5aa81`.
+The six other cells in the [earlier paired comparison](#repeated-timing-with-the-checkpoint-and-tiles)
+pass with the level-five checkpoint and two-row tiles alone. The
+block-three setting is used specifically for guided batch four.
+
+The full guided CUDA block-three capture matched every code and raw ID
+across 3,003 rows. Both frozen scorers pass the full and held-out
+checks. The batch comparison and scorer receipt match the earlier
+guided CUDA run byte for byte. They are under
+`reports/phase4-wmt14-transformer-checkpoint-cuda-v1.X4e7px/block3-quality/`
+and hash to `6343ea547f36d047e5df3c4f5a141ca2b2a3c2c9c1c9af46b2a60cd22aaba585`
+and `915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`.
+
+The full guided Metal block-three capture is byte-identical to the
+earlier combined Metal capture. All 3,003 rows match the frozen
+codes and raw IDs. Batch 2656 uses the single padded retry. Both
+frozen scorers pass the full and held-out checks, with identical
+receipts. The raw Metal run is under
+`reports/phase4-wmt14-block3-metal-v1.i7tImw/`. The copied capture,
+comparison, timing and score receipts are in
+`reports/phase4-wmt14-transformer-checkpoint-linux-v1.tkw2aJ/`.

@@ -311,21 +311,43 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     } else {
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
     };
-    let output = if padded_retry {
-        let (output, retried) =
-            teacher.generate_top1_with_padded_retry(&prefixes, inputs.len(), scale)?;
-        if retried {
-            eprintln!("WMT14 retried the rejected head with eight internal rows");
+    let batch = inputs.len();
+    let (output, retried) = if metal_optimized && (scale == 0.0 || scale == 1.0) {
+        let teacher = teacher.with_level_materialization_experimental(5)?;
+        let teacher = if scale == 1.0 && batch == 4 {
+            teacher.with_last_transformer_checkpoint_experimental(3)?
+        } else {
+            teacher
+        };
+        if padded_retry {
+            teacher.generate_top1_tiled_decoder_with_padded_retry(&prefixes, batch, scale, 2)?
+        } else {
+            (
+                teacher.generate_top1_with_tiled_decoder(&prefixes, batch, scale, 2)?,
+                false,
+            )
         }
-        output
-    } else if scale == 0.0 {
-        teacher.generate_top1(&prefixes, inputs.len())?
     } else {
-        teacher.generate_cfg_top1(&prefixes, inputs.len(), scale)?
+        let (output, retried) = if padded_retry {
+            teacher.generate_top1_with_padded_retry(&prefixes, batch, scale)?
+        } else if scale == 0.0 {
+            (teacher.generate_top1(&prefixes, batch)?, false)
+        } else {
+            (teacher.generate_cfg_top1(&prefixes, batch, scale)?, false)
+        };
+        drop(output.logits);
+        (
+            ncm_model::Wmt14HostOutput {
+                codes: backend.read_indices(&output.codes)?,
+                ids: backend.read_indices(&output.ids)?,
+            },
+            retried,
+        )
     };
-    drop(output.logits);
-    let codes = backend.read_indices(&output.codes)?;
-    let ids = backend.read_indices(&output.ids)?;
+    if retried {
+        eprintln!("WMT14 retried the rejected head with eight internal rows");
+    }
+    let ncm_model::Wmt14HostOutput { codes, ids } = output;
     if codes.len() != inputs.len() * 313 || ids.len() != inputs.len() * 64 {
         return Err("invalid WMT14 backend output shape".into());
     }
