@@ -285,7 +285,7 @@ fn dispatch_xsum(
 ))]
 fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     backend: B,
-    artifact: &Artifact,
+    artifact: Artifact,
     inputs: &[Vec<u32>],
     scale: f64,
 ) -> Result<serde_json::Value> {
@@ -297,7 +297,7 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
         return Err("invalid WMT14 batch size or prefix length".into());
     }
     let prefixes: Vec<_> = inputs.iter().flatten().copied().collect();
-    let teacher = ncm_model::Wmt14Teacher::from_artifact(backend.clone(), artifact)?;
+    let teacher = ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?;
     let output = if scale == 0.0 {
         teacher.generate_top1(&prefixes, inputs.len())?
     } else {
@@ -325,11 +325,11 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
 
 fn dispatch_wmt14(
     device: &str,
-    artifact: &Artifact,
+    artifact: Artifact,
     inputs: &[Vec<u32>],
     scale: f64,
 ) -> Result<serde_json::Value> {
-    let _ = (artifact, inputs, scale);
+    let _ = (&artifact, inputs, scale);
     match device {
         #[cfg(all(feature = "wmt14-experimental", feature = "cuda-cudnn"))]
         "cuda" => sample_wmt14(
@@ -430,7 +430,7 @@ fn main_impl() -> Result<()> {
         dispatch_xsum(&args[3], artifact, &inputs, cfg_scale, seed)?
     } else if args[1] == "sample-wmt14" {
         let scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
-        dispatch_wmt14(&args[3], &artifact, &inputs, scale)?
+        dispatch_wmt14(&args[3], artifact, &inputs, scale)?
     } else if let Some(seed) = sample_seed {
         dispatch_tinystories(&args[3], artifact, &inputs, seed)?
     } else {

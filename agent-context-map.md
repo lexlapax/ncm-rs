@@ -4,6 +4,12 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **WMT14 Metal frozen replays:** the padded retry recovered base batch 1376 and guided batch 2656. Both modes match all 3,003 raw-ID rows and both independently replayed scorers pass. Guided codes are exact and base row 632 retains 13 intermediate code differences. Each mode's other 750 records are byte-identical to native baseline. CLI retry integration, teacher-forced Metal comparison and performance remain open. [Evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md).
+
+- **WMT14 Metal benchmark preparation:** the Python MLX adaptation reproduces both pinned four-row control modes. The Rust probe pairs synchronized generation/readback with separate load and native MLX memory counters. The wider batch matrix and performance measurements are pending.
+
+- **WMT14 CLI owned artifact:** the CLI releases the validated codec payload after device upload and before generator upload. Linux CLI parity and full CUDA checks passed. Three paired Linux base batch-4 cold runs match byte-for-byte and show a 306.39 MiB lower median peak RSS (17.3%); concurrent compilation limits timing conclusions. Mac startup preflight is next. [Results](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#startup-memory-preparation).
+
 - **WMT14 Metal padded retry:** eight internal rows recover the two rejected ranges without changing the external four-row fixture grouping. An explicit capture candidate retries only the known head rejection and records the internal batch size. Row 632's 13 intermediate code differences persist with exact raw IDs. Full candidate validation is pending.
 
 - **WMT14 Metal upsampling candidate:** an explicit capture-only backend changes the three nonoverlapping stride-four upsampling operations to their equivalent projection layout. It is motivated by the CUDA initial-cascade fix and the finding that the Metal tie is already determined by the input scores to guidance. The native corpus baseline is the comparison reference.

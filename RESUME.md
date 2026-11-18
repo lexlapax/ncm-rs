@@ -75,6 +75,11 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   matched all three base batches and two guided batches. The four-row
   guided batch starting at 2656 hits the tied-or-nonfinite head guard,
   and each constituent row matches when invoked separately.
+  The [full Metal retry replay](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md)
+  recovered one rejected batch in each mode. Both frozen scoring
+  environments passed on all 3,003 rows. Guided codes and both modes'
+  raw IDs match exactly. Base row 632 retains 13 intermediate code
+  differences. The bounded retry is exposed by the capture example.
 - LM1B-small CUDA's frozen held-out quality comparison fails: the entropy
   confidence interval lower endpoint is -0.007118 versus -0.0046. Its five
   held-out seeds are observed; a rerun is a retest, not fresh held-out data.
@@ -114,10 +119,10 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Trace the rejected WMT14 Metal CFG batch at its original four-row
-   geometry to distinguish an exact tie from a nonfinite score. After
-   resolving it, complete Metal corpus comparisons and paired latency
-   and memory qualification on real hardware.
+1. Complete the WMT14 Metal teacher-forced check, CLI integration of
+   the explicit bounded retry, and paired latency and memory
+   qualification. Both modes have passing frozen corpus scores for
+   the capture candidate.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

@@ -720,6 +720,20 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
         crate::Wmt14GeneratorInspection::from_artifact(artifact)?;
         let codec = crate::Codec::from_wmt14_artifact_experimental(backend.clone(), artifact)?;
+        Self::from_checked_parts(backend, artifact, codec)
+    }
+
+    /// Release the validated codec payload before uploading the generator.
+    pub fn from_owned_artifact(backend: B, mut artifact: Artifact) -> Result<Self> {
+        crate::Wmt14GeneratorInspection::from_artifact(&artifact)?;
+        let codec = crate::Codec::from_wmt14_artifact_experimental(backend.clone(), &artifact)?;
+        artifact
+            .release_file("codec.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        Self::from_checked_parts(backend, &artifact, codec)
+    }
+
+    fn from_checked_parts(backend: B, artifact: &Artifact, codec: crate::Codec<B>) -> Result<Self> {
         let bytes = artifact
             .file("generator.safetensors")
             .map_err(|e| Error::Weights(e.to_string()))?;

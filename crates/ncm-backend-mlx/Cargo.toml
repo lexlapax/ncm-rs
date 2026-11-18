@@ -11,6 +11,7 @@ publish = false
 [features]
 default = []
 mlx = ["dep:mlx-rs", "dep:ncm-core", "dep:ncm-io", "dep:safetensors"]
+wmt14-experimental = ["ncm-model/wmt14-experimental"]
 
 [target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
 mlx-rs = { git = "https://github.com/oxiglade/mlx-rs", rev = "adf439bf5361d8a02955de7aaf651b0c45900945", optional = true, features = ["safetensors"] }
@@ -118,6 +119,10 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_perf_screen"
 required-features = ["mlx"]
+
+[[example]]
+name = "wmt14_perf"
+required-features = ["mlx", "wmt14-experimental"]
 
 [[example]]
 name = "xsum_top1_row_trace"
