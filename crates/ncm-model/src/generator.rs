@@ -1178,6 +1178,12 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             };
             let head_logits = b.project(&hidden, &self.heads[level])?;
             let mut head_logits = if let Some((original, scale)) = cfg {
+                if self.cfg_internals_diagnostic {
+                    trace.tensor(
+                        &format!("diagnostic.level_{level:02}.branches"),
+                        &head_logits,
+                    )?;
+                }
                 let t = scale * level as f64 / (levels.len() - 1) as f64;
                 let conditioned = b.narrow(&head_logits, 0, 0, original)?;
                 let null = b.narrow(&head_logits, 0, original, original)?;

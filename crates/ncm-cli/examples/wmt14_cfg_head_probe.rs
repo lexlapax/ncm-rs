@@ -11,15 +11,20 @@ mod probe {
     use ncm_model::{TraceSink, Wmt14Teacher};
     use serde_json::{Value, json};
 
-    struct HeadCapture<'a, B> {
+    struct HeadCapture<'a, B: GeneratorBackend> {
         backend: &'a B,
         batch: usize,
         observed_levels: usize,
         rejected: Vec<Value>,
+        branches: Option<B::Tensor>,
     }
 
     impl<B: GeneratorBackend> TraceSink<B> for HeadCapture<'_, B> {
         fn tensor(&mut self, name: &str, value: &B::Tensor) -> Result<()> {
+            if name.starts_with("diagnostic.level_") && name.ends_with(".branches") {
+                self.branches = Some(value.clone());
+                return Ok(());
+            }
             let Some(level) = name
                 .strip_prefix("generator.level_")
                 .and_then(|name| name.strip_suffix(".logits"))
@@ -41,6 +46,14 @@ mod probe {
                 return Err(Error::Backend("incomplete WMT14 head scores".into()));
             }
             self.observed_levels += 1;
+            let branches = self
+                .branches
+                .take()
+                .ok_or_else(|| Error::Backend("WMT14 branch trace missing".into()))?;
+            if self.backend.shape(&branches) != [2 * batch, *positions, 4096] {
+                return Err(Error::Backend("unexpected WMT14 branch shape".into()));
+            }
+            let mut branch_values = None;
             for (index, row) in values.as_chunks::<4096>().0.iter().enumerate() {
                 let finite = row.iter().copied().filter(|x| x.is_finite());
                 let maximum = finite.clone().reduce(f32::max);
@@ -51,6 +64,14 @@ mod probe {
                     .filter_map(|(i, &x)| (Some(x) == maximum).then_some(i))
                     .collect();
                 if nonfinite > 0 || matching.len() != 1 {
+                    let all = match &branch_values {
+                        Some(all) => all,
+                        None => branch_values.insert(self.backend.read_f32(&branches)?),
+                    };
+                    let (branch_rows, remainder) = all.as_chunks::<4096>();
+                    if !remainder.is_empty() || branch_rows.len() != 2 * batch * positions {
+                        return Err(Error::Backend("incomplete WMT14 branch scores".into()));
+                    }
                     self.rejected.push(json!({
                         "level": level,
                         "row": index / positions,
@@ -59,6 +80,8 @@ mod probe {
                         "maximum_indices": matching,
                         "nonfinite": nonfinite,
                         "score_bits": row.iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
+                        "conditional_bits": branch_rows[index].iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
+                        "null_bits": branch_rows[index + batch * positions].iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
                     }));
                 }
             }
@@ -76,13 +99,18 @@ mod probe {
         rows: &[Vec<u32>],
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
         let artifact = Artifact::load_inference(path)?;
-        let model = Wmt14Teacher::from_artifact(backend.clone(), &artifact)?;
+        let model = Wmt14Teacher::from_artifact_cfg_internals_diagnostic(
+            backend.clone(),
+            &artifact,
+            false,
+        )?;
         let prefixes: Vec<_> = rows.iter().flatten().copied().collect();
         let mut trace = HeadCapture {
             backend: &backend,
             batch: rows.len(),
             observed_levels: 0,
             rejected: Vec::new(),
+            branches: None,
         };
         let result = model.generate_cfg_top1_traced(&prefixes, rows.len(), 1.0, &mut trace);
         println!(
