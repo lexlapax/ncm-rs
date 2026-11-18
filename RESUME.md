@@ -41,7 +41,10 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   reduction and a combined normalization/projection/attention probe also
   did not resolve it. A pinned tokenizer and ROUGE replay matches Python CUDA
   on all 11,334 retained Metal decoded texts and per-row scores. The pinned
-  perplexity tokenizer inputs and score masks match as well. The nine
+  perplexity tokenizer inputs and score masks match as well. An
+  [independent pinned GPT-2 scoring run](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md#full-corpus-metal-text-and-rouge-replay)
+  on the retained Metal outputs matches all 277,595 scoreable tokens and
+  the exact retained Python perplexity of `82.62335629362389`. The nine
   intermediate code differences and six post-EOS raw-ID differences
   still fail the unchanged exact gate.
   The [pinned Python batch-size control](docs/results/2026-11-15-phase4-xsum/mlx-full-top1-v1.md#pinned-python-free-generation-across-batch-sizes)
@@ -103,11 +106,14 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Resolve the exact XSum Metal gate using the retained evidence. The
-   shortened-batch and combined-arithmetic probes did not resolve it.
-   Use a new evidence-based hypothesis or the pending explicit scope
-   decision before advancing. Verify Linux first and run Metal only when
-   the Mac is available.
+1. Resolve the exact XSum Metal gate before advancing to WMT14. The
+   full-corpus quality replay is complete and the strict comparator
+   still fails. The pending advancement decision applies to the
+   enumerated discrepancies in the retained capture. The review draft
+   and source hashes are in ignored
+   `reports/phase4-xsum-decision-review-v1/proposed-exception.md`.
+   A portable runtime change requires evidence from native Metal state.
+   Verify Linux before any further Metal validation.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

@@ -259,10 +259,36 @@ using the official empty-prompt settings. These tensors match for all
 11,334 rows, and both streams contain the same 277,595 scored tokens
 as the retained Python CUDA evaluation. Its perplexity is
 82.62335629362389 on these inputs. This verifies that the existing score
-uses the same evaluator inputs. It does not constitute a second GPT-2
-inference run. The check and receipt are in `metal-ppl-inputs/`, and the
+uses the same evaluator inputs. The input check and receipt are in
+`metal-ppl-inputs/`, and the
 receipt SHA-256 is
 `ef8711d294f5eca666fc532fcd783ad26ff8c3ee082774f41a02c66abdc3e25a`.
+
+The independent perplexity replay decoded all 11,334 retained Metal rows
+and ran the pinned upstream `generation_perplexity` function on the
+pinned GPT-2 model (revision `607a30d783dfa663caf39e06633721c8d4cfcd7e`).
+It used 355 batches at batch size 32, the official empty prompts and
+generated-token mask, and an RTX 3060 Ti with TF32 disabled. The decoded
+summaries matched the retained Python summaries before scoring. The
+evaluation summed 277,595 tokens and an NLL of 1,225,385.5. The new
+perplexity of `82.62335629362389` exactly equals the retained Python
+perplexity. The Metal replay has its own per-row NLL and token counts.
+Equality was evaluated against the published Python aggregate.
+
+The strict raw comparator reproduced its original failed receipt
+byte-for-byte, and the borrowed-upload Metal candidate matched the
+retained Metal rows exactly. Nine intermediate codes and six post-EOS
+raw IDs differ from Python at the frozen batch-32 setting.
+[Batch-size and state controls](mlx-full-top1-v1.md#pinned-python-free-generation-across-batch-sizes)
+reproduce some discrepancies within CUDA and recover row 4937 on Metal
+only with supplied CUDA state in the tested configurations.
+
+The ignored bundle `reports/phase4-xsum-metal-ppl-replay-v1.Lqr34H/`
+contains the scoring script, log, comparison receipt and per-row scores.
+The receipt SHA-256 is
+`12368660cb13a53e88c037cadc4e710dcd7517b6a379438cb5f2a576dfb79bfc`.
+The per-row scores SHA-256 is
+`ebee00b2d4927abfb3fb26ea54551ad37f88b468654900e0b733b58e218cfedf`.
 
 The optimized CUDA CLI matched all 256,000 codes and 61,440 raw IDs in
 the 1,280 retained sampled outputs. It used the unchanged exact five-seed
