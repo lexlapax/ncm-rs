@@ -6,16 +6,20 @@ use ncm_model::XsumTeacher;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 4 {
-        return Err("usage: xsum_top1_free_experimental ARTIFACT INPUT_JSON BACKEND".into());
+    if !(4..=5).contains(&args.len()) {
+        return Err(
+            "usage: xsum_top1_free_experimental ARTIFACT INPUT_JSON BACKEND [CFG_SCALE]".into(),
+        );
     }
+    let scale = args.get(4).map_or(Ok(0.0), |value| value.parse::<f64>())?;
     let rows: Vec<Vec<u32>> = serde_json::from_slice(&std::fs::read(&args[2])?)?;
-    if rows.len() != 32
+    let batch = rows.len();
+    if !(1..=32).contains(&batch)
         || rows
             .iter()
             .any(|r| r.len() != 512 || r.iter().any(|&v| v >= 50304))
     {
-        return Err("expected 32 valid 512-token rows".into());
+        return Err("expected 1..=32 valid 512-token rows".into());
     }
     let backend = match args[3].as_str() {
         "default" => MlxBackend::gpu()?,
@@ -46,9 +50,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input: Vec<u32> = rows.into_iter().flatten().collect();
     let artifact = Artifact::load_inference(&args[1])?;
     let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
-    let output = model.generate_top1_cpu(&input, 32)?;
+    let output = model.generate_top1_cfg_cpu(&input, batch, scale)?;
     let codes = backend.read_indices(&output.codes)?;
-    if codes.len() != 32 * 200 || output.ids.len() != 32 * 48 {
+    if codes.len() != batch * 200 || output.ids.len() != batch * 48 {
         return Err("unexpected output shape".into());
     }
     let codes: Vec<_> = codes

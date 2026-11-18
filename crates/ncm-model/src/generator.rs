@@ -2217,11 +2217,39 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         batch: usize,
         scale: f64,
     ) -> Result<XsumGenerated<B>> {
-        if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
-            return Err(Error::Input("invalid XSum CFG scale".into()));
-        }
         if scale == 0.0 {
             return self.generate_top1_device(prefix_tokens, batch);
+        }
+        self.generate_guided_top1(prefix_tokens, batch, scale, |output| {
+            self.finish_device(output)
+        })
+    }
+
+    /// Use the same guided top-1 schedule with explicitly requested CPU FP64
+    /// final selection. A request at scale zero uses the ordinary CPU-final path.
+    pub fn generate_top1_cfg_cpu(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+    ) -> Result<XsumGenerated<B>> {
+        if scale == 0.0 {
+            return self.generate_top1_cpu(prefix_tokens, batch);
+        }
+        self.generate_guided_top1(prefix_tokens, batch, scale, |output| {
+            self.finish_cpu(output, batch)
+        })
+    }
+
+    fn generate_guided_top1(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        finish: impl FnOnce(XsumRun<B>) -> Result<XsumGenerated<B>>,
+    ) -> Result<XsumGenerated<B>> {
+        if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
+            return Err(Error::Input("invalid XSum CFG scale".into()));
         }
         if !(1..=64).contains(&batch) || batch.checked_mul(512) != Some(prefix_tokens.len()) {
             return Err(Error::Input("XSum CFG expects 1..=64 prefixes".into()));
@@ -2247,7 +2275,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 random: None,
             }),
         )?;
-        self.finish_device(output)
+        finish(output)
     }
 
     /// Experimental sampling at temperature 1, top-k 0 and top-p 1 using request-local
