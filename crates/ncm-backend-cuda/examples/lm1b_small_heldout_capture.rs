@@ -21,11 +21,18 @@ fn heldout_seed(seed: u64) -> Result<u64, Box<dyn Error>> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 4 {
-        return Err("usage: lm1b_small_heldout_capture ARTIFACT SEED OUTPUT".into());
-    }
-    let seed = heldout_seed(args[2].parse()?)?;
-    let output = Path::new(&args[3]);
+    let [_, artifact_path, seed, output, options @ ..] = args.as_slice() else {
+        return Err(
+            "usage: lm1b_small_heldout_capture ARTIFACT SEED OUTPUT [cudnn-default-math]".into(),
+        );
+    };
+    let use_default_math = match options {
+        [] => false,
+        [option] if option == "cudnn-default-math" => true,
+        _ => return Err("invalid LM1B capture option".into()),
+    };
+    let seed = heldout_seed(seed.parse()?)?;
+    let output = Path::new(output);
     let parent = output
         .parent()
         .ok_or("output needs a parent")?
@@ -36,7 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     {
         return Err("new output under reports required".into());
     }
-    let artifact_path = Path::new(&args[1]);
+    let artifact_path = Path::new(artifact_path);
     if sha256(&fs::read(artifact_path.join("manifest.json"))?)
         != "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76"
     {
@@ -48,7 +55,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     if rope_path.is_none() {
         return Err("explicit diagnostic rotary tables required".into());
     }
-    let backend = CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?;
+    let backend = if use_default_math {
+        CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
+    } else {
+        CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
+    };
     let mut model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?;
     if let Some(path) = &rope_path {
         let data = fs::read(path)?;
@@ -102,6 +113,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         "penalty": "CUDA FP64",
         "artifact_manifest_sha256": "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76", "binary_sha256": binary_sha256,
         "codes": codes, "raw_ids": raw_ids});
+    if use_default_math {
+        report["convolution_math"] = serde_json::json!("cuDNN default math");
+        report["scope"] = serde_json::json!("observed-seed experimental cuDNN default-math retest");
+    }
     if rope_path.is_some() {
         report["diagnostic"] = serde_json::json!({"rotary_tables_sha256": "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc", "backend": "reference operators with 1 MiB QKV preference"});
     }

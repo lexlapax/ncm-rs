@@ -142,6 +142,7 @@ def main():
     for name in ('archive', 'artifact', 'upstream', 'source', 'rust-binary', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--python-cudnn-fp32', action='store_true')
+    parser.add_argument('--rust-cudnn-default-math', action='store_true')
     args = parser.parse_args()
     out = args.output.resolve()
     if args.output.is_symlink() or out.exists() or not out.is_relative_to(ROOT / 'reports'):
@@ -217,8 +218,12 @@ def main():
     codes_path = out / 'codes.json'
     json_file(codes_path, all_codes)
     codes_sha = digest_file(codes_path)
-    child = subprocess.run([str(args.rust_binary.resolve()), str(args.artifact.resolve()), str(codes_path), codes_sha],
-                           check=True, capture_output=True, timeout=300)
+    command = [str(args.rust_binary.resolve()), str(args.artifact.resolve()), str(codes_path), codes_sha]
+    if args.rust_cudnn_default_math:
+        command.append('cudnn-default-math')
+    child = subprocess.run(command, check=False, capture_output=True, timeout=300)
+    if child.returncode:
+        raise RuntimeError(f'Rust decoder failed: {child.stderr.decode(errors="replace")}')
     rust_ids = checked_rows(json.loads(child.stdout), len(all_codes), 128, 30528)
     json_file(out / 'rust-ids.json', rust_ids)
 
@@ -264,6 +269,7 @@ def main():
     upstream_pin(upstream)
     receipt = {'scope': 'fixed-code replay of previously observed rows', 'summary_sha256': SUMMARY_SHA,
                'codes_sha256': codes_sha, 'watched_sha256': before, 'torch': torch.__version__,
+               'rust_cudnn_default_math': args.rust_cudnn_default_math,
                'python_cudnn_allow_tf32': torch.backends.cudnn.allow_tf32,
                'python_matmul_allow_tf32': torch.backends.cuda.matmul.allow_tf32,
                'outputs_sha256': {name: digest_file(out / f'{name}-ids.json') for name in RUNTIMES},

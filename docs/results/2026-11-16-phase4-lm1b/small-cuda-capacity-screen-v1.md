@@ -154,3 +154,57 @@ codes and IDs. The host log and WMT14 probe hashes are
 `621ce44f07ecfef2193a7483588425d882605811ec58c49a0673aa13313f9851`
 and `94b3ec921547878f8d3a3ddfe8a930c80d4d497427c055a326a05b13ddbb7eff`,
 respectively.
+
+### Repeated cuDNN default-math candidate
+
+The [fixed-code compatibility experiment](small-heldout-cuda-v1.md#rust-cudnn-default-math-experiment)
+adds an explicit cuDNN default-math mode to the same rotary/QKV
+candidate. Use the build and repeated command above with
+`--rust-cudnn-default-math` and a fresh output directory. The runner
+verifies the precision setting and retains the three fresh-process
+repetitions at each batch size. All within-runtime output signatures
+match across repetitions.
+
+| Batch | Runtime | Median (ms) | p95 (ms) | Peak RSS (MiB) | Model load (s) |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Rust | 45.35 | 48.13 | 1544.76 | 1.299 |
+| 1 | Pinned Python | 62.32 | 66.45 | 2553.34 | 1.223 |
+| 4 | Rust | 110.11 | 113.38 | 1535.88 | 1.283 |
+| 4 | Pinned Python | 133.95 | 137.25 | 2542.99 | 1.195 |
+| 16 | Rust | 372.01 | 374.93 | 1535.50 | 1.265 |
+| 16 | Pinned Python | 432.51 | 435.17 | 2520.05 | 1.207 |
+
+Rust's median latency is 27.2%, 17.8% and 14.0% lower at batches 1,
+4 and 16. Each cell aggregates 90 timed batches per runtime.
+The mode has lower median and p95 latency and process peak RSS
+in all three cells. Model load takes slightly longer in Rust.
+
+| Batch | Runtime and allocator | Final used (MiB) | Peak used (MiB) | Final reserved (MiB) | Peak reserved (MiB) |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Rust CUDA default pool | 800.77 | 834.62 | 832.00 | 864.00 |
+| 1 | PyTorch caching allocator | 993.50 | 1296.45 | 1382.00 | 1382.00 |
+| 4 | Rust CUDA default pool | 800.77 | 935.83 | 832.00 | 1056.00 |
+| 4 | PyTorch caching allocator | 1096.39 | 1799.87 | 1914.00 | 1914.00 |
+| 16 | Rust CUDA default pool | 800.77 | 1340.67 | 864.00 | 1632.00 |
+| 16 | PyTorch caching allocator | 1605.52 | 4121.64 | 4792.00 | 4792.00 |
+
+The sampler and allocators use the same scopes as in the earlier
+run. Desktop processes stayed resident. The observer recorded
+165 snapshots without query failures. The median sampled process
+maxima for Rust and Python were 1,032/1,550 MiB, 1,224/2,082 MiB
+and 1,800/4,960 MiB. Rust batch one had one or two observations
+per process. Each runtime's probe ran alone during its timed
+requests.
+
+The retained evidence is under
+`reports/phase4-lm1b-default-math-repeated-v1.O411ac/timing/`.
+The manifest and result SHA-256 values are
+`857b5b6b1312cb64bf63e29814fd04d9d7842d2dc7022efc9758ee22de390c09`
+and `21e8ba1ade5fbd2cb6b92add65400a62f8d91bd7a5b4289e472b1b1a8312af82`.
+The retained mode still fails the observed-seed entropy interval.
+
+The strict mode reproduces all eight batch-one generation signatures
+from the immediate pre-change benchmark. The final Linux
+`tools/check.sh --cuda` suite passed all 532 report tests and 18
+real-device operator cases. Its log hashes to
+`91946353d44f7a720209691f9da4410a7d34a16e51cbe02ea763d2f1b2c5beaa`.

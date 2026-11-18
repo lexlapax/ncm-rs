@@ -12,13 +12,21 @@ mod cuda_pool;
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, batch, options @ ..] = args.as_slice() else {
-        return Err("usage: lm1b_small_capacity_probe ARTIFACT BATCH [repeated]".into());
+        return Err(
+            "usage: lm1b_small_capacity_probe ARTIFACT BATCH [repeated] [cudnn-default-math]"
+                .into(),
+        );
     };
-    let (warmups, trials) = match options {
-        [] => (2, 8),
-        [option] if option == "repeated" => (5, 30),
-        _ => return Err("invalid LM1B capacity option".into()),
-    };
+    let mut repeated = false;
+    let mut use_default_math = false;
+    for option in options {
+        match option.as_str() {
+            "repeated" if !repeated => repeated = true,
+            "cudnn-default-math" if !use_default_math => use_default_math = true,
+            _ => return Err("invalid or repeated LM1B capacity option".into()),
+        }
+    }
+    let (warmups, trials) = if repeated { (5, 30) } else { (2, 8) };
     let batch: usize = batch.parse()?;
     if ![1, 4, 16].contains(&batch) {
         return Err("only diagnostic batches 1, 4 and 16 supported".into());
@@ -31,7 +39,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let load_start = Instant::now();
     let artifact = Artifact::load_inference(artifact)?;
     let rope_path = std::env::var_os("NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC");
-    let backend = if rope_path.is_some() {
+    if use_default_math && rope_path.is_none() {
+        return Err("cuDNN default math requires the reference rotary diagnostic".into());
+    }
+    let backend = if use_default_math {
+        CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
+    } else if rope_path.is_some() {
         CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
     } else {
         CandleBackend::cuda_cudnn(0)?
@@ -89,7 +102,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .ok_or("missing VmHWM")?;
     println!(
         "{}",
-        serde_json::json!({"scope":"non-held-out LM1B capacity screen", "runtime":"rust", "batch":batch, "warmups":warmups, "trials":trials, "load_seconds":load_seconds, "cuda_default_pool":pool, "seconds":times, "signatures":signatures, "vmhwm":hwm, "diagnostic": if rope_path.is_some() { "reference tables and 1 MiB QKV preference" } else { "default" }})
+        serde_json::json!({"scope":"non-held-out LM1B capacity screen", "runtime":"rust", "batch":batch, "warmups":warmups, "trials":trials, "load_seconds":load_seconds, "cuda_default_pool":pool, "convolution_math":if use_default_math { "cuDNN default math" } else { "strict FMA" }, "seconds":times, "signatures":signatures, "vmhwm":hwm, "diagnostic": if rope_path.is_some() { "reference tables and 1 MiB QKV preference" } else { "default" }})
     );
     Ok(())
 }

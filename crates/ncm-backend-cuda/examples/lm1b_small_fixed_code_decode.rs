@@ -12,8 +12,16 @@ const IDS_WIDTH: usize = 128;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    let [_, artifact, input, input_sha] = args.as_slice() else {
-        return Err("usage: lm1b_small_fixed_code_decode ARTIFACT CODES INPUT_SHA256".into());
+    let [_, artifact, input, input_sha, options @ ..] = args.as_slice() else {
+        return Err(
+            "usage: lm1b_small_fixed_code_decode ARTIFACT CODES INPUT_SHA256 [cudnn-default-math]"
+                .into(),
+        );
+    };
+    let use_default_math = match options {
+        [] => false,
+        [option] if option == "cudnn-default-math" => true,
+        _ => return Err("invalid fixed-code decode option".into()),
     };
     if sha256(&fs::read(Path::new(artifact).join("manifest.json"))?)
         != "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76"
@@ -48,7 +56,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .copied()
         .map(f32::from_le_bytes)
         .collect();
-    let backend = CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?;
+    let backend = if use_default_math {
+        CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
+    } else {
+        CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
+    };
     let allowance = backend.upload_f32(&allowance, &[30528])?;
     let codec = Codec::from_lm1b_small_artifact_experimental(backend.clone(), &artifact)?;
     let mut output = Vec::with_capacity(rows.len());

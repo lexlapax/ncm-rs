@@ -48,7 +48,11 @@ def main():
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--reference-rope-diagnostic', type=Path)
     p.add_argument('--repeated', action='store_true')
+    p.add_argument('--rust-cudnn-default-math', action='store_true')
     args = p.parse_args()
+    if args.rust_cudnn_default_math and args.reference_rope_diagnostic is None:
+        p.error('--rust-cudnn-default-math requires --reference-rope-diagnostic')
+    convolution_math = 'cuDNN default math' if args.rust_cudnn_default_math else 'strict FMA'
     warmups, trials = (5, 30) if args.repeated else (2, 8)
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
@@ -74,6 +78,7 @@ def main():
                 'sources_sha256': before, 'order': 'alternating runtime per fresh process',
                 'warmups': warmups, 'trials': trials, 'repetitions': 3, 'batches': [1, 4, 16], 'rust_penalty': 'device',
                 'rust_diagnostic': 'reference tables and 1 MiB QKV preference' if args.reference_rope_diagnostic else 'default',
+                'rust_convolution_math': convolution_math,
                 'telemetry': 'nvidia-smi approximately once per second',
                 'gpu': subprocess.check_output(['nvidia-smi', '--query-gpu=name,uuid,driver_version,memory.total', '--format=csv,noheader'], text=True).strip(),
                 'created_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
@@ -94,6 +99,8 @@ def main():
                         command = [str(PYTHON), str(ROOT / 'tools/reference/lm1b_small_capacity_probe.py'),
                                    '--upstream', str(ROOT / '.reference/upstream-ncm'), '--source', str(ROOT / 'artifacts/upstream/lm1b-phase4'),
                                    '--size', 'small', '--seed', '11', '--batch', str(batch), '--output', str(out / (stem + '.json'))]
+                    if runtime == 'rust' and args.rust_cudnn_default_math:
+                        command.append('cudnn-default-math')
                     if args.repeated:
                         command.append('repeated' if runtime == 'rust' else '--repeated')
                     env = os.environ.copy()
@@ -116,6 +123,8 @@ def main():
                         expected_diagnostic = 'reference tables and 1 MiB QKV preference' if args.reference_rope_diagnostic else 'default'
                         if result.get('diagnostic') != expected_diagnostic:
                             raise ValueError('unexpected Rust diagnostic selection')
+                        if result.get('convolution_math') != convolution_math:
+                            raise ValueError('unexpected Rust convolution math')
                     else:
                         result = json.loads((out / (stem + '.json')).read_bytes())
                     values = result['seconds']

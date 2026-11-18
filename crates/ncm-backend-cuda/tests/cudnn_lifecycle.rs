@@ -46,3 +46,16 @@ fn strict_convolution_handles_forward_transpose_and_invalid_geometry() {
             .is_err()
     );
 }
+
+#[cfg(feature = "lm1b-experimental")]
+#[test]
+fn lm1b_default_math_mode_is_explicit_and_survives_clone() {
+    let backend = CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0).unwrap();
+    assert!(!backend.uses_strict_cudnn());
+    assert!(!backend.clone().uses_strict_cudnn());
+    assert!(
+        CandleBackend::cuda_lm1b_qkv_reference_experimental(0)
+            .unwrap()
+            .uses_strict_cudnn()
+    );
+}

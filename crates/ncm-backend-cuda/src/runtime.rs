@@ -33,6 +33,11 @@ impl Clone for CandleBackend {
         {
             let mut cloned = Self::from_device(self.device.clone());
             cloned.strict_cudnn = self.strict_cudnn;
+            #[cfg(feature = "lm1b-experimental")]
+            {
+                cloned.cudnn_algorithms.allow_default_math =
+                    self.cudnn_algorithms.allow_default_math;
+            }
             cloned.xsum_reference = self.xsum_reference;
             #[cfg(feature = "cuda")]
             {
@@ -138,6 +143,13 @@ impl CandleBackend {
         backend.lm1b_qkv_reference = true;
         Ok(backend)
     }
+    /// Explicit LM1B diagnostic allowing cuDNN's default convolution math.
+    #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+    pub fn cuda_lm1b_cudnn_default_math_experimental(ordinal: usize) -> Result<Self> {
+        let mut backend = Self::cuda_lm1b_qkv_reference_experimental(ordinal)?;
+        backend.cudnn_algorithms.allow_default_math = true;
+        Ok(backend)
+    }
     /// Explicit experimental WMT14 reference-order initial reconstruction.
     #[cfg(feature = "cuda-cudnn")]
     pub fn cuda_wmt14_reference(ordinal: usize) -> Result<Self> {
@@ -155,6 +167,10 @@ impl CandleBackend {
     /// Whether the explicitly selected backend uses strict cuDNN convolution.
     #[cfg(feature = "cuda-cudnn")]
     pub fn uses_strict_cudnn(&self) -> bool {
+        #[cfg(feature = "lm1b-experimental")]
+        if self.cudnn_algorithms.allow_default_math {
+            return false;
+        }
         self.strict_cudnn
     }
 

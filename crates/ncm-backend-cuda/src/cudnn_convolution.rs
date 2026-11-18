@@ -1,4 +1,4 @@
-//! Explicit upstream-layout cuDNN FP32 convolution. No reduced-precision math.
+//! Explicit upstream-layout cuDNN convolution with strict FP32 by default.
 use candle_core::cuda_backend::{
     CudaStorageSlice,
     cudarc::{
@@ -46,6 +46,8 @@ impl Drop for SerializedHandle {
 /// Model-owned, bounded host metadata and one serialized native handle.
 #[derive(Default)]
 pub(crate) struct AlgorithmCache {
+    #[cfg(feature = "lm1b-experimental")]
+    pub(crate) allow_default_math: bool,
     entries: std::sync::Mutex<std::collections::VecDeque<(Key, Algorithm)>>,
     handle: std::sync::Mutex<Option<SerializedHandle>>,
 }
@@ -196,7 +198,14 @@ impl CustomOp2 for Conv<'_> {
                 sys::cudnnConvolutionMode_t::CUDNN_CROSS_CORRELATION,
             )
             .map_err(candle_core::Error::wrap)?;
-        desc.set_math_type(sys::cudnnMathType_t::CUDNN_FMA_MATH)
+        let math_type = sys::cudnnMathType_t::CUDNN_FMA_MATH;
+        #[cfg(feature = "lm1b-experimental")]
+        let math_type = if self.cache.allow_default_math {
+            sys::cudnnMathType_t::CUDNN_DEFAULT_MATH
+        } else {
+            math_type
+        };
+        desc.set_math_type(math_type)
             .map_err(candle_core::Error::wrap)?;
         let format = sys::cudnnTensorFormat_t::CUDNN_TENSOR_NCHW;
         let src = handle

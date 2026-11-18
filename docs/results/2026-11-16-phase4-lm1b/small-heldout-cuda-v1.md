@@ -300,3 +300,59 @@ The wrapper, per-seed controls, and summary are under
 summary SHA-256 values are
 `5a69e6ee9ee35874c034567ce1e881aa2723bba3e2ee06a36311f5fe080b7228`
 and `8a5b05fbabf9f151c2809799238c815be063dbd2b4b25fbaf35a5e0a52633cb6`.
+
+### Rust cuDNN default-math experiment
+
+The explicit Rust diagnostic sets `CUDNN_DEFAULT_MATH` on its FP32
+convolution descriptors and keeps the numerical mode with the backend
+clone. The normal cuDNN constructor retains strict FMA math.
+
+With the original Python precision, the opt-in Rust decoder matches all
+327,680 token IDs on the 2,560 fixed-code inputs. Add
+`--rust-cudnn-default-math` to the audit command to reproduce the
+comparison. The cross-decoder receipt is under
+`reports/phase4-lm1b-rust-cudnn-default-v1.KbCcXI/replay/` and hashes to
+`59e7313e4261670537ce78bcfea7bcf782d27a21a47b4d00a7b9cac71a8801ab`.
+
+The experimental generation retest uses the same five observed seeds,
+256 outputs per seed, and the pinned Python reference and full scorer.
+Run the original Rust capture example with the explicit trailing
+`cudnn-default-math` option. The capture labels the experimental
+precision and observed-seed scope in its receipt.
+
+The end-to-end retest preserves all initial concepts from the earlier
+Rust streams. Each of the 1,280 later concept rows changes in at least
+one position. The pinned scorer and its upstream cross-check agree for
+all five seeds.
+
+| Seed | Rust perplexity | Rust entropy (nats) |
+| ---: | ---: | ---: |
+| 42 | 89.371624 | 4.31035772 |
+| 0 | 91.446420 | 4.30994619 |
+| 1 | 96.390830 | 4.31698385 |
+| 2 | 93.160972 | 4.31111550 |
+| 3 | 91.645291 | 4.31343160 |
+
+Rust minus pinned Python perplexity is `-3.468687`, with interval
+`[-6.065864, -0.719639]`. Both perplexity checks pass. The entropy
+point difference is `-0.002337` nats. Its interval
+`[-0.005636, 0.001367]` remains below the frozen `-0.0046`
+lower bound. The comparator exits 1. The original Python capture and
+score hashes match the frozen receipts.
+
+The separate retest is under
+`reports/phase4-lm1b-rust-cudnn-default-retest-v1.sZVih8/`.
+The capture binary and summary SHA-256 values are
+`b3bcf1701aee75cda2e26bd17fcfe07db7b48ee3d9eb29571ee1b084270b2b94`
+and `fe1717ca34a561f97d88d7597f055c16f0a23c9b37206421efa677f6e7e1620b`.
+Feature-enabled release build and Clippy passed, as did three
+real-device cuDNN lifecycle tests, the frozen seed guard and all
+532 standard Linux report tests. This is an observed-seed retest.
+
+An isolated build of the preceding source at `e74cf60` and the new
+binary in strict mode produce exactly the same 256 seed-1 concept and
+raw-ID rows. Both builds use the same pinned external rotary tables.
+This compares the immediate pre-change source because earlier reported
+Rust captures used different model revisions. The paired strict captures
+are retained next to the retest. The new performance comparison is
+in the [repeated capacity report](small-cuda-capacity-screen-v1.md#repeated-cudnn-default-math-candidate).
