@@ -161,6 +161,9 @@ pushes needed for Mac work via pulls. Before every commit include an updated
    CUDA comparison](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cuda-tile-width-latency)
    measured both tiles within 0.15% of each other at median and p95.
    The Metal runner can compare the tile widths in one screen.
+   The [combined CUDA replay](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#combined-cuda-corpus-replay)
+   verifies deferred head checking, the level-five checkpoint and two-row
+   tiles together on all 6,006 frozen rows, with both scorers passing.
    The [row 632 head comparison](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#locating-the-first-base-code-difference)
    captures the first divergent position in the original four-row batch.
    Both CUDA paths select 2602 with a margin near 1e-6. The same probe on

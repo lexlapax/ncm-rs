@@ -15,6 +15,7 @@ const BATCH: usize = 4;
 struct CaptureOptions {
     guided: bool,
     padded_retry: bool,
+    deferred_head: bool,
     materialize_after: Option<usize>,
     decoder_rows: Option<usize>,
 }
@@ -36,6 +37,7 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     let CaptureOptions {
         guided,
         padded_retry,
+        deferred_head,
         materialize_after,
         decoder_rows,
     } = options;
@@ -43,10 +45,14 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     let model = if padded_retry {
         let artifact = ncm_io::Artifact::load_wmt14_inference_reusable(artifact)?;
         ncm_model::Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
-            .with_deferred_head_check_experimental()
     } else {
         let artifact = ncm_io::Artifact::load_inference(artifact)?;
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+    };
+    let model = if padded_retry || deferred_head {
+        model.with_deferred_head_check_experimental()
+    } else {
+        model
     };
     let model = if let Some(level) = materialize_after {
         model.with_level_materialization_experimental(level)?
@@ -160,7 +166,7 @@ fn main() -> Result<()> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT [materialize-after=N] [decoder-rows=N]".into(),
+            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT [deferred-head] [materialize-after=N] [decoder-rows=N]".into(),
         );
     };
     let guided = match scale.as_str() {
@@ -168,10 +174,12 @@ fn main() -> Result<()> {
         "1" => true,
         _ => return Err("expected CFG 0 or 1".into()),
     };
-    let mut materialize_after = None;
+    let mut deferred_head = false;
+    let mut materialize_after: Option<usize> = None;
     let mut decoder_rows: Option<usize> = None;
     for option in extras {
         match option.split_once('=') {
+            None if option == "deferred-head" && !deferred_head => deferred_head = true,
             Some(("materialize-after", value)) if materialize_after.is_none() => {
                 materialize_after = Some(value.parse()?);
             }
@@ -206,7 +214,13 @@ fn main() -> Result<()> {
     if rows.len() != ROWS || rows.iter().any(|row| row.len() != 96) {
         return Err("unexpected WMT14 fixture shape".into());
     }
-    let _ = (guided, output, materialize_after, decoder_rows);
+    let _ = (
+        guided,
+        output,
+        deferred_head,
+        materialize_after,
+        decoder_rows,
+    );
     #[cfg(any(
         feature = "cuda-cudnn",
         all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
@@ -214,6 +228,7 @@ fn main() -> Result<()> {
     let options = CaptureOptions {
         guided,
         padded_retry: false,
+        deferred_head,
         materialize_after,
         decoder_rows,
     };

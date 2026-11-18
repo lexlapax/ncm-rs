@@ -865,3 +865,61 @@ is `85a40874ec75ded8ca1dffb3e465652669d144d28ad3dc84930865857a9e5b55`.
 The six archived Metal cells reproduced prior summaries byte for byte.
 The full Linux suite passed all 530 report tests. Its log hashes
 to `05ac6127c7bac95c5a2feded857953acc5746b4c5cf2f2b0ca47285fd13473c8`.
+
+### Combined CUDA corpus replay
+
+The recorder accepts `deferred-head` independently of padded retry.
+Use it on CUDA to combine the deferred head check with the
+level-five reconstruction checkpoint and two-row decoder tiles.
+This exercises the three settings together across the original
+four-row corpus grouping and the three-row tail.
+
+Use the CUDA library and fixture variables from the
+[paired timing commands](#paired-cuda-timing-control).
+
+```sh
+setpriv --inh-caps=-all env CUDA_COMPUTE_CAP=86 RUSTC_WRAPPER= \
+  LIBRARY_PATH="$PWD/.reference/phase4-cudnn-probe-lib" \
+  cargo build --locked --release -p ncm-cli \
+  --features cuda-cudnn,wmt14-experimental --example wmt14_corpus_capture
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 LD_LIBRARY_PATH="$wmt_cudnn" \
+  target/release/examples/wmt14_corpus_capture "$wmt_artifact" cuda "$wmt_prefixes" \
+  reports/wmt14-combined-base.jsonl 0 0 3003 deferred-head materialize-after=5 decoder-rows=2
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 LD_LIBRARY_PATH="$wmt_cudnn" \
+  target/release/examples/wmt14_corpus_capture "$wmt_artifact" cuda "$wmt_prefixes" \
+  reports/wmt14-combined-guided.jsonl 1 0 3003 deferred-head materialize-after=5 decoder-rows=2
+```
+
+Replay each JSONL with the [frozen output verifier](#replaying-a-batchwise-capture)
+and the corresponding pinned reference and scorer. On Metal,
+`mlx-retry-padded` already uses deferred head checking, and the
+recorder accepts the same checkpoint and tile settings for that path.
+
+The combined CUDA replay matched all 3,003 base and 3,003 guided
+rows exactly, with no retries or rejections. Both JSONL files
+are byte-identical to the preceding two-row-only capture.
+The frozen comparison SHA-256 values are
+`57431f5d21af3e4b91066a78eeec4e7ad933907b23785fbe86033ec3ba1ca409`
+and `6343ea547f36d047e5df3c4f5a141ca2b2a3c2c9c1c9af46b2a60cd22aaba585`.
+Both offline scorer environments reproduced their previous
+passing full and held-out receipts byte for byte. Base and
+guided scorer hashes are
+`84a87dcf08a7ca8e9498aab4cc198fa3e53bca341637d8124d83ea5e1e8e7eda`
+and `915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`.
+
+The original invocation also matched its three-row tail,
+and a repeated `deferred-head` option failed before creating
+a capture. The recorder hash, postflight manifest, verification
+scripts, and receipts are under
+`reports/phase4-wmt14-combined-cuda-replay-v1.sCukmN/`.
+The combined configuration still needs its Metal corpus,
+latency and allocator comparisons.
+
+The build without device features exposed an inferred option type
+that needs an explicit `usize`. With the annotation, Clippy passes
+with and without CUDA and the rebuilt CUDA executable is byte-identical
+to the executable used for the full replay. Both hash to
+`4d95c5af29e3a903313c80cc7b49fc1bc58fdc43c3eaf51fccc9d9e2c4424f6c`.
+
+The full Linux suite passed all 530 report tests. Its log hashes to
+`7da1e9a810f8c688779995cc98910ce899c47028ab29f556f34e37c41f4667be`.
