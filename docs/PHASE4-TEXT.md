@@ -59,6 +59,20 @@ The [retained guidance fixtures](results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1
 cover scales 0, 1 and 2. The official full-corpus Metal exact gate remains open.
 The user approved [advancing to WMT14 with the listed retained differences](results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md).
 
+WMT14 top-1 generation is available through the experimental CLI.
+Build with `cuda-cudnn,wmt14-experimental` for the explicit `cuda` device
+or `mlx,wmt14-experimental` for `mlx` on Apple Silicon.
+
+```sh
+ncm sample-wmt14 artifacts/canonical/wmt14-inference-v1-final cuda prefixes.json 1
+```
+
+Supply a JSON array of padded 96-token WMT14 prefixes. The CLI accepts up
+to 32 prefixes at the default scale zero and up to 16 at a positive scale.
+It emits 313 intermediate codes and 64 raw token IDs per row. CUDA uses the
+[one-pass final selector](results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md).
+WMT14 Metal qualification is in progress.
+
 The WMT14 and LM1B checkpoints at the same immutable revision have been fetched to ignored `artifacts/upstream/wmt14-phase4/` and `artifacts/upstream/lm1b-phase4/` and verified against their published SHA-256 values:
 
 | File | Bytes | SHA-256 |

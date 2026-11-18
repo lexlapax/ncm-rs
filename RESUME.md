@@ -66,10 +66,13 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   Keep those exceptions visible and retain the preceding regressions.
 - WMT14's CUDA [reference retest](docs/results/2026-11-16-phase4-wmt14/cuda-reference-candidate-retest-v1.md)
   matched the 3,003-row corpus and passed the unchanged scorer. The
-  [repeated batch-16 CFG performance comparison](docs/results/2026-11-16-phase4-wmt14/cuda-uncached-cfg-eight-v1.md)
-  still has a 1.58% slower Rust median. The original CFG failure remains
-  recorded. Complete performance, memory and real Metal qualification in
-  profile order.
+  [eight-row microbatch comparison](docs/results/2026-11-16-phase4-wmt14/cuda-uncached-cfg-eight-v1.md)
+  retained a 1.58% slower Rust median at CFG batch 16. The later
+  [one-pass final selector](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md)
+  matched the full corpus in both modes and beat pinned Python in all
+  measured latency and process-memory cells. Its opt-in CLI matched
+  12 retained CUDA rows in each mode. Complete the ordered Linux checks
+  and real Metal qualification.
 - LM1B-small CUDA's frozen held-out quality comparison fails: the entropy
   confidence interval lower endpoint is -0.007118 versus -0.0046. Its five
   held-out seeds are observed; a rerun is a retest, not fresh held-out data.

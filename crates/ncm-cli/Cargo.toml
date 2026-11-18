@@ -14,6 +14,7 @@ cpu = ["dep:ncm-backend-cuda", "ncm-backend-cuda/cpu"]
 cuda = ["cpu", "ncm-backend-cuda/cuda"]
 cuda-cudnn = ["cuda", "ncm-backend-cuda/cuda-cudnn"]
 mlx = ["dep:ncm-backend-mlx", "ncm-backend-mlx/mlx"]
+wmt14-experimental = ["ncm-model/wmt14-experimental"]
 
 [dependencies]
 ncm-core = { path = "../ncm-core" }

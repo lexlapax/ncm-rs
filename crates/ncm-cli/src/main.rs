@@ -276,6 +276,79 @@ fn dispatch_xsum(
     }
 }
 
+#[cfg(all(
+    feature = "wmt14-experimental",
+    any(
+        feature = "cuda-cudnn",
+        all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+    )
+))]
+fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
+    backend: B,
+    artifact: &Artifact,
+    inputs: &[Vec<u32>],
+    scale: f64,
+) -> Result<serde_json::Value> {
+    if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
+        return Err("invalid WMT14 CFG scale".into());
+    }
+    let max_batch = if scale == 0.0 { 32 } else { 16 };
+    if !(1..=max_batch).contains(&inputs.len()) || inputs.iter().any(|row| row.len() != 96) {
+        return Err("invalid WMT14 batch size or prefix length".into());
+    }
+    let prefixes: Vec<_> = inputs.iter().flatten().copied().collect();
+    let teacher = ncm_model::Wmt14Teacher::from_artifact(backend.clone(), artifact)?;
+    let output = if scale == 0.0 {
+        teacher.generate_top1(&prefixes, inputs.len())?
+    } else {
+        teacher.generate_cfg_top1(&prefixes, inputs.len(), scale)?
+    };
+    let codes = backend.read_indices(&output.codes)?;
+    let ids = backend.read_indices(&output.ids)?;
+    if codes.len() != inputs.len() * 313 || ids.len() != inputs.len() * 64 {
+        return Err("invalid WMT14 backend output shape".into());
+    }
+    let codes: Vec<_> = codes
+        .as_chunks::<313>()
+        .0
+        .iter()
+        .map(<[u32; 313]>::as_slice)
+        .collect();
+    let ids: Vec<_> = ids
+        .as_chunks::<64>()
+        .0
+        .iter()
+        .map(<[u32; 64]>::as_slice)
+        .collect();
+    Ok(serde_json::json!({"codes": codes, "ids": ids}))
+}
+
+fn dispatch_wmt14(
+    device: &str,
+    artifact: &Artifact,
+    inputs: &[Vec<u32>],
+    scale: f64,
+) -> Result<serde_json::Value> {
+    let _ = (artifact, inputs, scale);
+    match device {
+        #[cfg(all(feature = "wmt14-experimental", feature = "cuda-cudnn"))]
+        "cuda" => sample_wmt14(
+            ncm_backend_cuda::CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?,
+            artifact,
+            inputs,
+            scale,
+        ),
+        #[cfg(all(
+            feature = "wmt14-experimental",
+            feature = "mlx",
+            target_os = "macos",
+            target_arch = "aarch64"
+        ))]
+        "mlx" => sample_wmt14(ncm_backend_mlx::MlxBackend::gpu()?, artifact, inputs, scale),
+        _ => Err("experimental WMT14 requested device is unavailable in this build".into()),
+    }
+}
+
 fn dispatch(
     device: &str,
     command: &str,
@@ -322,23 +395,24 @@ fn main_impl() -> Result<()> {
     if !(5..=7).contains(&args.len())
         || !matches!(
             args[1].as_str(),
-            "generate" | "reconstruct" | "sample-tinystories" | "sample-xsum"
+            "generate" | "reconstruct" | "sample-tinystories" | "sample-xsum" | "sample-wmt14"
         )
         || (args[1] == "sample-tinystories" && args.len() != 6)
         || (args.len() == 7 && args[1] != "sample-xsum")
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]]".into());
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx INPUT_JSON [CFG_SCALE]".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)
     } else {
         None
     };
-    let artifact = if sample_seed.is_some() || args[1] == "sample-xsum" {
-        Artifact::load_inference(&args[2])?
-    } else {
-        Artifact::load(&args[2])?
-    };
+    let artifact =
+        if sample_seed.is_some() || matches!(args[1].as_str(), "sample-xsum" | "sample-wmt14") {
+            Artifact::load_inference(&args[2])?
+        } else {
+            Artifact::load(&args[2])?
+        };
     let input_path = Path::new(&args[4]);
     let file = fs::File::open(input_path)?;
     if !file.metadata()?.is_file() {
@@ -354,6 +428,9 @@ fn main_impl() -> Result<()> {
         let cfg_scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
         let seed = args.get(6).map(|s| s.parse::<u64>()).transpose()?;
         dispatch_xsum(&args[3], artifact, &inputs, cfg_scale, seed)?
+    } else if args[1] == "sample-wmt14" {
+        let scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
+        dispatch_wmt14(&args[3], &artifact, &inputs, scale)?
     } else if let Some(seed) = sample_seed {
         dispatch_tinystories(&args[3], artifact, &inputs, seed)?
     } else {

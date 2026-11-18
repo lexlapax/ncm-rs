@@ -4,6 +4,8 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **WMT14 opt-in CLI:** `sample-wmt14` exposes the uncached teacher with the one-pass CUDA final selector or the native MLX backend. Focused CUDA CLI exact matches cover 12 retained rows per mode, including the earlier CFG trouble ranges. Focused lint, release build and full Linux/CUDA checks passed (18 operator cases). The first Mac CLI check is next. [CUDA candidate](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md).
+
 - **XSum advancement approved:** the user accepted the exact 15 listed differences in the retained Metal top-1 corpus for advancement to WMT14. The failed comparison stays on record and the scoped decision applies to this capture. [Decision](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md).
 
 - **XSum Metal full perplexity replay:** independently ran pinned GPT-2 on all 11,334 retained Metal summaries. The replay exactly matches the published Python aggregate perplexity `82.62335629362389` and the 277,595 scored tokens. The strict comparator reproduced the original failed receipt, and the candidate-to-baseline Metal comparison is exact. The five differing rows and all 15 differing positions remain subject to the frozen exact rule. [Evidence](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md#full-corpus-metal-text-and-rouge-replay).
