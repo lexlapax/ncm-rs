@@ -75,10 +75,13 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   immediate restore fail; the service was recovered before a successful retry.
   This approval covered that screen and restoration; recheck availability and
   obtain any needed authorization before interrupting live services again.
-  Mac checkout `~/projects/lexlapax/ncm-rs` was clean at `0fb6b26` before the
-  screens and is behind subsequent pushed commits. Inspect before a
-  fast-forward pull; never overwrite unrelated work. The screen outputs and
-  build logs are in its ignored `reports/phase4-xsum-six-refined-screen-v1/`.
+  The Mac checkout fast-forwarded to `8c36edc` for the
+  [scale-one guidance diagnostic](docs/results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md).
+  Full Metal checks passed. The diagnostic matched pinned outputs at
+  scales 0/1/2 on retained fixtures, and the service was left running.
+  The earlier six-part screens remain in the Mac's ignored
+  `reports/phase4-xsum-six-refined-screen-v1/`. Inspect the checkout
+  before any future fast-forward pull.
 - The prior thread's goal status was reported as blocked after waiting for the
   Mac service decision; the user subsequently approved the bounded screen and
   it was completed. Do not mistake that status for Phase 4 completion.
