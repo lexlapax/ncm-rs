@@ -21,7 +21,7 @@ Before every commit include an updated
 
 - The user approved [one-time XSum Metal advancement](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md)
   with the nine intermediate codes and six post-EOS raw IDs listed in
-  the retained comparison. WMT14 is now the active profile.
+  the retained comparison. LM1B-small is now the active profile.
 - Preserve the unrelated untracked `.pi/`. Check `git status` for the
   current Linux head. The pre-softmax baseline is `8ba381f`.
 - The XSum CUDA masked-softmax change passes `tools/check.sh --cuda`
@@ -65,33 +65,15 @@ Before every commit include an updated
   Avoid repeating these variations without new evidence.
 - TinyStories advanced under [the user's scoped exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md).
   Keep those exceptions visible and retain the preceding regressions.
-- WMT14's CUDA [reference retest](docs/results/2026-11-16-phase4-wmt14/cuda-reference-candidate-retest-v1.md)
-  matched the 3,003-row corpus and passed the unchanged scorer. The
-  [eight-row microbatch comparison](docs/results/2026-11-16-phase4-wmt14/cuda-uncached-cfg-eight-v1.md)
-  retained a 1.58% slower Rust median at CFG batch 16. The later
-  [one-pass final selector](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md)
-  matched the full corpus in both modes and beat pinned Python in all
-  measured latency and process-memory cells. Its opt-in CLI matched
-  12 retained CUDA rows in each mode. [Metal CLI validation](docs/results/2026-11-16-phase4-wmt14/mlx-cli-smoke-v1.md)
-  matched all three base batches and two guided batches. The four-row
-  guided batch starting at 2656 hits the tied-or-nonfinite head guard,
-  and each constituent row matches when invoked separately.
-  The [full Metal retry replay](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md)
-  recovered one rejected batch in each mode. Both frozen scoring
-  environments passed on all 3,003 rows. Guided codes and both modes'
-  raw IDs match exactly. Base row 632 retains 13 intermediate code
-  differences. The experimental CLI and capture example share the
-  bounded retry. The Metal CLI and recorder agreed on all 1,920 raw
-  IDs in the eight targeted controls, including the two known
-  rejected ranges. Full Linux and Metal device checks passed.
-  The [Metal teacher-forced comparison](docs/results/2026-11-16-phase4-wmt14/teacher-cuda-reference-v1.md#metal-comparison)
-  passes all 26 tensors. The Mac owned loader still peaks near 2,110 MiB.
-  The later reclaimable buffer reduces Mac peak process RSS by about
-  561 MiB compared with the ordinary loader. Model load takes about
-  0.65 seconds longer. Deferred head validation improves generation
-  latency in each retained short cell, while checking both known
-  rejected ranges before decoding. The combined experimental CLI
-  needs its full pinned Metal corpus replay and performance receipts.
+- WMT14 top-1 passes the scoped CUDA and Metal profile gates. The
+  [CUDA results](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md)
+  cover the full pinned corpus and paired performance. The
+  [Metal qualification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)
+  covers both full modes, all seven timing cells, the exact CLI controls,
+  and both final device suites. Metal row 632 retains 13 intermediate code
+  differences with all raw IDs matching. The bounded retry recovers one
+  batch in each mode. Guided batch four uses a final transformer checkpoint
+  after block three. Both real-device regressions pass 18 operator cases.
 - LM1B-small CUDA's frozen held-out quality comparison fails: the entropy
   confidence interval lower endpoint is -0.007118 versus -0.0046. Its five
   held-out seeds are observed; a rerun is a retest, not fresh held-out data.
@@ -131,20 +113,12 @@ Before every commit include an updated
 
 ## Next actions
 
-1. Finish WMT14 on Mac Studio. The
-   [combined Metal verification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#combined-metal-verification)
-   matches all 6,006 raw-ID rows and passes both frozen scorers. It retains
-   all 13 known intermediate code differences on base row 632 and
-   investigates the captured head inputs. The full Metal regression suite
-   passed 18 device cases. Six of seven paired timing cells pass latency and
-   memory. Guided batch four retains an 11.19 MiB allocator-peak gap.
-   The [allocator screens](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#guided-batch-four-allocator-screen)
-   preserve the negative results. Verify any new execution setting against
-   the exact corpus and both offline scorers before advancing.
-2. Resolve the separate LM1B-small frozen quality failure without silently
-   changing its protocol, and complete the remaining profile gates in the
-   approved order. If a protocol decision is genuinely necessary, present the
-   retained evidence and ask the user rather than declaring a failure passed.
+1. Continue LM1B-small on Linux CUDA. Resolve its frozen held-out entropy
+   interval failure while preserving the reported result and the approved
+   quality rules. Complete the Linux/CUDA performance evidence with the
+   pinned Python baseline and report allocator and process metrics separately.
+2. Complete the remaining LM1B-small gates before medium and large in the
+   approved order. Any new acceptance protocol needs explicit review.
 3. For each changed runtime, run the applicable full checks and reproducible
    quality, performance, and memory comparisons on both real target devices.
    Update the context map, commit, and use the existing push authorization.

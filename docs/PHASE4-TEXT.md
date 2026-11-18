@@ -86,10 +86,11 @@ Successful recovery is reported on standard error.
 ncm sample-wmt14 artifacts/canonical/wmt14-inference-v1-final mlx-retry-padded prefixes.json 1
 ```
 
-WMT14 Metal qualification is in progress. The
-[combined Metal verification](results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#combined-metal-verification)
-records the retained intermediate differences, frozen quality replay and
-paired performance results.
+The scoped WMT14 top-1 profile passes the frozen CUDA and Metal
+quality checks and the paired performance checks on both devices.
+The [qualification record](results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)
+includes the retained Metal intermediate differences, explicit retries,
+and end-of-trial allocator counters. LM1B-small is the next profile.
 
 The WMT14 and LM1B checkpoints at the same immutable revision have been fetched to ignored `artifacts/upstream/wmt14-phase4/` and `artifacts/upstream/lm1b-phase4/` and verified against their published SHA-256 values:
 

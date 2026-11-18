@@ -1299,3 +1299,61 @@ receipts. The raw Metal run is under
 `reports/phase4-wmt14-block3-metal-v1.i7tImw/`. The copied capture,
 comparison, timing and score receipts are in
 `reports/phase4-wmt14-transformer-checkpoint-linux-v1.tkw2aJ/`.
+
+### CLI and profile qualification
+
+At `bbc0e9e`, the experimental Metal CLI uses the level-five
+checkpoint and two-row decoder projections for scales zero and one.
+At scale one with four prefixes it also uses the block-three
+checkpoint. The bounded retry remains an explicit device choice.
+
+The release CLI and focused Clippy passed on both devices. Linux
+CUDA confirms all codes and raw IDs for 62 control rows. Metal
+confirms all raw IDs for 92 control rows across all seven measured
+shapes, both recovered ranges, the tails, and base row 632.
+The base row retains its 13 recorded intermediate differences.
+Both native Metal controls still report the head rejection.
+The explicit retry recovers them and rejects a five-row request.
+The omitted CFG scale matches explicit zero. The scale-two output
+is byte-identical to the earlier Metal CLI.
+
+The final regression suite passed 531 Linux report tests, 421
+portable Mac report tests and 18 operator cases on each GPU.
+The Mac service stayed resident. Performance comparisons exclude
+startup. The final seven cells use the original timing and memory
+settings with the [block-three result](#repeated-block-three-comparison)
+for guided batch four. Rust has lower median and p95 generation
+latency, peak process RSS, and native allocator peak in every
+measured Metal cell. CUDA has its own
+[paired performance evidence](cuda-fast-argmax-plan-v1.md).
+
+The paired Metal processes also recorded immediate active and cached
+allocator counters after their final trial. Values below are medians
+of process observations and reflect the backend's output lifecycle
+at that boundary. Rust has a higher immediate active counter and
+a lower retained cache in every measured cell. In the short guided
+batch-four control the release barrier brought immediate Rust
+active memory to 1,008.14 MiB without changing the allocator peak.
+That barrier control is separate from the paired measurements.
+
+| CFG | Batch | Final active MiB Rust / Python | Final cache MiB Rust / Python |
+| ---: | ---: | ---: | ---: |
+| 0 | 1 | 1045.18 / 1009.16 | 1267.33 / 1314.51 |
+| 0 | 4 | 1082.21 / 1009.16 | 5284.43 / 5387.12 |
+| 0 | 16 | 1082.21 / 1009.16 | 13391.09 / 18818.95 |
+| 0 | 32 | 1082.21 / 1009.16 | 18884.18 / 22918.68 |
+| 1 | 1 | 1045.18 / 1009.16 | 2604.86 / 2659.37 |
+| 1 | 4 | 1082.21 / 1009.16 | 9720.89 / 9793.60 |
+| 1 | 16 | 1082.21 / 1009.16 | 19001.80 / 22405.21 |
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Metal CLI summary | `bd627a9720b50412f0efce1864f6b84a3624868c4b179d177f58a3d08c3dc799` |
+| Final Metal regression log | `76830297f0ee05c2c9d4592d45875936b0a000f59133a13b5f282d7b6edebae7` |
+| Final CUDA regression log | `c19b51b0d60d029b1cbbe7f93c5a43c849cc1b695e8c4ccc51f95863942f0073` |
+
+The CLI harness and Metal receipts are under
+`reports/phase4-wmt14-transformer-checkpoint-linux-v1.tkw2aJ/`.
+The CUDA CLI controls and regression log are under
+`reports/phase4-wmt14-cli-schedule-cuda-v1.WiRZGa/`.
+The frozen top-1 WMT14 results support advancement to LM1B-small.
