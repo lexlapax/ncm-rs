@@ -706,6 +706,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     cfg_internals_diagnostic: bool,
     cfg_shape_matched_diagnostic: bool,
     cfg_recompute_margin_diagnostic: Option<f32>,
+    deferred_head_check_experimental: bool,
 }
 
 /// Host-resident output from explicitly microbatched experimental WMT14 generation.
@@ -805,6 +806,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             cfg_internals_diagnostic: false,
             cfg_shape_matched_diagnostic: false,
             cfg_recompute_margin_diagnostic: None,
+            deferred_head_check_experimental: false,
         })
     }
 
@@ -866,6 +868,14 @@ const WMT14_HEAD_REJECTED: &str = "tied or nonfinite WMT14 head maximum is unsup
 
 #[cfg(feature = "wmt14-experimental")]
 impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
+    /// Keep raw selector sentinels and check them together before decoding.
+    /// Intermediate lookups clamp sentinels to valid indices while evaluation
+    /// proceeds. An invalid head still rejects the whole request.
+    pub fn with_deferred_head_check_experimental(mut self) -> Self {
+        self.deferred_head_check_experimental = true;
+        self
+    }
+
     pub fn run_traced(
         &self,
         prefix_tokens: &[u32],
@@ -1123,6 +1133,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         {
             return Err(Error::Input("invalid WMT14 teacher inputs".into()));
         }
+        let deferred = self.deferred_head_check_experimental && forced_codes.is_none();
         let b = &self.backend;
         let prefix_ids = b.upload_indices(prefix_tokens, &[batch, 96])?;
         let prefix = b.project_bias(
@@ -1295,7 +1306,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 b.narrow_indices(codes, 1, offset, length)?
             } else {
                 let selected = b.unique_max_4096(&head_logits)?;
-                if b.read_indices(&selected)?.iter().any(|&x| x >= 4096) {
+                if !deferred && b.read_indices(&selected)?.iter().any(|&x| x >= 4096) {
                     return Err(Error::Backend(WMT14_HEAD_REJECTED.into()));
                 }
                 if cfg.is_some() {
@@ -1306,11 +1317,14 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             };
             offset += length;
             selected_levels.push(selected.clone());
-            let embedding = b.embedding(
-                self.codec
-                    .weight(&format!("vq.embeddings.{level}.weight"))?,
-                &selected,
-            )?;
+            let book = self
+                .codec
+                .weight(&format!("vq.embeddings.{level}.weight"))?;
+            let embedding = if deferred {
+                b.sampled_embedding_4096(book, &selected)?
+            } else {
+                b.embedding(book, &selected)?
+            };
             let contribution = self
                 .codec
                 .refine(&self.codec.upsample(&embedding, level)?, level)?;
@@ -1333,6 +1347,9 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         } else {
             codes
         };
+        if deferred && b.read_indices(&codes)?.iter().any(|&x| x >= 4096) {
+            return Err(Error::Backend(WMT14_HEAD_REJECTED.into()));
+        }
         if forced.is_none() {
             trace.indices("generator.codes", &codes)?;
         }

@@ -96,8 +96,29 @@ SHA-256 values follow.
 The [Metal teacher-forced comparison](teacher-cuda-reference-v1.md#metal-comparison)
 passes all 26 tensors. The CLI exposes the same bounded retry through
 the experimental `mlx-retry-padded` device. The original corpus
-capture predates the shared implementation. Its repeat on the shared
-path and paired latency and memory qualification remain open.
+capture predates the shared implementation. The targeted Metal CLI
+and capture comparison below passes. Paired latency and memory
+qualification remains open.
+
+## Shared CLI and capture verification
+
+At `854cfd6`, the CLI and shared recorder agreed on four ranges in
+each mode. The eight controls contain 1,920 raw IDs, all matching
+pinned Python CUDA. Guided codes also match exactly. Base row 632
+retains the 13 previously observed intermediate code differences.
+The native device continued to reject base range 1376 and guided
+range 2656. The opt-in device recovered both, reported the recovery
+on standard error, and wrote the expected codes and IDs for all
+eight rows. The other ranges, including the three-row tail, produced
+byte-identical CLI output in both device modes. Five-row retry
+requests failed before producing any output.
+
+Feature-enabled release build and Clippy passed on Mac Studio.
+Full Linux CUDA and Mac Metal checks each passed 18 operator cases.
+Mac service snapshots show the same PID. The CLI controls are in
+`corpus/owned-loader/phase4-wmt14-mlx-retry-cli-v1.08O1c4/`,
+and the full Metal log SHA-256 is
+`b345620fdb03449f831b0c210102ab39a39a25d66d5792bb389e1df7ee65ed12`.
 
 ## Startup memory preparation
 
@@ -176,8 +197,8 @@ signed zero, nonfinite scores and a unique maximum at the last index.
 All 12 alternating batch-1 timing processes matched pinned codes
 and raw IDs. With three warmups and 12 timed trials per process, the
 pooled medians changed from 155.37 to 170.06 ms at CFG zero and
-from 201.16 to 207.25 ms at CFG one. The selector is left out of the
-runtime path. The original guard check remains in use.
+from 201.16 to 207.25 ms at CFG one. The experiment remains reproducible at that commit. The slower
+selector was removed from current source.
 
 The ignored evidence under
 `corpus/owned-loader/phase4-wmt14-mlx-simd-head-v1.KX8PET/`

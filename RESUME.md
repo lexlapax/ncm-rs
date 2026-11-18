@@ -80,7 +80,9 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   environments passed on all 3,003 rows. Guided codes and both modes'
   raw IDs match exactly. Base row 632 retains 13 intermediate code
   differences. The experimental CLI and capture example share the
-  bounded retry, with device validation of the shared path pending.
+  bounded retry. The Metal CLI and recorder agreed on all 1,920 raw
+  IDs in the eight targeted controls, including the two known
+  rejected ranges. Full Linux and Metal device checks passed.
   The [Metal teacher-forced comparison](docs/results/2026-11-16-phase4-wmt14/teacher-cuda-reference-v1.md#metal-comparison)
   passes all 26 tensors. The Mac owned loader still peaks near 2,110 MiB.
   The optional reusable buffer lowers Mac peak RSS by about 458 MiB
@@ -125,9 +127,10 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Verify WMT14 Metal CLI recovery and complete paired latency and memory
-   qualification. Both modes have passing frozen corpus scores for
-   the capture candidate.
+1. Complete WMT14 Metal latency and memory qualification. The bounded
+   retry has passing targeted CLI controls and frozen corpus scores
+   from the earlier capture. The experimental Metal timing probe now
+   tests deferring per-level head checks into one check before decoding.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

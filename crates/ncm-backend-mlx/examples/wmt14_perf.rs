@@ -20,15 +20,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [simd-head]"
-                .into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N]".into(),
         );
     };
-    let reusable = extras.iter().any(|x| x == "reusable");
-    let simd_head = extras.iter().any(|x| x == "simd-head");
-    if extras.len() != usize::from(reusable) + usize::from(simd_head) {
-        return Err("unexpected or duplicate WMT14 timing option".into());
+    let mut reusable = false;
+    let mut deferred_head = false;
+    let mut start_row = None;
+    for opt in extras {
+        match opt.as_str() {
+            "reusable" if !reusable => reusable = true,
+            "deferred-head" if !deferred_head => deferred_head = true,
+            opt if start_row.is_none() && opt.starts_with("start=") => {
+                start_row = Some(opt[6..].parse::<usize>()?);
+            }
+            _ => return Err("invalid or repeated WMT14 timing option".into()),
+        }
     }
+    let start_row = start_row.unwrap_or(0);
     let guided = match mode.as_str() {
         "0" => false,
         "1" => true,
@@ -52,8 +60,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let doc: serde_json::Value = serde_json::from_slice(&raw)?;
     let rows = doc["prefixes"].as_array().ok_or("missing WMT14 inputs")?;
+    let end_row = start_row.checked_add(batch).ok_or("WMT14 range overflow")?;
     let input: Vec<Vec<u32>> = rows
-        .get(..batch)
+        .get(start_row..end_row)
         .ok_or("not enough WMT14 prefixes")?
         .iter()
         .cloned()
@@ -66,17 +75,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     drop(doc);
     drop(raw);
     let load_start = Instant::now();
-    let backend = if simd_head {
-        MlxBackend::gpu_wmt14_simd_head_experimental()?
-    } else {
-        MlxBackend::gpu()?
-    };
+    let backend = MlxBackend::gpu()?;
     let model = if reusable {
         let artifact = Artifact::load_wmt14_inference_reusable(artifact)?;
         Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
     } else {
         let artifact = Artifact::load_inference(artifact)?;
         Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+    };
+    let model = if deferred_head {
+        model.with_deferred_head_check_experimental()
+    } else {
+        model
     };
     let load_seconds = load_start.elapsed().as_secs_f64();
     let mut samples = Vec::with_capacity(trials);
@@ -109,7 +119,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_json::json!({
             "backend": "mlx", "batch": batch, "cfg": u8::from(guided), "warmups": warmups,
             "scope": "generation and code/ID readback; model load excluded",
-            "load_seconds": load_seconds, "reusable_loader": reusable, "simd_head": simd_head,
+            "load_seconds": load_seconds, "reusable_loader": reusable,
+            "deferred_head": deferred_head, "start": start_row,
             "trials_seconds": samples, "codes": codes, "raw_ids": ids,
             "mlx_memory": {"active": memory::active_memory()?, "peak": memory::peak_memory()?,
                            "cache": memory::cache_memory()?}
