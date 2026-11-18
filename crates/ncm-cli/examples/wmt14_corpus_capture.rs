@@ -87,7 +87,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, device, prefixes, output, scale, first, count] = args.as_slice() else {
         return Err(
-            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx PREFIXES OUTPUT 0|1 START COUNT".into(),
+            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample PREFIXES OUTPUT 0|1 START COUNT".into(),
         );
     };
     let guided = match scale.as_str() {
@@ -131,6 +131,15 @@ fn main() -> Result<()> {
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx" => capture(
             ncm_backend_mlx::MlxBackend::gpu()?,
+            artifact,
+            output,
+            &rows[first..end],
+            first,
+            guided,
+        ),
+        #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+        "mlx-upsample" => capture(
+            ncm_backend_mlx::MlxBackend::gpu_wmt14_upsample_experimental()?,
             artifact,
             output,
             &rows[first..end],

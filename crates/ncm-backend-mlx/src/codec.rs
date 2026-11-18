@@ -89,6 +89,7 @@ pub struct MlxBackend {
     xsum_refinement_experimental: bool,
     xsum_norm_experimental: bool,
     xsum_upsample_experimental: bool,
+    wmt14_upsample_experimental: bool,
     xsum_groupnorm_experimental: bool,
     xsum_gelu_experimental: bool,
     xsum_compiled_gelu_experimental: bool,
@@ -132,6 +133,7 @@ impl MlxBackend {
             xsum_refinement_experimental: false,
             xsum_norm_experimental: false,
             xsum_upsample_experimental: false,
+            wmt14_upsample_experimental: false,
             xsum_groupnorm_experimental: false,
             xsum_gelu_experimental: false,
             xsum_compiled_gelu_experimental: false,
@@ -142,6 +144,12 @@ impl MlxBackend {
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
         backend.evaluate(&[backend.add(&one, &one)?])?;
+        Ok(backend)
+    }
+    /// Use nonoverlapping projection layouts for the three WMT14 cascade strides.
+    pub fn gpu_wmt14_upsample_experimental() -> Result<Self> {
+        let mut backend = Self::gpu()?;
+        backend.wmt14_upsample_experimental = true;
         Ok(backend)
     }
     /// Explicit diagnostic backend; this is not a qualified inference profile.
@@ -714,19 +722,22 @@ impl CodecBackend for MlxBackend {
             if span.is_none() {
                 return Err("invalid convolution output size".into());
             }
-            let y = if self.xsum_upsample_experimental
+            let projected_upsample =
+                (self.xsum_upsample_experimental && length == 4 && kernel == 3)
+                    || (self.wmt14_upsample_experimental
+                        && [1, 4, 16].contains(&length)
+                        && kernel == 4);
+            let y = if projected_upsample
                 && transposed
-                && length == 4
                 && input == 384
                 && output == 384
-                && kernel == 3
-                && stride == 3
+                && stride == kernel as usize
                 && padding == 0
             {
-                x.0.matmul(&weight.0.reshape(&[384, 1152])?)?
+                x.0.matmul(&weight.0.reshape(&[input, output * kernel])?)?
                     .reshape(&[batch, length, output, kernel])?
                     .transpose_axes(&[0, 1, 3, 2])?
-                    .reshape(&[batch, 12, output])?
+                    .reshape(&[batch, length * kernel, output])?
             } else if self.xsum_refinement_experimental
                 && !transposed
                 && length == 48

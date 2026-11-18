@@ -4,6 +4,8 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **WMT14 Metal upsampling candidate:** an explicit capture-only backend changes the three nonoverlapping stride-four upsampling operations to their equivalent projection layout. It is motivated by the CUDA initial-cascade fix and the finding that the Metal tie is already determined by the input scores to guidance. The native corpus baseline is the comparison reference.
+
 - **WMT14 corpus capture:** an explicit CUDA/Metal example reuses one loaded model for the frozen four-row batches, records outputs or rejected batch ranges, and exits nonzero if any request failed. It supports the full base and CFG replay without reloading the model per request.
 
 - **WMT14 guided head probe:** the retained four-row Metal run rejects one finite tie at row 2658, level 9, position 8 (codes 1813 and 1922). Pinned Python selects 1922 on its own scores and 1813 on the exact Metal scores. Two-row Metal calls complete, with two codes and one raw ID still differing at row 2658. The probe also records conditional and null scores for any rejected row. The normal selector stays strict.
