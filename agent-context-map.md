@@ -4,6 +4,8 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum advancement approved:** the user accepted the exact 15 listed differences in the retained Metal top-1 corpus for advancement to WMT14. The failed comparison stays on record and the scoped decision applies to this capture. [Decision](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md).
+
 - **XSum Metal full perplexity replay:** independently ran pinned GPT-2 on all 11,334 retained Metal summaries. The replay exactly matches the published Python aggregate perplexity `82.62335629362389` and the 277,595 scored tokens. The strict comparator reproduced the original failed receipt, and the candidate-to-baseline Metal comparison is exact. The five differing rows and all 15 differing positions remain subject to the frozen exact rule. [Evidence](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md#full-corpus-metal-text-and-rouge-replay).
 
 - **XSum Metal joint replays:** the split head restores the exact 32-row batch only with supplied CUDA state in this screen. Native and CPU-FP64 input projections retain row 4937's differences. Captured output after block 6, 7 or 11 also restores the batch with the split head. The other boundaries retain the level-one mismatch, including three later than the first successful boundary. These are diagnostic substitutions on one known row. [Evidence](docs/results/2026-11-15-phase4-xsum/mlx-full-top1-v1.md#joint-metal-head-and-transformer-replays).

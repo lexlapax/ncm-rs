@@ -18,6 +18,9 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## State at handoff
 
+- The user approved [one-time XSum Metal advancement](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md)
+  with the nine intermediate codes and six post-EOS raw IDs listed in
+  the retained comparison. WMT14 is now the active profile.
 - Preserve the unrelated untracked `.pi/`. Check `git status` for the
   current Linux head. The pre-softmax baseline is `8ba381f`.
 - The XSum CUDA masked-softmax change passes `tools/check.sh --cuda`
@@ -106,14 +109,10 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Resolve the exact XSum Metal gate before advancing to WMT14. The
-   full-corpus quality replay is complete and the strict comparator
-   still fails. The pending advancement decision applies to the
-   enumerated discrepancies in the retained capture. The review draft
-   and source hashes are in ignored
-   `reports/phase4-xsum-decision-review-v1/proposed-exception.md`.
-   A portable runtime change requires evidence from native Metal state.
-   Verify Linux before any further Metal validation.
+1. Complete WMT14 CUDA qualification with the
+   [one-pass final selector candidate](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md).
+   Its exact and repeated-performance evidence covers both base and CFG.
+   Start WMT14 Metal verification after the ordered Linux checks.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

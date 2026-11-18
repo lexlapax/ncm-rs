@@ -57,6 +57,7 @@ CPU FP64 final selector. Omitting the scale uses zero, the setting of the
 official XSum evaluation. Seeded Metal generation requires scale zero.
 The [retained guidance fixtures](results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md)
 cover scales 0, 1 and 2. The official full-corpus Metal exact gate remains open.
+The user approved [advancing to WMT14 with the listed retained differences](results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md).
 
 The WMT14 and LM1B checkpoints at the same immutable revision have been fetched to ignored `artifacts/upstream/wmt14-phase4/` and `artifacts/upstream/lm1b-phase4/` and verified against their published SHA-256 values:
 
