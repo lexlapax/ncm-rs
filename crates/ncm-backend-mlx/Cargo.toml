@@ -125,6 +125,10 @@ name = "wmt14_perf"
 required-features = ["mlx", "wmt14-experimental"]
 
 [[example]]
+name = "wmt14_teacher_trace"
+required-features = ["mlx", "wmt14-experimental"]
+
+[[example]]
 name = "xsum_top1_row_trace"
 required-features = ["mlx"]
 

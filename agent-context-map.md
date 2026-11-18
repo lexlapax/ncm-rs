@@ -4,6 +4,8 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **WMT14 teacher trace:** the existing pinned two-row CUDA trace capture is shared with a Metal example. The original frozen tensor comparator will check both devices against the same oracle. Output continuation is unaffected.
+
 - **WMT14 Metal frozen replays:** the padded retry recovered base batch 1376 and guided batch 2656. Both modes match all 3,003 raw-ID rows and both independently replayed scorers pass. Guided codes are exact and base row 632 retains 13 intermediate code differences. Each mode's other 750 records are byte-identical to native baseline. CLI retry integration, teacher-forced Metal comparison and performance remain open. [Evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md).
 
 - **WMT14 Metal benchmark preparation:** the Python MLX adaptation reproduces both pinned four-row control modes. The Rust probe pairs synchronized generation/readback with separate load and native MLX memory counters. The wider batch matrix and performance measurements are pending.
