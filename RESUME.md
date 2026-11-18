@@ -1,6 +1,6 @@
 # Phase 4 resume handoff
 
-Last updated: 2026-11-17. Start by reading `AGENTS.md` and
+Last updated: 2026-11-18 UTC. Start by reading `AGENTS.md` and
 `agent-context-map.md`, inspecting the current worktree, and checking the
 linked Phase 4 contracts and evidence. This handoff summarizes state; the
 source, recorded gates, and current machine state remain authoritative.
@@ -41,8 +41,9 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   reduction and a combined normalization/projection/attention probe also
   did not resolve it. A pinned tokenizer and ROUGE replay matches Python CUDA
   on all 11,334 retained Metal decoded texts and per-row scores. The pinned
-  perplexity tokenizer inputs and score masks match as well. The six
-  post-EOS raw-ID differences still fail the unchanged exact gate.
+  perplexity tokenizer inputs and score masks match as well. The nine
+  intermediate code differences and six post-EOS raw-ID differences
+  still fail the unchanged exact gate.
   Avoid repeating these variations without new evidence.
 - TinyStories advanced under [the user's scoped exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md).
   Keep those exceptions visible and retain the preceding regressions.
@@ -75,10 +76,13 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   immediate restore fail; the service was recovered before a successful retry.
   This approval covered that screen and restoration; recheck availability and
   obtain any needed authorization before interrupting live services again.
-  The Mac checkout fast-forwarded to `8c36edc` for the
-  [scale-one guidance diagnostic](docs/results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md).
-  Full Metal checks passed. The diagnostic matched pinned outputs at
-  scales 0/1/2 on retained fixtures, and the service was left running.
+  The Mac checkout fast-forwarded to `0b89cd1` for the
+  [guidance CLI verification](docs/results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md#cli-verification).
+  Full Metal checks passed. Experimental Metal top-1 guidance through
+  `sample-xsum` matched pinned outputs at scales 0/1/2 on retained
+  fixtures. The eight-row scale-one cold screen showed 9.6% lower Rust
+  peak RSS and a 3.4% higher median wall time than adapted Python MLX.
+  The service was left running.
   The earlier six-part screens remain in the Mac's ignored
   `reports/phase4-xsum-six-refined-screen-v1/`. Inspect the checkout
   before any future fast-forward pull.

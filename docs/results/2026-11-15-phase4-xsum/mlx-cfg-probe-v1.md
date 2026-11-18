@@ -1,7 +1,7 @@
 # XSum scale-one Metal guidance probe
 
-The official XSum evaluation uses CFG zero. The Metal CLI still accepts only
-that scale. This probe tests the separate positive-guidance path using eight
+The official XSum evaluation uses CFG zero. When this probe began, the Metal
+CLI accepted only that scale. The probe tested positive guidance using eight
 already observed real prefixes from the [CUDA scale-one comparison](cuda-cfg-real-v1.md).
 
 At local commit `48d841d`, the strict CUDA CLI reproduced all 1,600
@@ -28,7 +28,7 @@ selection. It shares the existing guided top-1 implementation and keeps
 the request lock through final selection. The previous scale-zero and
 device-final paths keep their existing behavior. The optional
 `CFG_SCALE` argument on `xsum_top1_free_experimental` is for diagnostic
-runs. The normal Metal CLI is unchanged.
+runs. The routing described below followed the diagnostic.
 
 The real-CUDA regression loads the same pinned trace and compares both
 Rust final selectors against its codes and IDs. Access to the reference
@@ -76,6 +76,58 @@ three-scale receipt SHA-256 is
 
 The input and output identities, build logs and reproducer scripts are
 in the Linux evidence bundle named above. These are retained-fixture
-comparisons. Full positive-CFG quality and performance are unmeasured.
-The production Metal CLI still accepts only CFG zero, and its full-corpus
-exact gate still fails.
+comparisons. The official full-corpus exact Metal gate still fails.
+
+## CLI verification
+
+Commit `0b89cd1ac1662aa2c916842d2292d697434452d9` routes experimental
+positive CFG top-1 requests on Metal to the same CPU FP64 final selector.
+The previous CLI at `8c36edc` rejected positive scales. The rebuilt CLI
+matched all 400 codes and 96 raw IDs in each pinned two-row trace at scales
+0, 1 and 2. With eight real scale-one inputs, three CLI runs and three
+adapted Python MLX runs all matched the pinned 1,600 codes and 384 raw IDs.
+Omitted and explicit zero produced identical CLI outputs. The previous and
+new binaries produced identical seeded output at scale zero with seed 42
+on the two-row fixture. The new CLI rejected negative and NaN scales and
+a seeded scale-one request.
+
+Linux `setpriv --inh-caps=-all tools/check.sh --cuda` passed first, including
+524 report tests, three data tests and 18 CUDA operator cases. The initial run
+inherited a capability that six worker-identity tests reject. The retry
+corrected the launch context and ran the unchanged suite. Mac Studio then
+fast-forwarded to the verified commit. Release build, CLI Clippy with
+warnings denied, and `tools/check.sh --mlx` passed, including 414 report
+tests, three data tests and 18 real Metal operator cases. The launchd service
+reported the same PID before and after the work.
+
+### Cold process measurements
+
+Three fresh processes per implementation ran sequentially, alternating
+order on the Apple M1 Ultra. Darwin `/usr/bin/time -l -p` measured executable
+startup, input and artifact loading, model generation, synchronized
+readback, CPU FP64 selection, and JSON output. The baseline is the adapted
+Python MLX probe above. Its loader and the CLI perform different validation
+work. The service stayed running and GPU exclusivity was unverified.
+
+| Input and implementation | Wall seconds, median (range) | Median peak process RSS (MiB) |
+| --- | ---: | ---: |
+| Scale 0, two rows, previous Rust | 1.82 (1.75–2.37) | 1205.52 |
+| Scale 0, two rows, current Rust | 1.91 (1.89–1.97) | 1205.97 |
+| Scale 1, eight rows, current Rust | 3.08 (3.01–3.18) | 1203.22 |
+| Scale 1, eight rows, adapted Python MLX | 2.98 (2.96–2.98) | 1330.70 |
+
+For the eight-row positive fixture, Rust used 9.6% less peak process RSS
+and took 3.4% longer at the median. The two-row zero-scale wall-time
+ranges overlap. This cold screen does not isolate generation, measure
+native MLX peak memory or meet the full positive-guidance performance and
+quality protocol.
+
+The commands, fixture hashes, full logs, CLI outputs, and per-process
+measurements are retained under ignored
+`reports/phase4-xsum-mlx-cfg-cli-v1.J7WY75/`. The comparison and cold
+summary SHA-256 values are
+`191bece08299420d69a80767cd2c7e3f25ddb3144e5f2d2822ff134a29cf088c`
+and `1194727fc8971b70f9040fa60e97c88a0685499e72adb6f1148f7cb35e5a790b`,
+respectively. The Linux and Metal suite log SHA-256 values are
+`3e6095e8b1b7c69014c03742b23f87681e4fbb90d6bcfaad624018da4a732fe1`
+and `76ad868789be685a216f61dcb993ca3a3b2fb66eb594ca49769d8b600a6fe8f3`.
