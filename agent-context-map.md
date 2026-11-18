@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum dynamically recomputed erf control:** recalculating the licensed CUDA-hosted approximation on actual MLP inputs selects 3690 both with and without captured Metal normalization; the earlier fixed-tensor tie does not transfer. Corrected, input-verified runs repeat; an initial library-handle collision crashed the diagnostic. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md#dynamically-recomputed-gpu-approximation-replay). No Metal or gate pass.
+
 - **XSum licensed GPU erf control:** a CUDA-hosted ROCm-derived approximation alone ties to the reference choice, but with captured Metal normalization its fixed-tensor continuation selects 3690; the earlier mathematical approximation ties in both. Repeated results are bounded and neither Metal nor a gate pass. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md#licensed-gpu-error-function-approximation-control).
 
 - **XSum independent erf controls:** public erfc formulations and the existing open-source Rust `libm` erff do not reproduce the CUDA GELU bits on retained inputs. Substituting the Rust result into the controlled continuation still selects 3690 rather than 3182. No Metal fix or gate pass follows. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md#independent-error-function-controls).

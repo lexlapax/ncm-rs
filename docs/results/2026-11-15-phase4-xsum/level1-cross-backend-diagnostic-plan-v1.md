@@ -1232,3 +1232,29 @@ SHA-256 is `7f62b407e40cc1d18aa3f6682884974959ec41df0339f529bc0a9c69c52703ab`;
 combined replay log SHA-256 is
 `d8ec2973bb1c9b7d4b1574ce4e00db7f261479781e6ea533976c9e73601eb62f`.
 No production dependency, model, threshold or gate changed.
+
+### Dynamically recomputed GPU approximation replay
+
+The preceding fixed-tensor combination did not recompute GELU after changing
+normalization. A stronger CUDA replay invokes the same licensed GPU
+approximation on the actual first-block MLP input, with or without substituting
+the captured Metal first-normalization output. On this controlled row, without
+substitution the CUDA control selects 3182 with margin `+9.5367431640625e-7`;
+with captured normalization it ties and selects 3182. Recomputing the
+approximation dynamically selects 3690 with margin `-9.5367431640625e-7` in
+both cases. The actual MLP inputs differ in 1,449,410 and 1,445,930 of
+1,591,296 FP32 bit patterns respectively from the earlier separately captured
+GELU input. Consequently the earlier fixed-tensor tie does not transfer to
+this dynamically evaluated path. This still uses a CUDA-hosted shim and one
+row; it is not a full Metal test or proof of every model path.
+
+The initial script crashed because its experimental library handle overwrote
+the existing attention library handle; the corrected script uses separate
+handles. Its model, capture, wrapper and pinned-upstream identities were
+checked before and after, and two fresh runs produced byte-identical results.
+The failed script and fault log, corrected scripts and results are retained in
+`reports/phase4-xsum-dynamic-erf-replay-v1/`. The final script SHA-256 is
+`225c161d3a2dbd16302d8df239b561132ef1011ac276e04393ac68d2154e4ee7`;
+the result SHA-256 is
+`0f1a72f7b7c4a87e5b50db817efc796332dbb48ef0bf6659fdb179a000e065ce`.
+No runtime or acceptance rule changed.
