@@ -31,7 +31,9 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--batch', type=int, choices=(1, 4, 16), required=True)
     parser.add_argument('--seed', type=int, choices=(11, 12, 13, 14, 15), default=11)
+    parser.add_argument('--repeated', action='store_true')
     args = parser.parse_args()
+    warmups, trials = (5, 30) if args.repeated else (2, 8)
     output = args.output.resolve()
     if args.output.is_symlink() or output.exists() or not output.is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('output must be a new file under reports')
@@ -66,6 +68,7 @@ def main():
     from models.vqvae import VQVAE
     from models.next_concept import NextConceptTransformer
     torch.set_num_threads(1)
+    load_start = time.perf_counter()
     codec_state = torch.load(args.source / 'tokenizer.pt', map_location='cpu', weights_only=True, mmap=True)
     generator_state = torch.load(args.source / args.size / 'generator.pt', map_location='cpu', weights_only=True, mmap=True)
     codec = VQVAE(**cfg.tokenizer.vqvae)
@@ -91,14 +94,16 @@ def main():
             _, levels = codec.vq.idx_to_zhats(codes, return_zlevels=True)
             ids = scope['pick_tokens'](codec.decoder(levels[-1]))
         return codes.tolist(), ids.tolist()
+    torch.cuda.synchronize()
+    load_seconds = time.perf_counter() - load_start
     torch.manual_seed(11)
-    for _ in range(2):
+    for _ in range(warmups):
         generate()
     torch.cuda.synchronize()
     torch.manual_seed(11)
     times = []
     signatures = []
-    for trial in range(8):
+    for _ in range(trials):
         torch.cuda.synchronize()
         started = time.perf_counter()
         codes, ids = generate()
@@ -118,9 +123,11 @@ def main():
     status = Path('/proc/self/status').read_text()
     hwm = next(line for line in status.splitlines() if line.startswith('VmHWM:'))
     json_file(output, {'scope': 'LM1B development timing; not release gate', 'runtime': 'python',
-                       'batch': args.batch, 'warmups': 2, 'trials': 8, 'seconds': times, 'signatures': signatures,
+                       'batch': args.batch, 'warmups': warmups, 'trials': trials, 'load_seconds': load_seconds, 'seconds': times, 'signatures': signatures,
                        'vmhwm': hwm, 'torch_peak_allocated_bytes': torch.cuda.max_memory_allocated(),
                        'torch_peak_reserved_bytes': torch.cuda.max_memory_reserved(),
+                       'torch_active_bytes': torch.cuda.memory_allocated(),
+                       'torch_reserved_bytes': torch.cuda.memory_reserved(),
                        'upstream': rev, 'source_sha256': before,
                        'torch': torch.__version__, 'gpu': torch.cuda.get_device_name(0)})
     print(json.dumps({'output_sha256': digest_file(output), 'times': times}, sort_keys=True))

@@ -7,35 +7,8 @@ use ncm_model::{Wmt14HostOutput, Wmt14Teacher};
 use serde_json::{Value, json};
 use std::{error::Error, fs, time::Instant};
 
-// SAFETY: the CUDA context is bound to this thread, the pool is CUDA-owned,
-// and each synchronous attribute query writes one live u64.
-#[allow(unsafe_code)]
-fn pool(backend: &CandleBackend) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    use candle_core::cuda_backend::cudarc::driver::sys;
-    use sys::CUmemPool_attribute::*;
-    let device = backend.device().as_cuda_device()?;
-    device.cuda_stream().context().bind_to_thread()?;
-    let mut handle = std::ptr::null_mut();
-    unsafe {
-        sys::cuDeviceGetDefaultMemPool(&mut handle, device.cuda_stream().context().cu_device())
-            .result()?;
-    }
-    let mut values = std::collections::BTreeMap::new();
-    for (name, attribute) in [
-        ("used_current", CU_MEMPOOL_ATTR_USED_MEM_CURRENT),
-        ("used_peak", CU_MEMPOOL_ATTR_USED_MEM_HIGH),
-        ("reserved_current", CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT),
-        ("reserved_peak", CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH),
-    ] {
-        let mut value = 0_u64;
-        unsafe {
-            sys::cuMemPoolGetAttribute(handle, attribute, (&mut value as *mut u64).cast())
-                .result()?;
-        }
-        values.insert(name, value);
-    }
-    Ok(serde_json::json!(values))
-}
+#[path = "support/cuda_pool.rs"]
+mod cuda_pool;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
@@ -100,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     backend.device().synchronize()?;
     let load_seconds = load_start.elapsed().as_secs_f64();
-    let after_load = pool(&backend)?;
+    let after_load = cuda_pool::snapshot(&backend)?;
     let mut live_pool = None;
     let mut dropped_pool = None;
     let mut samples = Vec::new();
@@ -144,11 +117,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         signature = Some((codes, ids));
         if trial == 3 {
             if output.is_some() {
-                live_pool = Some(pool(&backend)?);
+                live_pool = Some(cuda_pool::snapshot(&backend)?);
             }
             drop(output);
             backend.device().synchronize()?;
-            dropped_pool = Some(pool(&backend)?);
+            dropped_pool = Some(cuda_pool::snapshot(&backend)?);
         }
         if trial >= 3 {
             samples.push(elapsed);

@@ -3,6 +3,7 @@ import argparse
 import json
 import math
 import os
+import re
 import statistics
 import subprocess
 import threading
@@ -21,7 +22,7 @@ REFERENCE = ROOT / 'reports/phase4-lm1b-small-dev-seed-11-v1.json'
 
 
 
-def summarize(rows):
+def summarize(rows, trials=8):
     summaries = {}
     for batch in (1, 4, 16):
         summaries[str(batch)] = {}
@@ -32,7 +33,8 @@ def summarize(rows):
             if any(row['signatures'] != selected[0]['signatures'] for row in selected):
                 raise ValueError(f'output signatures differ for {runtime} batch {batch}')
             values = sorted(x for row in selected for x in row['seconds'])
-            if len(values) != 24 or any(not math.isfinite(x) or x <= 0 for x in values):
+            if (any(len(row['seconds']) != trials for row in selected) or
+                    any(not math.isfinite(x) or x <= 0 for x in values)):
                 raise ValueError(f'invalid timings for {runtime} batch {batch}')
             summaries[str(batch)][runtime] = {'median_seconds': statistics.median(values), 'p95_seconds': values[math.ceil(len(values) * .95) - 1],
                                   'samples': len(values), 'samples_per_second_at_median': batch / statistics.median(values)}
@@ -45,7 +47,9 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--reference-rope-diagnostic', type=Path)
+    p.add_argument('--repeated', action='store_true')
     args = p.parse_args()
+    warmups, trials = (5, 30) if args.repeated else (2, 8)
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('new output directory under reports required')
@@ -55,6 +59,7 @@ def main():
     source = [Path(__file__).resolve(), ROOT / 'tools/reference/lm1b_small_capacity_probe.py',
               ROOT / 'tools/bench/run_phase4_xsum_bench.py', RUST, ARTIFACT / 'manifest.json',
               ROOT / 'Cargo.lock', ROOT / 'crates/ncm-backend-cuda/examples/lm1b_small_capacity_probe.rs']
+    source.append(ROOT / 'crates/ncm-backend-cuda/examples/support/cuda_pool.rs')
     for directory in ['crates/ncm-core/src', 'crates/ncm-model/src', 'crates/ncm-backend-cuda/src']:
         source.extend(sorted(p for p in (ROOT / directory).iterdir() if p.suffix in ('.rs', '.cu')))
     source.extend(sorted(CUDNN.glob('libcudnn*.so.9')))
@@ -67,7 +72,7 @@ def main():
     manifest = {'scope': 'non-held-out LM1B-small multi-batch development performance screen; not a gate',
                 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                 'sources_sha256': before, 'order': 'alternating runtime per fresh process',
-                'warmups': 2, 'trials': 8, 'repetitions': 3, 'batches': [1, 4, 16], 'rust_penalty': 'device',
+                'warmups': warmups, 'trials': trials, 'repetitions': 3, 'batches': [1, 4, 16], 'rust_penalty': 'device',
                 'rust_diagnostic': 'reference tables and 1 MiB QKV preference' if args.reference_rope_diagnostic else 'default',
                 'telemetry': 'nvidia-smi approximately once per second',
                 'gpu': subprocess.check_output(['nvidia-smi', '--query-gpu=name,uuid,driver_version,memory.total', '--format=csv,noheader'], text=True).strip(),
@@ -89,6 +94,8 @@ def main():
                         command = [str(PYTHON), str(ROOT / 'tools/reference/lm1b_small_capacity_probe.py'),
                                    '--upstream', str(ROOT / '.reference/upstream-ncm'), '--source', str(ROOT / 'artifacts/upstream/lm1b-phase4'),
                                    '--size', 'small', '--seed', '11', '--batch', str(batch), '--output', str(out / (stem + '.json'))]
+                    if args.repeated:
+                        command.append('repeated' if runtime == 'rust' else '--repeated')
                     env = os.environ.copy()
                     env.pop('NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC', None)
                     env.update({'OMP_NUM_THREADS': '1', 'TOKENIZERS_PARALLELISM': 'false', 'LD_LIBRARY_PATH': str(CUDNN)})
@@ -112,13 +119,28 @@ def main():
                     else:
                         result = json.loads((out / (stem + '.json')).read_bytes())
                     values = result['seconds']
-                    if (result['runtime'] != runtime or result['batch'] != batch or result['trials'] != 8 or
-                            result['warmups'] != 2 or len(values) != 8 or
+                    if (result['runtime'] != runtime or result['batch'] != batch or result['trials'] != trials or
+                            result['warmups'] != warmups or len(values) != trials or
                             any(not math.isfinite(x) or x <= 0 for x in values) or
-                            len(result['signatures']) != 8 or any(len(x) != 64 for x in result['signatures'])):
+                            len(result['signatures']) != trials or any(len(x) != 64 for x in result['signatures'])):
                         raise ValueError('invalid probe result')
-                    rows.append({'runtime': runtime, 'batch': batch, 'rep': rep, 'signatures': result['signatures'], 'pid': pid, 'start_monotonic': started,
-                                 'end_monotonic': time.monotonic(), 'seconds': values, 'vmhwm': result['vmhwm']})
+                    rss = re.fullmatch(r'VmHWM:\s+([1-9]\d*) kB', result['vmhwm'])
+                    load_seconds = result['load_seconds']
+                    if rss is None or not math.isfinite(load_seconds) or load_seconds <= 0:
+                        raise ValueError('invalid process RSS or load time')
+                    if runtime == 'rust':
+                        memory = result['cuda_default_pool']
+                        fields = ('used_current', 'used_peak', 'reserved_current', 'reserved_peak')
+                    else:
+                        fields = ('torch_active_bytes', 'torch_peak_allocated_bytes',
+                                  'torch_reserved_bytes', 'torch_peak_reserved_bytes')
+                        memory = {field: result[field] for field in fields}
+                    if set(memory) != set(fields) or any(type(v) is not int or v < 0 for v in memory.values()):
+                        raise ValueError('invalid native allocator counters')
+                    rows.append({'runtime': runtime, 'batch': batch, 'rep': rep, 'signatures': result['signatures'],
+                                 'pid': pid, 'start_monotonic': started, 'end_monotonic': time.monotonic(),
+                                 'seconds': values, 'vmhwm': result['vmhwm'], 'peak_rss_kib': int(rss[1]),
+                                 'load_seconds': load_seconds, 'native_allocator_bytes': memory})
     finally:
         if process is not None:
             terminate_group(process)
@@ -126,9 +148,9 @@ def main():
         thread.join()
     if before != {str(path): digest(path) for path in source}:
         raise ValueError('source or capture changed')
-    summaries = summarize(rows)
+    summaries = summarize(rows, trials)
     result = {'scope': manifest['scope'], 'rows': rows, 'summary': summaries,
-              'limits': 'separate random streams; desktop GPU activity; memory telemetry is sampled, not an allocator peak'}
+              'limits': 'separate random streams; desktop GPU activity; device process telemetry is sampled and allocator counters have runtime-specific scopes'}
     (out / 'result.json').write_text(json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + '\n')
     print(json.dumps(summaries, sort_keys=True))
 

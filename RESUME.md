@@ -113,10 +113,12 @@ Before every commit include an updated
 
 ## Next actions
 
-1. Continue LM1B-small on Linux CUDA. Resolve its frozen held-out entropy
-   interval failure while preserving the reported result and the approved
-   quality rules. Complete the Linux/CUDA performance evidence with the
-   pinned Python baseline and report allocator and process metrics separately.
+1. Continue LM1B-small on Linux CUDA. The
+   [repeated performance run](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#repeated-cuda-timing-and-allocator-measurements)
+   favors Rust in median, p95 and process RSS at all three measured sizes.
+   Resolve the frozen entropy interval failure. The replay reproduced the
+   original result byte for byte, with an interval of
+   `[-0.007118, 0.002290]` against the frozen `±0.0046` margin.
 2. Complete the remaining LM1B-small gates before medium and large in the
    approved order. Any new acceptance protocol needs explicit review.
 3. For each changed runtime, run the applicable full checks and reproducible

@@ -6,21 +6,30 @@ use ncm_model::Lm1bSmallTeacher;
 use safetensors::{Dtype, SafeTensors};
 use std::{error::Error, fs, time::Instant};
 
+#[path = "support/cuda_pool.rs"]
+mod cuda_pool;
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 3 {
-        return Err("usage: lm1b_small_capacity_probe ARTIFACT BATCH".into());
-    }
-    let batch: usize = args[2].parse()?;
+    let [_, artifact, batch, options @ ..] = args.as_slice() else {
+        return Err("usage: lm1b_small_capacity_probe ARTIFACT BATCH [repeated]".into());
+    };
+    let (warmups, trials) = match options {
+        [] => (2, 8),
+        [option] if option == "repeated" => (5, 30),
+        _ => return Err("invalid LM1B capacity option".into()),
+    };
+    let batch: usize = batch.parse()?;
     if ![1, 4, 16].contains(&batch) {
         return Err("only diagnostic batches 1, 4 and 16 supported".into());
     }
-    if sha256(&fs::read(format!("{}/manifest.json", args[1]))?)
+    if sha256(&fs::read(format!("{artifact}/manifest.json"))?)
         != "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76"
     {
         return Err("artifact differs".into());
     }
-    let artifact = Artifact::load_inference(&args[1])?;
+    let load_start = Instant::now();
+    let artifact = Artifact::load_inference(artifact)?;
     let rope_path = std::env::var_os("NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC");
     let backend = if rope_path.is_some() {
         CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
@@ -49,10 +58,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
         model = model.with_reference_rope_diagnostic(&values("cosine")?, &values("sine")?)?;
     }
+    backend.device().synchronize()?;
+    let load_seconds = load_start.elapsed().as_secs_f64();
     let prefix = vec![101; batch];
     let mut times = Vec::new();
     let mut signatures = Vec::new();
-    for round in [30_u64, 31, 0, 1, 2, 3, 4, 5, 6, 7] {
+    for round in (30..30 + warmups).chain(0..trials) {
         let started = Instant::now();
         let output = model.sample_seeded_fully_device(&prefix, batch, (11_u64 << 32) | round)?;
         let codes = backend.read_indices(&output.codes)?;
@@ -64,11 +75,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         {
             return Err("invalid output".into());
         }
-        if round < 8 {
+        if round < trials {
             times.push(elapsed);
             signatures.push(sha256(&serde_json::to_vec(&(codes, output.ids))?));
         }
     }
+    backend.device().synchronize()?;
+    let pool = cuda_pool::snapshot(&backend)?;
     let status = fs::read_to_string("/proc/self/status")?;
     let hwm = status
         .lines()
@@ -76,7 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .ok_or("missing VmHWM")?;
     println!(
         "{}",
-        serde_json::json!({"scope":"non-held-out LM1B capacity screen", "runtime":"rust", "batch":batch, "warmups":2, "trials":8, "seconds":times, "signatures":signatures, "vmhwm":hwm, "diagnostic": if rope_path.is_some() { "reference tables and 1 MiB QKV preference" } else { "default" }})
+        serde_json::json!({"scope":"non-held-out LM1B capacity screen", "runtime":"rust", "batch":batch, "warmups":warmups, "trials":trials, "load_seconds":load_seconds, "cuda_default_pool":pool, "seconds":times, "signatures":signatures, "vmhwm":hwm, "diagnostic": if rope_path.is_some() { "reference tables and 1 MiB QKV preference" } else { "default" }})
     );
     Ok(())
 }
