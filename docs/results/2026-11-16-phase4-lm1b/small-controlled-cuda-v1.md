@@ -296,3 +296,89 @@ lint, device-capture seed guard, capacity-summary tests, and the hash-checked
 five-seed comparator pass. Full `tools/check.sh --cuda` passed including
 18 real-device operator cases
 (`reports/phase4-lm1b-reference-rope-device-capacity-cuda-check-v1.log`).
+
+## Intrinsic reference-order rotary candidate
+
+The experimental LM1B-small model computes FP32 inverse frequencies first
+and then multiplies by position, as the pinned upstream does. This replaces
+per-position division in this model only and needs no supplied table; shared
+geometry for other profiles remains unchanged. On this Linux host the generated
+128-by-32 tables differ from the pinned CPU PyTorch tables in 232 cosine and
+132 sine values, at most `5.960464477539063e-8` absolute. They are not bit
+identical and cross-platform math-library behavior remains unqualified. The
+new unit control checks selected pinned values to `1e-7`; that is a local
+regression check, not a changed acceptance tolerance.
+
+With the existing 1 MiB QKV diagnostic, the retained two-row controlled CUDA
+capture passes all 51 tensors under the unchanged comparison policy. The full
+80-tensor capture SHA-256 is
+`59a1473b4eefb7efa8cd9f1c198f10a0e01a3601a7abe3131d0865080daf666c`;
+the filtered payload and comparison are respectively
+`3e93506075374225a1480a1a199c8355502a9a0ce6ce049112dbe808fc8b0016` and
+`9266b4ac180e79460930268f77963250c238a0aea06178462ffaaf11d3f80bb7`.
+The model source SHA-256 is
+`ffc3088326542ace96b6306af0273738a1eab81bf0f4e186b39a40998bf858f8`.
+
+The explicitly selected QKV candidate generated and scored the existing five
+non-held-out development seeds with the pinned upstream scorer; all scorer
+cross-checks matched upstream. Each seed has 256 samples, batch eight. Changes
+below are row counts against the earlier external-table device candidate:
+
+| Seed | Perplexity | Mean entropy | Code rows changed | Raw-ID rows changed |
+| ---: | ---: | ---: | ---: | ---: |
+| 11 | 93.267423 | 4.311027279 | 85 | 81 |
+| 12 | 94.741863 | 4.307672182 | 105 | 99 |
+| 13 | 91.081261 | 4.310955182 | 96 | 94 |
+| 14 | 90.740706 | 4.312227994 | 103 | 100 |
+| 15 | 91.875097 | 4.311800897 | 101 | 97 |
+
+Descriptively, candidate minus Python development means are `-0.634582`
+perplexity and `-0.000800239` entropy, with independent seed-bootstrap
+intervals `[-3.337282, 1.746404]` and `[-0.003185621, 0.001394795]`.
+These observed development seeds and the earlier controlled trace are not a
+held-out quality pass. Since generated outputs differ, the external-table
+candidate's failed held-out result and its performance measurements cannot be
+transferred to this candidate. The frozen LM1B quality gate remains open.
+
+The isolated candidate passed the focused Rust unit test, feature-specific
+Clippy and full `tools/check.sh --cuda`, including 524 report tests and 18
+real-device operator cases. The first full check failed four report tests
+because its fresh isolated checkout had no `reports/` directory; creating the
+empty directory and rerunning produced the passing result. Both logs, the
+capture/score files, controlled trace, comparison and diagnostic source are
+retained under `reports/phase4-lm1b-intrinsic-rope-v1/`. Linux/CUDA quality,
+performance and memory gates, then Metal checks, remain required. No profile or
+Phase 4 gate is claimed by this increment.
+
+The controlled trace used the checked-in
+`lm1b_small_controlled_level7_trace` example with
+`NCM_LM1B_QKV_DIAGNOSTIC=1` and no reference-table override. Development
+generation used the retained diagnostic source
+`ncm-lm1b-development-rope-capture.rs` (SHA-256
+`e5ab4026e84cab143edcbd785741cd94c4afb13d806ae3c4744fdae136f1cc89`),
+`NCM_LM1B_INTRINSIC_ROPE_DIAGNOSTIC=1`, seeds 11–15 and `device-penalty`.
+Each output was scored by `tools/reference/lm1b_quality_probe.py` with its
+capture SHA-256 and the existing pinned evaluator, BERT and upstream inputs.
+The passing full-check log SHA-256 is
+`5fd8ab560d9eb912dece45f845f2dfe0cfca2387948a56b8ead6613187a678da`;
+the initial failure log SHA-256 is
+`ac0cba88433c7402719cdfba0616db9221a194bb2117db690ae059180aa2d436`.
+
+A fresh non-held-out capacity screen alternated three Rust and three pinned
+Python processes per batch, with two warmups and eight measured batches per
+process. Timings include generation and code/ID readback; model load is
+excluded. Median process peak RSS is from the three process high-water marks.
+
+| Batch | Python median / p95 | Rust median / p95 | Python / Rust peak RSS median |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.062264 / 0.065574 s | 0.045266 / 0.049245 s | 2,608,524 / 1,575,312 KiB |
+| 4 | 0.133354 / 0.134002 s | 0.108781 / 0.110817 s | 2,601,736 / 1,564,928 KiB |
+| 16 | 0.427370 / 0.428287 s | 0.363390 / 0.364022 s | 2,578,916 / 1,614,948 KiB |
+
+Result SHA-256 is
+`7f6df0c5595e5e6cc9da8824473368ab733e8d251f559a97c6ad36cf8af3f085`;
+source-bound process records, sampled GPU activity, and exact diagnostic
+sources are retained in the same evidence directory. Desktop GPU processes
+were present. Sampled device memory is not an allocator peak, and eight
+measurements per process do not meet the full performance gate. This screen
+does not establish held-out quality or Metal support.

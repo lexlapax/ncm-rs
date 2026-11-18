@@ -2961,7 +2961,16 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
         if !weights.is_empty() {
             return Err(Error::Weights("unbound LM1B generator tensor".into()));
         }
-        let geometry = prepare_geometry(&backend, codec.config().levels(), 1, 768, 12, 10000)?;
+        let (cosine, sine) = lm1b_reference_order_rope();
+        let geometry = prepare_geometry_with_rope(
+            &backend,
+            codec.config().levels(),
+            1,
+            768,
+            12,
+            10000,
+            Some((&cosine, &sine)),
+        )?;
         let data = artifact
             .file("inference.safetensors")
             .map_err(|e| Error::Weights(e.to_string()))?;
@@ -3306,6 +3315,23 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
 }
 
 #[cfg(feature = "lm1b-experimental")]
+fn lm1b_reference_order_rope() -> (Vec<f32>, Vec<f32>) {
+    let inverse: Vec<f32> = (0..32)
+        .map(|i| 1.0_f32 / 10000.0_f32.powf(i as f32 / 32.0))
+        .collect();
+    let mut cosine = Vec::with_capacity(128 * 32);
+    let mut sine = Vec::with_capacity(128 * 32);
+    for pos in 0..128 {
+        for &frequency in &inverse {
+            let angle = pos as f32 * frequency;
+            cosine.push(angle.cos());
+            sine.push(angle.sin());
+        }
+    }
+    (cosine, sine)
+}
+
+#[cfg(feature = "lm1b-experimental")]
 fn lm1b_choose(weights: &[f64], random: &mut SplitMix64) -> Result<u32> {
     if weights.is_empty()
         || weights.len() > u32::MAX as usize
@@ -3441,9 +3467,26 @@ fn lm1b_penalized_ids(
 #[cfg(all(test, feature = "lm1b-experimental"))]
 mod lm1b_teacher_tests {
     use super::{
-        SplitMix64, lm1b_choose, lm1b_penalized_ids, lm1b_penalized_parallel, lm1b_sample_logits,
-        validate_lm1b_request,
+        SplitMix64, lm1b_choose, lm1b_penalized_ids, lm1b_penalized_parallel,
+        lm1b_reference_order_rope, lm1b_sample_logits, validate_lm1b_request,
     };
+
+    #[test]
+    fn reference_order_rope_matches_pinned_values() {
+        let (cosine, sine) = lm1b_reference_order_rope();
+        assert_eq!(cosine.len(), 128 * 32);
+        assert_eq!(sine.len(), cosine.len());
+        assert_eq!(cosine[0], 1.0);
+        assert_eq!(sine[0], 0.0);
+        for (position, column, c, s) in [
+            (127, 1, 0.549_705_2_f32, 0.835_358_74_f32),
+            (127, 5, 0.267_998_87_f32, -0.963_419_2_f32),
+            (127, 31, 0.999_856_6_f32, 0.016_934_913_f32),
+        ] {
+            assert!((cosine[position * 32 + column] - c).abs() <= 1e-7);
+            assert!((sine[position * 32 + column] - s).abs() <= 1e-7);
+        }
+    }
 
     #[test]
     fn controlled_sampler_repeats_and_rejects_invalid_distributions() {
