@@ -44,6 +44,12 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   perplexity tokenizer inputs and score masks match as well. The nine
   intermediate code differences and six post-EOS raw-ID differences
   still fail the unchanged exact gate.
+  The [pinned Python batch-size control](docs/results/2026-11-15-phase4-xsum/mlx-full-top1-v1.md#pinned-python-free-generation-across-batch-sizes)
+  reproduced the retained rows at batch 32. Running the same Python model
+  at sizes 1–16 reproduces Metal row 4937 and sizes 1–2 also reproduce
+  Metal row 10015. Both batch-32 input projections restore row 4937 in
+  the CUDA batch-16 replay. The projection replay and the same-hidden
+  head replay on Metal retain the failure.
   Avoid repeating these variations without new evidence.
 - TinyStories advanced under [the user's scoped exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md).
   Keep those exceptions visible and retain the preceding regressions.

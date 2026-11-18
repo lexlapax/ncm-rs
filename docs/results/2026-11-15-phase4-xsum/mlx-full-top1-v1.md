@@ -248,3 +248,74 @@ and `1662e6869c012e017df154da76d72d83f634123dd86b874010e73e6335738050`,
 retained on Mac in `reports/phase4-xsum-top1-free-mlx-repeat-v1/` and copied
 with matching hashes to local `reports/phase4-xsum-top1-free-mlx-repeat-captured-v1/`. This is
 repeatability against the original Metal output, not equality with CUDA or Python.
+
+## Pinned Python free generation across batch sizes
+
+The pinned Python model ran on the RTX 3060 Ti with driver 620.70.06,
+PyTorch 2.15.0+cu132, math SDPA and TF32 disabled. Each free-generation
+call used the frozen top-1, CFG-zero settings and the pinned final decoder.
+It used aligned contiguous batches around the five rows with saved Metal
+differences. Four batch-32 calls reproduced all 128 retained Python rows
+exactly. Smaller batch sizes kept every selected row or neighboring row
+exact except for the changes listed here.
+
+| Batch size | Rows compared | Intermediate code changes | Raw ID changes |
+| --- | ---: | --- | --- |
+| 32 | 128 | 0 | 0 |
+| 16 | 64 | 3 at row 4937 | 5 at row 4937 |
+| 8 | 32 | 3 at row 4937 | 5 at row 4937 |
+| 4 | 20 | 3 at row 4937 | 5 at row 4937 |
+| 2 | 10 | 3 at row 4937, 1 at row 10015 | 5 at row 4937 |
+| 1 | 5 | 3 at row 4937, 1 at row 10015 | 5 at row 4937 |
+
+At each size from 1 to 16, the full Python row 4937 matches the saved
+batch-32 Metal row, including its three intermediate code changes and five
+raw IDs after EOS. At sizes 1 and 2, Python also exactly reproduces Metal
+row 10015. Python row 4883 keeps its batch-32 IDs throughout. This shows
+that two of the Metal discrepancies can occur within the pinned CUDA
+model from a batch-size change alone. The frozen reference uses its saved
+batch-32 outputs and the exact gate still fails.
+
+### Level-one replays
+
+The CUDA run at batch 32 scores code 3182 above 3690 by `9.536743e-7`
+at level 1, position 4. At batch 16, the sign reverses. Both native
+choices repeat in the two independent replays.
+
+- Replaying the same captured hidden row in either head batch shape keeps
+  the selected code. The linear projection changes with shape and the
+  batch-32 hidden row ties when scored in the batch-16 head. Feeding the
+  same precomputed projection into the remaining head arithmetic reproduces
+  all 24,576 logits for each input at both shapes. The native hidden states
+  differ in 4,306 of 4,608 FP32 values with maximum absolute difference
+  `2.5630e-6`.
+- The raw prefix embeddings and target latent match bit-for-bit before
+  their input projections. The projected prefix differs in 342,861 of
+  393,216 values, and the projected target differs in 3,975 of 4,608. In
+  the CUDA batch-16 run, replacing either projected input on its own
+  preserves all eight differences at row 4937. Replacing both at the
+  first level-one Transformer block restores all 200 codes and 48 IDs
+  for that row. The scores tie at the first crossing and the pinned
+  selector picks 3182.
+- On Mac Studio, the adapted Python MLX model at batch 32 selects 3690
+  with the native projections, either CUDA projection, both CUDA
+  projections, or the CUDA batch-32 hidden state supplied immediately
+  before the head. All five batch outputs are byte-identical. The other 31
+  rows match pinned Python. Thus the CUDA projection replay does not
+  transfer by itself and the Metal head can differ on the same CUDA
+  hidden input. An earlier [split-head diagnostic](level1-cross-backend-diagnostic-plan-v1.md)
+  recovered the reference choice on a captured CUDA input but did not
+  recover the full batch in free generation.
+
+All inputs were checked before and after. Mac service snapshots show the
+same PID. No runtime or comparator changed. Scripts, raw outputs,
+safetensors and receipts are under ignored
+`reports/phase4-xsum-pinned-python-batch-v1.DIrvoa/`. The batch-size
+receipt SHA-256 is
+`e4403ceda74669154e8c8474d6255c4c9476c24c9d30c672dadc2f3b92a5ac11`.
+The CUDA head and input-projection replay receipts are
+`e424e71ca7648ec94f6daec7556f2b21cb5b0d7a32fa0fdd2966961089d30544`
+and `71a216bcd2b807b1224a1f2a730e4b4851d6cac98c1a632f34064608048d78f5`.
+The Metal projection and hidden-state replay receipts are
+`379ed4dc55e5821b08b6101877f96e81f9ee5ae45c1d09d5bb0fda1d3c90d3d1`
+and `96f7a1f5f5059ca71bcb34a677004ab6eae90d453ae79526925e20bd1c046c56`.
