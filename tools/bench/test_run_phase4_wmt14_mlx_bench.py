@@ -38,12 +38,13 @@ class Wmt14MlxBenchTests(unittest.TestCase):
     def test_checkpoint_screen_live_and_replay_validate_both_rust_settings(self):
         rows = [{'codes': [0] * 313, 'raw_ids': [0] * 64}]
         settings = {'backend': 'mlx', 'reusable_loader': True, 'deferred_head': True,
-                    'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None}
+                    'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None, 'decoder_rows': 2}
 
         def fake_run(command, stem, directory):
             variant = stem.split('-')[2]
             checkpoint = variant == 'rust'
             self.assertEqual('materialize-after=5' in command, checkpoint)
+            self.assertEqual('decoder-rows=2' in command, variant != 'python')
             row = rows[0]
             report = {'cfg': 0, 'batch': 1, 'warmups': 5, 'load_seconds': 1,
                       'trials_seconds': [.03 if checkpoint else .02] * 30,
@@ -85,7 +86,7 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                     ('git', 'rev-parse'): 'head',
                 }.get(tuple(command[:2]), json.dumps({'core': str(root / 'core')}))
                 with patch.object(sys, 'argv', [*base_args, '--output', str(live),
-                                                '--with-control', '--materialize-after', '5']):
+                                                '--with-control', '--materialize-after', '5', '--decoder-rows', '2']):
                     bench.main()
                 self.assertEqual(run.call_count, 9)
                 manifest = json.loads((live / 'manifest.json').read_bytes())

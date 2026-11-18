@@ -603,3 +603,98 @@ Feature-specific Clippy passed for the CUDA and device-free builds. The
 two focused fixture tests passed. Full `tools/check.sh --cuda` passed
 all 528 Linux report tests and 18 real CUDA operator cases. The
 full log hashes to `0693ae901c25d024ce56d81d312b12784f8176650bf426012b257f56575602f3`.
+
+## Tiling the decoder vocabulary projection
+
+The WMT14 sampling probes and corpus recorder accept `decoder-rows=N`
+for 1 through 32 rows per tile. The decoder still builds its
+hidden state for the full request. It then projects a contiguous
+group of rows to the 151,680-entry vocabulary, uses the existing
+first-maximum selector, and reads the selected IDs before starting
+the next projection. This keeps the full vocabulary axis for every
+token. The tiled API returns host codes and IDs. Logit and teacher
+traces use the full-projection path.
+
+Two rows require a 74.06 MiB FP32 score tensor, compared with
+148.13 MiB at batch four and 1,185 MiB at batch 32. These sizes
+describe individual projections. Backend allocations and the
+additional tile readback barriers affect the measured peak and wall time.
+The projection's row dimension changes, so frozen output checks are
+required on each device.
+
+Run the existing paired timing schedule on Apple Silicon to measure
+guided batch four and both large base batches with two-row tiles.
+
+```sh
+.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
+  --cell 1:4 --cell 0:16 --cell 0:32 --decoder-rows 2 \
+  --output reports/wmt14-mlx-tiled-decoder-two
+```
+
+Build the probe and prepare its inputs using the [Metal timing
+procedure](#repeating-the-metal-timing-comparison). Use
+`--materialize-after 5 --with-control` in the same command to screen
+the earlier reconstruction checkpoint with two-row tiling fixed
+across both Rust configurations. The runner rejects
+`--decoder-rows` with `--lifetime retain` because the tiled API
+returns codes and IDs.
+
+The recorder supports the same decoder setting for a full comparison
+with the selected runtime build. The padded retry repeats the same
+input rows on a head rejection and trims the recovered output to the
+original batch. It uses the selected tile size for both attempts.
+
+```sh
+target/release/examples/wmt14_corpus_capture ARTIFACT mlx-retry-padded PREFIXES BASE.jsonl 0 0 3003 decoder-rows=2
+target/release/examples/wmt14_corpus_capture ARTIFACT mlx-retry-padded PREFIXES CFG.jsonl 1 0 3003 decoder-rows=2
+```
+
+### Local CUDA validation
+
+The two-row projection reproduced all 3,003 base and 3,003 guided
+rows, with zero code or raw ID differences, retries, or rejections.
+Both JSONL files are byte-identical to the
+[earlier CUDA captures](cuda-fast-argmax-plan-v1.md#full-cuda-replay-with-early-logit-release).
+The resulting comparison SHA-256 values are
+`57431f5d21af3e4b91066a78eeec4e7ad933907b23785fbe86033ec3ba1ca409`
+for base and
+`6343ea547f36d047e5df3c4f5a141ca2b2a3c2c9c1c9af46b2a60cd22aaba585`
+for guided.
+
+The six targeted ranges per mode reproduced 46 rows, including both
+original Metal rejection ranges and each three-row tail. The recorder
+rejected a zero-sized tile before creating a capture. The focused
+retry test verified the eight-row input expansion and confirmed a
+decoder error propagates directly. The runner's option and replay
+tests passed, and the retained Metal base batch-16 summary reproduced
+byte for byte. The full-logit teacher trace reproduced all 26
+tensors from the earlier native capture and passed against the pinned
+teacher oracle. Its SHA-256 is
+`cff57cecc1ba1e486fdad62ed1050754266cdfff126e94111063d3dd9db718ee`.
+
+The Linux receipts are in
+`reports/phase4-wmt14-tiled-decoder-cuda-v1.p60hTp/`. The CUDA recorder
+and capacity probe passed feature-specific Clippy and release builds.
+
+Both offline scorer environments reproduced their prior passing
+full and held-out receipts byte for byte. The base and guided
+receipts hash to
+`84a87dcf08a7ca8e9498aab4cc198fa3e53bca341637d8124d83ea5e1e8e7eda`
+and `915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`.
+
+The CUDA capacity probe used `deferred-head materialize-after=5
+decoder-rows=2` at batch 32 base and batch 16 guided, with five
+warmups and 30 measured trials per process. All frozen codes and
+IDs match at both maximum batches. The receipts
+`capacity-0-32.json` and `capacity-1-16.json` hash to
+`c09dc8c69d1953ae693049a7a33f407c154bf57d4a39bc359c004d6f4e5d8f2c`
+and `d295c1e054eeee5c06e17aaa11c766ec9f91b38f90088461267ee086d5c11a57`.
+These are correctness controls. Metal allocator peak and latency for
+the tiled decoder still need paired measurements.
+
+The first full check encountered the existing process-lifecycle
+fixture failure during the GPU corpus capture. After the WMT14
+device work finished, the serial `tools/check.sh --cuda` pass
+completed all 530 Linux report tests and 18 CUDA operator cases.
+Both logs are retained. The passing log hashes to
+`d0e76c78373d7789f298da9a2b652a0f88e53a393ec9bb9cbe81bf0520b99203`.

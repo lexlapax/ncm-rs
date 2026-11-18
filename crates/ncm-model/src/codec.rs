@@ -187,13 +187,48 @@ impl<B: CodecBackend> Codec<B> {
         latent: &B::Tensor,
         trace: &mut impl TraceSink<B>,
     ) -> Result<B::Tensor> {
-        trace.tensor("decoder.input", latent)?;
-        let hidden = self.decoder_block_traced(latent, trace)?;
-        let hidden = self.norm("decoder.ln_f", &hidden, false, trace)?;
+        let hidden = self.decode_latent_hidden(latent, trace)?;
         let logits = self.linear("decoder.output_layer", &hidden, false, trace)?;
         trace.tensor("decoder.output", &logits)?;
         trace.tensor("logits", &logits)?;
         Ok(logits)
+    }
+
+    fn decode_latent_hidden(
+        &self,
+        latent: &B::Tensor,
+        trace: &mut impl TraceSink<B>,
+    ) -> Result<B::Tensor> {
+        trace.tensor("decoder.input", latent)?;
+        let hidden = self.decoder_block_traced(latent, trace)?;
+        self.norm("decoder.ln_f", &hidden, false, trace)
+    }
+
+    #[cfg(feature = "wmt14-experimental")]
+    pub(crate) fn decode_wmt14_tiled_ids(
+        &self,
+        latent: &B::Tensor,
+        batch: usize,
+        tile_rows: usize,
+    ) -> Result<Vec<u32>> {
+        let b = &self.backend;
+        let hidden = self.decode_latent_hidden(latent, &mut NoTrace)?;
+        let weight = self.weight("decoder.output_layer.weight")?;
+        let mut ids = Vec::with_capacity(batch * 64);
+        for start in (0..batch).step_by(tile_rows) {
+            let rows = tile_rows.min(batch - start);
+            let tile = b.narrow(&hidden, 0, start, rows)?;
+            let logits = b.project(&tile, weight)?;
+            let selected = b.select_last(&logits, true)?;
+            // Complete selection before forming the next tile, even on a lazy backend.
+            ids.extend(b.read_indices(&selected)?);
+        }
+        if ids.len() != batch * 64 {
+            return Err(ncm_core::Error::Backend(
+                "invalid WMT14 tiled decoder output".into(),
+            ));
+        }
+        Ok(ids)
     }
     /// Encode and decode without a host roundtrip of the intermediate codes.
     /// Reuse the quantized latent already accumulated by encode. Both returned

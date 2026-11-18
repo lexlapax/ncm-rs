@@ -3,22 +3,26 @@ use candle_core::cuda_backend::cudarc::driver::sys;
 use ncm_backend_cuda::CandleBackend;
 use ncm_core::CodecBackend;
 use ncm_io::{Artifact, sha256};
-use ncm_model::Wmt14Teacher;
+use ncm_model::{Wmt14HostOutput, Wmt14Teacher};
 use serde_json::{Value, json};
 use std::{error::Error, fs, time::Instant};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, prefixes, batch, cfg, extras @ ..] = args.as_slice() else {
-        return Err("usage: wmt14_fast_argmax_perf ARTIFACT PREFIXES BATCH CFG [deferred-head] [materialize-after=N]".into());
+        return Err("usage: wmt14_fast_argmax_perf ARTIFACT PREFIXES BATCH CFG [deferred-head] [materialize-after=N] [decoder-rows=N]".into());
     };
     let mut deferred_head = false;
     let mut materialize_after = None;
+    let mut decoder_rows = None;
     for opt in extras {
         match opt.as_str() {
             "deferred-head" if !deferred_head => deferred_head = true,
             opt if materialize_after.is_none() && opt.starts_with("materialize-after=") => {
                 materialize_after = Some(opt["materialize-after=".len()..].parse::<usize>()?);
+            }
+            opt if decoder_rows.is_none() && opt.starts_with("decoder-rows=") => {
+                decoder_rows = Some(opt["decoder-rows=".len()..].parse::<usize>()?);
             }
             _ => return Err("invalid or repeated WMT14 timing option".into()),
         }
@@ -77,14 +81,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         let stream = backend.device().as_cuda_device()?.cuda_stream();
         let device_start = stream.record_event(Some(sys::CUevent_flags::CU_EVENT_DEFAULT))?;
         let start = Instant::now();
-        let output = if cfg == 0 {
-            model.generate_top1(&input, batch)?
+        let output;
+        let (Wmt14HostOutput { codes, ids }, device_end) = if let Some(tile_rows) = decoder_rows {
+            let selected =
+                model.generate_top1_with_tiled_decoder(&input, batch, f64::from(cfg), tile_rows)?;
+            let end = stream.record_event(Some(sys::CUevent_flags::CU_EVENT_DEFAULT))?;
+            (selected, end)
         } else {
-            model.generate_cfg_top1(&input, batch, 1.0)?
+            output = if cfg == 0 {
+                model.generate_top1(&input, batch)?
+            } else {
+                model.generate_cfg_top1(&input, batch, 1.0)?
+            };
+            let end = stream.record_event(Some(sys::CUevent_flags::CU_EVENT_DEFAULT))?;
+            let codes = backend.read_indices(&output.codes)?;
+            let ids = backend.read_indices(&output.ids)?;
+            (Wmt14HostOutput { codes, ids }, end)
         };
-        let device_end = stream.record_event(Some(sys::CUevent_flags::CU_EVENT_DEFAULT))?;
-        let codes = backend.read_indices(&output.codes)?;
-        let ids = backend.read_indices(&output.ids)?;
         backend.device().synchronize()?;
         let elapsed = start.elapsed().as_secs_f64();
         if codes.len() != batch * 313 || ids.len() != batch * 64 {
@@ -116,7 +129,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let id_rows: Vec<_> = ids.chunks_exact(ids.len() / batch).collect();
     println!(
         "{}",
-        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"deferred_head":deferred_head,"materialize_after":materialize_after,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"outputs":{"codes":code_rows,"ids":id_rows}})
+        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"deferred_head":deferred_head,"materialize_after":materialize_after,"decoder_rows":decoder_rows,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"outputs":{"codes":code_rows,"ids":id_rows}})
     );
     Ok(())
 }

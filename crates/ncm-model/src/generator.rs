@@ -710,7 +710,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     materialize_after_level: Option<usize>,
 }
 
-/// Host-resident output from explicitly microbatched experimental WMT14 generation.
+/// Host-resident codes and raw IDs from experimental WMT14 generation.
 #[cfg(feature = "wmt14-experimental")]
 pub struct Wmt14HostOutput {
     pub codes: Vec<u32>,
@@ -926,32 +926,77 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         batch: usize,
         scale: f64,
     ) -> Result<(Generated<B>, bool)> {
-        if !(1..=4).contains(&batch) || prefix_tokens.len() != batch * 96 {
+        wmt14_with_padded_retry(
+            prefix_tokens,
+            batch,
+            |tokens, rows| {
+                if scale == 0.0 {
+                    self.generate_top1(tokens, rows)
+                } else {
+                    self.generate_cfg_top1(tokens, rows, scale)
+                }
+            },
+            |output| {
+                Ok(Generated {
+                    codes: self.backend.narrow_indices(&output.codes, 0, 0, batch)?,
+                    logits: self.backend.narrow(&output.logits, 0, 0, batch)?,
+                    ids: self.backend.narrow_indices(&output.ids, 0, 0, batch)?,
+                })
+            },
+        )
+    }
+
+    /// Experimental WMT14 top-1 with only the final vocabulary projection tiled.
+    /// Each tile is reduced and read back before starting the next projection.
+    pub fn generate_top1_with_tiled_decoder(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        tile_rows: usize,
+    ) -> Result<Wmt14HostOutput> {
+        if !(1..=32).contains(&tile_rows) {
             return Err(Error::Input(
-                "WMT14 padded retry requires one to four prefixes".into(),
+                "WMT14 decoder tile must use 1..=32 rows".into(),
             ));
         }
-        let generate = |tokens: &[u32], rows| {
-            if scale == 0.0 {
-                self.generate_top1(tokens, rows)
-            } else {
-                self.generate_cfg_top1(tokens, rows, scale)
-            }
+        let trace = &mut crate::NoTrace;
+        let (codes, latent) = if scale == 0.0 {
+            self.run_to_latent(prefix_tokens, None, batch, trace, None)?
+        } else {
+            let combined = wmt14_cfg_prefixes(prefix_tokens, batch, scale)?;
+            self.run_to_latent(&combined, None, batch * 2, trace, Some((batch, scale)))?
         };
-        match generate(prefix_tokens, batch) {
-            Err(Error::Backend(message)) if message == WMT14_HEAD_REJECTED => {}
-            result => return result.map(|output| (output, false)),
+        let codes = self.backend.read_indices(&codes)?;
+        let ids = self
+            .codec
+            .decode_wmt14_tiled_ids(&latent, batch, tile_rows)?;
+        if codes.len() != batch * 313 {
+            return Err(Error::Backend(
+                "invalid WMT14 tiled generation codes".into(),
+            ));
         }
-        let padded: Vec<_> = prefix_tokens.iter().copied().cycle().take(8 * 96).collect();
-        let output = generate(&padded, 8)?;
-        Ok((
-            Generated {
-                codes: self.backend.narrow_indices(&output.codes, 0, 0, batch)?,
-                logits: self.backend.narrow(&output.logits, 0, 0, batch)?,
-                ids: self.backend.narrow_indices(&output.ids, 0, 0, batch)?,
+        Ok(Wmt14HostOutput { codes, ids })
+    }
+
+    /// Apply the same bounded head retry to the experimental tiled decoder.
+    pub fn generate_top1_tiled_decoder_with_padded_retry(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        tile_rows: usize,
+    ) -> Result<(Wmt14HostOutput, bool)> {
+        wmt14_with_padded_retry(
+            prefix_tokens,
+            batch,
+            |tokens, rows| self.generate_top1_with_tiled_decoder(tokens, rows, scale, tile_rows),
+            |mut output| {
+                output.codes.truncate(batch * 313);
+                output.ids.truncate(batch * 64);
+                Ok(output)
             },
-            true,
-        ))
+        )
     }
 
     /// Explicit cached base generation in groups of at most four, with host output.
@@ -1127,6 +1172,23 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         trace: &mut impl crate::TraceSink<B>,
         cfg: Option<(usize, f64)>,
     ) -> Result<Generated<B>> {
+        let (codes, latent) = self.run_to_latent(prefix_tokens, forced_codes, batch, trace, cfg)?;
+        let (logits, ids) = self
+            .codec
+            .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
+        trace.tensor("generator.final_logits", &logits)?;
+        trace.indices("generator.greedy_ids", &ids)?;
+        Ok(Generated { codes, logits, ids })
+    }
+
+    fn run_to_latent(
+        &self,
+        prefix_tokens: &[u32],
+        forced_codes: Option<&[u32]>,
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+        cfg: Option<(usize, f64)>,
+    ) -> Result<(B::Indices, B::Tensor)> {
         if cfg.is_some() && self.cached_prefix_experimental && !self.cached_cfg_diagnostic {
             return Err(Error::Input(
                 "WMT14 cached CFG is unsupported; use the no-cache model".into(),
@@ -1377,13 +1439,77 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         } else {
             latent
         };
-        let (logits, ids) = self
-            .codec
-            .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
-        trace.tensor("generator.final_logits", &logits)?;
-        trace.indices("generator.greedy_ids", &ids)?;
-        Ok(Generated { codes, logits, ids })
+        Ok((codes, latent))
     }
+}
+
+#[cfg(feature = "wmt14-experimental")]
+fn wmt14_with_padded_retry<T>(
+    prefix_tokens: &[u32],
+    batch: usize,
+    generate: impl Fn(&[u32], usize) -> Result<T>,
+    trim: impl FnOnce(T) -> Result<T>,
+) -> Result<(T, bool)> {
+    if !(1..=4).contains(&batch) || prefix_tokens.len() != batch * 96 {
+        return Err(Error::Input(
+            "WMT14 padded retry requires one to four prefixes".into(),
+        ));
+    }
+    match generate(prefix_tokens, batch) {
+        Err(Error::Backend(message)) if message == WMT14_HEAD_REJECTED => {}
+        result => return result.map(|output| (output, false)),
+    }
+    let padded: Vec<_> = prefix_tokens.iter().copied().cycle().take(8 * 96).collect();
+    Ok((trim(generate(&padded, 8)?)?, true))
+}
+
+#[cfg(all(test, feature = "wmt14-experimental"))]
+#[test]
+fn wmt14_padded_retry_only_recovers_a_rejected_head() {
+    use std::cell::Cell;
+
+    let prefixes: Vec<u32> = (0..288).collect();
+    let calls = Cell::new(0);
+    let (output, retried) = wmt14_with_padded_retry(
+        &prefixes,
+        3,
+        |tokens, rows| {
+            calls.set(calls.get() + 1);
+            if rows == 3 {
+                assert_eq!(tokens, prefixes);
+                Err(Error::Backend(WMT14_HEAD_REJECTED.into()))
+            } else {
+                assert_eq!(rows, 8);
+                assert!(
+                    tokens
+                        .iter()
+                        .copied()
+                        .eq(prefixes.iter().copied().cycle().take(768))
+                );
+                Ok(tokens.to_vec())
+            }
+        },
+        |mut output| {
+            output.truncate(prefixes.len());
+            Ok(output)
+        },
+    )
+    .unwrap();
+    assert!(retried);
+    assert_eq!(output, prefixes);
+    assert_eq!(calls.get(), 2);
+
+    let error = wmt14_with_padded_retry(
+        &prefixes,
+        3,
+        |_, rows| {
+            assert_eq!(rows, 3);
+            Err::<Vec<u32>, _>(Error::Backend("decoder failed".into()))
+        },
+        |_| panic!("failed generation cannot be trimmed"),
+    )
+    .unwrap_err();
+    assert!(matches!(error, Error::Backend(message) if message == "decoder failed"));
 }
 
 #[cfg(feature = "wmt14-experimental")]

@@ -3,7 +3,7 @@ use mlx_rs::memory;
 use ncm_backend_mlx::MlxBackend;
 use ncm_core::{CodecBackend, WeightBackend};
 use ncm_io::{Artifact, sha256};
-use ncm_model::Wmt14Teacher;
+use ncm_model::{Wmt14HostOutput, Wmt14Teacher};
 use std::{
     error::Error,
     fs,
@@ -25,13 +25,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [cache-mib=N] [drop-logits|release-outputs]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [decoder-rows=N] [cache-mib=N] [drop-logits|release-outputs]".into(),
         );
     };
     let mut reusable = false;
     let mut deferred_head = false;
     let mut start_row = None;
     let mut materialize_after = None;
+    let mut decoder_rows = None;
     let mut cache_mib = None;
     let mut drop_logits = false;
     let mut release_outputs = false;
@@ -47,11 +48,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             opt if materialize_after.is_none() && opt.starts_with("materialize-after=") => {
                 materialize_after = Some(opt["materialize-after=".len()..].parse::<usize>()?);
             }
+            opt if decoder_rows.is_none() && opt.starts_with("decoder-rows=") => {
+                decoder_rows = Some(opt["decoder-rows=".len()..].parse::<usize>()?);
+            }
             opt if start_row.is_none() && opt.starts_with("start=") => {
                 start_row = Some(opt[6..].parse::<usize>()?);
             }
             _ => return Err("invalid or repeated WMT14 timing option".into()),
         }
+    }
+    if decoder_rows.is_some() && !drop_logits && !release_outputs {
+        return Err(
+            "tiled decoder does not retain logits: select drop-logits or release-outputs".into(),
+        );
     }
     let start_row = start_row.unwrap_or(0);
     if cache_mib.is_some_and(|mib| mib > 16 * 1024) {
@@ -127,19 +136,29 @@ fn main() -> Result<(), Box<dyn Error>> {
             starts.push(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64());
         }
         let start = Instant::now();
-        let generated = if guided {
-            model.generate_cfg_top1(&prefix, batch, 1.0)?
+        let generated;
+        let Wmt14HostOutput { codes, ids } = if let Some(tile_rows) = decoder_rows {
+            model.generate_top1_with_tiled_decoder(&prefix, batch, f64::from(guided), tile_rows)?
         } else {
-            model.generate_top1(&prefix, batch)?
+            generated = if guided {
+                model.generate_cfg_top1(&prefix, batch, 1.0)?
+            } else {
+                model.generate_top1(&prefix, batch)?
+            };
+            if drop_logits || release_outputs {
+                drop(generated.logits);
+            }
+            let output = Wmt14HostOutput {
+                codes: backend.read_indices(&generated.codes)?,
+                ids: backend.read_indices(&generated.ids)?,
+            };
+            if marker.is_some() {
+                drop(generated.codes);
+                drop(generated.ids);
+            }
+            output
         };
-        if drop_logits || release_outputs {
-            drop(generated.logits);
-        }
-        let codes = backend.read_indices(&generated.codes)?;
-        let ids = backend.read_indices(&generated.ids)?;
         if let Some(marker) = &marker {
-            drop(generated.codes);
-            drop(generated.ids);
             backend.evaluate(&[backend.add(marker, marker)?])?;
         }
         let elapsed = start.elapsed().as_secs_f64();
@@ -163,7 +182,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "scope": "generation and code/ID readback; model load excluded",
             "load_seconds": load_seconds, "reusable_loader": reusable,
             "deferred_head": deferred_head, "start": start_row,
-            "materialize_after": materialize_after,
+            "materialize_after": materialize_after, "decoder_rows": decoder_rows,
             "drop_logits": drop_logits || release_outputs,
             "release_outputs": release_outputs, "cache_limit_bytes": cache_limit,
             "prior_cache_limit_bytes": previous_cache_limit,

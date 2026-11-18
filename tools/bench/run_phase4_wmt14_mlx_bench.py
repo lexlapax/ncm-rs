@@ -129,6 +129,7 @@ def main():
     parser.add_argument('--lifetime', choices=('retain', 'drop', 'release'))
     parser.add_argument('--cache-mib', type=int, metavar='0..16384')
     parser.add_argument('--materialize-after', type=int, choices=range(1, 11))
+    parser.add_argument('--decoder-rows', type=int, choices=range(1, 33))
     parser.add_argument('--with-control', action='store_true',
                         help='screen the checkpoint and a Rust control against one shared Python baseline')
     for mode in ('base', 'cfg'):
@@ -141,10 +142,12 @@ def main():
     if len(set(cells)) != len(cells):
         parser.error('duplicate workload cell')
     if args.replay and (args.with_control or any(option is not None for option in
-                                                (args.lifetime, args.cache_mib, args.materialize_after))):
+                                                (args.lifetime, args.cache_mib, args.materialize_after, args.decoder_rows))):
         parser.error('replay reads existing settings')
     if args.with_control and args.materialize_after is None:
         parser.error('--with-control requires --materialize-after')
+    if args.decoder_rows is not None and args.lifetime == 'retain':
+        parser.error('--decoder-rows requires dropping logits')
     checkpoint_screen_level = args.materialize_after if args.with_control else None
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
@@ -192,10 +195,13 @@ def main():
                     'retain': [], 'release': ['release-outputs']}[args.lifetime]
         if args.cache_mib is not None:
             options.append(f'cache-mib={args.cache_mib}')
+        if args.decoder_rows is not None:
+            options.append(f'decoder-rows={args.decoder_rows}')
         control_options = options.copy()
         if args.materialize_after is not None:
             options.append(f'materialize-after={args.materialize_after}')
-        requested = {'materialize_after': args.materialize_after, 'reusable_loader': True, 'deferred_head': True,
+        requested = {'materialize_after': args.materialize_after, 'decoder_rows': args.decoder_rows,
+                     'reusable_loader': True, 'deferred_head': True,
                      'drop_logits': args.lifetime != 'retain', 'release_outputs': args.lifetime == 'release',
                      'cache_limit_bytes': None if args.cache_mib is None else args.cache_mib * 1024**2}
         packages = json.loads(subprocess.check_output(
@@ -263,7 +269,8 @@ def main():
                 actual = {key: report.get(key, default) for key, default in (
                     ('reusable_loader', True), ('deferred_head', True),
                     ('drop_logits', report.get('release_outputs', False)),
-                    ('release_outputs', False), ('cache_limit_bytes', None), ('materialize_after', None))}
+                    ('release_outputs', False), ('cache_limit_bytes', None), ('materialize_after', None),
+                    ('decoder_rows', None))}
                 if not args.replay:
                     expected = dict(requested, materialize_after=None) if variant == 'rust_control' else requested
                     if (report.get('backend') != 'mlx' or any(key not in report for key in expected)

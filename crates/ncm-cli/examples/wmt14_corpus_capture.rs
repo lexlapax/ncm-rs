@@ -16,6 +16,7 @@ struct CaptureOptions {
     guided: bool,
     padded_retry: bool,
     materialize_after: Option<usize>,
+    decoder_rows: Option<usize>,
 }
 
 #[cfg(any(
@@ -36,6 +37,7 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
         guided,
         padded_retry,
         materialize_after,
+        decoder_rows,
     } = options;
 
     let model = if padded_retry {
@@ -61,21 +63,51 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     for (index, batch) in rows.chunks(BATCH).enumerate() {
         let start = first + BATCH * index;
         let prefixes: Vec<_> = batch.iter().flatten().copied().collect();
-        let generated = if padded_retry {
-            model.generate_top1_with_padded_retry(&prefixes, batch.len(), f64::from(guided))
-        } else {
-            let result = if guided {
-                model.generate_cfg_top1(&prefixes, batch.len(), 1.0)
+        let generated = if let Some(tile_rows) = decoder_rows {
+            if padded_retry {
+                model.generate_top1_tiled_decoder_with_padded_retry(
+                    &prefixes,
+                    batch.len(),
+                    f64::from(guided),
+                    tile_rows,
+                )
             } else {
-                model.generate_top1(&prefixes, batch.len())
+                model
+                    .generate_top1_with_tiled_decoder(
+                        &prefixes,
+                        batch.len(),
+                        f64::from(guided),
+                        tile_rows,
+                    )
+                    .map(|output| (output, false))
+            }
+        } else {
+            let full = if padded_retry {
+                model.generate_top1_with_padded_retry(&prefixes, batch.len(), f64::from(guided))
+            } else {
+                let result = if guided {
+                    model.generate_cfg_top1(&prefixes, batch.len(), 1.0)
+                } else {
+                    model.generate_top1(&prefixes, batch.len())
+                };
+                result.map(|output| (output, false))
             };
-            result.map(|output| (output, false))
+            match full {
+                Ok((output, retried)) => {
+                    drop(output.logits);
+                    Ok((
+                        ncm_model::Wmt14HostOutput {
+                            codes: backend.read_indices(&output.codes)?,
+                            ids: backend.read_indices(&output.ids)?,
+                        },
+                        retried,
+                    ))
+                }
+                Err(error) => Err(error),
+            }
         };
         let record = match generated {
-            Ok((generated, retried)) => {
-                drop(generated.logits);
-                let codes = backend.read_indices(&generated.codes)?;
-                let ids = backend.read_indices(&generated.ids)?;
+            Ok((ncm_model::Wmt14HostOutput { codes, ids }, retried)) => {
                 if codes.len() != batch.len() * 313 || ids.len() != batch.len() * 64 {
                     return Err("unexpected WMT14 output shape".into());
                 }
@@ -128,7 +160,7 @@ fn main() -> Result<()> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT [materialize-after=N]".into(),
+            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT [materialize-after=N] [decoder-rows=N]".into(),
         );
     };
     let guided = match scale.as_str() {
@@ -136,13 +168,22 @@ fn main() -> Result<()> {
         "1" => true,
         _ => return Err("expected CFG 0 or 1".into()),
     };
-    let materialize_after = match extras {
-        [] => None,
-        [option] if option.starts_with("materialize-after=") => {
-            Some(option["materialize-after=".len()..].parse::<usize>()?)
+    let mut materialize_after = None;
+    let mut decoder_rows: Option<usize> = None;
+    for option in extras {
+        match option.split_once('=') {
+            Some(("materialize-after", value)) if materialize_after.is_none() => {
+                materialize_after = Some(value.parse()?);
+            }
+            Some(("decoder-rows", value)) if decoder_rows.is_none() => {
+                decoder_rows = Some(value.parse()?);
+            }
+            _ => return Err("invalid or repeated WMT14 corpus option".into()),
         }
-        _ => return Err("invalid WMT14 corpus option".into()),
-    };
+    }
+    if decoder_rows.is_some_and(|rows| !(1..=32).contains(&rows)) {
+        return Err("WMT14 decoder tile must use 1..=32 rows".into());
+    }
     let first: usize = first.parse()?;
     let count: usize = count.parse()?;
     let end = first.checked_add(count).ok_or("row count overflow")?;
@@ -165,7 +206,7 @@ fn main() -> Result<()> {
     if rows.len() != ROWS || rows.iter().any(|row| row.len() != 96) {
         return Err("unexpected WMT14 fixture shape".into());
     }
-    let _ = (guided, output, materialize_after);
+    let _ = (guided, output, materialize_after, decoder_rows);
     #[cfg(any(
         feature = "cuda-cudnn",
         all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
@@ -174,6 +215,7 @@ fn main() -> Result<()> {
         guided,
         padded_retry: false,
         materialize_after,
+        decoder_rows,
     };
     match device.as_str() {
         #[cfg(feature = "cuda-cudnn")]
