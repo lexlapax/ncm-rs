@@ -319,3 +319,53 @@ and `71a216bcd2b807b1224a1f2a730e4b4851d6cac98c1a632f34064608048d78f5`.
 The Metal projection and hidden-state replay receipts are
 `379ed4dc55e5821b08b6101877f96e81f9ee5ae45c1d09d5bb0fda1d3c90d3d1`
 and `96f7a1f5f5059ca71bcb34a677004ab6eae90d453ae79526925e20bd1c046c56`.
+
+### Joint Metal head and Transformer replays
+
+The adapted Python MLX model ran the same 32-row input beginning at row
+4928. A level-one diagnostic split the hidden projection into six
+128-channel products and the codebook projection into two 192-channel
+products. With the captured CUDA batch-32 hidden state for row 4937 and
+the native MLX norms, the split head chose 3182 and reproduced all
+6,400 codes and 1,536 raw IDs for the batch. Using the retained CUDA-derived
+norms and scales gave the same outputs. The native hidden state with the
+split head retained the three code and five ID differences.
+
+The split head also retained the failure when given the captured CUDA input
+projections at the Transformer entry. A separate control recomputed both
+input projections from identical captured operands in CPU FP64 and rounded
+to FP32. This result was closer to the CUDA batch-16 projection than to
+the batch-32 projection on both inputs. For the prefix, RMS error was
+`4.66e-8` against batch 16 and `6.23e-8` against batch 32. For the target,
+it was `1.88e-8` and `2.50e-8` respectively. Substituting these projections
+on Metal retained the same eight output differences with both the native
+head and the split head.
+
+A new pinned Python CUDA capture collected the output of each of the 12
+level-one Transformer blocks. Its generated codes and final IDs matched
+all 32 retained rows. On Metal, the split-head diagnostic then replayed
+the CUDA state at each block boundary for row 4937. Substituting the
+whole row after zero-based blocks 6, 7 or 11 restored the reference
+level-one choice. These three substitutions also reproduced all 6,400
+codes and 1,536 raw IDs in full-generation replays. The head scores
+tied for 3182 and 3690 in all three runs and selected 3182. Substituting
+only the prefix or only the target after block 6 retained the difference.
+
+The other block boundaries, including 8, 9 and 10, retained the
+level-one mismatch. The outcome therefore varies with the state
+presented to the remaining operations and does not isolate a single
+faulty block. Every successful case depends on a captured CUDA tensor
+for a known row. The existing full-corpus comparison remains the
+acceptance result.
+
+The ignored bundle
+`reports/phase4-xsum-joint-head-screen-v1.iJHUDk/` retains commands,
+scripts, raw rows, and input digests. The preflight and postflight
+hashes match, and the Mac service PID remained the same. The seven-case
+joint screen receipt hashes to
+`5cdcb996fcce9ffad6ba2d0d7291cccccdaf4254e5b485ebc02f197e7025c25c`.
+The block-level CUDA trace, Metal level-one replay receipt, and Metal
+full-generation replay receipt SHA-256 values are respectively
+`029f1e36aadb680ba60818565d659f44b69a245c28e5e9f9218fa832d235a1be`,
+`d1a361364449fde7ef8ffcfc702abce5b7ef533e10eae00e569d47d7e5a114b9`,
+and `b74aa096a3ac87cfbfac9c45b003b2cda9d5b1eef703ef1628de64f108dd1e9f`.

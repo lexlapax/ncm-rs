@@ -50,6 +50,11 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   Metal row 10015. Both batch-32 input projections restore row 4937 in
   the CUDA batch-16 replay. The projection replay and the same-hidden
   head replay on Metal retain the failure.
+  Combining the split head with captured CUDA hidden state restores the
+  exact 32-row Metal batch in the adapted model. Three captured CUDA block
+  outputs also work with that head, but other, later states retain the
+  mismatch. The [joint replays](docs/results/2026-11-15-phase4-xsum/mlx-full-top1-v1.md#joint-metal-head-and-transformer-replays)
+  depend on injected CUDA state for a known row.
   Avoid repeating these variations without new evidence.
 - TinyStories advanced under [the user's scoped exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md).
   Keep those exceptions visible and retain the preceding regressions.
