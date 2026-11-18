@@ -707,6 +707,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     cfg_shape_matched_diagnostic: bool,
     cfg_recompute_margin_diagnostic: Option<f32>,
     deferred_head_check_experimental: bool,
+    materialize_after_level: Option<usize>,
 }
 
 /// Host-resident output from explicitly microbatched experimental WMT14 generation.
@@ -807,6 +808,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             cfg_shape_matched_diagnostic: false,
             cfg_recompute_margin_diagnostic: None,
             deferred_head_check_experimental: false,
+            materialize_after_level: None,
         })
     }
 
@@ -874,6 +876,18 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
     pub fn with_deferred_head_check_experimental(mut self) -> Self {
         self.deferred_head_check_experimental = true;
         self
+    }
+
+    /// Materialize the running reconstruction once before the next level.
+    /// This is a timing and memory diagnostic for deferred backends.
+    pub fn with_level_materialization_experimental(mut self, after_level: usize) -> Result<Self> {
+        if !(1..self.codec.config().levels().len()).contains(&after_level) {
+            return Err(Error::Input(
+                "WMT14 materialization must precede the final level".into(),
+            ));
+        }
+        self.materialize_after_level = Some(after_level);
+        Ok(self)
     }
 
     pub fn run_traced(
@@ -1333,6 +1347,9 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             } else {
                 contribution
             };
+            if self.materialize_after_level == Some(level + 1) {
+                b.evaluate(std::slice::from_ref(&sum))?;
+            }
             let observed_sum = if let Some((original, _)) = cfg {
                 b.narrow(&sum, 0, 0, original)?
             } else {

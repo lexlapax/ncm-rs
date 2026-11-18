@@ -413,3 +413,76 @@ SHA-256 values for the four small cells, base 16, and base 32 are
 `d73994472a36fdc4e40c8b93473438a7f7ad0b69c7bfbf33b422aed4b6252334`,
 `96c979ca3fd8d5a41301253321e728eda7873b14023411e18fc85a4a02461420`, and
 `f0578e5f273c15320e33d24d4d6bb4eeb5e6d24632282f6a1beb36f2e754b3c2`.
+
+## Measuring an intermediate evaluation checkpoint
+
+With deferred head validation, the backend can build a graph for the
+whole hierarchical generation before the final code readback. To
+test the cost of that schedule, the probes accept an optional
+`materialize-after=N` setting for N from 1 through 10. It evaluates
+the cumulative reconstruction after N completed levels, with the
+same operators, batch shapes, and selector checks. On Metal, this
+gives the runtime an opportunity to release preceding intermediates
+before appending the next level. The setting adds synchronization
+and its latency and allocator effects need measurement.
+
+For a paired screen of the two base latency failures, keep logit
+lifetime and cache policy fixed across the runs. This compares the
+default early-release setting with the same setting plus one
+checkpoint after level five.
+
+```sh
+.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
+  --cell 0:16 --cell 0:32 --output reports/wmt14-mlx-tail-control
+.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
+  --cell 0:16 --cell 0:32 --materialize-after 5 --output reports/wmt14-mlx-tail-level-five
+```
+
+The recorder takes the same option for a corpus comparison with a
+measured configuration. For example, capture the guided corpus
+with the padded retry and the level-five checkpoint, then run the
+same JSONL verifier as for the original padded replay.
+
+```sh
+target/release/examples/wmt14_corpus_capture ARTIFACT mlx-retry-padded PREFIXES CAPTURE.jsonl 1 0 3003 materialize-after=5
+python3 tools/reference/compare_wmt14_corpus_capture.py REFERENCE.json CAPTURE.jsonl RECEIPT.json --cfg 1
+```
+
+### Local CUDA validation
+
+On Linux, the release CUDA recorder used `materialize-after=5` with the
+original four-row batches and immediate head checks. All 3,003 base and
+3,003 guided rows match the frozen intermediate codes and raw IDs. There
+were zero rejected or retried batches. Both JSONL files are byte-identical
+to the [early-release CUDA captures](cuda-fast-argmax-plan-v1.md#full-cuda-replay-with-early-logit-release).
+The recorder rejected level 0 and the final level 11 before creating an
+output file. The CUDA release build and feature-specific Clippy passed.
+
+The local evidence is in `reports/phase4-wmt14-materialize-cuda-v1.Lf0P1g/`.
+The SHA-256 values for `comparison-0.json` and `comparison-1.json` are
+`57431f5d21af3e4b91066a78eeec4e7ad933907b23785fbe86033ec3ba1ca409` and
+`6343ea547f36d047e5df3c4f5a141ca2b2a3c2c9c1c9af46b2a60cd22aaba585`.
+The tracked runner reproduced the archived base batch-16 summary and
+rejected adding a checkpoint to replayed evidence.
+
+Both frozen offline scorer environments reproduced their prior passing
+full and held-out receipts byte for byte. The base receipt hashes to
+`84a87dcf08a7ca8e9498aab4cc198fa3e53bca341637d8124d83ea5e1e8e7eda`
+and the guided receipt to
+`915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc`.
+
+The real CUDA capacity runs combined `deferred-head` and
+`materialize-after=5` at batch 32 base and batch 16 guided. Each run used
+five warmups and 30 trials. All codes and IDs match the corresponding
+frozen rows. These unpaired runs check outputs at maximum batch sizes.
+The paired Metal measurements are pending. The SHA-256 values for
+`capacity-0-32.json` and `capacity-1-16.json` are
+`94a3bf4de72f0c580605d751b2596cc352f88b88b186ff4aff1abc3151e66a45` and
+`257798f5c016fa590dd32f26a384398998cf5e4af363cf2925181628a8ed9d45`.
+
+The first full check and an isolated retry failed the existing process
+lifecycle fixture while the GPU corpus replay was active. The unchanged
+`tools/check.sh --cuda` rerun after the replay and capacity checks passed,
+including all 528 Linux report tests and 18 real CUDA operator cases. The
+failed logs are preserved alongside the passing `full-check-serial.log`,
+which hashes to `6925e29fb8eda7f36a2979d3c0c0cf5e92eecca29d0b622d30d99d40c79ea4d8`.

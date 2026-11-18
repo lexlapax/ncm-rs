@@ -111,6 +111,7 @@ def main():
     parser.add_argument('--cell', type=cell_arg, action='append')
     parser.add_argument('--lifetime', choices=('retain', 'drop', 'release'))
     parser.add_argument('--cache-mib', type=int, metavar='0..16384')
+    parser.add_argument('--materialize-after', type=int, choices=range(1, 11))
     for mode in ('base', 'cfg'):
         parser.add_argument(f'--{mode}-reference', type=Path,
                             default=ROOT / f'reports/phase4-wmt14-{mode}-cuda-full-v1/python.json')
@@ -120,7 +121,8 @@ def main():
         parser.error('cache limit must be in 0..16384 MiB')
     if len(set(cells)) != len(cells):
         parser.error('duplicate workload cell')
-    if args.replay and (args.lifetime is not None or args.cache_mib is not None):
+    if args.replay and any(option is not None for option in
+                           (args.lifetime, args.cache_mib, args.materialize_after)):
         parser.error('replay reads existing settings')
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
@@ -163,7 +165,9 @@ def main():
                     'retain': [], 'release': ['release-outputs']}[args.lifetime]
         if args.cache_mib is not None:
             options.append(f'cache-mib={args.cache_mib}')
-        requested = {'reusable_loader': True, 'deferred_head': True,
+        if args.materialize_after is not None:
+            options.append(f'materialize-after={args.materialize_after}')
+        requested = {'materialize_after': args.materialize_after, 'reusable_loader': True, 'deferred_head': True,
                      'drop_logits': args.lifetime != 'retain', 'release_outputs': args.lifetime == 'release',
                      'cache_limit_bytes': None if args.cache_mib is None else args.cache_mib * 1024**2}
         packages = json.loads(subprocess.check_output(
@@ -216,7 +220,7 @@ def main():
                 actual = {key: report.get(key, default) for key, default in (
                     ('reusable_loader', True), ('deferred_head', True),
                     ('drop_logits', report.get('release_outputs', False)),
-                    ('release_outputs', False), ('cache_limit_bytes', None))}
+                    ('release_outputs', False), ('cache_limit_bytes', None), ('materialize_after', None))}
                 if not args.replay:
                     if (report.get('backend') != 'mlx' or any(key not in report for key in requested)
                             or actual != requested):

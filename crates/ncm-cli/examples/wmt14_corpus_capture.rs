@@ -12,16 +12,31 @@ const BATCH: usize = 4;
     feature = "cuda-cudnn",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
 ))]
+struct CaptureOptions {
+    guided: bool,
+    padded_retry: bool,
+    materialize_after: Option<usize>,
+}
+
+#[cfg(any(
+    feature = "cuda-cudnn",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
 fn capture<B: ncm_core::GeneratorBackend + Clone>(
     backend: B,
     artifact: &str,
     output: &str,
     rows: &[Vec<u32>],
     first: usize,
-    guided: bool,
-    padded_retry: bool,
+    options: CaptureOptions,
 ) -> Result<()> {
     use std::io::{LineWriter, Write};
+
+    let CaptureOptions {
+        guided,
+        padded_retry,
+        materialize_after,
+    } = options;
 
     let model = if padded_retry {
         let artifact = ncm_io::Artifact::load_wmt14_inference_reusable(artifact)?;
@@ -30,6 +45,11 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     } else {
         let artifact = ncm_io::Artifact::load_inference(artifact)?;
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+    };
+    let model = if let Some(level) = materialize_after {
+        model.with_level_materialization_experimental(level)?
+    } else {
+        model
     };
     let mut output = LineWriter::new(
         fs::OpenOptions::new()
@@ -95,15 +115,33 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
 
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
-    let [_, artifact, device, prefixes, output, scale, first, count] = args.as_slice() else {
+    let [
+        _,
+        artifact,
+        device,
+        prefixes,
+        output,
+        scale,
+        first,
+        count,
+        extras @ ..,
+    ] = args.as_slice()
+    else {
         return Err(
-            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT".into(),
+            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT [materialize-after=N]".into(),
         );
     };
     let guided = match scale.as_str() {
         "0" => false,
         "1" => true,
         _ => return Err("expected CFG 0 or 1".into()),
+    };
+    let materialize_after = match extras {
+        [] => None,
+        [option] if option.starts_with("materialize-after=") => {
+            Some(option["materialize-after=".len()..].parse::<usize>()?)
+        }
+        _ => return Err("invalid WMT14 corpus option".into()),
     };
     let first: usize = first.parse()?;
     let count: usize = count.parse()?;
@@ -127,7 +165,16 @@ fn main() -> Result<()> {
     if rows.len() != ROWS || rows.iter().any(|row| row.len() != 96) {
         return Err("unexpected WMT14 fixture shape".into());
     }
-    let _ = (guided, output);
+    let _ = (guided, output, materialize_after);
+    #[cfg(any(
+        feature = "cuda-cudnn",
+        all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+    ))]
+    let options = CaptureOptions {
+        guided,
+        padded_retry: false,
+        materialize_after,
+    };
     match device.as_str() {
         #[cfg(feature = "cuda-cudnn")]
         "cuda" => capture(
@@ -136,8 +183,7 @@ fn main() -> Result<()> {
             output,
             &rows[first..end],
             first,
-            guided,
-            false,
+            options,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx" => capture(
@@ -146,8 +192,7 @@ fn main() -> Result<()> {
             output,
             &rows[first..end],
             first,
-            guided,
-            false,
+            options,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx-upsample" => capture(
@@ -156,8 +201,7 @@ fn main() -> Result<()> {
             output,
             &rows[first..end],
             first,
-            guided,
-            false,
+            options,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx-retry-padded" => capture(
@@ -166,8 +210,10 @@ fn main() -> Result<()> {
             output,
             &rows[first..end],
             first,
-            guided,
-            true,
+            CaptureOptions {
+                padded_retry: true,
+                ..options
+            },
         ),
         _ => Err("requested device is unavailable".into()),
     }

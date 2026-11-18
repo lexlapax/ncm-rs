@@ -148,6 +148,9 @@ pushes needed for Mac work via pulls. Before every commit include an updated
    [paired Metal runner](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#repeating-the-metal-timing-comparison)
    measures early release separately from synchronization and cache
    limits, and its Linux replay reproduced all six retained cells.
+   The [level-five checkpoint](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#measuring-an-intermediate-evaluation-checkpoint)
+   reproduces all 6,006 frozen CUDA rows. It is ready for a paired Metal
+   screen at base batches 16 and 32 when Apple testing resumes.
    Fresh Metal timing and corpus verification remain open.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the

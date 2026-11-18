@@ -25,12 +25,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [cache-mib=N] [drop-logits|release-outputs]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [cache-mib=N] [drop-logits|release-outputs]".into(),
         );
     };
     let mut reusable = false;
     let mut deferred_head = false;
     let mut start_row = None;
+    let mut materialize_after = None;
     let mut cache_mib = None;
     let mut drop_logits = false;
     let mut release_outputs = false;
@@ -42,6 +43,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             "release-outputs" if !drop_logits && !release_outputs => release_outputs = true,
             opt if cache_mib.is_none() && opt.starts_with("cache-mib=") => {
                 cache_mib = Some(opt[10..].parse::<usize>()?);
+            }
+            opt if materialize_after.is_none() && opt.starts_with("materialize-after=") => {
+                materialize_after = Some(opt["materialize-after=".len()..].parse::<usize>()?);
             }
             opt if start_row.is_none() && opt.starts_with("start=") => {
                 start_row = Some(opt[6..].parse::<usize>()?);
@@ -106,6 +110,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         model
     };
+    let model = if let Some(level) = materialize_after {
+        model.with_level_materialization_experimental(level)?
+    } else {
+        model
+    };
     let load_seconds = load_start.elapsed().as_secs_f64();
     let marker = release_outputs
         .then(|| backend.upload_f32(&[1.0], &[1]))
@@ -154,6 +163,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "scope": "generation and code/ID readback; model load excluded",
             "load_seconds": load_seconds, "reusable_loader": reusable,
             "deferred_head": deferred_head, "start": start_row,
+            "materialize_after": materialize_after,
             "drop_logits": drop_logits || release_outputs,
             "release_outputs": release_outputs, "cache_limit_bytes": cache_limit,
             "prior_cache_limit_bytes": previous_cache_limit,

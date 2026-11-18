@@ -9,26 +9,31 @@ use std::{error::Error, fs, time::Instant};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    let deferred_head = match args.as_slice() {
-        [_, _, _, _, _] => false,
-        [_, _, _, _, _, mode] if mode == "deferred-head" => true,
-        _ => {
-            return Err(
-                "usage: wmt14_fast_argmax_perf ARTIFACT PREFIXES BATCH CFG [deferred-head]".into(),
-            );
-        }
+    let [_, artifact, prefixes, batch, cfg, extras @ ..] = args.as_slice() else {
+        return Err("usage: wmt14_fast_argmax_perf ARTIFACT PREFIXES BATCH CFG [deferred-head] [materialize-after=N]".into());
     };
-    let batch: usize = args[3].parse()?;
-    let cfg: u32 = args[4].parse()?;
+    let mut deferred_head = false;
+    let mut materialize_after = None;
+    for opt in extras {
+        match opt.as_str() {
+            "deferred-head" if !deferred_head => deferred_head = true,
+            opt if materialize_after.is_none() && opt.starts_with("materialize-after=") => {
+                materialize_after = Some(opt["materialize-after=".len()..].parse::<usize>()?);
+            }
+            _ => return Err("invalid or repeated WMT14 timing option".into()),
+        }
+    }
+    let batch: usize = batch.parse()?;
+    let cfg: u32 = cfg.parse()?;
     if ![1, 4, 16, 32].contains(&batch) || cfg > 1 || (cfg == 1 && batch > 16) {
         return Err("unsupported batch or CFG".into());
     }
-    if sha256(&fs::read(format!("{}/manifest.json", args[1]))?)
+    if sha256(&fs::read(format!("{artifact}/manifest.json"))?)
         != "01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81"
     {
         return Err("unexpected artifact manifest".into());
     }
-    let bytes = fs::read(&args[2])?;
+    let bytes = fs::read(prefixes)?;
     if sha256(&bytes) != "22c76d597ae51dffadf61661d6b7c4d4290fd14b8809bfa6f1959b5c668df93f" {
         return Err("unexpected prefix reference".into());
     }
@@ -51,11 +56,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             input.push(id);
         }
     }
-    let artifact = Artifact::load_inference(&args[1])?;
+    let artifact = Artifact::load_inference(artifact)?;
     let backend = CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?;
     let model = Wmt14Teacher::from_artifact(backend.clone(), &artifact)?;
     let model = if deferred_head {
         model.with_deferred_head_check_experimental()
+    } else {
+        model
+    };
+    let model = if let Some(level) = materialize_after {
+        model.with_level_materialization_experimental(level)?
     } else {
         model
     };
@@ -106,7 +116,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let id_rows: Vec<_> = ids.chunks_exact(ids.len() / batch).collect();
     println!(
         "{}",
-        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"deferred_head":deferred_head,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"outputs":{"codes":code_rows,"ids":id_rows}})
+        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"deferred_head":deferred_head,"materialize_after":materialize_after,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"outputs":{"codes":code_rows,"ids":id_rows}})
     );
     Ok(())
 }
