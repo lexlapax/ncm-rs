@@ -8,6 +8,10 @@ use std::sync::OnceLock;
 pub trait TraceSink<B: CodecBackend> {
     fn tensor(&mut self, name: &str, value: &B::Tensor) -> Result<()>;
     fn indices(&mut self, name: &str, value: &B::Indices) -> Result<()>;
+    /// Input to a WMT14 head projection, before any guidance mixing.
+    fn wmt14_head_input(&mut self, _level: usize, _value: &B::Tensor) -> Result<()> {
+        Ok(())
+    }
 }
 pub struct NoTrace;
 impl<B: CodecBackend> TraceSink<B> for NoTrace {

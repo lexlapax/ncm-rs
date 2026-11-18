@@ -11,6 +11,13 @@ class RowTraceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             prefixes({'prefixes': rows})
 
+    def test_base_head_uses_the_requested_frozen_batch(self):
+        rows = [[i] * 96 for i in range(3003)]
+        self.assertEqual(prefixes({'prefixes': rows}, 632), rows[632:636])
+        rows[633][95] = -1
+        with self.assertRaises(ValueError):
+            prefixes({'prefixes': rows}, 632)
+
 
 if __name__ == '__main__':
     unittest.main()

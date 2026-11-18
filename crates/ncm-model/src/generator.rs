@@ -1268,6 +1268,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             } else {
                 hidden
             };
+            trace.wmt14_head_input(level, &hidden)?;
             let head_logits = b.project(&hidden, &self.heads[level])?;
             let mut head_logits = if let Some((original, scale)) = cfg {
                 if self.cfg_internals_diagnostic {

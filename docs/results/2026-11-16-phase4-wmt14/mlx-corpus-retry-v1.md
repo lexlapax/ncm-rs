@@ -486,3 +486,101 @@ lifecycle fixture while the GPU corpus replay was active. The unchanged
 including all 528 Linux report tests and 18 real CUDA operator cases. The
 failed logs are preserved alongside the passing `full-check-serial.log`,
 which hashes to `6925e29fb8eda7f36a2979d3c0c0cf5e92eecca29d0b622d30d99d40c79ea4d8`.
+
+## Locating the first base code difference
+
+The retained Metal batch starting at row 632 has 13 differing intermediate
+codes and exact raw token IDs. Its first difference is at row 632,
+zero-based level 4, position 17. The pinned Python CUDA batch and the
+native CUDA probe both select code 2602 where the retained Metal batch
+selects 270. The pinned Python capture verifies all four rows against
+the frozen corpus. The native probe checks that holding an input and
+logits for tracing produces the same full codes and IDs as ordinary
+generation.
+
+| Projection input and method | Score for 2602 | Score for 270 | Winner margin |
+| --- | ---: | ---: | ---: |
+| Pinned Python CUDA FP32 | 3.3386700153 | 3.3386690617 | 0.000000954 |
+| Native Rust CUDA FP32 | 3.3386716843 | 3.3386702538 | 0.000001431 |
+| Pinned Python input, common FP64 projection | 3.3386706206 | 3.3386692630 | 0.000001358 |
+| Native Rust input, common FP64 projection | 3.3386721419 | 3.3386711681 | 0.000000974 |
+
+Code 922 is a distant third in both CUDA captures. Across the selected
+input vector the largest absolute difference is `5.72e-6`. Across its
+4,096 projected scores it is `2.10e-5`. Both CUDA paths still pick the
+same code, and the same FP64 projection preserves the winner on both
+captured inputs. The remaining question is whether projecting the
+Metal input in FP64 also picks 2602. If it does, measure the native
+projection on the same input shape. If it picks 270, compare the
+preceding reconstruction and transformer activations.
+
+Generate the pinned base trace on CUDA with the original four-row
+fixture. The `--base-head` arguments select the batch start and the
+zero-based level.
+
+```sh
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false \
+  .reference/venv/bin/python tools/reference/wmt14_cfg_row_trace.py \
+  --upstream .reference/upstream-ncm --source artifacts/upstream/wmt14-phase4 \
+  --prefixes reports/phase4-wmt14-tokenizer-reference-v1.json \
+  --full reports/phase4-wmt14-base-cuda-full-v1/python.json \
+  --base-head 632 4 --output reports/wmt14-base632-reference
+```
+
+To repeat the native CUDA capture with cuDNN from the pinned reference
+environment, link through the existing unversioned cuDNN library path.
+The final three probe arguments select the absolute row, level, and
+position. The probe records the full projection input and the 4,096
+scores at that position.
+
+```sh
+setpriv --inh-caps=-all env CUDA_COMPUTE_CAP=86 RUSTC_WRAPPER= \
+  LIBRARY_PATH="$PWD/.reference/phase4-cudnn-probe-lib" \
+  cargo build --locked --release -p ncm-cli --features cuda-cudnn,wmt14-experimental \
+  --example wmt14_base_head_probe
+setpriv --inh-caps=-all env \
+  LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" \
+  target/release/examples/wmt14_base_head_probe \
+  artifacts/canonical/wmt14-inference-v1-final cuda \
+  reports/phase4-wmt14-tokenizer-reference-v1.json 632 4 17 \
+  > reports/wmt14-base632-cuda.json
+```
+
+On Apple Silicon, build the same probe with the pinned MLX installation.
+
+```sh
+export MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"
+RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib" \
+  cargo build --locked --release -p ncm-cli --features mlx,wmt14-experimental \
+  --example wmt14_base_head_probe
+target/release/examples/wmt14_base_head_probe \
+  artifacts/canonical/wmt14-inference-v1-final mlx \
+  reports/phase4-wmt14-tokenizer-reference-v1.json 632 4 17 \
+  > reports/wmt14-base632-mlx.json
+```
+
+Compare the two capture files in the pinned Linux reference environment.
+
+```sh
+OMP_NUM_THREADS=1 .reference/venv/bin/python tools/reference/compare_wmt14_head_site.py \
+  reports/wmt14-base632-reference reports/wmt14-base632-mlx.json
+```
+
+The Linux evidence is under `reports/phase4-wmt14-base632-cuda-v1.O5g5Bs/`.
+Both native CUDA runs produced the same JSON. The probe rejected an
+out-of-range position and the offline comparison rejected a different
+head level. The default guided reference command reproduced its archived
+tensor payload byte for byte. The retained Metal capture confirms all
+13 code differences and the same first divergent position. The new
+Metal head capture is pending.
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Pinned CUDA trace | `4179dba1011cf3fad60a2b79f10d2405ab6b3606264be183c1a98d935c6bc14b` |
+| Native CUDA site capture | `3ac0cd680fd54f6447edc95ca523cb23f27c232b24ddb8db0a419e54f9d3e9f7` |
+| CUDA comparison | `1471b67ee4e72de6035757f6ec55da0d55fcdd0135a268dd691ac95b24b5da4d` |
+
+Feature-specific Clippy passed for the CUDA and device-free builds. The
+two focused fixture tests passed. Full `tools/check.sh --cuda` passed
+all 528 Linux report tests and 18 real CUDA operator cases. The
+full log hashes to `0693ae901c25d024ce56d81d312b12784f8176650bf426012b257f56575602f3`.

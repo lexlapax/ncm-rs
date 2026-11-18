@@ -1,4 +1,4 @@
-"""Trace the original WMT14 CFG batch containing the full-capture divergence."""
+"""Trace a pinned four-row WMT14 batch and optionally capture a base head input."""
 import argparse
 import json
 import os
@@ -17,16 +17,17 @@ from wmt14_inventory import INPUTS
 
 PREFIX_SHA = '22c76d597ae51dffadf61661d6b7c4d4290fd14b8809bfa6f1959b5c668df93f'
 FULL_SHA = '78f24bba0fecc8ce7c06abf22508516142a5331cc6df5572efd533f9211e9256'
+BASE_FULL_SHA = 'e287a9c784d927cc319572fed6679bbf4cd9ffc1489c0f15028f71e13c47bce0'
 START = 2180
 
 
-def prefixes(data):
+def prefixes(data, start=START):
     rows = data['prefixes']
     if len(rows) != 3003 or any(type(row) is not list or len(row) != 96 or
                                  any(type(x) is not int or not 0 <= x < 151680 for x in row)
-                                 for row in rows[START:START + 4]):
+                                 for row in rows[start:start + 4]):
         raise ValueError('invalid WMT14 prefix reference')
-    return rows[START:START + 4]
+    return rows[start:start + 4]
 
 
 def main():
@@ -36,7 +37,16 @@ def main():
     parser.add_argument('--prefixes', type=Path, required=True)
     parser.add_argument('--full', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--base-head', nargs=2, type=int, metavar=('START', 'LEVEL'),
+                        help='use CFG 0 and capture a level 1–10 head in a complete frozen batch')
     args = parser.parse_args()
+    if args.base_head:
+        start, observed_head = args.base_head
+        if start not in range(0, 3000, 4) or observed_head not in range(1, 11):
+            parser.error('expected a complete four-row batch start and head level 1–10')
+        scale, full_sha = 0.0, BASE_FULL_SHA
+    else:
+        start, observed_head, scale, full_sha = START, None, 1.0, FULL_SHA
     out = args.output.resolve()
     if args.output.is_symlink() or out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('new output under reports required')
@@ -53,13 +63,13 @@ def main():
         verify_input(args.source / name, size, sha)
     if args.prefixes.is_symlink() or digest_file(args.prefixes) != PREFIX_SHA:
         raise ValueError('prefix reference differs')
-    if args.full.is_symlink() or digest_file(args.full) != FULL_SHA:
+    if args.full.is_symlink() or digest_file(args.full) != full_sha:
         raise ValueError('full reference differs')
-    input_rows = prefixes(json.loads(args.prefixes.read_bytes()))
+    input_rows = prefixes(json.loads(args.prefixes.read_bytes()), start)
     full = json.loads(args.full.read_bytes())
-    if full['start'] != 0 or full['count'] != 3003 or full['batch_size'] != 4 or full['cfg_scale'] != 1.0:
+    if full['start'] != 0 or full['count'] != 3003 or full['batch_size'] != 4 or full.get('cfg_scale', 0.0) != scale:
         raise ValueError('unexpected full capture')
-    expected = full['outputs'][START:START + 4]
+    expected = full['outputs'][start:start + 4]
     watched = [Path(__file__).resolve(), Path(__file__).with_name('wmt14_inventory.py').resolve(),
                Path(__file__).with_name('tinystories_artifact.py').resolve(), args.prefixes.resolve(), args.full.resolve()]
     watched += sorted((upstream / 'models').glob('*.py'))
@@ -101,6 +111,18 @@ def main():
     if levels != [1, 4, 8, 14, 20, 26, 32, 40, 48, 56, 64]:
         raise ValueError('unexpected level geometry')
     calls = [0]
+    if observed_head is not None:
+        def observe_head(module, args):
+            if calls[0] != observed_head:
+                return
+            value, = args
+            if (tuple(value.shape) != (4, levels[observed_head], 768) or
+                    tuple(module.weight.shape) != (4096, 768) or module.bias is not None):
+                raise ValueError('unexpected WMT14 projection')
+            save(f'diagnostic.head_{observed_head:02d}.weight', module.weight)
+            save(f'diagnostic.head_{observed_head:02d}.input', value)
+        for module in model.lm_heads:
+            module.register_forward_pre_hook(observe_head)
     original_sample = model._sample_level_raw
     def observe(logits, temperature, top_k, top_p):
         level = calls[0]
@@ -114,7 +136,7 @@ def main():
         prefix = torch.tensor(input_rows, dtype=torch.int64, device='cuda')
         save('generator.prefix_ids', prefix)
         codes = model.generate(None, prefix, temperature=1.0, top_k=1, top_p=0.0,
-                               use_kv_cache=False, cfg_scale=1.0, cfg_null_eos=151645)
+                               use_kv_cache=False, cfg_scale=scale, cfg_null_eos=151645)
         if calls[0] != len(levels) or tuple(codes.shape) != (4, sum(levels)):
             raise ValueError('unexpected generated history')
         if codes.tolist() != [row['codes'] for row in expected]:
@@ -136,6 +158,8 @@ def main():
             subprocess.check_output(['git', '-C', str(upstream), 'rev-parse', 'HEAD'], text=True).strip() != head or
             subprocess.check_output(['git', '-C', str(upstream), 'status', '--porcelain'], text=True).strip()):
         raise ValueError('source changed during capture')
+    if observed_head is not None and f'diagnostic.head_{observed_head:02d}.input' not in traces:
+        raise ValueError('requested WMT14 head input was not captured')
     out.mkdir(parents=True)
     save_file(traces, out / 'trace.safetensors')
     report = {'scope': 'original four-row CFG=1 batch containing row 2181; diagnostic, not quality or performance',
@@ -144,6 +168,10 @@ def main():
               'gpu_identity_and_driver': gpu[0], 'gpu_name': torch.cuda.get_device_name(0),
               'tf32': False, 'sdpa': 'math', 'cfg_scale': 1.0, 'cfg_null_eos': 151645, 'prefix_reference_sha256': PREFIX_SHA,
               'trace_sha256': digest_file(out / 'trace.safetensors'), 'tensors': sorted(traces)}
+    if observed_head is not None:
+        report.update(scope=f'original four-row CFG=0 batch starting at {start}; head {observed_head} diagnostic',
+                      cfg_scale=0.0, batch_start=start, observed_head=observed_head)
+        del report['cfg_null_eos']
     json_file(out / 'report.json', report)
     print(json.dumps({'tensors': len(traces), 'trace_sha256': report['trace_sha256'],
                       'report_sha256': digest_file(out / 'report.json')}, sort_keys=True))
