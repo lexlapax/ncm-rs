@@ -33,17 +33,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [decoder-rows=N] [cache-mib=N] [allocator-trace] [fused-rope-batch8] [drop-logits|release-outputs]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [last-transformer-checkpoint=N] [decoder-rows=N] [cache-mib=N] [allocator-trace] [drop-logits|release-outputs]".into(),
         );
     };
     let mut reusable = false;
     let mut deferred_head = false;
     let mut start_row = None;
     let mut materialize_after = None;
+    let mut last_transformer_checkpoint = None;
     let mut decoder_rows = None;
     let mut cache_mib = None;
     let mut allocator_trace = false;
-    let mut fused_rope_batch8 = false;
     let mut drop_logits = false;
     let mut release_outputs = false;
     for opt in extras {
@@ -51,11 +51,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             "reusable" if !reusable => reusable = true,
             "deferred-head" if !deferred_head => deferred_head = true,
             "allocator-trace" if !allocator_trace => allocator_trace = true,
-            "fused-rope-batch8" if !fused_rope_batch8 => fused_rope_batch8 = true,
             "drop-logits" if !drop_logits && !release_outputs => drop_logits = true,
             "release-outputs" if !drop_logits && !release_outputs => release_outputs = true,
             opt if cache_mib.is_none() && opt.starts_with("cache-mib=") => {
                 cache_mib = Some(opt[10..].parse::<usize>()?);
+            }
+            opt if last_transformer_checkpoint.is_none()
+                && opt.starts_with("last-transformer-checkpoint=") =>
+            {
+                last_transformer_checkpoint =
+                    Some(opt["last-transformer-checkpoint=".len()..].parse::<usize>()?);
             }
             opt if materialize_after.is_none() && opt.starts_with("materialize-after=") => {
                 materialize_after = Some(opt["materialize-after=".len()..].parse::<usize>()?);
@@ -118,11 +123,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     drop(raw);
     let previous_cache_limit = cache_limit.map(memory::set_cache_limit).transpose()?;
     let load_start = Instant::now();
-    let backend = if fused_rope_batch8 {
-        MlxBackend::gpu_wmt14_fused_rope_batch8_experimental()?
-    } else {
-        MlxBackend::gpu()?
-    };
+    let backend = MlxBackend::gpu()?;
     let model = if reusable {
         let artifact = Artifact::load_wmt14_inference_reusable(artifact)?;
         Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
@@ -137,6 +138,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let model = if let Some(level) = materialize_after {
         model.with_level_materialization_experimental(level)?
+    } else {
+        model
+    };
+    let model = if let Some(block) = last_transformer_checkpoint {
+        model.with_last_transformer_checkpoint_experimental(block)?
     } else {
         model
     };
@@ -213,7 +219,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "trial_start_unix_seconds": starts, "trials_seconds": samples, "codes": codes, "raw_ids": ids,
             "mlx_memory": memory,
             "allocator_boundaries": allocator_boundaries,
-            "fused_rope_batch8": fused_rope_batch8
+            "last_transformer_checkpoint": last_transformer_checkpoint
         }),
     );
     Ok(())

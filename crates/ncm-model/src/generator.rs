@@ -565,7 +565,7 @@ fn decode_transformer<B: ncm_core::GeneratorBackend>(
 ) -> Result<B::Tensor> {
     decode_transformer_observed(
         b, blocks, final_norm, geometry, prefix, target, prefix_len, heads, width, length, false,
-        None,
+        None, None,
     )
 }
 
@@ -582,6 +582,7 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
     width: usize,
     length: usize,
     capture_qkv: bool,
+    checkpoint_after_block: Option<usize>,
     mut trace: Option<&mut dyn crate::TraceSink<B>>,
 ) -> Result<B::Tensor> {
     let batch = b.shape(prefix)[0];
@@ -663,6 +664,9 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
             trace.tensor("diagnostic.level_01.first_mlp_gelu", &hidden)?;
         }
         x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        if checkpoint_after_block == Some(index + 1) {
+            b.evaluate(std::slice::from_ref(&x))?;
+        }
         if let Some(trace) = trace.as_deref_mut() {
             trace.tensor(&format!("diagnostic.level_01.block_{index:02}"), &x)?;
         }
@@ -708,6 +712,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     cfg_recompute_margin_diagnostic: Option<f32>,
     deferred_head_check_experimental: bool,
     materialize_after_level: Option<usize>,
+    last_transformer_checkpoint: Option<usize>,
 }
 
 /// Host-resident codes and raw IDs from experimental WMT14 generation.
@@ -809,6 +814,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             cfg_recompute_margin_diagnostic: None,
             deferred_head_check_experimental: false,
             materialize_after_level: None,
+            last_transformer_checkpoint: None,
         })
     }
 
@@ -887,6 +893,20 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             ));
         }
         self.materialize_after_level = Some(after_level);
+        Ok(self)
+    }
+
+    /// Evaluate the final level's hidden state before the remaining blocks.
+    pub fn with_last_transformer_checkpoint_experimental(
+        mut self,
+        after_block: usize,
+    ) -> Result<Self> {
+        if !(1..self.blocks.len()).contains(&after_block) {
+            return Err(Error::Input(
+                "WMT14 checkpoint must precede the final transformer block".into(),
+            ));
+        }
+        self.last_transformer_checkpoint = Some(after_block);
         Ok(self)
     }
 
@@ -1312,6 +1332,8 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                         768,
                         length,
                         false,
+                        self.last_transformer_checkpoint
+                            .filter(|_| level + 1 == levels.len()),
                         if self.cfg_internals_diagnostic && level == 1 {
                             Some(trace as &mut dyn crate::TraceSink<B>)
                         } else {
@@ -2663,6 +2685,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 768,
                 length,
                 false,
+                None,
                 if level == 1 && forced.is_some() {
                     Some(trace)
                 } else {
@@ -3457,6 +3480,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                         768,
                         length,
                         true,
+                        None,
                         Some(&mut observed),
                     )?
                 } else {

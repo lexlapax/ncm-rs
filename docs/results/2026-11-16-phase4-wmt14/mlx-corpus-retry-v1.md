@@ -1073,25 +1073,35 @@ has a separate manifest so a failed cell cannot suppress later runs.
 
 | CFG | Batch | Median ms Rust / Python | p95 ms Rust / Python | Peak RSS MiB Rust / Python | MLX peak MiB Rust / Python |
 | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 1 | 97.10 / 107.52 | 97.39 / 107.99 | 1561.05 / 1656.48 | 1162.73 / 1174.55 |
+| 0 | 4 | 220.14 / 235.14 | 226.07 / 239.49 | 1561.11 / 1657.19 | 1621.24 / 1665.64 |
 | 0 | 16 | 456.45 / 593.39 | 457.04 / 614.82 | 1561.23 / 1659.47 | 2599.13 / 3274.29 |
 | 0 | 32 | 819.57 / 1043.99 | 820.12 / 8768.93 | 1561.25 / 1657.48 | 2835.02 / 3925.68 |
+| 1 | 1 | 138.35 / 151.69 | 138.77 / 154.38 | 1561.11 / 1657.34 | 1315.58 / 1319.22 |
 | 1 | 4 | 351.11 / 364.25 | 353.52 / 368.14 | 1561.09 / 1657.64 | 2153.81 / 2142.62 |
 | 1 | 16 | 804.67 / 1025.07 | 805.16 / 1029.70 | 1561.09 / 1655.88 | 2864.28 / 3318.69 |
 
-All 24 retained process outputs match both codes and raw IDs. The
-summaries replay byte for byte on Linux. Base batches 16 and 32 and
-guided batch 16 pass latency and memory in this comparison. Guided
-batch four passes latency and process RSS, with a native allocator
-peak 11.19 MiB higher than Python. The three batch-32 Python process
-medians were 1038.55, 1784.55, and 1043.22 ms. In the second process,
-19 trials exceeded 1.5 seconds. All three batch-32 Rust process
-medians rounded to 820 ms. The pooled p95 retains the Python tail.
+All 42 retained process outputs match both codes and raw IDs. The
+seven summaries replay byte for byte on Linux. The four priority cells
+run at `0e99ce4`. Base batches 1 and 4 and guided batch 1 run at
+`f65fb6f` with identical runtime settings, leaving fusion at its
+ordinary threshold. All seven cells have lower median latency,
+p95, and process RSS. Guided batch four has a native allocator peak
+11.19 MiB higher than Python. Six cells pass all four measures.
+
+The three batch-32 Python process medians were 1038.55, 1784.55, and
+1043.22 ms. In the second process, 19 trials exceeded 1.5 seconds.
+All three batch-32 Rust process medians rounded to 820 ms. The pooled
+p95 retains the Python tail.
 
 | Summary | SHA-256 |
 | --- | --- |
+| Base batch 1 | `d8cc642b0ff4fe520c58ebd487766c98231db5154a4a8a4f2a3e0b29c1494ea5` |
+| Base batch 4 | `1bd418bb901743144dc649037cf81c235fa6e212d253a2406b696534466bdab9` |
 | Base batch 16 | `22599f1c3feae59fca032b274c9f7030db0e4f6b720a6e0388758feb46fd6e6f` |
 | Base batch 32 | `33e9806f9ff95780787436d6da561283e94b12893706bdf06cd6b9d6965b7193` |
-| Guided batch four | `a9327711f45f94d855eaa0156a09d0da07c7e5f0cf38ae25a342eb6276f572f9` |
+| Guided batch 1 | `5f49bc8176f3f2341469157fa5e2ea84a84f88d9d8824494d1fbff8417ab85d3` |
+| Guided batch 4 | `a9327711f45f94d855eaa0156a09d0da07c7e5f0cf38ae25a342eb6276f572f9` |
 | Guided batch 16 | `07fab97389afcec02fbebc0e09b5e0ae8732baab7dc2ade38bb35c78f42f9b22` |
 
 Run a cell from the Mac checkout after building `wmt14_perf` and
@@ -1105,23 +1115,47 @@ preparing the inputs from the [timing procedure](#repeating-the-metal-timing-com
 
 ### Full corpus and regression checks
 
-The 3,003-row base Metal capture matches all 192,192 frozen raw IDs.
-The only padded retry is at batch start 1376. There are no rejected
-batches. All 13 intermediate differences remain in row 632. Both
-offline environments pass the full and held-out checks and reproduce
-the prior base Metal scorer receipt byte for byte. Both hypothesis
-streams are identical, so all paired bootstrap differences are zero.
+The base and guided Metal captures each cover all 3,003 input rows
+with no rejected batches. All 384,384 raw IDs match the frozen CUDA
+reference. The only padded retries are base batch 1376 and guided
+batch 2656. The guided capture matches every intermediate code.
+The 13 intermediate differences in base row 632 are the only
+code differences across both modes. Both offline environments
+pass the full and held-out checks in each mode and reproduce the
+prior Metal scorer receipts byte for byte. The decoded hypotheses
+are identical to the reference, so all paired bootstrap differences
+are zero.
+
+| CFG | Scope | Cased BLEU | Lowercase BLEU | chrF | Length ratio |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 0 | All 3,003 rows | 21.72022 | 22.61211 | 49.56486 | 0.93740 |
+| 0 | Held-out 2,875 rows | 21.91867 | 22.82002 | 49.74774 | 0.93864 |
+| 1 | All 3,003 rows | 22.94641 | 23.83582 | 51.51598 | 0.95867 |
+| 1 | Held-out 2,875 rows | 23.14703 | 24.03098 | 51.69116 | 0.95972 |
 
 | Evidence | SHA-256 |
 | --- | --- |
 | Base JSONL capture | `a2cc46d562b9939c036b6b4e9ca5d6826f650857aebba1f809aa4a8f77383cf7` |
 | Base batch comparison | `ce5f7c78e0e999c051c5ce4f216ed6d2353ef1452838aba294603f581d6e8f95` |
 | Base frozen score | `5598f2d2d1a484d077c875874b8105f004ad9af68149e801bdc58246f81ee62b` |
+| Guided JSONL capture | `2c602391ff2d42ddf8214380d8f1a6fb7650a42e500215fe9deaa84895744040` |
+| Guided batch comparison | `c7af66020d8916240bcef38667a25148762acfcef7a7eff8f698371eaf3894cc` |
+| Guided frozen score | `915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc` |
 | Full Metal regression log | `87a8358ab4cdbfc20041fe64ca9e59f9c100e407108b624fc2ec765a84bc7d98` |
 
 The full `tools/check.sh --mlx` run passes on Mac Studio, including
 421 portable report tests and 18 real-device operator cases. It
 started after the four timing cells completed.
+
+On Mac, run the following for each `cfg` of 0 and 1, changing the output
+filename for each capture. Run the [frozen scorer replay](#scoring-a-complete-batchwise-capture)
+on both captures with `--runtime metal`.
+
+```sh
+target/release/examples/wmt14_corpus_capture artifacts/canonical/wmt14-inference-v1-final \
+  mlx-retry-padded reports/phase4-wmt14-tokenizer-reference-v1.json \
+  "reports/wmt14-metal-combined-$cfg.jsonl" "$cfg" 0 3003 materialize-after=5 decoder-rows=2
+```
 
 ### Guided batch-four allocator screen
 
@@ -1137,7 +1171,7 @@ The raw results are in `guided-checkpoint-screen.k02N6I/` under the
 Mac run directory. The copied summary SHA-256 is
 `74627a1cc7cf55970085294310b34b5b86c53a77a9d7b89f70ef05cb123f5d05`.
 
-For a separate diagnostic, the Rust timing probe accepts
+At commit `f65fb6f`, the Rust timing probe accepts
 `fused-rope-batch8`. The existing width-64 fused RMS normalization
 and rotary kernel normally applies from 16 internal rows. The option
 also uses it at eight internal rows, including guided batch four.
@@ -1147,3 +1181,62 @@ target/release/examples/wmt14_perf artifacts/canonical/wmt14-inference-v1-final 
   reports/phase4-wmt14-tokenizer-reference-v1.json 1 4 2 3 \
   reusable deferred-head drop-logits materialize-after=5 decoder-rows=2 fused-rope-batch8
 ```
+
+The focused Metal build and Clippy passed. Each arm ran in a fresh
+process on three four-row guided ranges. On ranges 0 and 128,
+both arms match the frozen codes and raw IDs. The control rejects
+range 2656 through the existing head guard. The fused arm returns
+two code differences and one raw-ID difference there. Its allocator
+peak is 2,329.41 MiB, up 175.60 MiB from the control. The probe
+failed the output and memory checks, so the option was removed.
+The short screen remains reproducible at `f65fb6f`.
+
+The Mac receipts are in
+`reports/phase4-wmt14-metal-fusion-v1.kfpWb6/`, including the
+three completed small-cell timing runs. The copied receipts are
+in `reports/phase4-wmt14-metal-fusion-linux-v1.CFxqOb/`.
+The fusion screen summary SHA-256 is
+`feabe7542aa8fa935216b8f995968201bac77c029bc6fd4f4f9caa5512f84795`.
+
+The nine process-local allocator and output-lifetime controls
+all matched pinned codes and IDs. The screen covered one-row,
+two-row and full vocabulary projection, the release barrier,
+retained logits, and four cache caps between 0 and 2,048 MiB.
+Every control reported a 2,153.81 MiB Metal peak. End-of-trial
+active memory varied with output lifetime. The short screen's
+copied summary hashes to
+`4f4cf675373d64af225555819a7d809613fdb672ad753fc563dc3a09520b344f`
+under `reports/phase4-wmt14-allocator-policy-linux-v1.HpFRR4/`.
+
+A separate source experiment reconstructed the shared guided
+codes once, then duplicated the resized latent before the two
+transformer branches. In CUDA controls it matched ranges 0, 128
+and the three-row tail. It changed two codes and one raw ID in
+row 2658. The ordinary CUDA path matches that range exactly.
+This ended the candidate before the full corpus and Metal replay.
+The release build and focused Clippy passed. The rejected diff and
+the paired comparison receipts are retained under
+`reports/phase4-wmt14-shared-reconstruction-cuda-v1.rlF4Da/`.
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Rejected experiment diff | `b57fab72927e498e104d4fb0faf46321c8a1f78ad69cb87c9e49219c9a47904d` |
+| Ordinary CUDA range 2656 | `15f85ccadc8cf8d70e808c83c71498dc6a140cfe7f2f96f4eb9a4f953bbdc3d7` |
+| Shared-reconstruction range 2656 | `f82b86f7b0de844791e5c84e4ab643ecb7b0c848b78b890fdd61bdeb349e5c2a` |
+
+The next diagnostic uses `last-transformer-checkpoint=N` to
+evaluate the hidden state after block N of the final generator level.
+Values 1 through 11 are valid. The probe and recorder can combine
+this with the earlier level checkpoint and tiled decoder.
+
+```sh
+target/release/examples/wmt14_perf artifacts/canonical/wmt14-inference-v1-final \
+  reports/phase4-wmt14-tokenizer-reference-v1.json 1 4 2 3 \
+  reusable deferred-head drop-logits materialize-after=5 decoder-rows=2 last-transformer-checkpoint=6
+```
+
+In Linux CUDA controls, checkpoints after blocks 1, 6 and 11
+all match pinned codes and raw IDs on ranges 0 and 2656.
+Feature-enabled release build and Clippy passed, as did the WMT14
+model tests. The CUDA receipts are under
+`reports/phase4-wmt14-transformer-checkpoint-cuda-v1.X4e7px/`.

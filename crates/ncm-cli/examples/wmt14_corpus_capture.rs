@@ -17,6 +17,7 @@ struct CaptureOptions {
     padded_retry: bool,
     deferred_head: bool,
     materialize_after: Option<usize>,
+    last_transformer_checkpoint: Option<usize>,
     decoder_rows: Option<usize>,
 }
 
@@ -39,6 +40,7 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
         padded_retry,
         deferred_head,
         materialize_after,
+        last_transformer_checkpoint,
         decoder_rows,
     } = options;
 
@@ -56,6 +58,11 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     };
     let model = if let Some(level) = materialize_after {
         model.with_level_materialization_experimental(level)?
+    } else {
+        model
+    };
+    let model = if let Some(block) = last_transformer_checkpoint {
+        model.with_last_transformer_checkpoint_experimental(block)?
     } else {
         model
     };
@@ -166,7 +173,7 @@ fn main() -> Result<()> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT [deferred-head] [materialize-after=N] [decoder-rows=N]".into(),
+            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT [deferred-head] [materialize-after=N] [last-transformer-checkpoint=N] [decoder-rows=N]".into(),
         );
     };
     let guided = match scale.as_str() {
@@ -176,10 +183,16 @@ fn main() -> Result<()> {
     };
     let mut deferred_head = false;
     let mut materialize_after: Option<usize> = None;
+    let mut last_transformer_checkpoint: Option<usize> = None;
     let mut decoder_rows: Option<usize> = None;
     for option in extras {
         match option.split_once('=') {
             None if option == "deferred-head" && !deferred_head => deferred_head = true,
+            Some(("last-transformer-checkpoint", value))
+                if last_transformer_checkpoint.is_none() =>
+            {
+                last_transformer_checkpoint = Some(value.parse()?);
+            }
             Some(("materialize-after", value)) if materialize_after.is_none() => {
                 materialize_after = Some(value.parse()?);
             }
@@ -219,6 +232,7 @@ fn main() -> Result<()> {
         output,
         deferred_head,
         materialize_after,
+        last_transformer_checkpoint,
         decoder_rows,
     );
     #[cfg(any(
@@ -230,6 +244,7 @@ fn main() -> Result<()> {
         padded_retry: false,
         deferred_head,
         materialize_after,
+        last_transformer_checkpoint,
         decoder_rows,
     };
     match device.as_str() {

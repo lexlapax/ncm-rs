@@ -131,17 +131,16 @@ Before every commit include an updated
 
 ## Next actions
 
-1. Finish WMT14 on Mac Studio. The Linux CUDA replay reproduces all 6,006
-   frozen outputs with deferred head checking, the level-five checkpoint and
-   two-row decoder tiles. Mac Studio is at `0e99ce4`. The
-   [new Metal teacher trace and three targeted ranges](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#targeted-checks-and-row-632)
-   preserve the frozen raw IDs and the 13 known base row 632 code
-   differences. A common FP64 projection keeps each device's winner
-   on its own captured input. Use the latest performance and corpus
-   receipts before choosing another candidate. The older six-cell timing
-   comparison remains in the [same report](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#repeated-combined-comparison).
-   Preserve retries and code differences in the
-   [full corpus quality replay](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#scoring-a-complete-batchwise-capture).
+1. Finish WMT14 on Mac Studio. The
+   [combined Metal verification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#combined-metal-verification)
+   matches all 6,006 raw-ID rows and passes both frozen scorers. It retains
+   all 13 known intermediate code differences on base row 632 and
+   investigates the captured head inputs. The full Metal regression suite
+   passed 18 device cases. Six of seven paired timing cells pass latency and
+   memory. Guided batch four retains an 11.19 MiB allocator-peak gap.
+   The [allocator screens](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#guided-batch-four-allocator-screen)
+   preserve the negative results. Verify any new execution setting against
+   the exact corpus and both offline scorers before advancing.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the
