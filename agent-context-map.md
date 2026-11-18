@@ -4,7 +4,7 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **WMT14 opt-in CLI:** `sample-wmt14` exposes the uncached teacher with the one-pass CUDA final selector or the native MLX backend. Focused CUDA CLI exact matches cover 12 retained rows per mode, including the earlier CFG trouble ranges. Focused lint, release build and full Linux/CUDA checks passed (18 operator cases). The first Mac CLI check is next. [CUDA candidate](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md).
+- **WMT14 opt-in CLI:** `sample-wmt14` uses the uncached teacher with the one-pass CUDA final selector or native MLX. CUDA exactly matches 12 retained rows per mode. Metal matches all 12 base and 8 of 12 guided rows in the original four-row fixture grouping. The remaining guided batch, starting at 2656, triggers the tied-or-nonfinite head guard. All four rows match when run individually. Full CUDA and Metal suites pass with 18 device cases each. [Ordered CLI evidence](docs/results/2026-11-16-phase4-wmt14/mlx-cli-smoke-v1.md).
 
 - **XSum advancement approved:** the user accepted the exact 15 listed differences in the retained Metal top-1 corpus for advancement to WMT14. The failed comparison stays on record and the scoped decision applies to this capture. [Decision](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md).
 
