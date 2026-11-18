@@ -756,3 +756,63 @@ The complete `summary.json` SHA-256 is
 The six archived Metal timing cells reproduced their prior summaries
 byte for byte. The Linux host suite passed all 530 report tests.
 Its `full-check.log` hashes to `2bc376362f2cd0cc6ffdc2995a6107e48533cac78c936ab7d0fc3a2a840ac728`.
+
+### CUDA async-pool high-water measurements
+
+The CUDA memory probe measured the full projection and two-row tiles
+at guided batch four, base batches 16 and 32, and guided batch 16.
+The three large-batch comparisons also include eight-row tiles.
+Every arm used deferred head validation, three fresh processes,
+three warmups and one measured request per process. The launch order
+rotated across repetitions. All 33 receipts matched the frozen codes
+and raw IDs, and each arm's used peak repeated exactly across its
+three runs.
+
+| Mode and batch | Full used / reserved peak (MiB) | Two-row used / reserved peak (MiB) | Eight-row used / reserved peak (MiB) |
+| --- | ---: | ---: | ---: |
+| Guided 4 | 1,162.23 / 1,216 | 1,104.51 / 1,152 | — |
+| Base 16 | 1,608.49 / 1,824 | 1,196.05 / 1,248 | 1,312.24 / 1,536 |
+| Base 32 | 2,204.01 / 2,624 | 1,379.14 / 1,472 | 1,379.14 / 1,472 |
+| Guided 16 | 1,610.01 / 1,824 | 1,379.14 / 1,440 | 1,379.14 / 1,536 |
+
+The figures are medians of process high-water counters for CUDA's
+default async pool. They include model load and warmups. After
+synchronized output release, live usage is 1,012.97 MiB in all arms.
+At base batch 32, both tile sizes lower peak used memory by
+824.87 MiB and peak reserved memory by 1,152 MiB. Eight-row tiling
+issues four projections there. Two-row tiling issues 16. At
+base batch 16 and guided batch 16, two-row tiling has the lower
+reserved peak. Use the same Metal runner with `--cell 0:32
+--control decoder --decoder-rows 8` to screen eight-row tiles.
+The eight-row latency and Metal peak are still unmeasured.
+
+Build and run the allocator probe from the repository root using the
+same pinned inputs and cuDNN runtime as the timing probe above.
+
+```sh
+setpriv --inh-caps=-all env CUDA_COMPUTE_CAP=86 RUSTC_WRAPPER= \
+  LIBRARY_PATH="$PWD/.reference/phase4-cudnn-probe-lib" \
+  cargo build --locked --release -p ncm-backend-cuda \
+  --features cuda-cudnn,wmt14-experimental --example wmt14_fast_argmax_memory
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 LD_LIBRARY_PATH="$wmt_cudnn" \
+  target/release/examples/wmt14_fast_argmax_memory "$wmt_artifact" "$wmt_prefixes" 32 0 deferred-head
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 LD_LIBRARY_PATH="$wmt_cudnn" \
+  target/release/examples/wmt14_fast_argmax_memory "$wmt_artifact" "$wmt_prefixes" 32 0 deferred-head decoder-rows=8
+```
+
+Read `used_peak` and `reserved_peak` under
+`cuda_pool_after_output_drop` for both arms. The full projection
+also reports counters while holding its device output. Both the
+original invocation without options and the new option validation
+were exercised. Feature-specific Clippy and the CUDA release build
+passed.
+
+The raw results, watched input hashes, exact process order, shell
+runner and summarizer are under
+`reports/phase4-wmt14-tile-cuda-pool-v1.mHFlWE/`. The summary SHA-256
+is `3b9d1d05ff4df8aaf99063ac855b2dcc3e51e0071ea3e87e93da6eaac54e396e`.
+The binary SHA-256 is
+`65d419822342c2939a04996754382bf1abb0d3b276e9b3eddb1588ab7e49cd6c`.
+
+The Linux host suite passed all 530 report tests. The full check log
+hashes to `79592dba2ae63249431e1a87a58352552dc27790b3b1ac7c8d024319eaeb88ad`.

@@ -155,7 +155,10 @@ pushes needed for Mac work via pulls. Before every commit include an updated
    also reproduces all 6,006 CUDA rows. Paired CUDA timing shows
    median costs of 0.46% at base batch 32 and 0.84% at guided batch four.
    The Metal runner can compare tiling against the full projection
-   with a shared Python baseline.
+   with a shared Python baseline. In the [CUDA allocator screen](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cuda-async-pool-high-water-measurements),
+   base batch 32 used the same 1,379 MiB peak with two-row and eight-row
+   tiles, down from 2,204 MiB with the full projection. Screen eight-row
+   tiles as a separate base batch-32 candidate when MLX testing resumes.
    The [row 632 head comparison](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#locating-the-first-base-code-difference)
    captures the first divergent position in the original four-row batch.
    Both CUDA paths select 2602 with a margin near 1e-6. The same probe on
