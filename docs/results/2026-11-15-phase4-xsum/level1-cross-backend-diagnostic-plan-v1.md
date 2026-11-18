@@ -1102,3 +1102,40 @@ and five raw-ID differences at row 4937. Input hashes remained
 Outputs, build logs, and service snapshot are retained on the Mac under
 `reports/phase4-xsum-six-refined-screen-v1`. These bounded screens do not pass
 the exact full-corpus gate; no default, tolerance, oracle or gate changed.
+
+### Public reciprocal-square-root scaling control
+
+A bounded public-API control tests whether the CUDA reciprocal square root of
+positive normal FP32 inputs scales by powers of four. For each `x`, it forms
+`x = m * 2^(2k)` with `m` in `[1, 4)`, evaluates `torch.rsqrt` on both `x` and
+`m` on the same RTX 3060 Ti, and compares the bit pattern of the first result
+with the second scaled by `2^(-k)`. This uses public PyTorch/CUDA operations;
+it does not inspect vendor code or generate an operator lookup table.
+
+The direct public operation reproduces all 518 saved CUDA reciprocal standard
+deviations after the same FP32 epsilon addition. Scaling agrees bit-for-bit on
+those 518 inputs, one million reproducibly sampled positive normal inputs,
+and 1,524 combinations of all normal exponents and six mantissa boundaries.
+The sample used NumPy PCG64 seed 20261117; zero, negative values, subnormals,
+infinities and NaNs were not evaluated. The two complete runs agree
+byte-for-byte. These results do not prove the property for every input, other
+GPU architectures or Metal, and do not resolve the independently sufficient
+GELU discrepancy or the full-model gate.
+
+The diagnostic and outputs are retained in
+`reports/phase4-xsum-rsqrt-scaling-evidence-v1/`. Script SHA-256 is
+`b849ae258e9e181e30be0db05b8c81ccfab96b8ee2b7f84597148a1e40a09ca8`;
+result SHA-256 is
+`5f5bd97d03c2f83673aaf245bd49f228c27446ce01c1e835e7222ec617740636`.
+The script passed Python syntax checking. Reproduce it from the repository
+root with `setpriv --inh-caps=-all env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+.reference/venv/bin/python reports/phase4-xsum-rsqrt-scaling-evidence-v1/ncm-xsum-rsqrt-scaling-v2.py`.
+
+A November 2026 [research preprint](https://arxiv.org/abs/2611.13879) describes
+bit-exact special-function models but states that its full paths incorporate
+operations obtained from disassembly. Its [repository](https://github.com/hzX40000000/SFU-Sim)
+lists a prebuilt model library. Neither its implementation nor its artifacts
+were imported or run: the project restriction on restricted vendor
+implementations remains in force, and a portable, reviewable implementation
+and provenance have not been established. This is not a proposed dependency or
+an acceptance exception.
