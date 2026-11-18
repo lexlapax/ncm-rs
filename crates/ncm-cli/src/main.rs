@@ -288,6 +288,7 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     scale: f64,
+    metal_optimized: bool,
     padded_retry: bool,
 ) -> Result<serde_json::Value> {
     if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
@@ -304,7 +305,12 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
         return Err("invalid WMT14 batch size or prefix length".into());
     }
     let prefixes: Vec<_> = inputs.iter().flatten().copied().collect();
-    let teacher = ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?;
+    let teacher = if metal_optimized {
+        ncm_model::Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
+            .with_deferred_head_check_experimental()
+    } else {
+        ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+    };
     let output = if padded_retry {
         let (output, retried) =
             teacher.generate_top1_with_padded_retry(&prefixes, inputs.len(), scale)?;
@@ -352,6 +358,7 @@ fn dispatch_wmt14(
             inputs,
             scale,
             false,
+            false,
         ),
         #[cfg(all(
             feature = "wmt14-experimental",
@@ -364,6 +371,7 @@ fn dispatch_wmt14(
             artifact,
             inputs,
             scale,
+            true,
             device == "mlx-retry-padded",
         ),
         _ => Err("experimental WMT14 requested device is unavailable in this build".into()),
@@ -428,12 +436,20 @@ fn main_impl() -> Result<()> {
     } else {
         None
     };
-    let artifact =
-        if sample_seed.is_some() || matches!(args[1].as_str(), "sample-xsum" | "sample-wmt14") {
-            Artifact::load_inference(&args[2])?
-        } else {
-            Artifact::load(&args[2])?
-        };
+    let wmt14_metal = cfg!(all(
+        feature = "wmt14-experimental",
+        feature = "mlx",
+        target_os = "macos",
+        target_arch = "aarch64"
+    )) && args[1] == "sample-wmt14"
+        && matches!(args[3].as_str(), "mlx" | "mlx-retry-padded");
+    let artifact = if wmt14_metal {
+        Artifact::load_wmt14_inference_reusable(&args[2])?
+    } else if sample_seed.is_some() || matches!(args[1].as_str(), "sample-xsum" | "sample-wmt14") {
+        Artifact::load_inference(&args[2])?
+    } else {
+        Artifact::load(&args[2])?
+    };
     let input_path = Path::new(&args[4]);
     let file = fs::File::open(input_path)?;
     if !file.metadata()?.is_file() {

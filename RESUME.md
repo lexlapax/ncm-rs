@@ -85,9 +85,12 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   rejected ranges. Full Linux and Metal device checks passed.
   The [Metal teacher-forced comparison](docs/results/2026-11-16-phase4-wmt14/teacher-cuda-reference-v1.md#metal-comparison)
   passes all 26 tensors. The Mac owned loader still peaks near 2,110 MiB.
-  The optional reusable buffer lowers Mac peak RSS by about 458 MiB
-  and adds about 0.65 seconds to model load. The measured peak is
-  still about 7 MiB above the nearby repeated Python baseline.
+  The later reclaimable buffer reduces Mac peak process RSS by about
+  561 MiB compared with the ordinary loader. Model load takes about
+  0.65 seconds longer. Deferred head validation improves generation
+  latency in each retained short cell, while checking both known
+  rejected ranges before decoding. The combined experimental CLI
+  needs its full pinned Metal corpus replay and performance receipts.
 - LM1B-small CUDA's frozen held-out quality comparison fails: the entropy
   confidence interval lower endpoint is -0.007118 versus -0.0046. Its five
   held-out seeds are observed; a rerun is a retest, not fresh held-out data.
@@ -127,10 +130,10 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Complete WMT14 Metal latency and memory qualification. The bounded
-   retry has passing targeted CLI controls and frozen corpus scores
-   from the earlier capture. The experimental Metal timing probe now
-   tests deferring per-level head checks into one check before decoding.
+1. Complete the repeated WMT14 Metal performance comparison and the
+   combined CLI and corpus replay. The earlier bounded retry has
+   passing targeted CLI controls and frozen corpus scores. Keep
+   process RSS and native MLX allocator counters visible separately.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

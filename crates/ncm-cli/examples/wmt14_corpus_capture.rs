@@ -23,8 +23,14 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
 ) -> Result<()> {
     use std::io::{LineWriter, Write};
 
-    let artifact = ncm_io::Artifact::load_inference(artifact)?;
-    let model = ncm_model::Wmt14Teacher::from_artifact(backend.clone(), &artifact)?;
+    let model = if padded_retry {
+        let artifact = ncm_io::Artifact::load_wmt14_inference_reusable(artifact)?;
+        ncm_model::Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
+            .with_deferred_head_check_experimental()
+    } else {
+        let artifact = ncm_io::Artifact::load_inference(artifact)?;
+        ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+    };
     let mut output = LineWriter::new(
         fs::OpenOptions::new()
             .write(true)

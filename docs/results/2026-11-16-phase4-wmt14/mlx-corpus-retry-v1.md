@@ -175,7 +175,17 @@ this copied anonymous scratch on Apple Silicon, trims the whole
 unused pages after the final checked generator reread, and drops the
 remaining pages following upload. Weight files are still read and
 hashed before use. The ordinary owned loader remains available for
-paired comparison. Mac measurements of this implementation are pending.
+paired comparison.
+
+At `fe55e5b`, Mac artifact Clippy and tests passed, including a check
+that trimming preserves bytes and that a subsequent larger read can
+grow the buffer. Across four short paired cells, all retained outputs
+match pinned Python CUDA and native MLX allocation peaks are identical.
+Peak process RSS falls from a range of 2,122–2,123 MiB to 1,561–1,562 MiB.
+The reusable loader is paired against the ordinary loader with one
+warmup and two measured batches per process. The raw evidence is under
+`corpus/owned-loader/phase4-wmt14-mlx-vm-scratch-v1.8Brqq9/`. The summary
+hashes to `01ddaf042cd0a6d7e4ac1a70abdcf49835366222be5eaec8c83db64b20e56aae`.
 
 The allocation controls are retained in the ignored run evidence
 under `corpus/owned-loader/phase4-wmt14-scratch-{shrink,vm}-v1.*`.
@@ -185,8 +195,8 @@ under `corpus/owned-loader/phase4-wmt14-scratch-{shrink,vm}-v1.*`.
 Three alternating fresh processes per runtime each ran five warmups
 and 30 measured generation-and-readback trials. All 24 process outputs
 matched the pinned prefix codes and raw IDs. Native Rust used the owned
-loader. The Python MLX comparison adapted the pinned implementation to
-Metal, and the service stayed running. RSS and MLX peak are separate
+loader. The [Python MLX comparison](../../../tools/reference/wmt14_mlx_reference_bench.py)
+adapted the pinned implementation to Metal. The service stayed running. RSS and MLX peak are separate
 process and allocator measurements. Startup is excluded from trial time.
 
 | CFG | Batch | Median ms Rust / Python | p95 ms Rust / Python | Peak RSS MiB Rust / Python | MLX peak MiB Rust / Python |

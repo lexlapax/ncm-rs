@@ -71,6 +71,8 @@ Supply a JSON array of padded 96-token WMT14 prefixes. The CLI accepts up
 to 32 prefixes at the default scale zero and up to 16 at a positive scale.
 It emits 313 intermediate codes and 64 raw token IDs per row. CUDA uses the
 [one-pass final selector](results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md).
+The experimental Metal CLI uses a reclaimable copied weight buffer
+and checks the complete set of intermediate codes before decoding.
 On Apple Silicon, select `mlx-retry-padded` to opt into one bounded
 retry for batches of one to four prefixes. A tied or nonfinite head
 repeats input rows to eight internally. The same head check runs on
