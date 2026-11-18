@@ -3216,7 +3216,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                 if self.level_seven_diagnostic && level == 7 {
                     trace.tensor("diagnostic.level_07.hidden", &hidden)?;
                 }
-                let logits = b.project_bias(&hidden, &self.head, &self.head_bias[level])?;
+                let logits = b.add(&b.project(&hidden, &self.head)?, &self.head_bias[level])?;
                 trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
                 if codes.is_none() {
                     generated = if device {

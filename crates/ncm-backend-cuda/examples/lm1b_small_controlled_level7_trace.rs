@@ -3,7 +3,7 @@
 mod capture;
 use capture::Captured;
 use ncm_backend_cuda::CandleBackend;
-use ncm_core::{CodecBackend, GeneratorBackend};
+use ncm_core::{CodecBackend, GeneratorBackend, WeightBackend};
 use ncm_io::{Artifact, sha256};
 use ncm_model::Lm1bSmallTeacher;
 use safetensors::{
@@ -85,6 +85,43 @@ fn main() -> Result<(), Box<dyn Error>> {
     let b = &backend;
     let mut captured = Captured::default();
     let result = teacher.sample_seeded_traced(&tokens, input.shape()[0], 11, &mut captured)?;
+    // The shared head projects without bias and adds the level-specific bias
+    // afterward. Check that ordering using the actual captured hidden state.
+    let weights = fs::read(artifact_path.join("generator.safetensors"))?;
+    if sha256(&weights) != "44dd32ca0cbf3b61e961e81f9e19af60ad7e768f900bf687cc409abfea90add2" {
+        return Err("unexpected generator weights".into());
+    }
+    let weights = SafeTensors::deserialize(&weights)?;
+    let upload = |name: &str| -> Result<_, Box<dyn Error>> {
+        let tensor = weights.tensor(name)?;
+        if tensor.dtype() != Dtype::F32 {
+            return Err("unexpected shared head dtype".into());
+        }
+        let values: Vec<_> = tensor
+            .data()
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|bytes| f32::from_le_bytes(*bytes))
+            .collect();
+        Ok(b.upload_f32(&values, tensor.shape())?)
+    };
+    let head = upload("lm_heads.head.weight")?;
+    let bias = upload("lm_heads.biases.7")?;
+    let separate = b.add(
+        &b.project(&captured.tensors["diagnostic.level_07.hidden"], &head)?,
+        &bias,
+    )?;
+    let actual = b.read_f32(&captured.tensors["generator.level_07.logits"])?;
+    let expected = b.read_f32(&separate)?;
+    if actual.len() != expected.len()
+        || actual
+            .iter()
+            .zip(&expected)
+            .any(|(a, b)| a.to_bits() != b.to_bits())
+    {
+        return Err("shared head differs from separate projection and bias".into());
+    }
     if b.read_indices(&result.codes)?
         != b.read_indices(&captured.indices["generator.generated_codes"])?
         || result.ids != b.read_indices(&captured.indices["generator.penalized_ids"])?

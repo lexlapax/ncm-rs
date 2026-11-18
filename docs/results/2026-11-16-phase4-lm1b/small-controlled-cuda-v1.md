@@ -483,3 +483,62 @@ Feature-specific Clippy passed for the isolated candidate. Full regression,
 operator edge-case and device-architecture checks, performance, and Metal
 qualification have not been run for it. No candidate code, model artifact,
 acceptance threshold or quality protocol was changed in the repository.
+
+## Shared-head projection and bias order
+
+The pinned upstream `_SharedHeadView` computes `F.linear(x, weight)` and then
+adds its level-specific bias. The experimental LM1B-small teacher now follows
+that order explicitly, rather than calling a backend operation that may fuse
+the bias into its matrix multiplication. This is a correctness change to the
+experimental path, not evidence that LM1B-small is qualified.
+
+On the retained level-10 seed-16 hidden state, pinned PyTorch's separate
+projection and bias reproduce all 1,769,472 recorded logits exactly. Its
+biased-linear call differs from that separate expression in 634,235 values,
+maximum absolute difference `7.62939453125e-6`. On the same input, the Rust
+CUDA backend also matches all recorded logits with separate operations and
+differs in 634,235 values with its fused operation. This is one same-input
+control, not a universal equivalence claim. The level-seven controlled trace
+example now independently recomputes its captured logits from the actual
+hidden state with separate projection and bias. The changed model passes;
+the prior model fails this check. The changed model also passes all 51
+reference tensors in the existing two-row controlled comparison, with no
+change to its policy (comparison SHA-256
+`236dd8ea992b29aa16293af87b86d33179885818fe4700e5d062170a3c6961bb`).
+
+The old-source baseline reproduced its earlier seed-11 development capture
+byte-for-byte. The changed model generated and scored five already-inspected
+development seeds, each with 256 samples; every pinned scorer cross-check
+matched upstream. Relative to the old intrinsic candidate, 43, 52, 54, 52,
+and 46 code rows changed across the five seeds. The descriptive
+candidate-minus-Python bootstrap intervals were `[-2.825937, 1.938374]`
+perplexity and `[-0.003458, 0.002539]` entropy; these are not held-out results.
+
+On the five already observed quality seeds, all five scorer cross-checks
+matched upstream, but the unchanged entropy interval still **fails**:
+`[-0.007610838, 0.002300165]` versus `[-0.0046, 0.0046]`. The mean and
+perplexity checks pass. The summary repeated byte-for-byte (SHA-256
+`3e947d44a26a3bf80d7a1312dc37d39be082263f9a059fe918a23a9d2b19d4db`);
+these are retests, not fresh held-out samples. The original failed result and
+frozen protocol remain in force.
+
+An alternating baseline-versus-candidate screen used three fresh processes
+per variant and batch, two warmups and eight timed requests per process. The
+candidate-to-baseline median ratios were `1.0066`, `1.0107` and `1.0130` for
+batches 1, 4 and 16 respectively; corresponding p95 ratios were `0.9333`,
+`1.0045` and `1.0073`. The screen measured process high-water RSS, but did
+not monitor other GPU activity or allocator peaks. It is not the full
+performance or memory gate. The old and changed binaries, model source and
+results are identified by hashes in the retained diagnostic evidence under
+`reports/phase4-lm1b-head-order-v1/`.
+
+Focused `ncm-model` tests and LM1B-feature Clippy passed. Full Linux
+`tools/check.sh --cuda` passed, including 524 report tests and 18 real-device
+operator cases. The first full run failed while compiling because temporary
+storage hit a quota; a disposable earlier debug build cache was removed and
+the full suite reran successfully. Logs are retained with the evidence. The
+first attempt to log the expected negative control used a read-only shell
+variable and exited after the control ran; the corrected wrapper verified its
+expected exit and message, and both control logs agree. No Metal check was run
+for this change; the earlier XSum Metal gate precedes further profile
+advancement.
