@@ -119,6 +119,10 @@ Before every commit include an updated
    Resolve the frozen entropy interval failure. The replay reproduced the
    original result byte for byte, with an interval of
    `[-0.007118, 0.002290]` against the frozen `±0.0046` margin.
+   The [fixed-code and precision audit](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#fixed-code-cuda-decode-replay)
+   isolates cross-decoder differences to Python's convolution TF32
+   setting. Both common-decoder intervals remain below the bound.
+   The original precision and scorer receipts remain the acceptance baseline.
 2. Complete the remaining LM1B-small gates before medium and large in the
    approved order. Any new acceptance protocol needs explicit review.
 3. For each changed runtime, run the applicable full checks and reproducible

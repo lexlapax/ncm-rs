@@ -323,6 +323,10 @@ name = "lm1b_small_codec_trace"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
 
 [[example]]
+name = "lm1b_small_fixed_code_decode"
+required-features = ["lm1b-experimental", "cuda-cudnn"]
+
+[[example]]
 name = "lm1b_small_teacher_trace"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
 

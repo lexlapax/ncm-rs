@@ -200,3 +200,103 @@ checking. Reproduce the simulation from the repository root with:
 ```sh
 env PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 .reference/venv/bin/python reports/phase4-lm1b-sizing-evidence-v1/ncm-lm1b-joint-planning-v2.py
 ```
+
+## Fixed-code CUDA decode replay
+
+The replay reads the ten captures and scorer receipts bound by the original
+summary SHA-256. For each capture it checks the initial concepts against the
+runtime's documented CPU draws from the pinned level-zero unigram. All 2,560
+initial concepts match. Each seed has 256 distinct concept rows and 256
+distinct raw-ID rows. Recomputing entropy from raw token counts in FP64
+agrees with the recorded upstream entropy within `8.82e-7` nats per row.
+
+Each decoder receives all 2,560 retained code rows in the original batches
+of eight. The Python path uses the pinned codec and original token-selection
+function. The Rust path uses the candidate's CUDA codec and device FP64
+penalties. Both paths reproduce their own capture's complete raw-ID stream.
+On common inputs, the paths disagree at 393 of 327,680 token positions
+across 188 rows.
+
+The following diagnostic uses the same decoder for both groups of code
+rows. It computes per-seed entropy in FP64 from the replayed raw IDs and applies
+the existing independent-seed resampler.
+The original scorer receipts remain the authority for the quality decision.
+
+| Decoder used for both groups | Rust minus Python entropy (nats) | 95% entropy interval (nats) |
+| --- | ---: | --- |
+| Pinned Python | -0.002113 | [-0.007203, 0.002304] |
+| Rust CUDA | -0.002082 | [-0.007081, 0.002258] |
+
+Both intervals extend below the frozen lower bound of `-0.0046`. The
+largest absolute per-seed entropy change attributable to the decoder is
+`0.000175` nats. The decoder differences therefore cannot account for the
+failed entropy interval on these retained rows.
+
+A score observer records the difference between Python's selected token and
+the Rust token at the first disagreement in each row. The histories match
+through the preceding position. The observer reproduces the original
+Python IDs from those batches. Across all 188 sites the median Python
+score margin is `0.00504`, with nearest-rank p95 `0.01849` and maximum
+`0.04771`.
+
+The archived Python path has cuDNN TF32 enabled and matrix-multiplication
+TF32 disabled. The Rust cuDNN convolution specifies FMA math. A separate
+fixed-code control disables only Python's cuDNN TF32 setting. This
+eliminates all 393 disagreements across the 2,560 rows. The common-decoder
+entropy interval remains `[-0.007081, 0.002258]` in this control. Keep the
+original Python settings and receipts for the frozen quality gate.
+
+Build and run the decoder audit below. Add `--python-cudnn-fp32` and choose
+a fresh output directory for the precision control.
+
+```sh
+lib="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+link="$PWD/.reference/phase4-cudnn-probe-lib"
+setpriv --inh-caps=-all env CUDA_COMPUTE_CAP=86 RUSTC_WRAPPER= \
+  LIBRARY_PATH="$link" LD_LIBRARY_PATH="$lib" \
+  cargo build --locked --release -p ncm-backend-cuda \
+  --features cuda-cudnn,lm1b-experimental --example lm1b_small_fixed_code_decode
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+  PYTHONDONTWRITEBYTECODE=1 LD_LIBRARY_PATH="$lib" \
+  .reference/venv/bin/python tools/reference/lm1b_fixed_code_decode_audit.py \
+  --archive reports/phase4-lm1b-small-heldout-cuda-v1 \
+  --artifact artifacts/canonical/lm1b-small-inference-v1 \
+  --upstream .reference/upstream-ncm --source artifacts/upstream/lm1b-phase4 \
+  --rust-binary target/release/examples/lm1b_small_fixed_code_decode \
+  --output reports/lm1b-fixed-code-replay
+```
+
+The default replay repeats the same code and raw-ID hashes with the score
+observer enabled. Both precision control receipts and the first-disagreement
+margins are under `reports/phase4-lm1b-decode-precision-v1.L6XPFS/`.
+The default and FP32 summaries hash to
+`a8e2341ec1bff9d0ddcc13d318a2f38a7b1a892dd840fbd9b7490961be9a3e6e`
+and `4d5f34d78d25988a3cb9a8005927674282c0fa996b53e966c69414d8e2e13348`.
+Feature-enabled release build and Clippy passed. The Rust probe rejects
+wrong input hashes and invalid row shapes. The standard host suite passed
+all 532 report tests, with log SHA-256
+`eeddd863b5e724e948a1ad0dffba2d7898130212b77ee7eb2aa3c3ec778f350c`.
+
+### Generation with strict Python convolutions
+
+A separate control reruns the five observed Python seeds with only
+`torch.backends.cudnn.allow_tf32` set to `False` before generation.
+The original pinned capture tool, checkpoint, tokenizer and batch
+shape are used through a wrapper. At the original precision, a fresh
+seed-1 capture repeats its archived JSON byte for byte.
+
+Every initial concept agrees between the two precision settings.
+Across the 1,280 rows, strict convolution changes 69,494 later
+concept positions in 1,054 rows and 23,519 raw token IDs in 1,005
+rows. The strict-Python entropy diagnostic compared with archived
+Rust yields a mean difference of `-0.000391` nats and an independent
+95% interval of `[-0.005278, 0.003711]`. This remains below the
+frozen lower bound. The control covers entropy on observed seeds.
+The original FP32-plus-TF32 Python capture path and complete scorer
+receipts remain the baseline for acceptance.
+
+The wrapper, per-seed controls, and summary are under
+`reports/phase4-lm1b-generation-fp32-v1.PBBv9e/`. The wrapper and
+summary SHA-256 values are
+`5a69e6ee9ee35874c034567ce1e881aa2723bba3e2ee06a36311f5fe080b7228`
+and `8a5b05fbabf9f151c2809799238c815be063dbd2b4b25fbaf35a5e0a52633cb6`.
