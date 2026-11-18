@@ -245,8 +245,8 @@ fn sample_xsum_mlx(
     cfg_scale: f64,
     seed: Option<u64>,
 ) -> Result<serde_json::Value> {
-    if cfg_scale != 0.0 {
-        return Err("XSum Metal currently supports only CFG 0".into());
+    if seed.is_some() && cfg_scale != 0.0 {
+        return Err("Seeded XSum Metal generation requires CFG 0".into());
     }
     let prefixes = xsum_prefixes(inputs)?;
     let backend = ncm_backend_mlx::MlxBackend::gpu()?;
@@ -254,7 +254,7 @@ fn sample_xsum_mlx(
     let generated = if let Some(seed) = seed {
         model.sample_seeded_cpu(&prefixes, inputs.len(), seed)?
     } else {
-        model.generate_top1_cpu(&prefixes, inputs.len())?
+        model.generate_top1_cfg_cpu(&prefixes, inputs.len(), cfg_scale)?
     };
     xsum_output(&backend, generated, inputs.len())
 }

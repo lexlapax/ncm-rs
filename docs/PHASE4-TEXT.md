@@ -44,6 +44,20 @@ Read-only repository metadata at the existing checkpoint revision confirms XSum 
 
 The later XSum strict-CUDA implementation now covers the pinned top-1 setting, padded prefixes, output penalties and restricted CFG. Its [tie-enabled full and held-out quality comparisons](results/2026-11-15-phase4-xsum/cuda-reference-ties-v1.md) match all Python output IDs and quality metrics; one intermediate-code disagreement was investigated as a Python head tie. Current-source [repeated performance](results/2026-11-15-phase4-xsum/cuda-reference-tie-repeated-v1.md) favors Rust versus Python in measured latency, peak process RSS and sampled driver GPU memory at batches 1/4/32. Rust was 7–18% slower than in the preceding run, but a same-condition paired control did not reproduce a tie-change slowdown; the earlier cause remains unknown. Experimental stochastic sampling has [controlled-draw differences](results/2026-11-15-phase4-xsum/cuda-stochastic-investigation-v1.md) and unqualified quality. These results do not establish the full XSum or MLX gate.
 
+On Apple Silicon, a CLI built with the `mlx` feature accepts an explicit
+positive CFG scale for experimental XSum top-1 generation:
+
+```sh
+ncm sample-xsum artifacts/canonical/xsum-inference-rope-v2-final mlx prefixes.json 1
+```
+
+The input is a JSON array of 1 to 64 padded 512-token prefixes. The command
+returns one `codes` row and one raw `ids` row per prefix. Metal uses the
+CPU FP64 final selector. Omitting the scale uses zero, the setting of the
+official XSum evaluation. Seeded Metal generation requires scale zero.
+The [retained guidance fixtures](results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md)
+cover scales 0, 1 and 2. The official full-corpus Metal exact gate remains open.
+
 The WMT14 and LM1B checkpoints at the same immutable revision have been fetched to ignored `artifacts/upstream/wmt14-phase4/` and `artifacts/upstream/lm1b-phase4/` and verified against their published SHA-256 values:
 
 | File | Bytes | SHA-256 |

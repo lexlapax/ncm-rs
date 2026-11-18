@@ -4,6 +4,8 @@ Last updated: 2026-11-18 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum Metal CLI guidance:** `sample-xsum` routes explicit positive CFG top-1 requests to the shared CPU-final selector. Seeded Metal generation still requires scale zero. Full Linux/CUDA validation passed (524 report/data tests, 18 operator cases). The official zero-scale gate and pinned fixtures are unchanged. Actual Mac CLI verification is pending. [Diagnostic evidence](docs/results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md).
+
 - **XSum CUDA masked softmax:** full CUDA checks passed (524 report/data tests, 18 operator cases). All 11,334 top-1 and 1,280 previously observed seeded rows match the retained CUDA codes and raw IDs. The repeated top-1 benchmark has about 19% lower median latency than pinned Python at batches 1/4/32, with lower p95, RSS and sampled GPU memory. The paired previous-Rust comparison on the same inputs shows median reductions of 1.70%, 1.76% and 1.62% with identical sampled GPU peaks. [Results](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md#paired-previous-rust-comparison).
 
 - **XSum scale-one Metal diagnostic:** the adapted MLX model matches pinned Python CUDA on eight retained real inputs. A new Rust CPU-final guided top-1 path matches the same trace on real CUDA, alongside device final selection. Full CUDA and Metal validation passed with 18 operator cases each. The native Rust Metal diagnostic matches the eight scale-one rows and the two-row retained traces at scales 0/1/2. It rejects negative and NaN scales. The production CLI and CFG-zero gate are unchanged. [Evidence](docs/results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md).
