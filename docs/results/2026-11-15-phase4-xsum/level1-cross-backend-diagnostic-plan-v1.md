@@ -1060,6 +1060,23 @@ hidden state choose 3690. These are bounded observations, not proof of a
 portable operation or a full-model gate. Input digests were checked before
 and after; scripts are standalone diagnostics and do not alter runtime behavior.
 
+### Correct-rounding control
+
+`tools/reference/xsum_rsqrt_rounding_control.py` checks the captured 518 CUDA
+variance inputs and reference inverse standard deviations, including the
+same FP32 epsilon addition. Computing the mathematical reciprocal square
+root in FP64 and rounding to FP32 differs from CUDA in 48 cases: 22 results
+are one ULP below CUDA, 26 are one ULP above, and 470 agree. Maximum absolute
+difference is `4.76837158203125e-7`. An independent 80-digit decimal square
+root verifies that each FP32 result is strictly closer than either adjacent
+FP32 value. The input digest is checked before and after. Two runs agreed and
+the script passed Python syntax checking.
+
+These are the same 518 captured values, not a representative accuracy survey.
+The control shows that making the Metal inverse correctly rounded alone cannot
+reproduce all these CUDA values; it does not establish whether a complete model
+candidate can meet the exact gate or justify changing it.
+
 ### Six-part combinations: subsequent Metal screens
 
 After explicit approval to pause and restore `dotsetup.rmlx`, the clean Mac
