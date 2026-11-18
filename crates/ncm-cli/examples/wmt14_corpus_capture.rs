@@ -19,6 +19,7 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     rows: &[Vec<u32>],
     first: usize,
     guided: bool,
+    padded_retry: bool,
 ) -> Result<()> {
     use std::io::{LineWriter, Write};
 
@@ -33,32 +34,57 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     let mut failed = 0;
     for (index, batch) in rows.chunks(BATCH).enumerate() {
         let start = first + BATCH * index;
-        let prefixes: Vec<_> = batch.iter().flatten().copied().collect();
-        let generated = if guided {
-            model.generate_cfg_top1(&prefixes, batch.len(), 1.0)
-        } else {
-            model.generate_top1(&prefixes, batch.len())
+        let mut prefixes: Vec<_> = batch.iter().flatten().copied().collect();
+        let generate = |prefixes: &[u32], n| {
+            if guided {
+                model.generate_cfg_top1(prefixes, n, 1.0)
+            } else {
+                model.generate_top1(prefixes, n)
+            }
         };
+        let mut generated = generate(&prefixes, batch.len());
+        let retried = padded_retry
+            && matches!(&generated, Err(ncm_core::Error::Backend(message))
+                if message == "tied or nonfinite WMT14 head maximum is unsupported");
+        let generated_count = if retried { 8 } else { batch.len() };
+        if retried {
+            eprintln!("batch {start}: retrying rejected head with eight internal rows");
+            prefixes.extend(
+                batch
+                    .iter()
+                    .cycle()
+                    .take(8 - batch.len())
+                    .flatten()
+                    .copied(),
+            );
+            generated = generate(&prefixes, generated_count);
+        }
         let record = match generated {
             Ok(generated) => {
                 let codes = backend.read_indices(&generated.codes)?;
                 let ids = backend.read_indices(&generated.ids)?;
-                if codes.len() != batch.len() * 313 || ids.len() != batch.len() * 64 {
+                if codes.len() != generated_count * 313 || ids.len() != generated_count * 64 {
                     return Err("unexpected WMT14 output shape".into());
                 }
                 let codes: Vec<_> = codes
                     .as_chunks::<313>()
                     .0
                     .iter()
+                    .take(batch.len())
                     .map(<[u32; 313]>::as_slice)
                     .collect();
                 let ids: Vec<_> = ids
                     .as_chunks::<64>()
                     .0
                     .iter()
+                    .take(batch.len())
                     .map(<[u32; 64]>::as_slice)
                     .collect();
-                serde_json::json!({"start": start, "count": batch.len(), "codes": codes, "raw_ids": ids})
+                let mut record = serde_json::json!({"start": start, "count": batch.len(), "codes": codes, "raw_ids": ids});
+                if retried {
+                    record["internal_retry_batch"] = serde_json::json!(generated_count);
+                }
+                record
             }
             Err(error) => {
                 failed += 1;
@@ -87,7 +113,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, device, prefixes, output, scale, first, count] = args.as_slice() else {
         return Err(
-            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample PREFIXES OUTPUT 0|1 START COUNT".into(),
+            "usage: wmt14_corpus_capture ARTIFACT cuda|mlx|mlx-upsample|mlx-retry-padded PREFIXES OUTPUT 0|1 START COUNT".into(),
         );
     };
     let guided = match scale.as_str() {
@@ -127,6 +153,7 @@ fn main() -> Result<()> {
             &rows[first..end],
             first,
             guided,
+            false,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx" => capture(
@@ -136,6 +163,7 @@ fn main() -> Result<()> {
             &rows[first..end],
             first,
             guided,
+            false,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx-upsample" => capture(
@@ -145,6 +173,17 @@ fn main() -> Result<()> {
             &rows[first..end],
             first,
             guided,
+            false,
+        ),
+        #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+        "mlx-retry-padded" => capture(
+            ncm_backend_mlx::MlxBackend::gpu()?,
+            artifact,
+            output,
+            &rows[first..end],
+            first,
+            guided,
+            true,
         ),
         _ => Err("requested device is unavailable".into()),
     }
