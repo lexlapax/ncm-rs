@@ -149,8 +149,9 @@ pushes needed for Mac work via pulls. Before every commit include an updated
    measures early release separately from synchronization and cache
    limits, and its Linux replay reproduced all six retained cells.
    The [level-five checkpoint](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#measuring-an-intermediate-evaluation-checkpoint)
-   reproduces all 6,006 frozen CUDA rows. It is ready for a paired Metal
-   screen at base batches 16 and 32 when Apple testing resumes.
+   reproduces all 6,006 frozen CUDA rows. The Metal screen shares one
+   Python baseline across the two Rust settings, saving six launches
+   across base batches 16 and 32.
    The [row 632 head comparison](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#locating-the-first-base-code-difference)
    captures the first divergent position in the original four-row batch.
    Both CUDA paths select 2602 with a margin near 1e-6. The same probe on

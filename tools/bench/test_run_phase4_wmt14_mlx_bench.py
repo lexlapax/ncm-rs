@@ -1,8 +1,12 @@
+import hashlib
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import run_phase4_wmt14_mlx_bench as bench
 from run_phase4_wmt14_mlx_bench import CELLS, checked_output, checked_rss, ordered_runs, summarize
 
 
@@ -14,6 +18,100 @@ class Wmt14MlxBenchTests(unittest.TestCase):
             orders = [[runtime for runtime, _ in runs[i:i + 2]] for i in range(0, len(runs), 2)]
             self.assertEqual(orders[0], orders[2])
             self.assertEqual(orders[0], orders[1][::-1])
+
+    def test_checkpoint_screen_rotates_three_fresh_processes(self):
+        variants = {'rust', 'rust_control', 'python'}
+        for cell in CELLS:
+            runs = list(ordered_runs(cell, with_control=True))
+            self.assertEqual(len({stem for _, stem in runs}), 9)
+            for position in range(3):
+                self.assertEqual({runtime for runtime, _ in runs[position::3]}, variants)
+            for start in range(0, 9, 3):
+                self.assertEqual({runtime for runtime, _ in runs[start:start + 3]}, variants)
+
+        orders = set()
+        for cell in ((0, 16), (0, 32)):
+            runs = list(ordered_runs(cell, with_control=True))
+            orders.update(tuple(runtime for runtime, _ in runs[i:i + 3]) for i in range(0, 9, 3))
+        self.assertEqual(len(orders), 6)
+
+    def test_checkpoint_screen_live_and_replay_validate_both_rust_settings(self):
+        rows = [{'codes': [0] * 313, 'raw_ids': [0] * 64}]
+        settings = {'backend': 'mlx', 'reusable_loader': True, 'deferred_head': True,
+                    'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None}
+
+        def fake_run(command, stem, directory):
+            variant = stem.split('-')[2]
+            checkpoint = variant == 'rust'
+            self.assertEqual('materialize-after=5' in command, checkpoint)
+            row = rows[0]
+            report = {'cfg': 0, 'batch': 1, 'warmups': 5, 'load_seconds': 1,
+                      'trials_seconds': [.03 if checkpoint else .02] * 30,
+                      'mlx_memory': {'active': 2, 'peak': 8, 'cache': 4}}
+            if variant == 'python':
+                report.update({k: [v] for k, v in row.items()}, case_start=0)
+                Path(command[4]).write_text(json.dumps(report))
+            else:
+                report.update(row, **settings, start=0, materialize_after=5 if checkpoint else None)
+                (directory / f'{stem}.stdout').write_text(json.dumps(report))
+            (directory / f'{stem}.meta.json').write_text(json.dumps(
+                {'returncode': 0, 'child_peak_rss_platform_units': 128}))
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reports = root / 'reports'
+            reports.mkdir()
+            reference = reports / 'base.json'
+            reference.write_text(json.dumps({'outputs': rows}))
+            reference_sha = hashlib.sha256(reference.read_bytes()).hexdigest()
+            live = reports / 'live'
+            replay = reports / 'replay'
+            base_args = ['runner', '--cell', '0:1', '--base-reference', str(reference)]
+            with (patch.object(bench, 'ROOT', root), patch.object(bench, 'REFERENCE_SHA256', {0: reference_sha}),
+                  patch.object(bench, 'digest') as digest, patch.object(bench, 'subprocess') as subprocess,
+                  patch.object(bench, 'platform') as platform, patch.dict(bench.os.environ),
+                  patch.object(bench, 'run', side_effect=fake_run) as run,
+                  patch('builtins.print')):
+                digest.side_effect = lambda path: {
+                    bench.PREFIX: '22c76d597ae51dffadf61661d6b7c4d4290fd14b8809bfa6f1959b5c668df93f',
+                    bench.ARTIFACT / 'manifest.json':
+                        '01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81',
+                }.get(path, 'digest')
+                platform.platform.return_value = 'macOS'
+                platform.system.return_value = 'Darwin'
+                platform.machine.return_value = 'arm64'
+                subprocess.check_output.side_effect = lambda command, **_: {
+                    ('git', 'status'): '',
+                    ('git', 'rev-parse'): 'head',
+                }.get(tuple(command[:2]), json.dumps({'core': str(root / 'core')}))
+                with patch.object(sys, 'argv', [*base_args, '--output', str(live),
+                                                '--with-control', '--materialize-after', '5']):
+                    bench.main()
+                self.assertEqual(run.call_count, 9)
+                manifest = json.loads((live / 'manifest.json').read_bytes())
+                self.assertEqual(manifest['status'], 'complete')
+                self.assertFalse(manifest['full_timing_matrix'])
+                self.assertEqual(manifest['rust_settings']['materialize_after'], 5)
+                self.assertIsNone(manifest['rust_control_settings']['materialize_after'])
+                summary = json.loads((live / 'summary.json').read_bytes())['0:1']
+                self.assertTrue(summary['checkpoint_vs_control']['median_not_faster'])
+                self.assertEqual(len(summary['python']['process_measurements']), 3)
+                with patch.object(sys, 'argv', [*base_args, '--output', str(replay), '--replay', str(live)]):
+                    bench.main()
+                self.assertEqual(run.call_count, 9)
+                self.assertEqual((replay / 'summary.json').read_bytes(), (live / 'summary.json').read_bytes())
+
+                for stem in ('0-1-rust_control-1', '0-1-rust_control-2', '0-1-rust_control-3'):
+                    report_path = live / f'{stem}.json'
+                    report = json.loads(report_path.read_bytes())
+                    report['drop_logits'] = False
+                    report_path.write_text(json.dumps(report))
+                wrong = reports / 'wrong'
+                with (patch.object(sys, 'argv', [*base_args, '--output', str(wrong), '--replay', str(live)]),
+                      self.assertRaisesRegex(ValueError, 'differ beyond the requested checkpoint')):
+                    bench.main()
+                self.assertEqual(json.loads((wrong / 'manifest.json').read_bytes())['status'], 'incomplete')
+                self.assertFalse((wrong / 'summary.json').exists())
 
     def test_rejects_mismatch_or_incomplete_trials(self):
         rows = [{'codes': [0] * 313, 'raw_ids': [0] * 64}]

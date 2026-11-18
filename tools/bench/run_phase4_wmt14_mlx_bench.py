@@ -29,10 +29,18 @@ WARMUPS = 5
 TRIALS = 30
 
 
-def ordered_runs(cell):
+def ordered_runs(cell, with_control=False):
     cfg, batch = cell
+    cell_index = CELLS.index(cell)
     for rep in range(1, REPETITIONS + 1):
-        runtimes = ('rust', 'python') if (CELLS.index(cell) + rep) % 2 else ('python', 'rust')
+        if with_control:
+            cycle = ('rust_control', 'rust', 'python')
+            if cell_index % 2:
+                cycle = cycle[::-1]
+            offset = (cell_index + rep - 1) % len(cycle)
+            runtimes = cycle[offset:] + cycle[:offset]
+        else:
+            runtimes = ('rust', 'python') if (cell_index + rep) % 2 else ('python', 'rust')
         for runtime in runtimes:
             yield runtime, f'{cfg}-{batch}-{runtime}-{rep}'
 
@@ -98,6 +106,15 @@ def summarize(records):
     }
 
 
+def compare_metrics(candidate, reference):
+    return {
+        'median_not_faster': candidate['median_ms'] >= reference['median_ms'],
+        'p95_not_faster': candidate['p95_ms'] >= reference['p95_ms'],
+        'rss_not_lower': candidate['median_peak_rss_bytes'] >= reference['median_peak_rss_bytes'],
+        'mlx_peak_higher': candidate['median_mlx_memory']['peak'] > reference['median_mlx_memory']['peak'],
+    }
+
+
 def cell_arg(value):
     if value not in [f'{cfg}:{batch}' for cfg, batch in CELLS]:
         raise argparse.ArgumentTypeError('expected a supported CFG:BATCH cell')
@@ -112,6 +129,8 @@ def main():
     parser.add_argument('--lifetime', choices=('retain', 'drop', 'release'))
     parser.add_argument('--cache-mib', type=int, metavar='0..16384')
     parser.add_argument('--materialize-after', type=int, choices=range(1, 11))
+    parser.add_argument('--with-control', action='store_true',
+                        help='screen the checkpoint and a Rust control against one shared Python baseline')
     for mode in ('base', 'cfg'):
         parser.add_argument(f'--{mode}-reference', type=Path,
                             default=ROOT / f'reports/phase4-wmt14-{mode}-cuda-full-v1/python.json')
@@ -121,9 +140,12 @@ def main():
         parser.error('cache limit must be in 0..16384 MiB')
     if len(set(cells)) != len(cells):
         parser.error('duplicate workload cell')
-    if args.replay and any(option is not None for option in
-                           (args.lifetime, args.cache_mib, args.materialize_after)):
+    if args.replay and (args.with_control or any(option is not None for option in
+                                                (args.lifetime, args.cache_mib, args.materialize_after))):
         parser.error('replay reads existing settings')
+    if args.with_control and args.materialize_after is None:
+        parser.error('--with-control requires --materialize-after')
+    checkpoint_screen_level = args.materialize_after if args.with_control else None
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
         parser.error('output must be a new directory under reports')
@@ -136,6 +158,7 @@ def main():
         references[cfg] = json.loads(payload)['outputs']
     watched = [reference_paths[cfg] for cfg in sorted(references)]
     options = []
+    control_options = []
     packages = None
     system = platform.platform()
     rss_platform = platform.system()
@@ -146,6 +169,10 @@ def main():
             watched.append(original_manifest)
             original = json.loads(original_manifest.read_bytes())
             system, rss_platform = original.get('system', ''), original.get('rss_platform', '')
+            if 'checkpoint_screen_level' in original:
+                checkpoint_screen_level = original['checkpoint_screen_level']
+                if type(checkpoint_screen_level) is not int or checkpoint_screen_level not in range(1, 11):
+                    raise ValueError('invalid checkpoint screen level in the source manifest')
     else:
         if platform.system() != 'Darwin' or platform.machine() != 'arm64':
             raise RuntimeError('new timing runs require Apple Silicon')
@@ -165,6 +192,7 @@ def main():
                     'retain': [], 'release': ['release-outputs']}[args.lifetime]
         if args.cache_mib is not None:
             options.append(f'cache-mib={args.cache_mib}')
+        control_options = options.copy()
         if args.materialize_after is not None:
             options.append(f'materialize-after={args.materialize_after}')
         requested = {'materialize_after': args.materialize_after, 'reusable_loader': True, 'deferred_head': True,
@@ -189,25 +217,40 @@ def main():
     watched += [Path(__file__), ROOT / 'tools/bench/run_process_resources.py']
     before = {str(path): digest(path) for path in watched}
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    out.mkdir()
     manifest = {'git_head': head, 'sha256': before, 'cells': cells, 'replay': bool(args.replay),
                 'rust_options': options, 'warmups': WARMUPS, 'trials': TRIALS,
                 'repetitions': REPETITIONS, 'status': 'incomplete',
                 'system': system, 'rss_platform': rss_platform, 'python_packages': packages,
                 'limitations': ['RSS includes load. Native allocator counters are separate.',
                                 'No exclusive GPU reservation. Python is the MLX adaptation.']}
+    with_control = checkpoint_screen_level is not None
+    if with_control:
+        manifest['checkpoint_screen_level'] = checkpoint_screen_level
+        manifest['rust_control_options'] = control_options
+        manifest['process_order'] = {
+            f'{cfg}:{batch}': [stem for _, stem in ordered_runs((cfg, batch), with_control=True)]
+            for cfg, batch in cells
+        }
+        if args.replay and any(original.get('process_order', {}).get(cell) != order
+                               for cell, order in manifest['process_order'].items()):
+            raise ValueError('invalid checkpoint screen process order in the source manifest')
+    out.mkdir()
     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     source = args.replay.resolve() if args.replay else out
-    settings = None
+    settings = {}
     summary = {}
     for cfg, batch in cells:
         per_runtime = {'rust': [], 'python': []}
-        for runtime, stem in ordered_runs((cfg, batch)):
+        if with_control:
+            per_runtime['rust_control'] = []
+        for variant, stem in ordered_runs((cfg, batch), with_control=with_control):
+            runtime = 'python' if variant == 'python' else 'rust'
             report_path = source / f'{stem}.json'
             if not args.replay:
                 if runtime == 'rust':
+                    variant_options = control_options if variant == 'rust_control' else options
                     command = [str(BINARY), str(ARTIFACT), str(PREFIX), str(cfg), str(batch),
-                               str(WARMUPS), str(TRIALS), *options]
+                               str(WARMUPS), str(TRIALS), *variant_options]
                 else:
                     command = [str(PYTHON), str(ADAPTER), str(ARTIFACT), str(PREFIX), str(report_path),
                                str(cfg), '0', str(batch), str(WARMUPS), str(TRIALS)]
@@ -222,25 +265,27 @@ def main():
                     ('drop_logits', report.get('release_outputs', False)),
                     ('release_outputs', False), ('cache_limit_bytes', None), ('materialize_after', None))}
                 if not args.replay:
-                    if (report.get('backend') != 'mlx' or any(key not in report for key in requested)
-                            or actual != requested):
+                    expected = dict(requested, materialize_after=None) if variant == 'rust_control' else requested
+                    if (report.get('backend') != 'mlx' or any(key not in report for key in expected)
+                            or actual != expected):
                         raise ValueError('Rust execution differs from the requested timing settings')
-                if settings is None:
-                    settings = actual
-                elif settings != actual:
+                if settings.setdefault(variant, actual) != actual:
                     raise ValueError('mixed Rust execution settings')
             record = checked_output(report, runtime, cfg, batch, references[cfg][:batch])
             record['source_sha256'] = hashlib.sha256(data).hexdigest()
             record['peak_rss_bytes'] = checked_rss(source, stem, bool(args.replay), rss_platform)
-            per_runtime[runtime].append(record)
-        pair = {runtime: summarize(records) for runtime, records in per_runtime.items()}
-        rust, python = pair['rust'], pair['python']
-        summary[f'{cfg}:{batch}'] = {
-            **pair, 'median_not_faster': rust['median_ms'] >= python['median_ms'],
-            'p95_not_faster': rust['p95_ms'] >= python['p95_ms'],
-            'rss_not_lower': rust['median_peak_rss_bytes'] >= python['median_peak_rss_bytes'],
-            'mlx_peak_higher': rust['median_mlx_memory']['peak'] > python['median_mlx_memory']['peak'],
-        }
+            per_runtime[variant].append(record)
+        cell = {variant: summarize(records) for variant, records in per_runtime.items()}
+        rust, python = cell['rust'], cell['python']
+        cell.update(compare_metrics(rust, python))
+        if with_control:
+            control = settings['rust_control']
+            if control['materialize_after'] is not None or settings['rust'] != dict(
+                    control, materialize_after=checkpoint_screen_level):
+                raise ValueError('Rust checkpoint and control settings differ beyond the requested checkpoint')
+            cell['control_vs_python'] = compare_metrics(cell['rust_control'], python)
+            cell['checkpoint_vs_control'] = compare_metrics(rust, cell['rust_control'])
+        summary[f'{cfg}:{batch}'] = cell
         (out / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(f'Completed CFG {cfg} batch {batch}', flush=True)
     if before != {str(path): digest(path) for path in watched}:
@@ -249,8 +294,10 @@ def main():
                             or subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no'],
                                                        cwd=ROOT, text=True).strip()):
         raise RuntimeError('tracked source changed during comparison')
-    manifest.update(status='complete', rust_settings=settings,
-                    full_timing_matrix=set(cells) == set(CELLS))
+    manifest.update(status='complete', rust_settings=settings['rust'],
+                    full_timing_matrix=not with_control and set(cells) == set(CELLS))
+    if with_control:
+        manifest['rust_control_settings'] = settings['rust_control']
     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
 
 

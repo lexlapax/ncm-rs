@@ -426,17 +426,36 @@ gives the runtime an opportunity to release preceding intermediates
 before appending the next level. The setting adds synchronization
 and its latency and allocator effects need measurement.
 
-For a paired screen of the two base latency failures, keep logit
-lifetime and cache policy fixed across the runs. This compares the
-default early-release setting with the same setting plus one
-checkpoint after level five.
+Screen the two base latency failures with `--with-control`. The
+runner holds logit lifetime and cache policy fixed, and measures Rust
+with and without the checkpoint against a shared Python baseline. Each
+configuration gets three fresh processes, five warmups and 30 measured
+batches per process. The order rotates so each configuration runs in
+each position once per cell. Across base batches 16 and 32 the runner
+uses all six possible process orders.
 
 ```sh
 .reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
-  --cell 0:16 --cell 0:32 --output reports/wmt14-mlx-tail-control
-.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
-  --cell 0:16 --cell 0:32 --materialize-after 5 --output reports/wmt14-mlx-tail-level-five
+  --cell 0:16 --cell 0:32 --materialize-after 5 --with-control \
+  --output reports/wmt14-mlx-tail-level-five
 ```
+
+The screen uses 18 process launches across the two cells, compared
+with 24 in two separate paired runs. The six Python launches it
+eliminates took 209.81 seconds in the retained Metal runs. Actual
+elapsed savings depend on the new run. The summary compares both
+Rust configurations with Python and the checkpoint with its Rust
+control. Use the ordinary two-configuration schedule with the selected
+Rust settings for the full timing matrix.
+
+On Linux, a fixture exercised the nine-launch schedule, replayed its
+summary byte for byte, and rejected a Rust control with a different
+logit lifetime. All six archived Metal timing cells reproduced their
+prior summaries byte for byte. Full Linux validation passed with
+530 report tests. The log SHA-256 is
+`fd55b3315a4eb6596a1c4f61d44a2f5e0889bac642447e86adef7c26a4ba95b2`. These checks are recorded under
+`reports/phase4-wmt14-shared-mlx-screen-v1.MBYFBQ/`. Fresh shared-baseline
+timing still requires Apple Silicon.
 
 The recorder takes the same option for a corpus comparison with a
 measured configuration. For example, capture the guided corpus
