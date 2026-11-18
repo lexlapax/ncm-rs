@@ -92,3 +92,64 @@ sensitivity alongside the existing failed Python self-control.
 Run with `env PYTHONDONTWRITEBYTECODE=1 .reference/venv/bin/python
 tools/reference/lm1b_reference_split_control.py` from the repository root.
 The result repeated with 252 assignments and nine comparator cross-checks.
+
+## Intrinsic rotary observed-seed retest
+
+After the intrinsic rotary change, the five already observed seeds were
+regenerated with the 1 MiB QKV diagnostic, batch eight, 256 samples per seed,
+and CUDA FP64 penalty. The original Python reference captures and scores were
+reused after verifying their digests against the retained original summary.
+Each new Rust sample was scored against the pinned upstream evaluator, and
+each scorer result matched the upstream functions. These are retests, not
+fresh held-out samples; the original failed comparison is preserved above.
+
+| Seed | Rust perplexity | Rust entropy |
+| ---: | ---: | ---: |
+| 42 | 90.975223 | 4.313827975 |
+| 0 | 93.514066 | 4.313405072 |
+| 1 | 91.916921 | 4.304004038 |
+| 2 | 96.494992 | 4.318152621 |
+| 3 | 94.144525 | 4.309769375 |
+
+The unchanged comparison **fails** its entropy interval: Rust minus Python
+mean is `-0.002871878`, with independent seed-bootstrap 95% interval
+`[-0.007821706, 0.002025763]` against `[-0.0046, 0.0046]`. The entropy
+point check passes. Perplexity mean difference is `-2.462569`, interval
+`[-4.765141, 0.063868]`, and both perplexity checks pass the `5.46` limit.
+The deterministic summary was repeated byte-for-byte (SHA-256
+`b9e1b0c76a21986fde2e61113d1066983f82e865326955823d50e54b74eba99c`).
+This failure does not qualify the CUDA quality gate or change its protocol.
+
+The capture uses the original observed seed guard and generation procedure;
+its explicit diagnostic metadata identifies intrinsic reference-order tables
+instead of the earlier externally supplied table. The retest scorer differs
+from the original only in that identity check and the retest scope label;
+its metric calculations and upstream scorer are unchanged. The comparison
+uses the original `lm1b_quality_compare.py` unchanged and verifies both
+original reference and new Rust identities. New capture binary SHA-256 is
+`c1151689daa307bd08f6dbca646bb56e08bd6640a74ee51e14dc7e53e745358d`;
+scorer and summary source hashes are
+`bc9917f335c05472616fcc11298a4c2410522e4d6978f7c9f226458237c66ae4` and
+`b72d6966992cf4c03334b1aca1f41ae4239b7eb98e3a5750c319033d660b3111`.
+Captures, scores, both summaries, logs and diagnostic sources are retained in
+`reports/phase4-lm1b-intrinsic-rope-v1/lm1b-intrinsic-observed-retest-v1/`.
+The capture seed-guard test and feature-specific Clippy passed; both Python
+tools compile, the three existing comparator tests pass, and missing input
+and altered diagnostic identity were rejected without output. Full performance
+and Metal gates remain separate.
+
+From the repository root, the retained comparison can be reproduced without
+running inference; choose a new output filename under `reports/`:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=tools/reference .reference/venv/bin/python \
+  reports/phase4-lm1b-intrinsic-rope-v1/lm1b-intrinsic-observed-retest-v1/lm1b_intrinsic_retest_summary.py \
+  --directory reports/phase4-lm1b-intrinsic-rope-v1/lm1b-intrinsic-observed-retest-v1 \
+  --output reports/lm1b-intrinsic-observed-retest-reproduced.json \
+  --rust-binary-sha256 c1151689daa307bd08f6dbca646bb56e08bd6640a74ee51e14dc7e53e745358d
+```
+
+The expected exit status is 1 because the recorded metric check fails. The
+first archive replay failed before comparison because the comparator was not
+beside the archived summary script; it was copied unchanged, and the replay
+then reproduced the summary digest above.
