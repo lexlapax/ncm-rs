@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [decoder-rows=N] [cache-mib=N] [allocator-trace] [drop-logits|release-outputs]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [decoder-rows=N] [cache-mib=N] [allocator-trace] [fused-rope-batch8] [drop-logits|release-outputs]".into(),
         );
     };
     let mut reusable = false;
@@ -43,6 +43,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut decoder_rows = None;
     let mut cache_mib = None;
     let mut allocator_trace = false;
+    let mut fused_rope_batch8 = false;
     let mut drop_logits = false;
     let mut release_outputs = false;
     for opt in extras {
@@ -50,6 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "reusable" if !reusable => reusable = true,
             "deferred-head" if !deferred_head => deferred_head = true,
             "allocator-trace" if !allocator_trace => allocator_trace = true,
+            "fused-rope-batch8" if !fused_rope_batch8 => fused_rope_batch8 = true,
             "drop-logits" if !drop_logits && !release_outputs => drop_logits = true,
             "release-outputs" if !drop_logits && !release_outputs => release_outputs = true,
             opt if cache_mib.is_none() && opt.starts_with("cache-mib=") => {
@@ -116,7 +118,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     drop(raw);
     let previous_cache_limit = cache_limit.map(memory::set_cache_limit).transpose()?;
     let load_start = Instant::now();
-    let backend = MlxBackend::gpu()?;
+    let backend = if fused_rope_batch8 {
+        MlxBackend::gpu_wmt14_fused_rope_batch8_experimental()?
+    } else {
+        MlxBackend::gpu()?
+    };
     let model = if reusable {
         let artifact = Artifact::load_wmt14_inference_reusable(artifact)?;
         Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
@@ -206,7 +212,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             "prior_cache_limit_bytes": previous_cache_limit,
             "trial_start_unix_seconds": starts, "trials_seconds": samples, "codes": codes, "raw_ids": ids,
             "mlx_memory": memory,
-            "allocator_boundaries": allocator_boundaries
+            "allocator_boundaries": allocator_boundaries,
+            "fused_rope_batch8": fused_rope_batch8
         }),
     );
     Ok(())

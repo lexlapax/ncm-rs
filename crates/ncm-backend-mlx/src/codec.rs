@@ -90,6 +90,7 @@ pub struct MlxBackend {
     xsum_norm_experimental: bool,
     xsum_upsample_experimental: bool,
     wmt14_upsample_experimental: bool,
+    wmt14_fused_rope_batch8_experimental: bool,
     xsum_groupnorm_experimental: bool,
     xsum_gelu_experimental: bool,
     xsum_compiled_gelu_experimental: bool,
@@ -134,6 +135,7 @@ impl MlxBackend {
             xsum_norm_experimental: false,
             xsum_upsample_experimental: false,
             wmt14_upsample_experimental: false,
+            wmt14_fused_rope_batch8_experimental: false,
             xsum_groupnorm_experimental: false,
             xsum_gelu_experimental: false,
             xsum_compiled_gelu_experimental: false,
@@ -144,6 +146,12 @@ impl MlxBackend {
         // Evaluate a GPU operation now: unavailable Metal must fail, never fall back.
         let one = backend.upload_f32(&[1.], &[1])?;
         backend.evaluate(&[backend.add(&one, &one)?])?;
+        Ok(backend)
+    }
+    /// Screen the existing fused RMS/RoPE kernel at eight or more internal WMT14 rows.
+    pub fn gpu_wmt14_fused_rope_batch8_experimental() -> Result<Self> {
+        let mut backend = Self::gpu()?;
+        backend.wmt14_fused_rope_batch8_experimental = true;
         Ok(backend)
     }
     /// Use nonoverlapping projection layouts for the three WMT14 cascade strides.
@@ -828,7 +836,12 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         sin: &MlxTensor,
         eps: f64,
     ) -> Result<MlxTensor> {
-        if matches!(x.0.shape(), [batch, _, _, 64] if *batch >= 16) {
+        let min_batch = if self.wmt14_fused_rope_batch8_experimental {
+            8
+        } else {
+            16
+        };
+        if matches!(x.0.shape(), [batch, _, _, 64] if *batch >= min_batch) {
             return self.array_op(&[x, weight, cos, sin], || {
                 crate::qk_rope::apply(&x.0, &weight.0, &cos.0, &sin.0, eps)
             });

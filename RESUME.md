@@ -13,7 +13,8 @@ before Metal for each profile. The user asked to optimize the work without
 weakening gates. Do not change pinned upstream, artifacts, schemas, oracle,
 thresholds, or held-out protocol silently. Preserve failed evidence and do not
 claim a phase or runtime gate from a bounded diagnostic. The user authorized
-pushes needed for Mac work via pulls. Before every commit include an updated
+pushes needed for Mac work via pulls and approved both Mac and Linux runs.
+Before every commit include an updated
 `agent-context-map.md`, run appropriate checks, and inspect the staged diff.
 
 ## State at handoff
@@ -130,49 +131,17 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Continue WMT14 locally on Linux as requested. The six retained
-   [Metal timing cells](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#repeated-combined-comparison)
-   match pinned outputs and have lower process RSS. Base batches 16
-   and 32 fail repeated latency, guided batch 4 has higher MLX
-   allocator peak, and guided batch 16 was unfinished when Mac work
-   stopped. The queued Mac corpus replay was canceled. Both fresh
-   Linux CUDA modes match all 3,003 rows and pass both frozen scorer
-   environments. A separate [CUDA timing control](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md#cuda-deferred-head-check-comparison)
-   found no material median benefit from deferring the guard, so the
-   CUDA CLI uses immediate checks. The CLI and recorder release the
-   unused decoder-logit handle before reading codes and IDs. The
-   [full current CUDA replay](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md#full-cuda-replay-with-early-logit-release)
-   reproduced the 6,006 prior rows and both frozen scorer receipts
-   byte-for-byte. The [tracked JSONL verifier](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#replaying-a-batchwise-capture)
-   reproduces the earlier comparisons. The [tracked quality replay](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#scoring-a-complete-batchwise-capture)
-   checks a complete JSONL file, decodes it and runs both frozen scorers.
-   The [paired Metal runner](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#repeating-the-metal-timing-comparison)
-   measures early release separately from synchronization and cache
-   limits, and its Linux replay reproduced all six retained cells.
-   The [level-five checkpoint](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#measuring-an-intermediate-evaluation-checkpoint)
-   reproduces all 6,006 frozen CUDA rows. The Metal screen shares one
-   Python baseline across the two Rust settings, saving six launches
-   across base batches 16 and 32. A [two-row decoder tile](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#tiling-the-decoder-vocabulary-projection)
-   also reproduces all 6,006 CUDA rows. Paired CUDA timing shows
-   median costs of 0.46% at base batch 32 and 0.84% at guided batch four.
-   The Metal runner can compare tiling against the full projection
-   with a shared Python baseline. In the [CUDA allocator screen](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cuda-async-pool-high-water-measurements),
-   base batch 32 used the same 1,379 MiB peak with two-row and eight-row
-   tiles, down from 2,204 MiB with the full projection. A [three-width
-   CUDA comparison](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cuda-tile-width-latency)
-   measured both tiles within 0.15% of each other at median and p95.
-   The Metal runner can compare the tile widths in one screen.
-   The [combined CUDA replay](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#combined-cuda-corpus-replay)
-   verifies deferred head checking, the level-five checkpoint and two-row
-   tiles together on all 6,006 frozen rows, with both scorers passing.
-   The [row 632 head comparison](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#locating-the-first-base-code-difference)
-   captures the first divergent position in the original four-row batch.
-   Both CUDA paths select 2602 with a margin near 1e-6. The same probe on
-   Metal can distinguish a head projection change from upstream drift.
-   The [allocator trace](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#allocator-trace-for-slow-trials)
-   can relate between-trial cache and memory counters to batch-16 latency
-   when Metal testing resumes. Fresh Metal timing and corpus verification
-   remain open.
+1. Finish WMT14 on Mac Studio. The Linux CUDA replay reproduces all 6,006
+   frozen outputs with deferred head checking, the level-five checkpoint and
+   two-row decoder tiles. Mac Studio is at `0e99ce4`. The
+   [new Metal teacher trace and three targeted ranges](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#targeted-checks-and-row-632)
+   preserve the frozen raw IDs and the 13 known base row 632 code
+   differences. A common FP64 projection keeps each device's winner
+   on its own captured input. Use the latest performance and corpus
+   receipts before choosing another candidate. The older six-cell timing
+   comparison remains in the [same report](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#repeated-combined-comparison).
+   Preserve retries and code differences in the
+   [full corpus quality replay](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#scoring-a-complete-batchwise-capture).
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the
