@@ -36,25 +36,31 @@ class Wmt14MlxBenchTests(unittest.TestCase):
         self.assertEqual(len(orders), 6)
 
     def test_screen_live_and_replay_validate_both_rust_settings(self):
-        cases = (('checkpoint', 'materialize_after', 'checkpoint_screen_level', 5, ['--with-control']),
-                 ('decoder', 'decoder_rows', 'decoder_screen_rows', 2, ['--control', 'decoder']))
+        cases = (('checkpoint', 'materialize_after', 'checkpoint_screen_level', 5, None, ['--with-control']),
+                 ('decoder', 'decoder_rows', 'decoder_screen_rows', 2, None, ['--control', 'decoder']),
+                 ('decoder', 'decoder_rows', 'decoder_screen_rows', 8, 2, ['--control', 'decoder']))
         for case in cases:
-            with self.subTest(factor=case[0]):
+            with self.subTest(factor=case[0], control=case[4]):
                 self.check_screen(*case)
 
-    def check_screen(self, factor, field, manifest_key, value, flags):
+    def check_screen(self, factor, field, manifest_key, value, control_value, flags):
         rows = [{'codes': [0] * 313, 'raw_ids': [0] * 64}]
+        decoder_rows = value if factor == 'decoder' else 2
         settings = {'backend': 'mlx', 'reusable_loader': True, 'deferred_head': True,
                     'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None,
-                    'decoder_rows': 2, 'materialize_after': 5}
+                    'decoder_rows': decoder_rows, 'materialize_after': 5}
+        if control_value is not None:
+            flags = [*flags, '--control-decoder-rows', str(control_value)]
 
         def fake_run(command, stem, directory):
             variant = stem.split('-')[2]
             candidate = variant == 'rust'
             self.assertEqual('materialize-after=5' in command,
                              candidate or (variant == 'rust_control' and factor == 'decoder'))
-            self.assertEqual('decoder-rows=2' in command,
-                             candidate or (variant == 'rust_control' and factor == 'checkpoint'))
+            wanted_decoder_rows = decoder_rows if candidate or factor == 'checkpoint' else control_value
+            expected_decoder_args = (
+                [] if variant == 'python' or wanted_decoder_rows is None else [f'decoder-rows={wanted_decoder_rows}'])
+            self.assertEqual([arg for arg in command if arg.startswith('decoder-rows=')], expected_decoder_args)
             row = rows[0]
             report = {'cfg': 0, 'batch': 1, 'warmups': 5, 'load_seconds': 1,
                       'trials_seconds': [.03 if candidate else .02] * 30,
@@ -65,7 +71,7 @@ class Wmt14MlxBenchTests(unittest.TestCase):
             else:
                 report.update(row, **settings, start=0)
                 if variant == 'rust_control':
-                    report[field] = None
+                    report[field] = control_value
                 (directory / f'{stem}.stdout').write_text(json.dumps(report))
             (directory / f'{stem}.meta.json').write_text(json.dumps(
                 {'returncode': 0, 'child_peak_rss_platform_units': 128}))
@@ -98,7 +104,8 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                     ('git', 'rev-parse'): 'head',
                 }.get(tuple(command[:2]), json.dumps({'core': str(root / 'core')}))
                 with patch.object(sys, 'argv', [*base_args, '--output', str(live),
-                                                *flags, '--materialize-after', '5', '--decoder-rows', '2']):
+                                                *flags, '--materialize-after', '5',
+                                                '--decoder-rows', str(decoder_rows)]):
                     bench.main()
                 self.assertEqual(run.call_count, 9)
                 manifest = json.loads((live / 'manifest.json').read_bytes())
@@ -106,7 +113,8 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                 self.assertFalse(manifest['full_timing_matrix'])
                 self.assertEqual(manifest[manifest_key], value)
                 self.assertEqual(manifest['rust_settings'][field], value)
-                self.assertIsNone(manifest['rust_control_settings'][field])
+                self.assertEqual(manifest['rust_control_settings'][field], control_value)
+                self.assertEqual(manifest.get('decoder_control_rows'), control_value)
                 other = 'decoder_rows' if factor == 'checkpoint' else 'materialize_after'
                 self.assertEqual(manifest['rust_settings'][other], manifest['rust_control_settings'][other])
                 summary = json.loads((live / 'summary.json').read_bytes())['0:1']
@@ -116,6 +124,17 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                     bench.main()
                 self.assertEqual(run.call_count, 9)
                 self.assertEqual((replay / 'summary.json').read_bytes(), (live / 'summary.json').read_bytes())
+
+                if control_value is not None:
+                    manifest_path = live / 'manifest.json'
+                    manifest_path.write_text(json.dumps(dict(manifest, decoder_control_rows=value)))
+                    wrong_width = reports / 'wrong-width'
+                    with (patch.object(sys, 'argv', [*base_args, '--output', str(wrong_width),
+                                                     '--replay', str(live)]),
+                          self.assertRaisesRegex(ValueError, 'invalid decoder control tile size')):
+                        bench.main()
+                    self.assertFalse(wrong_width.exists())
+                    manifest_path.write_text(json.dumps(manifest))
 
                 for stem in ('0-1-rust_control-1', '0-1-rust_control-2', '0-1-rust_control-3'):
                     report_path = live / f'{stem}.json'

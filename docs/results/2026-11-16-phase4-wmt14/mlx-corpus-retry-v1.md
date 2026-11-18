@@ -645,6 +645,17 @@ modes. The runner accepts historical checkpoint receipts and
 checks archived two-configuration runs. For tiles, select the
 default output lifetime or `--lifetime release`.
 
+The same nine-launch screen can compare two tile widths directly.
+The manifest binds both widths, and replay checks both arms'
+settings and exact outputs. For base batch 32, compare eight-row
+tiles with a two-row control.
+
+```sh
+.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
+  --cell 0:32 --control decoder --decoder-rows 8 --control-decoder-rows 2 \
+  --output reports/wmt14-mlx-tile-width
+```
+
 The recorder supports the same decoder setting for a full comparison
 with the selected runtime build. The padded retry repeats the same
 input rows on a head rejection and trims the recovered output to the
@@ -784,7 +795,7 @@ issues four projections there. Two-row tiling issues 16. At
 base batch 16 and guided batch 16, two-row tiling has the lower
 reserved peak. Use the same Metal runner with `--cell 0:32
 --control decoder --decoder-rows 8` to screen eight-row tiles.
-The eight-row latency and Metal peak are still unmeasured.
+The [three-width CUDA comparison](#cuda-tile-width-latency) measures eight-row latency. Metal peak and latency still need device measurements.
 
 Build and run the allocator probe from the repository root using the
 same pinned inputs and cuDNN runtime as the timing probe above.
@@ -816,3 +827,41 @@ The binary SHA-256 is
 
 The Linux host suite passed all 530 report tests. The full check log
 hashes to `79592dba2ae63249431e1a87a58352552dc27790b3b1ac7c8d024319eaeb88ad`.
+
+### CUDA tile-width latency
+
+At base batch 32, the same release CUDA probe compared the full
+projection, two-row tiles and eight-row tiles. Every arm used deferred
+head validation, five warmups and 30 measured requests in each of three
+fresh processes. The order rotated across rounds so every arm ran
+first, second and third once. All nine receipts match the exact
+frozen codes and raw IDs. Per-request timing includes host readback
+and excludes model load.
+
+| Projection | Pooled median (ms) | Pooled p95 (ms) | Process medians (ms) |
+| --- | ---: | ---: | --- |
+| Full | 1,211.34 | 1,213.80 | 1,187.07 / 1,211.34 / 1,212.30 |
+| Two rows | 1,215.00 | 1,220.36 | 1,205.10 / 1,215.00 / 1,218.45 |
+| Eight rows | 1,214.86 | 1,218.70 | 1,210.96 / 1,215.20 / 1,216.44 |
+
+Relative to the full projection, two rows added 0.30% at the
+median and 0.54% at p95. Eight rows added 0.29% and 0.40%.
+The eight-row median is 0.01% lower and p95 is 0.14% lower
+than two-row tiling. The differences between tile sizes are small
+relative to the spread in process medians. In the earlier allocator
+screen both widths had identical peak used and reserved CUDA pool memory
+at this batch size. A shared-baseline Metal screen can measure the
+same alternatives under the native allocator.
+
+Reproduce the full and two-row runs using the
+[paired CUDA timing commands](#paired-cuda-timing-control).
+Use `decoder-rows=8` for the third arm. Rotate each arm through all
+three positions and pool 90 measured trials per arm.
+The binary, input hashes, process order, shell runner, and
+frozen-output verifier are under
+`reports/phase4-wmt14-tile-width-cuda-v1.crnFJZ/`. The summary SHA-256
+is `85a40874ec75ded8ca1dffb3e465652669d144d28ad3dc84930865857a9e5b55`.
+
+The six archived Metal cells reproduced prior summaries byte for byte.
+The full Linux suite passed all 530 report tests. Its log hashes
+to `05ac6127c7bac95c5a2feded857953acc5746b4c5cf2f2b0ca47285fd13473c8`.
