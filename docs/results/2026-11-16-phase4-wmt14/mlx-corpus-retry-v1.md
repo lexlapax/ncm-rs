@@ -166,6 +166,20 @@ used longer runs. The same service PID was observed before and after
 the test. Raw evidence is under
 `corpus/owned-loader/phase4-wmt14-mlx-reusable-v1.xGtw9Z/`.
 
+A follow-up used the actual artifact sizes to test scratch release in
+isolation. Three Rust `Vec::shrink_to_fit` trials reduced live RSS by
+about 1.7 MiB with the same pointer. In three anonymous-mapping trials,
+releasing the unused tail lowered live RSS by 91 MiB, and dropping
+the remainder returned to about 1.5 MiB. The device timing probe uses
+this copied anonymous scratch on Apple Silicon, trims the whole
+unused pages after the final checked generator reread, and drops the
+remaining pages following upload. Weight files are still read and
+hashed before use. The ordinary owned loader remains available for
+paired comparison. Mac measurements of this implementation are pending.
+
+The allocation controls are retained in the ignored run evidence
+under `corpus/owned-loader/phase4-wmt14-scratch-{shrink,vm}-v1.*`.
+
 ## Repeated small-batch baseline
 
 Three alternating fresh processes per runtime each ran five warmups
@@ -204,3 +218,39 @@ The ignored evidence under
 `corpus/owned-loader/phase4-wmt14-mlx-simd-head-v1.KX8PET/`
 includes the unchanged service snapshots, compiler logs, test log
 and timing samples.
+
+## Deferred head validation screen
+
+At `0ac559b`, the explicit Metal probe uses the same unique-maximum
+selector. It accumulates the raw results and checks all sentinel
+codes once before decoding. Until then, bounded embedding lookups
+clamp invalid indices for safe intermediate evaluation, leaving the
+original codes available for the final check. Both known rejected
+ranges still fail with the same error and produce no output.
+
+Three alternating fresh processes per setting each ran three warmups
+and 12 timed trials. All 24 process outputs matched the pinned codes
+and raw IDs. The owned loader was used in both settings.
+
+| CFG | Batch | Median ms immediate / deferred | p95 ms immediate / deferred | Peak RSS MiB immediate / deferred |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 1 | 146.99 / 95.85 | 189.81 / 96.59 | 2122.58 / 2134.11 |
+| 0 | 4 | 228.27 / 216.01 | 238.85 / 221.32 | 2123.73 / 2135.38 |
+| 1 | 1 | 201.21 / 137.56 | 241.83 / 138.84 | 2123.16 / 2134.84 |
+| 1 | 4 | 371.77 / 354.57 | 377.11 / 358.51 | 2124.86 / 2136.28 |
+
+MLX peak allocation was unchanged in each pair. The native service
+PID stayed the same. The short screen compares two Rust variants
+and does not complete the repeated Python comparison. The ignored
+receipts and compiler logs are under
+`corpus/owned-loader/phase4-wmt14-mlx-deferred-head-v1.dTSmQ0/`.
+
+A wider short screen used two fresh processes per setting, two warmups
+and six measured trials. All 12 process outputs matched pinned Python
+CUDA. Deferred validation reduced pooled medians from 479.39 to
+472.83 ms at base batch 16, 858.89 to 831.70 ms at base batch 32, and
+847.47 to 840.82 ms at guided batch 16. MLX peak changed by +22.44,
+-29.06 and +29.45 MiB, respectively. The measurement uses the owned
+loader. The retained summary under
+`corpus/owned-loader/phase4-wmt14-mlx-deferred-head-large-v1.5Ol4Vj/`
+hashes to `090d66892f28353159b85afd96744b192549ec6bd28fe07dc28ccf360b1a2a2b`.

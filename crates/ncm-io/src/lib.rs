@@ -1,7 +1,9 @@
 //! Bounded copied loading for the Phase 1 Sudoku inspection bundle.
 //!
 //! Verifies integrity relative to a manifest, not authenticity of that manifest.
-//! No pickle execution, mmap, model construction, or implicit downloads.
+//! No pickle execution, artifact file mapping, model construction, or implicit downloads.
+
+mod wmt14_scratch;
 
 use safetensors::{Dtype, SafeTensors};
 use serde::{Deserialize, Serialize};
@@ -303,7 +305,13 @@ fn validate_training_stream(
 pub struct Artifact {
     manifest: Manifest,
     payloads: BTreeMap<String, Vec<u8>>,
-    reusable_wmt14_root: Option<PathBuf>,
+    reusable_wmt14: Option<ReusableWmt14>,
+}
+
+struct ReusableWmt14 {
+    root: PathBuf,
+    name: &'static str,
+    data: wmt14_scratch::Scratch,
 }
 
 fn verify_payload(name: &str, bytes: &[u8], record: &FileRecord) -> Result<()> {
@@ -442,30 +450,28 @@ impl Artifact {
             }
         }
         let mut payloads = BTreeMap::new();
-        if reusable {
+        let reusable_wmt14 = if reusable {
             let codec = &manifest.files["codec.safetensors"];
             let generator = &manifest.files["generator.safetensors"];
             let capacity = usize::try_from(codec.bytes.max(generator.bytes) + 1)
                 .map_err(|_| invalid("bundle capacity overflow"))?;
-            let mut bytes = Vec::new();
-            bytes
-                .try_reserve_exact(capacity)
-                .map_err(|_| invalid("bundle allocation failed"))?;
-            bounded_read_into(&root.join("codec.safetensors"), codec.bytes, &mut bytes)?;
-            verify_payload("codec.safetensors", &bytes, codec)?;
-            verify_bundle(
-                "codec.safetensors",
-                &bytes,
-                &manifest.tensors["codec.safetensors"],
-            )?;
-            bounded_read_into(
-                &root.join("generator.safetensors"),
-                generator.bytes,
-                &mut bytes,
-            )?;
-            verify_payload("generator.safetensors", &bytes, generator)?;
-            payloads.insert("generator.safetensors".to_owned(), bytes);
-        }
+            let mut data = wmt14_scratch::Scratch::new(capacity)?;
+            for (name, file) in [
+                ("codec.safetensors", codec),
+                ("generator.safetensors", generator),
+            ] {
+                data.read(&root.join(name), file.bytes)?;
+                verify_payload(name, data.bytes(), file)?;
+                verify_bundle(name, data.bytes(), &manifest.tensors[name])?;
+            }
+            Some(ReusableWmt14 {
+                root: root.clone(),
+                name: "generator.safetensors",
+                data,
+            })
+        } else {
+            None
+        };
         for (name, record) in &manifest.files {
             if inference && name == "training.safetensors" {
                 validate_training_stream(&root.join(name), record, &manifest.tensors[name])?;
@@ -480,7 +486,11 @@ impl Artifact {
         }
         for (bundle, entries) in &manifest.tensors {
             if (inference && bundle == "training.safetensors")
-                || (reusable && bundle == "codec.safetensors")
+                || (reusable
+                    && matches!(
+                        bundle.as_str(),
+                        "codec.safetensors" | "generator.safetensors"
+                    ))
             {
                 continue;
             }
@@ -489,30 +499,31 @@ impl Artifact {
         Ok(Self {
             manifest,
             payloads,
-            reusable_wmt14_root: reusable.then_some(root),
+            reusable_wmt14,
         })
     }
 
     /// Replace the current checked WMT14 weight bundle with the other one.
     /// A file change or failed read consumes the incomplete view and returns an error.
     pub fn with_wmt14_bundle(mut self, name: &str) -> Result<Self> {
-        let root = self
-            .reusable_wmt14_root
-            .as_ref()
+        let scratch = self
+            .reusable_wmt14
+            .as_mut()
             .ok_or_else(|| invalid("not a reusable WMT14 artifact"))?;
-        let old = match name {
-            "codec.safetensors" => "generator.safetensors",
-            "generator.safetensors" => "codec.safetensors",
+        let next = match name {
+            "codec.safetensors" if scratch.name == "generator.safetensors" => "codec.safetensors",
+            "generator.safetensors" if scratch.name == "codec.safetensors" => {
+                "generator.safetensors"
+            }
             _ => return Err(invalid("unexpected WMT14 bundle")),
         };
-        let mut bytes = self
-            .payloads
-            .remove(old)
-            .ok_or_else(|| invalid("previous WMT14 bundle is missing"))?;
-        let record = &self.manifest.files[name];
-        bounded_read_into(&root.join(name), record.bytes, &mut bytes)?;
-        verify_payload(name, &bytes, record)?;
-        self.payloads.insert(name.to_owned(), bytes);
+        let record = &self.manifest.files[next];
+        scratch.data.read(&scratch.root.join(next), record.bytes)?;
+        verify_payload(next, scratch.data.bytes(), record)?;
+        if next == "generator.safetensors" {
+            scratch.data.trim()?;
+        }
+        scratch.name = next;
         Ok(self)
     }
 
@@ -521,6 +532,14 @@ impl Artifact {
     }
     /// Release a validated payload when no longer needed; subsequent access fails.
     pub fn release_file(&mut self, name: &str) -> Result<()> {
+        if self
+            .reusable_wmt14
+            .as_ref()
+            .is_some_and(|scratch| scratch.name == name)
+        {
+            self.reusable_wmt14 = None;
+            return Ok(());
+        }
         self.payloads
             .remove(name)
             .map(drop)
@@ -528,6 +547,13 @@ impl Artifact {
     }
     /// Return validated owned backing storage, suitable for a copied backend loader.
     pub fn file(&self, name: &str) -> Result<&[u8]> {
+        if let Some(scratch) = self
+            .reusable_wmt14
+            .as_ref()
+            .filter(|scratch| scratch.name == name)
+        {
+            return Ok(scratch.data.bytes());
+        }
         self.payloads
             .get(name)
             .map(Vec::as_slice)
