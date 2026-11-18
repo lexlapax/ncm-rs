@@ -127,6 +127,12 @@ Before every commit include an updated
    matches the original Python fixed-code outputs exactly. Its five
    observed-seed retest passes perplexity and still misses the entropy
    lower bound with `[-0.005636, 0.001367]`.
+   The [controlled precision comparison](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#controlled-generation-at-evaluator-convolution-precision)
+   moves the first differing code to level 5 and traces the first latent
+   difference to level-zero residual convolution. The legacy cuDNN API
+   reproduces Rust on the same input. The pinned evaluator uses the graph
+   API. Compare that residual convolution with a bounded graph-API probe
+   before changing runtime behavior.
 2. Complete the remaining LM1B-small gates before medium and large in the
    approved order. Any new acceptance protocol needs explicit review.
 3. For each changed runtime, run the applicable full checks and reproducible

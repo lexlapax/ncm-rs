@@ -73,6 +73,8 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--prefixes', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--upstream-convolution-precision', action='store_true',
+                        help='use the pinned evaluator CUDA convolution settings in this controlled trace')
     args = parser.parse_args()
     out = args.output.resolve()
     if args.output.is_symlink() or out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
@@ -80,6 +82,9 @@ def main():
     if any(os.environ.get(k) for k in ('LD_PRELOAD', 'LD_AUDIT', 'CUDA_VISIBLE_DEVICES',
                                       'CUDA_LAUNCH_BLOCKING', 'CUBLAS_WORKSPACE_CONFIG', 'NVIDIA_TF32_OVERRIDE')):
         raise ValueError('unsupported environment override')
+    cudnn_api_override = os.environ.get('TORCH_CUDNN_V8_API_DISABLED', '0')
+    if cudnn_api_override not in ('0', '1') or (cudnn_api_override == '1' and not args.upstream_convolution_precision):
+        raise ValueError('legacy cuDNN API is supported only as an evaluator-precision control')
     if torch.__version__.split('+')[0] != '2.15.0' or not torch.cuda.is_available() or torch.cuda.device_count() != 1:
         raise ValueError('pinned Torch and exactly one CUDA device required')
     upstream = args.upstream.resolve()
@@ -116,9 +121,9 @@ def main():
     torch.set_num_threads(1)
     torch.manual_seed(42)
     torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = args.upstream_convolution_precision
     torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.deterministic = not args.upstream_convolution_precision
     cfg = OmegaConf.create(yaml.safe_load((args.source / 'small/config.yaml').read_bytes()))
     if cfg.task != 'lm1b-small':
         raise ValueError('unexpected task')
@@ -198,6 +203,9 @@ def main():
               'gpu_identity_and_driver': gpu[0], 'gpu_name': torch.cuda.get_device_name(0),
               'tf32': False, 'sdpa': 'math', 'code_reference_sha256': PREFIX_SHA,
               'trace_sha256': digest_file(out / 'trace.safetensors'), 'tensors': sorted(traces)}
+    if args.upstream_convolution_precision:
+        report['cudnn_convolution'] = {'allow_tf32': True, 'benchmark': False, 'deterministic': False,
+                                       'legacy_api_requested': cudnn_api_override == '1'}
     json_file(out / 'report.json', report)
     print(json.dumps({'tensors': len(traces), 'trace_sha256': report['trace_sha256'],
                       'report_sha256': digest_file(out / 'report.json')}, sort_keys=True))

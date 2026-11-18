@@ -676,3 +676,103 @@ the timing result SHA-256 is
 The first timing launch could not access the sandboxed GPU; the first scoring
 launch omitted the existing tokenizer dependency path. Both failures and the
 corrected runs are retained. The prototype remains outside production.
+
+## Controlled generation at evaluator convolution precision
+
+The two-row CUDA development trace uses the same prefixes, seed 11,
+SplitMix64 draws, FP32 matmul and math SDPA as the strict control. The
+optional Python capture selects the evaluator's convolution settings
+(TF32 enabled, deterministic convolution disabled, benchmarking disabled).
+The Rust comparison uses the explicit cuDNN default-math backend. Strict
+and default-math Rust both use the pinned rotary tables and reference-order
+QKV. The comparison uses the existing numerical bands and scores the
+same 51 tensors.
+
+| Python convolution | Rust CUDA convolution | Tensors outside policy | First differing code |
+| --- | --- | ---: | --- |
+| Strict | Strict | 0 | All match |
+| Evaluator | Default math | 33 | Level 5, row 1, position 27 |
+| Evaluator | Strict | 48 | Level 2, row 0, position 10 |
+| Strict | Default math | 48 | Level 2, row 0, position 10 |
+
+The Python strict and evaluator traces also differ on 48 tensors, with four
+changed codes at level 2. Row and position indices are zero-based. When both
+runtimes allow convolution TF32, the code histories agree through level 4.
+The level-5 head remains within the existing band with all argmaxes equal.
+The disputed uniform is `0.010848570498637855`. The cumulative probability
+through index 280 is `0.010848581828234794` in Python and
+`0.010848533593788423` in Rust, so the same uniform selects 280 and 281.
+
+The pinned Python post-upsampling convolution exactly reproduces its own
+captured output. On the Rust latent at level 5, the Python convolution
+output is within `5.73e-6` of Rust and differs from the original Python
+output by up to `2.93e-4`. Feeding this recomputed convolution and the Rust
+latent through the pinned Python transformer still selects 281. The
+Python latent and Python convolution exactly reproduce the original head
+and select 280.
+
+The isolated codec capture locates the first difference before sampling.
+The level-zero embedding and learned transposed convolution are exact in
+both modes. Under strict math the residual convolution is also exact.
+With evaluator precision, the residual convolution differs at 86,638 of
+98,304 values on identical input, with a maximum difference of
+`1.8310546875e-4`. This produces a maximum difference of
+`9.1552734375e-5` in the initial reconstruction. On the same Rust input,
+PyTorch area pooling reproduces Rust at levels 1, 2, 4 and 5 exactly. The
+level-3 maximum difference is `2.9802322387695312e-8`.
+
+A separate legacy-API control reproduced all 98,304 Rust residual
+convolution values on the same input. Public cuDNN API logs show PyTorch's
+evaluator mode calling `cudnnBackendExecute`, while the legacy control
+calls `cudnnConvolutionForward`. In the full legacy-API trace, all sampled
+codes match Rust, with 17 tensors still outside the existing comparison
+policy. The evaluator uses the graph API. The legacy control is recorded
+in the capture receipt and is rejected as an evaluator reference by the
+comparison command.
+
+Run from the repository root with the pinned reference environment and
+native cuDNN library paths used for the earlier CUDA checks. Use a new
+report directory for each run.
+
+```sh
+run=$(mktemp -d reports/phase4-lm1b-controlled-precision-v1.XXXXXX)
+reference=reports/phase4-lm1b-small-controlled-cuda-reference-v1
+artifact=artifacts/canonical/lm1b-small-inference-v1
+export OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false PYTHONDONTWRITEBYTECODE=1
+.reference/venv/bin/python tools/reference/lm1b_small_controlled_trace.py \
+  --upstream .reference/upstream-ncm --source artifacts/upstream/lm1b-phase4 \
+  --prefixes reports/phase4-lm1b-small-cuda-development-v1.json \
+  --output "$run/python-default" --upstream-convolution-precision
+cargo build --locked --release -p ncm-backend-cuda \
+  --features cuda-cudnn,lm1b-experimental --example lm1b_small_controlled_level7_trace
+export NCM_LM1B_QKV_DIAGNOSTIC=1
+export NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC="$PWD/reports/phase4-lm1b-level7-replay-v1/reference-rope-tables.safetensors"
+trace=target/release/examples/lm1b_small_controlled_level7_trace
+"$trace" "$artifact" "$reference" "$run/rust-strict"
+"$trace" "$artifact" "$reference" "$run/rust-default" cudnn-default-math
+.reference/venv/bin/python tools/reference/lm1b_controlled_precision_compare.py \
+  "$reference/trace.safetensors" "$run/python-default" \
+  "$run/rust-strict/traces.safetensors" "$run/rust-default/traces.safetensors" \
+  "$run/comparison.json"
+```
+
+The final Rust strict and default-math trace SHA-256 values are
+`f2773867eacc0b1afbfe0a45af1d7b67d65bee6555640cf3a7f58a40d098760a`
+and `c680003fc8e1a2b82fc42cfa1dc8e740118df89597017fd95a2281da833d1f26`.
+The Python evaluator trace SHA-256 is
+`91240d007b39132a195400b6952b620f40e620af89da6ba80aef343a2737aea5`.
+The evaluator-precision receipt SHA-256 is
+`2417a8e885fe590b4b5f2719fb505c523d205d4db55300b3afcf9718bfe9789a`.
+The comparison summary repeats byte for byte at
+`a191c5e8fbb6bfd83773f9895bfe5b5a77ed2efd36101e22b60aa677bf2d879f`.
+Raw captures, API logs and the isolated replay scripts are retained under
+`reports/phase4-lm1b-controlled-precision-v1.Sk0iDB/`. The
+`initial-codec-replay.json` SHA-256 is
+`0f859fee0d8ed56c593cf1ea0ea1c0719dfce9e090cfeb2b83604ec8971ca9a4`.
+The `level5-continuation.json` SHA-256 is
+`ee182e4966152e8e0d3a90dd04fc33c436ed3c9017fcb4fe5147dbe329661313`.
+The Linux host suite passed all 532 report tests. The actual CUDA example
+passed release build, Clippy and repeated device captures. The pinned
+strict Python tensors and both Rust captures repeated byte for byte.
+These are development diagnostics. The frozen held-out entropy result
+remains outside its acceptance interval.

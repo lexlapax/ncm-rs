@@ -27,12 +27,17 @@ fn indices(t: TensorView<'_>) -> Result<Vec<u32>, Box<dyn Error>> {
 fn main() -> Result<(), Box<dyn Error>> {
     assert_eq!(capture::tolerance("decode.logits"), (5e-4, 2e-4));
     let args: Vec<_> = std::env::args().collect();
-    if args.len() != 4 {
-        return Err("usage: lm1b_small_controlled_level7_trace ARTIFACT REFERENCE OUTPUT".into());
-    }
-    let artifact_path = Path::new(&args[1]);
-    let reference = Path::new(&args[2]);
-    let output = Path::new(&args[3]);
+    let [_, artifact, reference, output, options @ ..] = args.as_slice() else {
+        return Err("usage: lm1b_small_controlled_level7_trace ARTIFACT REFERENCE OUTPUT [cudnn-default-math]".into());
+    };
+    let use_default_math = match options {
+        [] => false,
+        [option] if option == "cudnn-default-math" => true,
+        _ => return Err("invalid LM1B trace option".into()),
+    };
+    let artifact_path = Path::new(artifact);
+    let reference = Path::new(reference);
+    let output = Path::new(output);
     if output.exists() {
         return Err("output must not exist".into());
     }
@@ -54,7 +59,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = reference_tensors.tensor("generator.prefix_ids")?;
     let tokens = indices(input.clone())?;
     let artifact = Artifact::load_inference(artifact_path)?;
-    let backend = if std::env::var_os("NCM_LM1B_QKV_DIAGNOSTIC").is_some() {
+    let backend = if use_default_math {
+        CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
+    } else if std::env::var_os("NCM_LM1B_QKV_DIAGNOSTIC").is_some() {
         CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
     } else {
         CandleBackend::cuda_cudnn(0)?.xsum_reference_backend()?
@@ -87,27 +94,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let result = teacher.sample_seeded_traced(&tokens, input.shape()[0], 11, &mut captured)?;
     // The shared head projects without bias and adds the level-specific bias
     // afterward. Check that ordering using the actual captured hidden state.
-    let weights = fs::read(artifact_path.join("generator.safetensors"))?;
-    if sha256(&weights) != "44dd32ca0cbf3b61e961e81f9e19af60ad7e768f900bf687cc409abfea90add2" {
+    let weights = artifact.file("generator.safetensors")?;
+    if sha256(weights) != "44dd32ca0cbf3b61e961e81f9e19af60ad7e768f900bf687cc409abfea90add2" {
         return Err("unexpected generator weights".into());
     }
-    let weights = SafeTensors::deserialize(&weights)?;
-    let upload = |name: &str| -> Result<_, Box<dyn Error>> {
-        let tensor = weights.tensor(name)?;
-        if tensor.dtype() != Dtype::F32 {
-            return Err("unexpected shared head dtype".into());
-        }
-        let values: Vec<_> = tensor
-            .data()
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .map(|bytes| f32::from_le_bytes(*bytes))
-            .collect();
-        Ok(b.upload_f32(&values, tensor.shape())?)
-    };
-    let head = upload("lm_heads.head.weight")?;
-    let bias = upload("lm_heads.biases.7")?;
+    let weights = SafeTensors::deserialize(weights)?;
+    let head = upload_weight(b, &weights, "lm_heads.head.weight")?;
+    let bias = upload_weight(b, &weights, "lm_heads.biases.7")?;
     let separate = b.add(
         &b.project(&captured.tensors["diagnostic.level_07.hidden"], &head)?,
         &bias,
@@ -134,6 +127,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     {
         return Err("untraced sample differs from trace".into());
     }
+    let codec_stages = initial_codec_stages(b, artifact.file("codec.safetensors")?, &captured)?;
     let mut all = BTreeMap::new();
     for (name, tensor) in captured.tensors {
         let values = b.read_f32(&tensor)?;
@@ -174,10 +168,95 @@ fn main() -> Result<(), Box<dyn Error>> {
     let serialized = serialize(views, None)?;
     fs::create_dir_all(output)?;
     fs::write(output.join("traces.safetensors"), &serialized)?;
+    fs::write(output.join("initial-codec.safetensors"), codec_stages)?;
     println!(
         "{} tensors, sha256 {}; experimental capture only",
         all.len(),
         sha256(&serialized)
     );
     Ok(())
+}
+
+fn initial_codec_stages(
+    backend: &CandleBackend,
+    weights: &[u8],
+    captured: &Captured<CandleBackend>,
+) -> Result<Vec<u8>, Box<dyn Error>> {
+    let weights = SafeTensors::deserialize(weights)?;
+    let upload = |name| upload_weight(backend, &weights, name);
+    let codes = backend.read_indices(&captured.indices["generator.generated_codes"])?;
+    let shape = backend.indices_shape(&captured.indices["generator.generated_codes"]);
+    if shape != [2, 641] || codes.len() != 2 * 641 {
+        return Err("unexpected controlled code geometry".into());
+    }
+    let ids = backend.upload_indices(&[codes[0], codes[641]], &[2, 1])?;
+    let embedding = backend.embedding(&upload("vq.embeddings.0.weight")?, &ids)?;
+    let up = backend.conv1d(
+        &embedding,
+        &upload("vq.learned_up_l1.weight")?,
+        &upload("vq.learned_up_l1.bias")?,
+        128,
+        0,
+        true,
+    )?;
+    let conv = backend.conv1d(
+        &up,
+        &upload("vq.quant_resi.0.weight")?,
+        &upload("vq.quant_resi.0.bias")?,
+        1,
+        1,
+        false,
+    )?;
+    let refined = backend.add(&backend.scale(&up, 0.5)?, &backend.scale(&conv, 0.5)?)?;
+    if backend.read_f32(&refined)?
+        != backend.read_f32(&captured.tensors["reconstruction.level_00"])?
+    {
+        return Err("isolated codec differs from level-zero reconstruction".into());
+    }
+    let stages = [
+        ("embedding", embedding),
+        ("upsample", up),
+        ("refinement_convolution", conv),
+        ("refined", refined),
+    ];
+    let bytes = stages
+        .iter()
+        .map(|(_, tensor)| {
+            Ok(backend
+                .read_f32(tensor)?
+                .into_iter()
+                .flat_map(f32::to_le_bytes)
+                .collect::<Vec<_>>())
+        })
+        .collect::<ncm_core::Result<Vec<_>>>()?;
+    let views = stages
+        .iter()
+        .zip(&bytes)
+        .map(|((name, tensor), bytes)| {
+            Ok((
+                *name,
+                TensorView::new(Dtype::F32, backend.shape(tensor), bytes)?,
+            ))
+        })
+        .collect::<Result<Vec<_>, safetensors::SafeTensorError>>()?;
+    Ok(serialize(views, None)?)
+}
+
+fn upload_weight(
+    backend: &CandleBackend,
+    weights: &SafeTensors<'_>,
+    name: &str,
+) -> Result<<CandleBackend as WeightBackend>::Tensor, Box<dyn Error>> {
+    let tensor = weights.tensor(name)?;
+    if tensor.dtype() != Dtype::F32 {
+        return Err(format!("expected F32 weight {name}").into());
+    }
+    let values: Vec<_> = tensor
+        .data()
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|bytes| f32::from_le_bytes(*bytes))
+        .collect();
+    Ok(backend.upload_f32(&values, tensor.shape())?)
 }
