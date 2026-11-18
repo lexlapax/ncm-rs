@@ -1199,3 +1199,36 @@ the comparison result SHA-256 is
 the replay log SHA-256 is
 `6976173fa329a93647d9327adea5ccfb5ea618fdcb8848cae37bdd2b60a41108`.
 These are bounded controls, not a full-model result or acceptance exception.
+
+### Licensed GPU error-function approximation control
+
+A second independent candidate uses the [ROCm device-library error-function
+source](https://github.com/ROCm/llvm-project/blob/ca5edf351fd12b0668bc90f1e8d6a6b97b865f7a/amd/device-libs/ocml/src/erfF.cl)
+at commit `ca5edf351fd12b0668bc90f1e8d6a6b97b865f7a`, under its
+University of Illinois/NCSA license. For a bounded CUDA-hosted experiment,
+the retained source was compiled with a small shim mapping its polynomial
+operations to FP32 `fmaf` and its exponential to CUDA `expf`. This does not
+claim to reproduce ROCm or Metal results, whose arithmetic and exponential
+may differ. The original source, polynomial header, license and shim are
+retained together; nothing was integrated into the runtime.
+
+On the captured and synthetic inputs, the resulting GELU matched 1,382,992
+and 1,424,425 of 1,591,296 CUDA output bit patterns, respectively. Its
+captured output differs from the earlier Metal mathematical-table result at
+225,351 positions. In the retained CUDA continuation, substituting only this
+fixed first-block GELU output gave an exact tie and selected reference code
+3182, just as the earlier table result did. Substituting the captured Metal
+first-normalization output as well selected 3690 with margin
+`-1.9073486328125e-6`; the analogous combination using the prior table gave
+a tie selecting 3182. These are simultaneous fixed-tensor interventions:
+GELU was not recomputed after substituting normalization. They are not a
+full-model or Metal evaluation, and the single tie does not establish a robust
+candidate. Both the component comparison and six-way replay repeated
+byte-for-byte.
+
+The source, complete license, binary, scripts, tensors and logs are retained
+under ignored `reports/phase4-xsum-open-gpu-erf-evidence-v1/`. Component result
+SHA-256 is `7f62b407e40cc1d18aa3f6682884974959ec41df0339f529bc0a9c69c52703ab`;
+combined replay log SHA-256 is
+`d8ec2973bb1c9b7d4b1574ce4e00db7f261479781e6ea533976c9e73601eb62f`.
+No production dependency, model, threshold or gate changed.
