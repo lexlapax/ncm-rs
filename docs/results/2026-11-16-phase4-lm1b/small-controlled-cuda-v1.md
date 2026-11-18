@@ -711,7 +711,7 @@ latent through the pinned Python transformer still selects 281. The
 Python latent and Python convolution exactly reproduce the original head
 and select 280.
 
-The isolated codec capture locates the first difference before sampling.
+The isolated codec capture locates the first difference before the first transformer head.
 The level-zero embedding and learned transposed convolution are exact in
 both modes. Under strict math the residual convolution is also exact.
 With evaluator precision, the residual convolution differs at 86,638 of
@@ -776,3 +776,71 @@ passed release build, Clippy and repeated device captures. The pinned
 strict Python tensors and both Rust captures repeated byte for byte.
 These are development diagnostics. The frozen held-out entropy result
 remains outside its acceptance interval.
+
+
+### Graph convolution and interpolation replay
+
+An isolated Rust probe built a single forward convolution through the
+[native cuDNN graph API](https://docs.nvidia.com/deeplearning/cudnn/backend/v9.13.0/api/cudnn-graph-library.html)
+using the existing cudarc binding. On the RTX 3060 Ti with cuDNN 9.26, the
+first plans returned by the instant and B heuristics both matched PyTorch
+bit for bit in all 28 fixed-input cases. The matrix covers all 11 generator
+post-upsampling widths at batch 2, five refinement weights, and repeated
+input controls at batches 1, 4 and 16. The largest matching plan workspace
+was 4,915,216 bytes. Repeating the matrix produced byte-identical results.
+
+An isolated model build used the graph for the 384-channel, three-tap
+forward convolutions, while retaining cuDNN default math for the other
+convolutions. The level-zero reconstruction now matches all 98,304 values.
+The first sampled code difference moves from level 5 to level 9 (row 0,
+position 71), and 23 of 51 tensors remain outside the same policy. Its
+comparison summary SHA-256 is
+`544528d1fee19c7b664d05e0ce059bc699633acafa224d5f2f8fe426daec1d9f`.
+
+The first remaining reconstruction difference is at level 1, with a
+maximum difference of `9.685754776e-8`. Across the eight common subsequent
+levels, the separately rounded interpolation reproduced the Rust
+reconstruction exactly when replayed with the captured previous Rust state.
+Rounding the left product and fusing the right product with the addition
+reproduced every pinned PyTorch interpolated value across those eight levels.
+The graph convolution can amplify these small interpolation differences
+after TF32 rounding.
+
+The scripts, raw cases and replay summaries are retained in the preceding
+report directory under `graph-probe/`. The repeatable `matrix.log` SHA-256
+is `2bcaf20a34b1cdb09ea65a334dad28676710391f83d36f4a29636453bd76b598`
+and the `interpolation-replay.json` SHA-256 is
+`74241392e97d0f9968eb84c710aba140a351324b4332c1f4b6b3ebeddf5e75d4`.
+
+The graph plus fused interpolation reproduced all values in reconstruction
+levels 0–5, but the first code difference moved to level 6 (row 0,
+position 18), and 26 tensors failed. With identical level-5 reconstruction
+inputs, PyTorch area pooling at the next level differed from Rust at 8,253
+of 39,936 values by at most `1.192092896e-7`. Multiplying each bin sum by
+its FP32 reciprocal reproduced every Python value. The same operation
+also reproduced the Python 128-to-24 area values at level 3.
+
+Combining graph forward convolution, fused linear interpolation and
+reciprocal area pooling passed all 51 controlled tensors on both rows
+under the unchanged policy. All 1,282 sampled codes and all 256 greedy
+and 256 penalized IDs match. All values in the 12 reconstructions match
+exactly. The maximum final-logit difference is `1.907348633e-5`.
+The combined release build and feature-specific Clippy passed. A second
+device capture was byte-identical, and the strict and legacy mode
+controls both reproduced their earlier captures byte for byte.
+
+| Retained graph candidate evidence | SHA-256 |
+| --- | --- |
+| `rust-graph-fma-area/traces.safetensors` | `2abf80de9f6b9d4788801f83408e0aa0a6d1fd3f5414eecb9cd33194c88ecffd` |
+| `graph-model-fma-area-comparison.json` | `37fbf5fc66281c7b8ac9afbe1e2abcd1fc0c96934562375873417ead8b1be4db` |
+| `graph-probe/model-graph-fma-area.patch` | `ed26b3d0b2299ea1206325741e296823c5f5d73b625aad97e2824c6b3006bd6d` |
+| `graph-probe/model-graph-fma-area-trace` | `ea2310ce7ae933d2904e5aa341f1230014d9b1c78a7e5854c3935094269c6c98` |
+
+The patch applies over commit `b132f56`. Reuse the build and controlled
+trace commands above with `cudnn-graph` in place of the trailing
+`cudnn-default-math` argument and fresh output paths. The diagnostic
+creates a handle and plan for each forward convolution and synchronizes
+before releasing them. The runtime tree was restored after the experiment.
+A performance candidate needs a bounded reusable plan and handle, additional
+development-history checks and the standard device regressions. The original
+held-out quality and performance gates still apply.
