@@ -1169,3 +1169,33 @@ the result SHA-256 is
 From the repository root, reproduce with
 `setpriv --inh-caps=-all env OMP_NUM_THREADS=1 .reference/venv/bin/python
 reports/phase4-xsum-gelu-decomposition-evidence-v1/ncm-xsum-gelu-decomposition-v2.py`.
+
+### Independent error-function controls
+
+A follow-up compared mathematical `erfc` identities and an existing, separately
+maintained Rust math implementation against the public CUDA operation on the
+same two hash-checked inputs. Direct and symmetric FP32 `erfc` formulations
+matched fewer CUDA GELU bits than the earlier high-precision-erf control. The
+symmetric FP64 `erfc` expression, rounded to FP32, gave the same match counts
+as the FP64-erf expression on these inputs. This does not test Metal `erfc`.
+
+The existing `libm` 0.2.16 dependency's CPU `erff` is independently sourced
+from FreeBSD/Sun and carries a permissive source notice. Evaluated on the
+identical FP32-scaled inputs, it matched 1,482,664 of 1,591,296 captured CUDA
+GELU outputs and 1,506,241 synthetic outputs bit-for-bit. Substituting its
+captured-row output into the retained CUDA continuation selected code 3690
+with margin `-9.5367431640625e-7`, while the unmodified continuation selected
+reference code 3182 with margin `+9.5367431640625e-7`. Both comparisons and
+the replay repeated byte-for-byte. This CPU result does not establish how a
+Metal port would round; it provides no basis to treat the dependency as a fix
+for this row. No dependency, model, reference, tolerance or gate changed.
+
+The ignored `reports/phase4-xsum-open-erff-evidence-v1/` directory retains the
+standalone Rust wrapper, lockfile and binary, Python comparison and replay
+scripts, intervention tensor and logs. The Rust `libm` source file SHA-256 is
+`62c30876390e532d7dc9ac1f1f1c1f654065fba2b2e534e531964d79e1766196`;
+the comparison result SHA-256 is
+`cd60e661dcd4ed80500e40d9761ace0e46bbb49135df25e38ab51a709b3e8336`;
+the replay log SHA-256 is
+`6976173fa329a93647d9327adea5ccfb5ea618fdcb8848cae37bdd2b60a41108`.
+These are bounded controls, not a full-model result or acceptance exception.
