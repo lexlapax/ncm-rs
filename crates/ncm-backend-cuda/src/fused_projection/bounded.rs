@@ -31,8 +31,18 @@ fn select_with_limit<T>(
     }
 }
 
-fn projection_preference(default: usize, xsum: bool, lm1b: bool, m: u64, k: u64) -> usize {
-    if (xsum && m == 768 && k == 768) || (lm1b && m == 2304 && k == 768) {
+fn projection_preference(
+    default: usize,
+    xsum: bool,
+    lm1b_qkv: bool,
+    lm1b_efficient: bool,
+    m: u64,
+    k: u64,
+) -> usize {
+    if (xsum && m == 768 && k == 768)
+        || (lm1b_qkv && m == 2304 && k == 768)
+        || (lm1b_efficient && matches!((m, k), (768, 384) | (3072, 768) | (768, 3072)))
+    {
         1024 * 1024
     } else {
         default
@@ -45,6 +55,7 @@ pub(crate) struct BoundedLt {
     preference: usize,
     xsum_reference: bool,
     lm1b_qkv_reference: bool,
+    lm1b_efficient: bool,
     stream: Arc<CudaStream>,
 }
 // SAFETY: callers serialize handle and buffer access; the sole owning stream
@@ -58,6 +69,7 @@ impl BoundedLt {
         stream: Arc<CudaStream>,
         xsum_reference: bool,
         lm1b_qkv_reference: bool,
+        lm1b_efficient: bool,
     ) -> candle_core::Result<Self> {
         use candle_core::cuda_backend::cudarc::driver::sys::CUdevice_attribute;
         stream
@@ -86,6 +98,7 @@ impl BoundedLt {
             preference,
             xsum_reference,
             lm1b_qkv_reference,
+            lm1b_efficient,
             stream,
         })
     }
@@ -133,6 +146,7 @@ impl BoundedLt {
             self.preference,
             self.xsum_reference,
             self.lm1b_qkv_reference,
+            self.lm1b_efficient,
             m,
             k,
         );
@@ -271,25 +285,35 @@ mod tests {
     fn diagnostic_preference_is_explicit_and_shape_bounded() {
         let default = 4 * 1024 * 1024;
         assert_eq!(
-            super::projection_preference(default, false, false, 2304, 768),
+            super::projection_preference(default, false, false, false, 2304, 768),
             default
         );
         assert_eq!(
-            super::projection_preference(default, true, false, 2304, 768),
+            super::projection_preference(default, true, false, false, 2304, 768),
             default
         );
         assert_eq!(
-            super::projection_preference(default, true, true, 2304, 768),
+            super::projection_preference(default, true, true, false, 2304, 768),
             1024 * 1024
         );
         assert_eq!(
-            super::projection_preference(default, true, true, 2304, 769),
+            super::projection_preference(default, true, true, false, 2304, 769),
             default
         );
         assert_eq!(
-            super::projection_preference(default, true, false, 768, 768),
+            super::projection_preference(default, true, false, false, 768, 768),
             1024 * 1024
         );
+        for (m, k) in [(768, 384), (3072, 768), (768, 3072)] {
+            assert_eq!(
+                super::projection_preference(default, false, true, true, m, k),
+                1024 * 1024
+            );
+            assert_eq!(
+                super::projection_preference(default, false, true, false, m, k),
+                default
+            );
+        }
     }
     use super::*;
 

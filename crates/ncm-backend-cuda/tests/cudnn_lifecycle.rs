@@ -94,3 +94,36 @@ fn lm1b_graph_reuses_workspace_across_shapes_and_drops_on_another_thread() {
     drop((input, weight, bias, output, clone));
     std::thread::spawn(move || drop(backend)).join().unwrap();
 }
+
+#[cfg(feature = "lm1b-experimental")]
+#[test]
+fn lm1b_efficient_attention_handles_a_fully_masked_first_tile() {
+    let backend = CandleBackend::cuda_lm1b_efficient_experimental(0).unwrap();
+    let backend = backend.clone();
+    let shape = &[1, 6, 65, 64];
+    let zeros = vec![0.0; 6 * 65 * 64];
+    let mut values = zeros.clone();
+    for head in values.as_chunks_mut::<{ 65 * 64 }>().0 {
+        head[64 * 64..].fill(2.0);
+    }
+    let query = backend.upload_f32(&zeros, shape).unwrap();
+    let value = backend.upload_f32(&values, shape).unwrap();
+    let mut mask = vec![f32::NEG_INFINITY; 65 * 65];
+    for row in mask.as_chunks_mut::<65>().0 {
+        row[64] = 0.0;
+    }
+    let mask = backend.upload_f32(&mask, &[1, 1, 65, 65]).unwrap();
+    let result = backend
+        .attention(&query, &query, &value, Some(&mask))
+        .unwrap();
+    assert_eq!(backend.read_f32(&result).unwrap(), vec![2.0; zeros.len()]);
+
+    let result = backend.attention(&query, &query, &value, None).unwrap();
+    assert!(
+        backend
+            .read_f32(&result)
+            .unwrap()
+            .iter()
+            .all(|&x| (x - 2.0 / 65.0).abs() <= 1e-8)
+    );
+}

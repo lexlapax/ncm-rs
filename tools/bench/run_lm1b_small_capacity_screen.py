@@ -51,11 +51,14 @@ def main():
     modes = p.add_mutually_exclusive_group()
     modes.add_argument('--rust-cudnn-default-math', action='store_true')
     modes.add_argument('--rust-cudnn-graph', action='store_true')
+    modes.add_argument('--rust-cudnn-graph-efficient', action='store_true')
     args = p.parse_args()
-    if (args.rust_cudnn_default_math or args.rust_cudnn_graph) and args.reference_rope_diagnostic is None:
+    if (args.rust_cudnn_default_math or args.rust_cudnn_graph or args.rust_cudnn_graph_efficient) and args.reference_rope_diagnostic is None:
         p.error('experimental cuDNN modes require --reference-rope-diagnostic')
     rust_mode, convolution_math = None, 'strict FMA'
-    if args.rust_cudnn_graph:
+    if args.rust_cudnn_graph_efficient:
+        rust_mode, convolution_math = 'cudnn-graph-efficient', 'cuDNN graph and efficient attention'
+    elif args.rust_cudnn_graph:
         rust_mode, convolution_math = 'cudnn-graph', 'cuDNN graph'
     elif args.rust_cudnn_default_math:
         rust_mode, convolution_math = 'cudnn-default-math', 'cuDNN default math'

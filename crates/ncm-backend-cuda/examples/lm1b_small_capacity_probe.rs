@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, batch, options @ ..] = args.as_slice() else {
         return Err(
-            "usage: lm1b_small_capacity_probe ARTIFACT BATCH [repeated] [cudnn-default-math|cudnn-graph]"
+            "usage: lm1b_small_capacity_probe ARTIFACT BATCH [repeated] [cudnn-default-math|cudnn-graph|cudnn-graph-efficient]"
                 .into(),
         );
     };
@@ -26,6 +26,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 convolution = "cuDNN default math"
             }
             "cudnn-graph" if convolution == "strict FMA" => convolution = "cuDNN graph",
+            "cudnn-graph-efficient" if convolution == "strict FMA" => {
+                convolution = "cuDNN graph and efficient attention"
+            }
             _ => return Err("invalid or repeated LM1B capacity option".into()),
         }
     }
@@ -45,7 +48,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     if convolution != "strict FMA" && rope_path.is_none() {
         return Err("experimental cuDNN modes require the reference rotary diagnostic".into());
     }
-    let backend = if convolution == "cuDNN graph" {
+    let backend = if convolution == "cuDNN graph and efficient attention" {
+        CandleBackend::cuda_lm1b_efficient_experimental(0)?
+    } else if convolution == "cuDNN graph" {
         CandleBackend::cuda_lm1b_cudnn_graph_experimental(0)?
     } else if convolution == "cuDNN default math" {
         CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?

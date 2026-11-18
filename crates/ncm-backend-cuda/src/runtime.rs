@@ -7,6 +7,8 @@ pub struct CandleBackend {
     pub(crate) xsum_reference: bool,
     #[cfg(feature = "cuda")]
     pub(crate) lm1b_qkv_reference: bool,
+    #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+    pub(crate) lm1b_efficient_attention: bool,
     #[cfg(feature = "cuda-cudnn")]
     pub(crate) wmt14_reference: bool,
     #[cfg(feature = "cuda-cudnn")]
@@ -35,6 +37,7 @@ impl Clone for CandleBackend {
             cloned.strict_cudnn = self.strict_cudnn;
             #[cfg(feature = "lm1b-experimental")]
             {
+                cloned.lm1b_efficient_attention = self.lm1b_efficient_attention;
                 cloned.cudnn_algorithms.allow_default_math =
                     self.cudnn_algorithms.allow_default_math;
                 cloned.cudnn_algorithms.graph_forward = self
@@ -71,6 +74,8 @@ impl CandleBackend {
             xsum_reference: false,
             #[cfg(feature = "cuda")]
             lm1b_qkv_reference: false,
+            #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+            lm1b_efficient_attention: false,
             #[cfg(feature = "cuda-cudnn")]
             wmt14_reference: false,
             #[cfg(feature = "cuda-cudnn")]
@@ -160,6 +165,28 @@ impl CandleBackend {
     pub fn cuda_lm1b_cudnn_graph_experimental(ordinal: usize) -> Result<Self> {
         let mut backend = Self::cuda_lm1b_cudnn_default_math_experimental(ordinal)?;
         backend.cudnn_algorithms.graph_forward = Some(Default::default());
+        Ok(backend)
+    }
+    /// Experimental LM1B-small graph and efficient attention arithmetic on Ampere.
+    #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+    pub fn cuda_lm1b_efficient_experimental(ordinal: usize) -> Result<Self> {
+        let mut backend = Self::cuda_lm1b_cudnn_graph_experimental(ordinal)?;
+        let context = backend
+            .device
+            .as_cuda_device()
+            .map_err(|e| Error::Backend(e.to_string()))?
+            .cuda_stream()
+            .context()
+            .clone();
+        let (major, _) = context
+            .compute_capability()
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        if major != 8 {
+            return Err(Error::Backend(
+                "LM1B efficient diagnostic requires Ampere CUDA".into(),
+            ));
+        }
+        backend.lm1b_efficient_attention = true;
         Ok(backend)
     }
     /// Explicit experimental WMT14 reference-order initial reconstruction.

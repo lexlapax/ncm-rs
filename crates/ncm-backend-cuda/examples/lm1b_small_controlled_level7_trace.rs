@@ -28,14 +28,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     assert_eq!(capture::tolerance("decode.logits"), (5e-4, 2e-4));
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, reference, output, options @ ..] = args.as_slice() else {
-        return Err("usage: lm1b_small_controlled_level7_trace ARTIFACT REFERENCE OUTPUT [cudnn-default-math|cudnn-graph [16]]".into());
+        return Err("usage: lm1b_small_controlled_level7_trace ARTIFACT REFERENCE OUTPUT [cudnn-default-math|cudnn-graph [16]|cudnn-graph-efficient [16]]".into());
     };
     let (math, seed) = match options {
         [] => ("", 11),
-        [option] if ["cudnn-default-math", "cudnn-graph"].contains(&option.as_str()) => {
+        [option]
+            if ["cudnn-default-math", "cudnn-graph", "cudnn-graph-efficient"]
+                .contains(&option.as_str()) =>
+        {
             (option.as_str(), 11)
         }
-        [option, seed] if option == "cudnn-graph" && seed == "16" => (option.as_str(), 16),
+        [option, seed]
+            if ["cudnn-graph", "cudnn-graph-efficient"].contains(&option.as_str())
+                && seed == "16" =>
+        {
+            (option.as_str(), 16)
+        }
         _ => return Err("invalid LM1B trace option".into()),
     };
     let artifact_path = Path::new(artifact);
@@ -62,7 +70,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = reference_tensors.tensor("generator.prefix_ids")?;
     let tokens = indices(input.clone())?;
     let artifact = Artifact::load_inference(artifact_path)?;
-    let backend = if math == "cudnn-graph" {
+    let backend = if math == "cudnn-graph-efficient" {
+        CandleBackend::cuda_lm1b_efficient_experimental(0)?
+    } else if math == "cudnn-graph" {
         CandleBackend::cuda_lm1b_cudnn_graph_experimental(0)?
     } else if math == "cudnn-default-math" {
         CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
@@ -71,8 +81,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         CandleBackend::cuda_cudnn(0)?.xsum_reference_backend()?
     };
-    let mut teacher =
-        Lm1bSmallTeacher::from_artifact_level_seven_diagnostic(backend.clone(), &artifact)?;
+    let diagnostic_level = match (math, seed) {
+        ("cudnn-graph-efficient", 11) => 6,
+        ("cudnn-graph-efficient", 16) => 9,
+        _ => 7,
+    };
+    let diagnostic_key = format!("diagnostic.level_{diagnostic_level:02}.hidden");
+    let logit_key = format!("generator.level_{diagnostic_level:02}.logits");
+    let mut teacher = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?
+        .with_transformer_diagnostic_level(diagnostic_level)?;
     if let Some(path) = std::env::var_os("NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC") {
         let data = fs::read(path)?;
         if sha256(&data) != "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc" {
@@ -105,12 +122,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let weights = SafeTensors::deserialize(weights)?;
     let head = upload_weight(b, &weights, "lm_heads.head.weight")?;
-    let bias = upload_weight(b, &weights, "lm_heads.biases.7")?;
+    let bias = upload_weight(b, &weights, &format!("lm_heads.biases.{diagnostic_level}"))?;
     let separate = b.add(
-        &b.project(&captured.tensors["diagnostic.level_07.hidden"], &head)?,
+        &b.project(&captured.tensors[&diagnostic_key], &head)?,
         &bias,
     )?;
-    let actual = b.read_f32(&captured.tensors["generator.level_07.logits"])?;
+    let actual = b.read_f32(&captured.tensors[&logit_key])?;
     let expected = b.read_f32(&separate)?;
     if actual.len() != expected.len()
         || actual
@@ -132,7 +149,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     {
         return Err("untraced sample differs from trace".into());
     }
-    if math == "cudnn-graph" {
+    if ["cudnn-graph", "cudnn-graph-efficient"].contains(&math) {
         let device = teacher.sample_seeded_fully_device(&tokens, input.shape()[0], seed)?;
         if b.read_indices(&device.codes)? != b.read_indices(&result.codes)?
             || device.ids != result.ids

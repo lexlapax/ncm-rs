@@ -138,11 +138,16 @@ Before every commit include an updated
    paired screen. The [observed-seed retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#cached-cudnn-graph-observed-seed-retest)
    again passes perplexity and misses the entropy interval at
    `[-0.006796252, -0.000604899]`. The
-   [default-attention control](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#default-pytorch-attention-control)
-   identifies efficient SDPA as the source of the first remaining controlled
-   draw difference, at level 6. A retained replay supplies identical
-   Q/K/V and masks plus both attention outputs for all 12 blocks. Use
-   those operands to check candidate attention arithmetic.
+   [fused efficient attention and projection candidate](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#efficient-attention-and-bounded-projection-plans)
+   now matches both controlled histories under Torch's default efficient
+   dispatch. Shared-draw requests match at batches 1, 4 and 16. The
+   [paired timing](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-and-cached-graph-candidate)
+   favors Rust by 17–32% at the median, with lower p95 and RSS at all three
+   sizes. The [new observed-seed retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#efficient-attention-observed-seed-retest)
+   passes perplexity but its entropy interval is
+   `[-0.005745225, 0.000822536]`. An audit of all 160 batch-eight
+   requests reproduces every Rust code and token ID in Python under
+   shared draws. The independent frozen failure remains in effect.
 2. Complete the remaining LM1B-small gates before medium and large in the
    approved order. Any new acceptance protocol needs explicit review.
 3. For each changed runtime, run the applicable full checks and reproducible

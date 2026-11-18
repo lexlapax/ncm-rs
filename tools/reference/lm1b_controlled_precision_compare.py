@@ -14,12 +14,12 @@ from tinystories_artifact import ROOT, UPSTREAM, digest_file, json_file
 LEVELS = (1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128)
 
 
-def compare(reference, candidate):
+def compare(reference, candidate, diagnostic_level=7):
     with safe_open(reference, framework='pt', device='cpu') as left, safe_open(
             candidate, framework='pt', device='cpu') as right:
         names = set(left.keys())
         extra = set(right.keys()) - names
-        if names - set(right.keys()) or any(not key.startswith('diagnostic.level_07.') for key in extra):
+        if names - set(right.keys()) or any(not key.startswith(f'diagnostic.level_{diagnostic_level:02d}.') for key in extra):
             raise ValueError('unexpected controlled tensor inventory')
         comparisons = [compare_tensor(name, left.get_tensor(name), right.get_tensor(name))
                        for name in sorted(names)]

@@ -258,3 +258,44 @@ Across 164 GPU telemetry snapshots, queries recorded no failures. The
 median sampled process maxima for Rust and Python were 1,034/1,550 MiB,
 1,226/2,082 MiB and 1,866/4,960 MiB at batches 1, 4 and 16. Rust batch
 one had two process observations per run. [Observed-seed quality](small-heldout-cuda-v1.md#cached-cudnn-graph-observed-seed-retest)
+
+### Efficient attention and cached graph candidate
+
+The Ampere candidate combines cached cuDNN graph plans, the verified
+resampling arithmetic, fused efficient attention and a bounded cuBLASLt
+preference for the observed projection shapes. Run the earlier paired
+command with `--rust-cudnn-graph-efficient` and a new output directory.
+All 18 processes completed. Each runtime and batch has 90 measured
+requests and repeatable output signatures across its three fresh
+processes. [Controlled model parity](small-controlled-cuda-v1.md#efficient-attention-and-bounded-projection-plans)
+
+| Batch | Runtime | Median (ms) | p95 (ms) | Peak RSS (MiB) | Model load (s) |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Rust | 42.05 | 43.15 | 1538.19 | 1.270 |
+| 1 | Pinned Python | 61.99 | 64.39 | 2550.19 | 1.197 |
+| 4 | Rust | 108.86 | 116.93 | 1537.48 | 1.294 |
+| 4 | Pinned Python | 138.08 | 146.44 | 2542.49 | 1.240 |
+| 16 | Rust | 359.42 | 362.39 | 1536.20 | 1.277 |
+| 16 | Pinned Python | 432.99 | 454.80 | 2520.20 | 1.194 |
+
+At batches 1, 4 and 16, Rust median latency is 32.2%, 21.2% and
+17.0% lower. Rust p95 latency and peak RSS are lower in each cell,
+while model load is longer. Peak used MiB in the CUDA default pool
+are 838.73, 942.19 and 1350.03. Peak allocated MiB in the Python
+caching allocator are 1296.45, 1799.87 and 4121.64. These counters
+measure different allocators. Across 164 activity samples with no
+query failures, median sampled Rust and Python device process
+maxima are 1034/1550, 1226/2082 and 1866/4960 MiB. Batch-one Rust
+has only two process observations per run.
+
+In a separate development replay, the pinned Python model used the
+same SplitMix64 uniforms as the first timed Rust request at each
+batch. All combined code and raw-ID signatures matched across the
+21 rows at those three batch sizes. Python used its own random streams
+during the timed comparison and the frozen independent-seed runs.
+
+The raw processes, telemetry and shared-draw replay are retained
+under `reports/phase4-lm1b-efficient-attention-v1.xYWlWf/`.
+The timing manifest and result SHA-256 values are
+`70ea472792c50472f909a59f508c42b13ea579584bb59fec94bfbb3c4b64166b`
+and `80631f560686866a8a425829d1b57f7167131382364350bdcfa605393a3a1a19`.

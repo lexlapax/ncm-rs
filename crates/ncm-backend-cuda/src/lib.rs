@@ -19,6 +19,8 @@ mod fused_projection;
 #[cfg(feature = "cuda")]
 mod generator_layout;
 #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+mod lm1b_attention;
+#[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
 mod lm1b_linear_fma;
 #[cfg(feature = "cuda")]
 pub mod masked_softmax;

@@ -922,3 +922,73 @@ absolute error `9.059906006e-6`. The retained `level6-sdpa-inputs.py`
 saves the operand values, original strides and both outputs. The
 `level6-sdpa-fixed-inputs.safetensors` SHA-256 is
 `1ee084cc10c595115b39e91776bf3ef3692f86b57c16e9eaa66050207a2f079a`.
+
+### Efficient attention and bounded projection plans
+
+The public CUDA profiler identifies PyTorch's FP32 64-by-64 efficient
+attention kernel on this Ampere device. A standalone probe first
+reproduced the 976,896 captured level-6 attention values by splitting
+each FP32 operand into two TF32 components and staging the three
+matrix products before adding to the running FP32 value. The unstaged
+prototype failed, while the known single-key values and uniform
+three-, 25- and 53-key probes helped isolate the staged product and row
+normalization. The fused version carries each query tile's numerator,
+maximum and denominator across 64-key tiles and keeps scores and
+weights in block-local storage. [PyTorch attention source](https://raw.githubusercontent.com/pytorch/pytorch/main/aten/src/ATen/native/transformers/cuda/mem_eff_attention/kernel_forward.h) · [CUTLASS FP32 decomposition](https://raw.githubusercontent.com/NVIDIA/cutlass/main/include/cutlass/gemm/warp/mma_tensor_op_fast_f32.h) · [PTX matrix fragments](https://docs.nvidia.com/cuda/archive/11.4.4/parallel-thread-execution/index.html#warp-level-matrix-fragment-mma-1688)
+
+The staged and fused operators each match all 22,341,888 expected
+values across 129 cases. The cases cover the 12 captured level-6 blocks,
+13 synthetic sequence lengths through 129, batches 1, 2 and 8, and
+prefix, absent and per-batch additive masks. The additive masks exercise
+rows with no valid key in the first tile. The two comparison reports
+are byte-identical.
+
+With the fused attention alone, the first sampled differences remained
+at level 6 in seed 11 and level 9 in seed 16. The first differing tensor
+in the seed-11 continuation is the 384-to-768 target projection, at
+25,704 of 79,872 values. The seed-16 continuation is exact through the
+first attention and second normalization. Its first discrepancy is the
+768-to-3,072 feed-forward input projection, at 481,285 of 571,392 values.
+The cuBLASLt screen verifies that a 1 MiB preference matches pinned
+PyTorch on identical inputs for the target, QKV and both feed-forward
+projections at these two shapes. The earlier graph and other backend modes
+keep their existing preference.
+
+The fused operator and selected cuBLASLt plans together pass all 51
+checks for both seed 11 and seed 16 under PyTorch's **default efficient
+attention** dispatch. Both histories match every code and final ID
+with both CPU and fully device-resident sampling, and all codec
+reconstruction values are bit-identical. Every captured intermediate
+at the two previously disputed transformer levels matches exactly.
+The additional captures keep the existing thresholds.
+
+To reproduce the Rust controlled histories, use the earlier capture
+command with `cudnn-graph-efficient`, appending `16` for the second
+history. The retained `control-default-sdpa.py` uses Torch's default
+attention selector with the same Python capture arguments. The
+scripts, raw traces, projection screen and comparisons are retained
+under `reports/phase4-lm1b-efficient-attention-v1.xYWlWf/`.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `fused.json` and `online.json` | `8efdcc6c40236663ef3c55c357225393bd1e243ff2735619907690c8ba017925` |
+| `components-staged.json` | `b10ac1dba22191b458e742134084d53947421fc0d9bfb330bf029ed9b00ca4dd` |
+| `projections.json` | `b348302942a56dfc0388eb9dd1b216be067e3477ec80da5581971846890c6290` |
+| `projection-model-seed11.json` | `d9a56803ff96660bf4259e325ab4ae6bbbf3b6584818b8b59be67a2ac4262077` |
+| `projection-model-seed16.json` | `669104b2a1ad0bf7eee930e1ef1f77f0e70d513604dcb8c4c3aece5358cd2c65` |
+
+The exact shared transformer inventory contains 28 tensors at
+each disputed level. In the broader model replay the maximum
+final-logit differences are `2.098083496e-5` and `1.716613770e-5`
+for seeds 11 and 16. Both are within the existing bounds. The
+earlier strict comparison repeats byte for byte and continues
+to reject substitution of an efficient-attention oracle.
+
+Feature-specific Clippy and five native cuDNN lifecycle cases pass.
+An initial Linux host run overlapped scoring and compilation and
+failed two existing process-observation fixtures. The isolated
+`tools/check.sh --cuda` rerun passes all 532 report tests and
+18 CUDA operator cases. Its log SHA-256 is
+`eda806572dc07e1f353ced707db34df3a0f4d57580966e6955645dd1c39b7d40`.
+The initial log is retained at
+`d2408cba6f99be57eeee4595c9fc3216d8ba636839136f9550395751afe4838f`.

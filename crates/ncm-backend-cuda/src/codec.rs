@@ -107,10 +107,15 @@ impl CodecBackend for CandleBackend {
                     })?;
                     if lock.is_none() {
                         let stream = self.device().as_cuda_device()?.cuda_stream();
+                        #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+                        let lm1b_efficient = self.lm1b_efficient_attention;
+                        #[cfg(not(all(feature = "cuda-cudnn", feature = "lm1b-experimental")))]
+                        let lm1b_efficient = false;
                         let h = crate::fused_projection::StrictLt::new(
                             stream,
                             self.xsum_reference,
                             self.lm1b_qkv_reference,
+                            lm1b_efficient,
                         )?;
                         *lock = Some(std::sync::Arc::new(std::sync::Mutex::new(h)));
                     }
@@ -297,6 +302,13 @@ impl CodecBackend for CandleBackend {
         mask: Option<&Tensor>,
     ) -> Result<Tensor> {
         op!(self, [q, k, v], {
+            #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+            if self.lm1b_efficient_attention {
+                if let Some(m) = mask {
+                    self.check_tensor(m, DType::F32)?;
+                }
+                return crate::lm1b_attention::apply(self, q, k, v, mask);
+            }
             #[cfg(feature = "cuda")]
             if self.device().is_cuda() {
                 let (batch, heads, seq, width) = q.dims4()?;

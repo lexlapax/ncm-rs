@@ -394,3 +394,61 @@ The summary repeats byte for byte at
 `74031c5d2435af5c2084e252131bc0ca5a6e2d1cd9340ab620e4ee6a21eb3c74`.
 The separate performance screen measures better latency and peak RSS
 than pinned Python at all three batch sizes. [Cached graph timing](small-cuda-capacity-screen-v1.md#cached-cudnn-graph-candidate)
+
+### Efficient-attention observed-seed retest
+
+The CUDA candidate combines cached cuDNN graph convolution, fused
+efficient attention, and the matching cuBLASLt projection plans.
+The controlled model compares against default efficient attention.
+The fixed-code replay matches all 327,680 raw IDs across the 2,560
+archived code rows. [Controlled parity](small-controlled-cuda-v1.md#efficient-attention-and-bounded-projection-plans)
+
+The same five observed seeds were regenerated using
+`lm1b_small_heldout_capture` with the trailing
+`cudnn-graph-efficient` argument. Batch size is eight and the Rust
+runtime uses its own seed stream. The scorer matches pinned upstream
+on all five new captures and uses the original Python score receipts
+after verifying their hashes.
+
+| Seed | Rust perplexity | Rust entropy (nats) |
+| ---: | ---: |
+| 42 | 88.874389 | 4.30967048 |
+| 0 | 91.460012 | 4.31228803 |
+| 1 | 97.220134 | 4.31619050 |
+| 2 | 93.823835 | 4.31026700 |
+| 3 | 91.784148 | 4.31213926 |
+
+Both perplexity checks pass. Rust minus Python perplexity is
+`-3.239211`, with a 95% interval of `[-6.153396, -0.190574]`.
+The entropy mean difference is `-0.002592641` nats. Its 95% interval
+`[-0.005745225, 0.000822536]` crosses the frozen `-0.0046` lower
+bound. The summary exits 1. The original held-out failure remains
+in effect.
+
+The commands and raw evidence are retained under
+`reports/phase4-lm1b-efficient-attention-v1.xYWlWf/`.
+The capture binary SHA-256 is
+`d1ee2ff74ada02756b289dcf889eaa2f783b41db4caf1e9e8a52bc01b4100288`.
+The two scorer summaries match byte for byte at
+`dc3ab67eb9031b10774202346fec1b0cf90a47d7cbc2b7453b9e8a9c2e66f888`.
+The paired performance screen selects the same candidate mode.
+[Efficient attention timing](small-cuda-capacity-screen-v1.md#efficient-attention-and-cached-graph-candidate)
+
+A separate same-draw diagnostic replayed the first batch-eight
+request of each observed seed through pinned Python. It matched all
+25,640 concept codes and 5,120 raw IDs across the 40 rows. The
+comparison is retained in `observed-first-batches.json` at
+`795d4b4eadc84bc0e8ec53b125cfa28a0d8530ccb3ab65fcfbc2d0da8afcb3e4`.
+
+The full same-draw audit then regenerated all 160 retained Rust requests
+in pinned Python with default efficient attention and an FP64 inverse
+CDF driven by the Rust request-local uniforms. It reproduced all
+820,480 concept codes and 163,840 raw IDs across all 1,280 rows. The
+vectorized sampler first reproduced the separate scalar-draw check at
+trial zero for each seed. The archived Rust capture hashes and observed
+quality summary are bound in `observed-matched-draws.json`, SHA-256
+`66e4ae95b03d086b58a39e6ad183d63001d1a85f3deed789d768773e05d64157`.
+
+This establishes exact agreement on the observed candidate draws.
+The frozen evaluation still uses each implementation's independent
+draw stream and retains its entropy interval failure.

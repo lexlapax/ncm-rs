@@ -23,13 +23,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact_path, seed, output, options @ ..] = args.as_slice() else {
         return Err(
-            "usage: lm1b_small_heldout_capture ARTIFACT SEED OUTPUT [cudnn-default-math|cudnn-graph]".into(),
+            "usage: lm1b_small_heldout_capture ARTIFACT SEED OUTPUT [cudnn-default-math|cudnn-graph|cudnn-graph-efficient]".into(),
         );
     };
     let convolution = match options {
         [] => None,
         [option] if option == "cudnn-default-math" => Some("cuDNN default math"),
         [option] if option == "cudnn-graph" => Some("cuDNN graph"),
+        [option] if option == "cudnn-graph-efficient" => {
+            Some("cuDNN graph and efficient attention")
+        }
         _ => return Err("invalid LM1B capture option".into()),
     };
     let seed = heldout_seed(seed.parse()?)?;
@@ -57,6 +60,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("explicit diagnostic rotary tables required".into());
     }
     let backend = match convolution {
+        Some("cuDNN graph and efficient attention") => {
+            CandleBackend::cuda_lm1b_efficient_experimental(0)?
+        }
         Some("cuDNN graph") => CandleBackend::cuda_lm1b_cudnn_graph_experimental(0)?,
         Some(_) => CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?,
         None => CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?,
@@ -116,10 +122,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         "codes": codes, "raw_ids": raw_ids});
     if let Some(convolution) = convolution {
         report["convolution_math"] = serde_json::json!(convolution);
-        let scope = if convolution == "cuDNN graph" {
-            "observed-seed experimental cuDNN graph retest"
-        } else {
-            "observed-seed experimental cuDNN default-math retest"
+        let scope = match convolution {
+            "cuDNN graph and efficient attention" => {
+                "observed-seed experimental cuDNN graph and efficient attention retest"
+            }
+            "cuDNN graph" => "observed-seed experimental cuDNN graph retest",
+            _ => "observed-seed experimental cuDNN default-math retest",
         };
         report["scope"] = serde_json::json!(scope);
     }
