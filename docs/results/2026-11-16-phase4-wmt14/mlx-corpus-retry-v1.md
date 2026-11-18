@@ -361,3 +361,55 @@ differences at row 632 after retry. The focused tests covered
 missing groups, reordered rows, malformed retries and output
 values outside the declared vocabularies. Supplying the base
 reference for a guided comparison was rejected.
+
+## Repeating the Metal timing comparison
+
+Use the pinned native MLX install and Python MLX environment, the
+checked WMT14 artifact and prefix fixture, and copies of the two
+frozen Python CUDA reference captures. The runner checks reference
+hashes and compares every Rust and Python MLX output with the
+selected reference before recording a timing cell. Each cell uses
+three alternating fresh processes per runtime, five warmups and 30
+measured batches.
+
+```sh
+export MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"
+RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib" \
+  cargo build --locked --release -p ncm-backend-mlx \
+  --features mlx,wmt14-experimental --example wmt14_perf
+.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
+  --output reports/wmt14-mlx-drop-logits
+```
+
+The default uses early logit release, as the CLI and recorder do.
+Repeat `--cell CFG:BATCH` to run selected cells. On the same cells,
+`--lifetime retain` supplies the original output-lifetime control,
+`--lifetime release` includes the output release and GPU barrier,
+and `--cache-mib N` applies a process-local allocator limit. Run
+each setting into a fresh directory. Use `--base-reference` and
+`--cfg-reference` if the frozen captures are in different locations
+from the default Linux report paths.
+
+The manifest marks the seven-cell matrix complete only after every
+required process in every requested cell has a verified receipt and
+the watched inputs match postflight. The summary records slower
+cells and higher memory separately. A complete summary can contain
+performance regressions. Linux can use `--replay DIRECTORY` to
+verify retained raw results before a new Metal run.
+
+The Linux replay checks passed on the six retained Metal cells.
+The verifier rejected a missing guided batch-16 cell and refused
+to launch a new timing run on Linux. At base batch 16, 41 of 90
+Rust trials exceeded the Python pooled p95 of 729.33 ms. They
+occurred across two of three processes, with 20 in the second and
+21 in the third. At base batch 32, 16 of 90 Rust trials exceeded
+the Python pooled p95 of 1686.31 ms, all in the third process.
+The retained samples warrant repeated process controls across the
+large batches. The available data does not identify the cause.
+
+The Linux replay bundle is
+`reports/phase4-wmt14-mlx-runner-final-v1.yPzwZi/`. Its summary
+SHA-256 values for the four small cells, base 16, and base 32 are
+`d73994472a36fdc4e40c8b93473438a7f7ad0b69c7bfbf33b422aed4b6252334`,
+`96c979ca3fd8d5a41301253321e728eda7873b14023411e18fc85a4a02461420`, and
+`f0578e5f273c15320e33d24d4d6bb4eeb5e6d24632282f6a1beb36f2e754b3c2`.

@@ -141,10 +141,14 @@ pushes needed for Mac work via pulls. Before every commit include an updated
    found no material median benefit from deferring the guard, so the
    CUDA CLI uses immediate checks. The CLI and recorder release the
    unused decoder-logit handle before reading codes and IDs. The
-   [tracked JSONL verifier](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#replaying-a-batchwise-capture)
-   reproduces the earlier comparisons. The Metal probe can measure
-   early release separately from synchronization and cache limits.
-   Metal verification remains open.
+   [full current CUDA replay](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md#full-cuda-replay-with-early-logit-release)
+   reproduced the 6,006 prior rows and both frozen scorer receipts
+   byte-for-byte. The [tracked JSONL verifier](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#replaying-a-batchwise-capture)
+   reproduces the earlier comparisons. The
+   [paired Metal runner](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#repeating-the-metal-timing-comparison)
+   measures early release separately from synchronization and cache
+   limits, and its Linux replay reproduced all six retained cells.
+   Fresh Metal timing and corpus verification remain open.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

@@ -242,3 +242,21 @@ the timing comparison. Release build and Clippy passed with
 Raw timing, CUDA event and memory receipts are in
 `reports/phase4-wmt14-cuda-deferred-v1.PJrWFk/`. The summary SHA-256 is
 `3e05d2d2f2f7a514d124fdfc88dac009f23fb08b0e2aa7d5e10387507866fd03`.
+
+## Full CUDA replay with early logit release
+
+At `6570fc4`, the recorder released its decoder-logit handle before
+reading codes and IDs. The new full CUDA captures each contain 3,003
+rows in the frozen four-row grouping. Both capture files are byte
+identical to their prior counterparts. Every code and raw ID matches
+the pinned Python reference, with zero failed batches. Both frozen
+scorer environments passed the full and held-out comparisons on the
+fresh captures and reproduced the earlier scorer files byte for byte.
+
+The run directory is
+`reports/phase4-wmt14-release-logits-full-cuda-v1.b8SI9M/`. The base
+and guided corpus comparison SHA-256 values are
+`57431f5d21af3e4b91066a78eeec4e7ad933907b23785fbe86033ec3ba1ca409`
+and `6343ea547f36d047e5df3c4f5a141ca2b2a3c2c9c1c9af46b2a60cd22aaba585`.
+The binary, artifact manifest and prefix file hashes matched
+postflight. This replay checks correctness on CUDA.
