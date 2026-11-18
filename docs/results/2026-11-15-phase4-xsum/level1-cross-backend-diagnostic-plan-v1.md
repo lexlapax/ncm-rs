@@ -1139,3 +1139,33 @@ were imported or run: the project restriction on restricted vendor
 implementations remains in force, and a portable, reviewable implementation
 and provenance have not been established. This is not a proposed dependency or
 an acceptance exception.
+
+### Public CUDA GELU decomposition control
+
+A same-input control separates the public CUDA error function from the
+surrounding GELU arithmetic. For both the retained refined-Metal MLP input and
+the independent synthetic input, pinned PyTorch CUDA `gelu` exactly reproduces
+the captured CUDA outputs. Evaluating the FP32-scaled input with public
+`torch.erf` on CUDA, then evaluating `(x * 0.5) * (erf + 1)` as separate
+FP32 operations, produces bit-identical outputs for all 1,591,296 values in
+**each** input. This is an observation on this GPU and these inputs, not a
+claim about CUDA internals or other versions.
+
+Using the same CUDA `erf` but fusing the last multiply-add with `torch.addcmul`
+matches 1,364,499 values on the captured input and 1,301,675 on the synthetic
+input. Using FP64 `torch.erf`, rounded to FP32, and the separate FP32 expression
+matches 1,493,683 and 1,515,670 respectively. The FP32 and rounded-FP64
+`erf` results match 1,415,985 and 1,416,308 values respectively; their maximum
+absolute difference is `5.960465e-8`. These observations show that both the
+error-function results and arithmetic fusion matter in these controls; they do
+not supply a portable implementation, identify the full-model root cause, or
+pass the exact Metal gate. No restricted implementation was inspected.
+
+The shape- and SHA-checked control and two byte-identical result files are
+retained in `reports/phase4-xsum-gelu-decomposition-evidence-v1/`. The script
+SHA-256 is `79c5f45ce1be3ba3f15f0e36745f77bd4bf07aec89829a412c90b857872249fd`;
+the result SHA-256 is
+`5f624b190f893baf764b909c8e41a4e9d5a6ca5be91b94a81418d42026b714eb`.
+From the repository root, reproduce with
+`setpriv --inh-caps=-all env OMP_NUM_THREADS=1 .reference/venv/bin/python
+reports/phase4-xsum-gelu-decomposition-evidence-v1/ncm-xsum-gelu-decomposition-v2.py`.

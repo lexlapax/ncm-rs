@@ -4,6 +4,8 @@ Last updated: 2026-11-17 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **XSum public CUDA GELU decomposition:** on the captured and synthetic inputs, separate FP32 arithmetic around public CUDA `erf` reproduces all CUDA GELU bits; a fused variant and FP64-erf substitute do not. This isolates a bounded compatibility requirement, not a Metal implementation or gate pass. [Evidence](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md#public-cuda-gelu-decomposition-control). The Mac `dotsetup.rmlx` service was observed running without interruption.
+
 - **LM1B FP32 top-p prototypes:** isolated probability and boundary probes support the pinned cutoff hypothesis on tested inputs, but a fused prototype was slower and its five observed-seed retest still failed the entropy interval (`-0.007166052` lower endpoint versus `-0.0046`). Neither is production or a gate pass. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#isolated-fp32-top-p-probability-prototypes).
 - **LM1B top-p tie control:** five synthetic tied-logit rows split equal logits at the upstream FP32 top-p cutoff. Candle CUDA produces the same numeric sorted values but, applying the same sorted-position mask, changes 76 token-mask entries across those rows; fixed-softmax total variation is at most `1.3432e-8`. The retained histories had no cutoff ties. A first bitwise comparison failed on signed zero; the corrected check and fixture repeat. This is not a full sampler fix or gate pass. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#top-p-cutoff-ties-and-the-existing-cuda-sort). XSum Metal and LM1B quality remain open.
 
