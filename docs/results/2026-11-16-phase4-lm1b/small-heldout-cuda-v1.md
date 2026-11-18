@@ -153,3 +153,50 @@ The expected exit status is 1 because the recorded metric check fails. The
 first archive replay failed before comparison because the comparator was not
 beside the archived summary script; it was copied unchanged, and the replay
 then reproduced the summary digest above.
+
+## Exploratory sample-count planning
+
+A post-hoc simulation examined the sensitivity of the existing two-metric
+interval checks to sample count. It used the ten already observed Python seed
+scores and five already observed scores from the unqualified combined CUDA
+candidate in the [controlled diagnostic](small-controlled-cuda-v1.md#combined-cuda-arithmetic-diagnostic-and-observed-seed-retest).
+The Python and candidate entropy sample standard deviations were 0.003204 and
+0.004734 nats, respectively. Their perplexity standard deviations were 2.8004
+and 2.0508. The script checks input hashes and centers each observed metric
+within its runtime before imposing specified hypothetical differences. It
+resamples whole seed records independently for each runtime, preserving the
+per-seed perplexity/entropy relationship.
+
+For each scenario, 1,000 simulated comparisons used 10,000 independent
+bootstrap resamples per comparison and the existing margins and percentile
+indices. The simulation used NumPy PCG64 seed 20261117; it does not reproduce
+the frozen comparator's Python RNG sequence. With hypothetical
+candidate-minus-reference differences of -2.0 perplexity and -0.002 entropy,
+the joint checks passed in 611/1,000 simulated comparisons at 20 seeds per
+runtime, 858/1,000 at 40, and 990/1,000 at 80. With +0.002 entropy instead,
+the respective counts were 628, 908, and 996. The simulated perplexity check
+passed whenever entropy did in these scenarios. For zero assumed differences,
+the joint counts were 968, 999 and 1,000. These are conditional simulation
+counts, not observed rates for new samples.
+
+Only ten reference and five candidate seed means form the empirical
+populations. Resampling those finite observations can understate population
+variation; the assumed effects, independence and distribution may be wrong.
+The 1,000 trials also have Monte Carlo error, and the results say nothing
+about candidate correctness, model parity, performance, or other profiles.
+They do not choose a new sample count or establish a replacement protocol.
+Any separately proposed protocol would require an explicit decision before
+new seeds are generated; the original failed frozen gate remains recorded.
+
+The simulation source and two byte-identical outputs are retained under
+`reports/phase4-lm1b-sizing-evidence-v1/`. Source SHA-256 is
+`411d1ecc7e2460b4eb3b47c498b983e920ecf6a282ae83848dc8c7826d9771d8`
+and result SHA-256 is
+`c98b02ba01f96b89f53b05cc3d60d8e30bce9622a85f8e952c986ff7c1ea7d91`.
+An independent cross-check using the frozen comparator's exact random indices
+matched both percentile intervals to `1e-12`; both scripts pass Python syntax
+checking. Reproduce the simulation from the repository root with:
+
+```sh
+env PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 .reference/venv/bin/python reports/phase4-lm1b-sizing-evidence-v1/ncm-lm1b-joint-planning-v2.py
+```
