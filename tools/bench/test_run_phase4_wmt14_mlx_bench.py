@@ -35,25 +35,37 @@ class Wmt14MlxBenchTests(unittest.TestCase):
             orders.update(tuple(runtime for runtime, _ in runs[i:i + 3]) for i in range(0, 9, 3))
         self.assertEqual(len(orders), 6)
 
-    def test_checkpoint_screen_live_and_replay_validate_both_rust_settings(self):
+    def test_screen_live_and_replay_validate_both_rust_settings(self):
+        cases = (('checkpoint', 'materialize_after', 'checkpoint_screen_level', 5, ['--with-control']),
+                 ('decoder', 'decoder_rows', 'decoder_screen_rows', 2, ['--control', 'decoder']))
+        for case in cases:
+            with self.subTest(factor=case[0]):
+                self.check_screen(*case)
+
+    def check_screen(self, factor, field, manifest_key, value, flags):
         rows = [{'codes': [0] * 313, 'raw_ids': [0] * 64}]
         settings = {'backend': 'mlx', 'reusable_loader': True, 'deferred_head': True,
-                    'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None, 'decoder_rows': 2}
+                    'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None,
+                    'decoder_rows': 2, 'materialize_after': 5}
 
         def fake_run(command, stem, directory):
             variant = stem.split('-')[2]
-            checkpoint = variant == 'rust'
-            self.assertEqual('materialize-after=5' in command, checkpoint)
-            self.assertEqual('decoder-rows=2' in command, variant != 'python')
+            candidate = variant == 'rust'
+            self.assertEqual('materialize-after=5' in command,
+                             candidate or (variant == 'rust_control' and factor == 'decoder'))
+            self.assertEqual('decoder-rows=2' in command,
+                             candidate or (variant == 'rust_control' and factor == 'checkpoint'))
             row = rows[0]
             report = {'cfg': 0, 'batch': 1, 'warmups': 5, 'load_seconds': 1,
-                      'trials_seconds': [.03 if checkpoint else .02] * 30,
+                      'trials_seconds': [.03 if candidate else .02] * 30,
                       'mlx_memory': {'active': 2, 'peak': 8, 'cache': 4}}
             if variant == 'python':
                 report.update({k: [v] for k, v in row.items()}, case_start=0)
                 Path(command[4]).write_text(json.dumps(report))
             else:
-                report.update(row, **settings, start=0, materialize_after=5 if checkpoint else None)
+                report.update(row, **settings, start=0)
+                if variant == 'rust_control':
+                    report[field] = None
                 (directory / f'{stem}.stdout').write_text(json.dumps(report))
             (directory / f'{stem}.meta.json').write_text(json.dumps(
                 {'returncode': 0, 'child_peak_rss_platform_units': 128}))
@@ -86,16 +98,19 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                     ('git', 'rev-parse'): 'head',
                 }.get(tuple(command[:2]), json.dumps({'core': str(root / 'core')}))
                 with patch.object(sys, 'argv', [*base_args, '--output', str(live),
-                                                '--with-control', '--materialize-after', '5', '--decoder-rows', '2']):
+                                                *flags, '--materialize-after', '5', '--decoder-rows', '2']):
                     bench.main()
                 self.assertEqual(run.call_count, 9)
                 manifest = json.loads((live / 'manifest.json').read_bytes())
                 self.assertEqual(manifest['status'], 'complete')
                 self.assertFalse(manifest['full_timing_matrix'])
-                self.assertEqual(manifest['rust_settings']['materialize_after'], 5)
-                self.assertIsNone(manifest['rust_control_settings']['materialize_after'])
+                self.assertEqual(manifest[manifest_key], value)
+                self.assertEqual(manifest['rust_settings'][field], value)
+                self.assertIsNone(manifest['rust_control_settings'][field])
+                other = 'decoder_rows' if factor == 'checkpoint' else 'materialize_after'
+                self.assertEqual(manifest['rust_settings'][other], manifest['rust_control_settings'][other])
                 summary = json.loads((live / 'summary.json').read_bytes())['0:1']
-                self.assertTrue(summary['checkpoint_vs_control']['median_not_faster'])
+                self.assertTrue(summary[f'{factor}_vs_control']['median_not_faster'])
                 self.assertEqual(len(summary['python']['process_measurements']), 3)
                 with patch.object(sys, 'argv', [*base_args, '--output', str(replay), '--replay', str(live)]):
                     bench.main()
@@ -109,7 +124,7 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                     report_path.write_text(json.dumps(report))
                 wrong = reports / 'wrong'
                 with (patch.object(sys, 'argv', [*base_args, '--output', str(wrong), '--replay', str(live)]),
-                      self.assertRaisesRegex(ValueError, 'differ beyond the requested checkpoint')):
+                      self.assertRaisesRegex(ValueError, f'differ beyond the requested {factor}')):
                     bench.main()
                 self.assertEqual(json.loads((wrong / 'manifest.json').read_bytes())['status'], 'incomplete')
                 self.assertFalse((wrong / 'summary.json').exists())

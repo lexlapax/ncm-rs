@@ -622,22 +622,28 @@ additional tile readback barriers affect the measured peak and wall time.
 The projection's row dimension changes, so frozen output checks are
 required on each device.
 
-Run the existing paired timing schedule on Apple Silicon to measure
-guided batch four and both large base batches with two-row tiles.
+On Apple Silicon, compare two-row tiles with a full-projection
+Rust control at guided batch four and both large base batches.
+Both Rust configurations share one Python baseline, and the runner
+rotates their process order through three repetitions per cell.
 
 ```sh
 .reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
-  --cell 1:4 --cell 0:16 --cell 0:32 --decoder-rows 2 \
+  --cell 1:4 --cell 0:16 --cell 0:32 --decoder-rows 2 --control decoder \
   --output reports/wmt14-mlx-tiled-decoder-two
 ```
 
 Build the probe and prepare its inputs using the [Metal timing
-procedure](#repeating-the-metal-timing-comparison). Use
-`--materialize-after 5 --with-control` in the same command to screen
-the earlier reconstruction checkpoint with two-row tiling fixed
-across both Rust configurations. The runner rejects
-`--decoder-rows` with `--lifetime retain` because the tiled API
-returns codes and IDs.
+procedure](#repeating-the-metal-timing-comparison). An optional
+`--materialize-after 5` applies the checkpoint to both Rust variants.
+To measure the checkpoint with two-row tiling held fixed, select
+`--control checkpoint --decoder-rows 2 --materialize-after 5`.
+The selected treatment is recorded in the manifest and must
+be the only Rust setting that differs. Linux fixture tests
+verify live command construction and replay for both control
+modes. The runner accepts historical checkpoint receipts and
+checks archived two-configuration runs. For tiles, select the
+default output lifetime or `--lifetime release`.
 
 The recorder supports the same decoder setting for a full comparison
 with the selected runtime build. The padded retry repeats the same
@@ -698,3 +704,55 @@ device work finished, the serial `tools/check.sh --cuda` pass
 completed all 530 Linux report tests and 18 CUDA operator cases.
 Both logs are retained. The passing log hashes to
 `d0e76c78373d7789f298da9a2b652a0f88e53a393ec9bb9cbe81bf0520b99203`.
+
+### Paired CUDA timing control
+
+On the RTX 3060 Ti with driver 620.70.06, the same release binary
+ran the full projection and two-row tiles at guided batch four
+and base batch 32. Both used deferred head validation. Each
+configuration used three fresh processes, with five warmups and
+30 synchronized trials per process. The order alternated across
+pairs, starting with the tiled run for guided and the full run
+for base. Every receipt matched the exact frozen codes and raw
+IDs. Timing includes host readback and excludes model load.
+
+| Mode and batch | Full projection median / p95 (ms) | Two-row tiles median / p95 (ms) | Tiled change median / p95 |
+| --- | ---: | ---: | ---: |
+| Guided 4 | 309.86 / 313.30 | 312.45 / 316.08 | +0.84% / +0.89% |
+| Base 32 | 1,210.55 / 1,213.50 | 1,216.15 / 1,219.52 | +0.46% / +0.50% |
+
+Calculate the median and nearest-rank p95 over the 90 measured
+trials per configuration. The tiled median was higher in each
+of the three process pairs in both cells. This comparison
+measures the scheduling cost on CUDA. Metal latency and native
+allocator peak still need device measurements.
+
+Build the CUDA timing example and use the pinned reference
+environment's cuDNN library. These commands use the same
+library paths as the native CUDA head probe above.
+
+```sh
+setpriv --inh-caps=-all env CUDA_COMPUTE_CAP=86 RUSTC_WRAPPER= \
+  LIBRARY_PATH="$PWD/.reference/phase4-cudnn-probe-lib" \
+  cargo build --locked --release -p ncm-backend-cuda \
+  --features cuda-cudnn,wmt14-experimental --example wmt14_fast_argmax_perf
+wmt_cudnn="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+wmt_artifact=artifacts/canonical/wmt14-inference-v1-final
+wmt_prefixes=reports/phase4-wmt14-tokenizer-reference-v1.json
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 LD_LIBRARY_PATH="$wmt_cudnn" \
+  target/release/examples/wmt14_fast_argmax_perf "$wmt_artifact" "$wmt_prefixes" 32 0 deferred-head
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 LD_LIBRARY_PATH="$wmt_cudnn" \
+  target/release/examples/wmt14_fast_argmax_perf "$wmt_artifact" "$wmt_prefixes" 32 0 deferred-head decoder-rows=2
+```
+
+Use arguments `4 1` for the guided cell. Preserve each process's
+JSON, compare its outputs with the matching frozen reference,
+and verify that the reports bind the selected tile size.
+Raw results, input hashes, process order, and the summarizer
+are under `reports/phase4-wmt14-tile-paired-cuda-v1.LlZKIe/`.
+The complete `summary.json` SHA-256 is
+`58a75d50494a05154b9eb66f0b04a7c046e7c04f6b02a14f1d71fefbd6ae598f`.
+
+The six archived Metal timing cells reproduced their prior summaries
+byte for byte. The Linux host suite passed all 530 report tests.
+Its `full-check.log` hashes to `2bc376362f2cd0cc6ffdc2995a6107e48533cac78c936ab7d0fc3a2a840ac728`.

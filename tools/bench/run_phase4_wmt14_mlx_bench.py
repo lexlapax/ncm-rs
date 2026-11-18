@@ -27,6 +27,10 @@ MEMORY_FIELDS = ('active', 'peak', 'cache')
 REPETITIONS = 3
 WARMUPS = 5
 TRIALS = 30
+CONTROL_FACTORS = {
+    'checkpoint': ('materialize_after', 'checkpoint_screen_level', range(1, 11)),
+    'decoder': ('decoder_rows', 'decoder_screen_rows', range(1, 33)),
+}
 
 
 def ordered_runs(cell, with_control=False):
@@ -130,8 +134,11 @@ def main():
     parser.add_argument('--cache-mib', type=int, metavar='0..16384')
     parser.add_argument('--materialize-after', type=int, choices=range(1, 11))
     parser.add_argument('--decoder-rows', type=int, choices=range(1, 33))
-    parser.add_argument('--with-control', action='store_true',
-                        help='screen the checkpoint and a Rust control against one shared Python baseline')
+    controls = parser.add_mutually_exclusive_group()
+    controls.add_argument('--control', choices=CONTROL_FACTORS,
+                          help='compare one Rust setting against a control with that setting disabled')
+    controls.add_argument('--with-control', dest='control', action='store_const', const='checkpoint',
+                          help='shorthand for --control checkpoint')
     for mode in ('base', 'cfg'):
         parser.add_argument(f'--{mode}-reference', type=Path,
                             default=ROOT / f'reports/phase4-wmt14-{mode}-cuda-full-v1/python.json')
@@ -141,14 +148,17 @@ def main():
         parser.error('cache limit must be in 0..16384 MiB')
     if len(set(cells)) != len(cells):
         parser.error('duplicate workload cell')
-    if args.replay and (args.with_control or any(option is not None for option in
-                                                (args.lifetime, args.cache_mib, args.materialize_after, args.decoder_rows))):
+    if args.replay and any(option is not None for option in (
+            args.control, args.lifetime, args.cache_mib, args.materialize_after, args.decoder_rows)):
         parser.error('replay reads existing settings')
-    if args.with_control and args.materialize_after is None:
-        parser.error('--with-control requires --materialize-after')
+    factor = args.control
+    if factor:
+        field, manifest_key, _ = CONTROL_FACTORS[factor]
+        screen_value = getattr(args, field)
+        if screen_value is None:
+            parser.error(f'--control {factor} requires --{field.replace("_", "-")}')
     if args.decoder_rows is not None and args.lifetime == 'retain':
         parser.error('--decoder-rows requires dropping logits')
-    checkpoint_screen_level = args.materialize_after if args.with_control else None
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
         parser.error('output must be a new directory under reports')
@@ -172,10 +182,15 @@ def main():
             watched.append(original_manifest)
             original = json.loads(original_manifest.read_bytes())
             system, rss_platform = original.get('system', ''), original.get('rss_platform', '')
-            if 'checkpoint_screen_level' in original:
-                checkpoint_screen_level = original['checkpoint_screen_level']
-                if type(checkpoint_screen_level) is not int or checkpoint_screen_level not in range(1, 11):
-                    raise ValueError('invalid checkpoint screen level in the source manifest')
+            screens = [name for name, (_, key, _) in CONTROL_FACTORS.items() if key in original]
+            if len(screens) > 1:
+                raise ValueError('source manifest has multiple Rust control settings')
+            if screens:
+                factor = screens[0]
+                field, manifest_key, allowed = CONTROL_FACTORS[factor]
+                screen_value = original[manifest_key]
+                if type(screen_value) is not int or screen_value not in allowed:
+                    raise ValueError(f'invalid {factor} screen setting in the source manifest')
     else:
         if platform.system() != 'Darwin' or platform.machine() != 'arm64':
             raise RuntimeError('new timing runs require Apple Silicon')
@@ -197,9 +212,11 @@ def main():
             options.append(f'cache-mib={args.cache_mib}')
         if args.decoder_rows is not None:
             options.append(f'decoder-rows={args.decoder_rows}')
-        control_options = options.copy()
         if args.materialize_after is not None:
             options.append(f'materialize-after={args.materialize_after}')
+        if factor:
+            selected_option = f'{field.replace("_", "-")}={screen_value}'
+            control_options = [option for option in options if option != selected_option]
         requested = {'materialize_after': args.materialize_after, 'decoder_rows': args.decoder_rows,
                      'reusable_loader': True, 'deferred_head': True,
                      'drop_logits': args.lifetime != 'retain', 'release_outputs': args.lifetime == 'release',
@@ -229,9 +246,9 @@ def main():
                 'system': system, 'rss_platform': rss_platform, 'python_packages': packages,
                 'limitations': ['RSS includes load. Native allocator counters are separate.',
                                 'No exclusive GPU reservation. Python is the MLX adaptation.']}
-    with_control = checkpoint_screen_level is not None
+    with_control = factor is not None
     if with_control:
-        manifest['checkpoint_screen_level'] = checkpoint_screen_level
+        manifest[manifest_key] = screen_value
         manifest['rust_control_options'] = control_options
         manifest['process_order'] = {
             f'{cfg}:{batch}': [stem for _, stem in ordered_runs((cfg, batch), with_control=True)]
@@ -239,7 +256,7 @@ def main():
         }
         if args.replay and any(original.get('process_order', {}).get(cell) != order
                                for cell, order in manifest['process_order'].items()):
-            raise ValueError('invalid checkpoint screen process order in the source manifest')
+            raise ValueError(f'invalid {factor} screen process order in the source manifest')
     out.mkdir()
     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     source = args.replay.resolve() if args.replay else out
@@ -272,7 +289,9 @@ def main():
                     ('release_outputs', False), ('cache_limit_bytes', None), ('materialize_after', None),
                     ('decoder_rows', None))}
                 if not args.replay:
-                    expected = dict(requested, materialize_after=None) if variant == 'rust_control' else requested
+                    expected = requested
+                    if variant == 'rust_control':
+                        expected = {**requested, field: None}
                     if (report.get('backend') != 'mlx' or any(key not in report for key in expected)
                             or actual != expected):
                         raise ValueError('Rust execution differs from the requested timing settings')
@@ -287,11 +306,10 @@ def main():
         cell.update(compare_metrics(rust, python))
         if with_control:
             control = settings['rust_control']
-            if control['materialize_after'] is not None or settings['rust'] != dict(
-                    control, materialize_after=checkpoint_screen_level):
-                raise ValueError('Rust checkpoint and control settings differ beyond the requested checkpoint')
+            if control[field] is not None or settings['rust'] != {**control, field: screen_value}:
+                raise ValueError(f'Rust candidate and control settings differ beyond the requested {factor}')
             cell['control_vs_python'] = compare_metrics(cell['rust_control'], python)
-            cell['checkpoint_vs_control'] = compare_metrics(rust, cell['rust_control'])
+            cell[f'{factor}_vs_control'] = compare_metrics(rust, cell['rust_control'])
         summary[f'{cfg}:{batch}'] = cell
         (out / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n')
         print(f'Completed CFG {cfg} batch {batch}', flush=True)
