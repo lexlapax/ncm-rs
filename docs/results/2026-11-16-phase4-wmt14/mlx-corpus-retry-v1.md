@@ -319,6 +319,59 @@ drops logits before readback and includes code/ID buffer release and a
 GPU barrier in timing. Trial start timestamps can be compared with
 read-only activity snapshots. These controls are opt-in.
 
+### Allocator trace for slow trials
+
+The retained batch-16 and batch-32 `time -l` receipts contain
+whole-process system CPU time and peak footprint. Rechecking
+those receipts and their pinned output comparisons shows two
+different batch-16 tail patterns. Run 2 slows after its first
+ten trials. Run 3 starts slow and partly recovers.
+
+| Base batch | Rust process | First five median (ms) | Last five median (ms) | System CPU (s) | Trials above Python p95 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 | 1 | 474.2 | 472.6 | 1.15 | 0 |
+| 16 | 2 | 473.9 | 4,515.5 | 4.99 | 20 |
+| 16 | 3 | 1,389.3 | 653.0 | 6.00 | 21 |
+| 32 | 1 | 853.8 | 831.4 | 1.58 | 0 |
+| 32 | 2 | 1,139.2 | 1,585.5 | 12.74 | 0 |
+| 32 | 3 | 1,773.5 | 1,588.9 | 22.90 | 16 |
+
+The peak footprint spans only 1.34 MiB across the three batch-16
+processes and 3.00 MiB across batch 32. Ending MLX cache spans
+0.22 MiB at batch 16 and is identical across the batch-32 runs.
+Each process records 11 page faults and zero swaps. These
+whole-process counters describe resource use across startup and
+generation. The retained receipts lack time-resolved allocator
+samples, so the cause of the latency tail remains open.
+
+For a new Metal diagnostic, add `--allocator-trace` to the tracked
+runner. It records Rust active bytes, process peak bytes, and cache
+bytes before the first measured request, between requests after
+the previous Rust outputs leave scope, and after the final
+request. Samples sit outside the timed region. The summary retains
+the matching trial start timestamps, and each `.meta.json` records
+whole-process system CPU time. The allocator diagnostics can
+perturb work between trials. Keep the paired qualification
+measurements on the ordinary schedule.
+
+```sh
+.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
+  --cell 0:16 --allocator-trace --output reports/wmt14-mlx-tail-allocator-default
+```
+
+If the tail recurs, compare a fresh run with the same command and
+`--cache-mib 2048` in a new output directory. Compare the trial
+sequence with the 31 recorded allocator boundaries and the
+whole-process system CPU time. Both runs must match the frozen
+outputs. Linux fixtures verify launch, replay and malformed-counter
+rejection. All six archived timing summaries replay byte for byte.
+The old process observations and raw receipt hashes are in
+`reports/phase4-wmt14-metal-tail-replay-v1.pbyM04/`. The SHA-256 of
+`tail-observations.json` is
+`d0c770814d14b7a3af80c92676e1c81878e6f6256c4000a87198b52e9cdb5df7`.
+The full Linux suite passed all 531 report tests. Its log hashes
+to `bd0eb60fe10c271f43c85ddad158dceb13c23ec7e9c7cfb49524f9e52904e2c1`. A live trace requires Apple Silicon.
+
 ## Replaying a batchwise capture
 
 Use the checked artifact and the pinned 3,003-row prefix fixture. The

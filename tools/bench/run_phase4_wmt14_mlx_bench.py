@@ -79,6 +79,25 @@ def checked_output(report, runtime, cfg, batch, expected):
     }
 
 
+def checked_allocator_trace(report):
+    boundaries = report.get('allocator_boundaries')
+    starts = report.get('trial_start_unix_seconds')
+    if (type(boundaries) is not list or len(boundaries) != TRIALS + 1
+            or type(starts) is not list or len(starts) != TRIALS
+            or any(type(t) not in (int, float) or not math.isfinite(t) or t <= 0 for t in starts)
+            or any(a >= b for a, b in zip(starts, starts[1:]))):
+        raise ValueError('incomplete WMT14 allocator trace or invalid trial timestamps')
+    for counters in boundaries:
+        if (type(counters) is not dict or counters.keys() != set(MEMORY_FIELDS)
+                or any(type(n) is not int or n < 0 for n in counters.values())
+                or counters['active'] > counters['peak']):
+            raise ValueError('invalid WMT14 allocator trace counters')
+    if (any(a['peak'] > b['peak'] for a, b in zip(boundaries, boundaries[1:]))
+            or boundaries[-1] != report['mlx_memory']):
+        raise ValueError('WMT14 allocator trace disagrees with process high water')
+    return {'allocator_boundaries': boundaries, 'trial_start_unix_seconds': starts}
+
+
 def checked_rss(directory, stem, replay, system):
     if replay and not (directory / f'{stem}.meta.json').exists():
         data = (directory / f'{stem}.time').read_text()
@@ -130,6 +149,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--replay', type=Path, help='read retained raw reports without running inference')
     parser.add_argument('--cell', type=cell_arg, action='append')
+    parser.add_argument('--allocator-trace', action='store_true',
+                        help='retain Rust allocator counters between measured trials (diagnostic)')
     parser.add_argument('--lifetime', choices=('retain', 'drop', 'release'))
     parser.add_argument('--cache-mib', type=int, metavar='0..16384')
     parser.add_argument('--materialize-after', type=int, choices=range(1, 11))
@@ -150,11 +171,12 @@ def main():
         parser.error('cache limit must be in 0..16384 MiB')
     if len(set(cells)) != len(cells):
         parser.error('duplicate workload cell')
-    if args.replay and any(option is not None for option in (
+    if args.replay and (args.allocator_trace or any(option is not None for option in (
             args.control, args.lifetime, args.cache_mib, args.materialize_after,
-            args.decoder_rows, args.control_decoder_rows)):
+            args.decoder_rows, args.control_decoder_rows))):
         parser.error('replay reads existing settings')
     factor = args.control
+    allocator_trace = args.allocator_trace
     control_value = args.control_decoder_rows
     if factor:
         field, manifest_key, _ = CONTROL_FACTORS[factor]
@@ -188,6 +210,9 @@ def main():
             watched.append(original_manifest)
             original = json.loads(original_manifest.read_bytes())
             system, rss_platform = original.get('system', ''), original.get('rss_platform', '')
+            allocator_trace = original.get('allocator_trace', False)
+            if type(allocator_trace) is not bool:
+                raise ValueError('invalid allocator trace setting in the source manifest')
             screens = [name for name, (_, key, _) in CONTROL_FACTORS.items() if key in original]
             if len(screens) > 1:
                 raise ValueError('source manifest has multiple Rust control settings')
@@ -217,6 +242,8 @@ def main():
         if digest(ARTIFACT / 'manifest.json') != '01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81':
             raise ValueError('WMT14 artifact differs')
         options = ['reusable', 'deferred-head']
+        if allocator_trace:
+            options.append('allocator-trace')
         options += {None: ['drop-logits'], 'drop': ['drop-logits'],
                     'retain': [], 'release': ['release-outputs']}[args.lifetime]
         if args.cache_mib is not None:
@@ -259,6 +286,8 @@ def main():
                 'system': system, 'rss_platform': rss_platform, 'python_packages': packages,
                 'limitations': ['RSS includes load. Native allocator counters are separate.',
                                 'No exclusive GPU reservation. Python is the MLX adaptation.']}
+    if allocator_trace:
+        manifest['allocator_trace'] = True
     with_control = factor is not None
     if with_control:
         manifest[manifest_key] = screen_value
@@ -313,6 +342,11 @@ def main():
                 if settings.setdefault(variant, actual) != actual:
                     raise ValueError('mixed Rust execution settings')
             record = checked_output(report, runtime, cfg, batch, references[cfg][:batch])
+            if runtime == 'rust':
+                if (report.get('allocator_boundaries') is not None) != allocator_trace:
+                    raise ValueError('WMT14 allocator trace differs from the requested timing settings')
+                if allocator_trace:
+                    record.update(checked_allocator_trace(report))
             record['source_sha256'] = hashlib.sha256(data).hexdigest()
             record['peak_rss_bytes'] = checked_rss(source, stem, bool(args.replay), rss_platform)
             per_runtime[variant].append(record)
@@ -335,7 +369,7 @@ def main():
                                                        cwd=ROOT, text=True).strip()):
         raise RuntimeError('tracked source changed during comparison')
     manifest.update(status='complete', rust_settings=settings['rust'],
-                    full_timing_matrix=not with_control and set(cells) == set(CELLS))
+                    full_timing_matrix=not (with_control or allocator_trace) and set(cells) == set(CELLS))
     if with_control:
         manifest['rust_control_settings'] = settings['rust_control']
     (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

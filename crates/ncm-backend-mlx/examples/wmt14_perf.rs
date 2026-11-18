@@ -11,6 +11,14 @@ use std::{
     time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
+fn allocator_counters() -> Result<serde_json::Value, Box<dyn Error>> {
+    Ok(serde_json::json!({
+        "active": memory::active_memory()?,
+        "peak": memory::peak_memory()?,
+        "cache": memory::cache_memory()?,
+    }))
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [
@@ -25,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [decoder-rows=N] [cache-mib=N] [drop-logits|release-outputs]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [materialize-after=N] [decoder-rows=N] [cache-mib=N] [allocator-trace] [drop-logits|release-outputs]".into(),
         );
     };
     let mut reusable = false;
@@ -34,12 +42,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut materialize_after = None;
     let mut decoder_rows = None;
     let mut cache_mib = None;
+    let mut allocator_trace = false;
     let mut drop_logits = false;
     let mut release_outputs = false;
     for opt in extras {
         match opt.as_str() {
             "reusable" if !reusable => reusable = true,
             "deferred-head" if !deferred_head => deferred_head = true,
+            "allocator-trace" if !allocator_trace => allocator_trace = true,
             "drop-logits" if !drop_logits && !release_outputs => drop_logits = true,
             "release-outputs" if !drop_logits && !release_outputs => release_outputs = true,
             opt if cache_mib.is_none() && opt.starts_with("cache-mib=") => {
@@ -130,9 +140,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .transpose()?;
     let mut samples = Vec::with_capacity(trials);
     let mut starts = Vec::with_capacity(trials);
+    let mut allocator_boundaries = allocator_trace.then(|| Vec::with_capacity(trials + 1));
     let mut signature = None;
     for trial in 0..warmups + trials {
         if trial >= warmups {
+            if let Some(boundaries) = &mut allocator_boundaries {
+                boundaries.push(allocator_counters()?);
+            }
             starts.push(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64());
         }
         let start = Instant::now();
@@ -175,6 +189,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     let (codes, ids) = signature.ok_or("no WMT14 trials")?;
+    let memory = allocator_counters()?;
+    if let Some(boundaries) = &mut allocator_boundaries {
+        boundaries.push(memory.clone());
+    }
     println!(
         "{}",
         serde_json::json!({
@@ -187,8 +205,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             "release_outputs": release_outputs, "cache_limit_bytes": cache_limit,
             "prior_cache_limit_bytes": previous_cache_limit,
             "trial_start_unix_seconds": starts, "trials_seconds": samples, "codes": codes, "raw_ids": ids,
-            "mlx_memory": {"active": memory::active_memory()?, "peak": memory::peak_memory()?,
-                           "cache": memory::cache_memory()?}
+            "mlx_memory": memory,
+            "allocator_boundaries": allocator_boundaries
         }),
     );
     Ok(())

@@ -168,7 +168,10 @@ pushes needed for Mac work via pulls. Before every commit include an updated
    captures the first divergent position in the original four-row batch.
    Both CUDA paths select 2602 with a margin near 1e-6. The same probe on
    Metal can distinguish a head projection change from upstream drift.
-   Fresh Metal timing and corpus verification remain open.
+   The [allocator trace](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#allocator-trace-for-slow-trials)
+   can relate between-trial cache and memory counters to batch-16 latency
+   when Metal testing resumes. Fresh Metal timing and corpus verification
+   remain open.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

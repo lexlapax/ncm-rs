@@ -46,15 +46,17 @@ class Wmt14MlxBenchTests(unittest.TestCase):
     def check_screen(self, factor, field, manifest_key, value, control_value, flags):
         rows = [{'codes': [0] * 313, 'raw_ids': [0] * 64}]
         decoder_rows = value if factor == 'decoder' else 2
+        allocator_trace = control_value is not None
         settings = {'backend': 'mlx', 'reusable_loader': True, 'deferred_head': True,
                     'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None,
                     'decoder_rows': decoder_rows, 'materialize_after': 5}
-        if control_value is not None:
-            flags = [*flags, '--control-decoder-rows', str(control_value)]
+        if allocator_trace:
+            flags = [*flags, '--control-decoder-rows', str(control_value), '--allocator-trace']
 
         def fake_run(command, stem, directory):
             variant = stem.split('-')[2]
             candidate = variant == 'rust'
+            self.assertEqual('allocator-trace' in command, allocator_trace and variant != 'python')
             self.assertEqual('materialize-after=5' in command,
                              candidate or (variant == 'rust_control' and factor == 'decoder'))
             wanted_decoder_rows = decoder_rows if candidate or factor == 'checkpoint' else control_value
@@ -72,6 +74,9 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                 report.update(row, **settings, start=0)
                 if variant == 'rust_control':
                     report[field] = control_value
+                if allocator_trace:
+                    report.update(allocator_boundaries=[report['mlx_memory']] * 31,
+                                  trial_start_unix_seconds=list(range(1, 31)))
                 (directory / f'{stem}.stdout').write_text(json.dumps(report))
             (directory / f'{stem}.meta.json').write_text(json.dumps(
                 {'returncode': 0, 'child_peak_rss_platform_units': 128}))
@@ -115,11 +120,15 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                 self.assertEqual(manifest['rust_settings'][field], value)
                 self.assertEqual(manifest['rust_control_settings'][field], control_value)
                 self.assertEqual(manifest.get('decoder_control_rows'), control_value)
+                self.assertEqual(manifest.get('allocator_trace', False), allocator_trace)
                 other = 'decoder_rows' if factor == 'checkpoint' else 'materialize_after'
                 self.assertEqual(manifest['rust_settings'][other], manifest['rust_control_settings'][other])
                 summary = json.loads((live / 'summary.json').read_bytes())['0:1']
                 self.assertTrue(summary[f'{factor}_vs_control']['median_not_faster'])
                 self.assertEqual(len(summary['python']['process_measurements']), 3)
+                self.assertEqual('allocator_boundaries' in summary['rust']['process_measurements'][0],
+                                 allocator_trace)
+                self.assertNotIn('allocator_boundaries', summary['python']['process_measurements'][0])
                 with patch.object(sys, 'argv', [*base_args, '--output', str(replay), '--replay', str(live)]):
                     bench.main()
                 self.assertEqual(run.call_count, 9)
@@ -147,6 +156,23 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                     bench.main()
                 self.assertEqual(json.loads((wrong / 'manifest.json').read_bytes())['status'], 'incomplete')
                 self.assertFalse((wrong / 'summary.json').exists())
+
+    def test_allocator_trace_requires_complete_consistent_boundaries(self):
+        counters = {'active': 2, 'peak': 8, 'cache': 4}
+        boundaries = [dict(counters) for _ in range(31)]
+        starts = list(range(1, 31))
+        receipt = {'allocator_boundaries': boundaries, 'trial_start_unix_seconds': starts,
+                   'mlx_memory': counters}
+        self.assertEqual(bench.checked_allocator_trace(receipt)['allocator_boundaries'], boundaries)
+        for update in (
+            {'allocator_boundaries': boundaries[:-1]},
+            {'trial_start_unix_seconds': starts[::-1]},
+            {'allocator_boundaries': [dict(counters, cache=True), *boundaries[1:]]},
+            {'allocator_boundaries': [dict(counters, peak=9), *boundaries[1:]]},
+            {'mlx_memory': dict(counters, cache=0)},
+        ):
+            with self.subTest(fields=list(update)), self.assertRaisesRegex(ValueError, 'allocator trace'):
+                bench.checked_allocator_trace({**receipt, **update})
 
     def test_rejects_mismatch_or_incomplete_trials(self):
         rows = [{'codes': [0] * 313, 'raw_ids': [0] * 64}]
