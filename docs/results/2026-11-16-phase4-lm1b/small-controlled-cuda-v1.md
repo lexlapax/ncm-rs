@@ -542,3 +542,48 @@ variable and exited after the control ran; the corrected wrapper verified its
 expected exit and message, and both control logs agree. No Metal check was run
 for this change; the earlier XSum Metal gate precedes further profile
 advancement.
+
+## Same-logit sampling probability control
+
+The configured LM1B sampler uses temperature 1, top-k 0 and top-p 1. The pinned
+upstream still sorts logits, evaluates FP32 softmax, forms a cumulative sum and
+masks entries whose preceding cumulative mass exceeds 1 before its final
+softmax. The experimental Rust sampler instead uses the full distribution with
+FP64 inverse-CDF arithmetic. Mathematically top-p 1 need not filter, but the
+upstream FP32 computation can do so because of rounding.
+
+A same-logit diagnostic invokes the pinned upstream `_sample_level_raw` on
+captured logits while intercepting the probability tensor supplied to
+`torch.multinomial`. It compares those FP32 weights, normalized in FP64, with
+an FP64 softmax of the same logits. A separately reconstructed top-p mask and
+final FP32 softmax match the intercepted upstream weights bit-for-bit. The
+source checkout, source file, controlled RNG source and both traces are
+hash-checked; no generation or oracle was changed.
+
+| Captured history | Rows | Rows with masked entries | Masked entries | Maximum total variation | Mean total variation |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Pinned Python controlled history | 1,280 | 278 | 19,597 | `8.9811e-7` | `5.5802e-8` |
+| Rust shared-head controlled history | 1,280 | 290 | 19,398 | `9.0838e-7` | `5.2475e-8` |
+
+For the Rust history, the maximum total variation between unfiltered FP32 and
+FP64 softmax was `3.5696e-8`; the maximum change caused by filtering relative
+to unfiltered FP32 was `9.0838e-7`. Applying the retained midpoint uniforms to
+the two compared distributions selected the same code in all 1,280 rows of
+each trace. The FP64 calculation also reproduced all recorded controlled
+choices. The two result files agree byte-for-byte.
+
+This is a bounded distribution comparison on four previously inspected rows,
+not a measurement of PyTorch's actual multinomial RNG, a proof of the Rust
+CUDA sampler's precise rounding, or a quality gate. It does not establish that
+the difference is absent on other histories or explain the observed quality
+failure. Exact treatment of upstream FP32 filtering remains a numerical
+compatibility gap; no sampler, protocol or tolerance was changed.
+
+The hash-checked source and repeated results are retained under
+`reports/phase4-lm1b-probability-evidence-v1/`. The final source SHA-256 is
+`67485134c99548d0bf3607c485431885d2954797088a62b23dee455afb34ee2d`, and
+the result SHA-256 is
+`1f4a654317577d1e4444389b6b294015fca4ac763ce3fa1b623be15dda605e5e`.
+The script passed Python syntax checking. Run it on the local CUDA device with
+`setpriv --inh-caps=-all env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+.reference/venv/bin/python reports/phase4-lm1b-probability-evidence-v1/ncm-lm1b-sampling-probability-v5.py`.
