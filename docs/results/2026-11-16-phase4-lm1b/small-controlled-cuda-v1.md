@@ -436,3 +436,50 @@ are retained under `reports/phase4-lm1b-controlled-seed16-v1/`. The final
 candidate passed feature-specific Clippy only; full source/device checks,
 quality, performance and Metal qualification have not run for it. It is not
 integrated into the working tree.
+
+## Combined CUDA arithmetic diagnostic and observed-seed retest
+
+An isolated candidate combined the earlier interpolation, area-reduction and
+projection probes with separately scaled Q and K, a bounded warp softmax, and
+separate shared-head projection and bias addition. The latter follows the
+pinned upstream operation order. With the exact pinned Python rotary table,
+both the original seed-11 and second seed-16 controlled histories pass all 51
+tensors under the unchanged comparison. In a same-input seed-16 attention
+probe, the earlier candidate's scaled Q, K and masked scores matched PyTorch,
+but 69,423 softmax probabilities differed; the isolated warp probe matched the
+captured inputs and one synthetic input at each supported sequence length.
+These finite probes do not establish general operator equivalence.
+
+A separate experiment embeds the fixed LM1B table generated from the retained
+Python table (input SHA-256
+`9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc`;
+FP32 table SHA-256
+`249b3e4a363941c9ddcedf832597529610924dd907b3c9e80453af97f8bff954`).
+Without the runtime table override, its seed-11 and seed-16 captures are
+byte-identical to the corresponding exact-table captures, SHA-256
+`473d457f921454f17d4dacda74471dc55ccec839715954b7d6df8509fed1de56` and
+`a3187ea946d56c7a010ac332629b9855255dbc60acddf123763b9b1e7b6f5db4`.
+The table is an unintegrated experimental asset; portability and provenance
+suitability for distribution have not been established. The intrinsic table
+still yields two code differences in the second controlled history.
+
+Five non-held-out development captures of 256 samples each scored exactly
+against the pinned upstream evaluator. The independent seed-bootstrap
+candidate-minus-Python intervals were `[-3.265117, 1.845462]` perplexity and
+`[-0.003810, 0.002015]` entropy. These inspected data are descriptive only.
+The same candidate was then retested against the five **already observed**
+reference seeds with the original scoring and margins. The result fails the
+entropy interval: `[-0.006477315, 0.002497267]` versus `[-0.0046, 0.0046]`;
+the perplexity interval is `[-4.821202, -0.077211]` versus `[-5.46, 5.46]`.
+All five scorer cross-checks matched upstream. This retest is not fresh
+held-out evidence, and neither result qualifies the candidate.
+
+The experimental source snapshot, controls, scores and logs are retained in
+`reports/phase4-lm1b-combined-candidate-v1/`. The source archive SHA-256 is
+`ca15b717903886b535d99fd6cceada7636f62926baff4b91379ecdb0b3d6aff6`;
+the retest summary SHA-256 is
+`9efd1dd2ccfea6add003204567e3b0a832eefd63cf012bf1527bfb79d42866e0`.
+Feature-specific Clippy passed for the isolated candidate. Full regression,
+operator edge-case and device-architecture checks, performance, and Metal
+qualification have not been run for it. No candidate code, model artifact,
+acceptance threshold or quality protocol was changed in the repository.
