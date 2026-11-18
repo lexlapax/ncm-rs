@@ -1,10 +1,15 @@
 //! Synchronized WMT14 Metal generation and memory for one fixed batch.
 use mlx_rs::memory;
 use ncm_backend_mlx::MlxBackend;
-use ncm_core::CodecBackend;
+use ncm_core::{CodecBackend, WeightBackend};
 use ncm_io::{Artifact, sha256};
 use ncm_model::Wmt14Teacher;
-use std::{error::Error, fs, path::Path, time::Instant};
+use std::{
+    error::Error,
+    fs,
+    path::Path,
+    time::{Instant, SystemTime, UNIX_EPOCH},
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
@@ -20,16 +25,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [cache-mib=N] [release-outputs]".into(),
         );
     };
     let mut reusable = false;
     let mut deferred_head = false;
     let mut start_row = None;
+    let mut cache_mib = None;
+    let mut release_outputs = false;
     for opt in extras {
         match opt.as_str() {
             "reusable" if !reusable => reusable = true,
             "deferred-head" if !deferred_head => deferred_head = true,
+            "release-outputs" if !release_outputs => release_outputs = true,
+            opt if cache_mib.is_none() && opt.starts_with("cache-mib=") => {
+                cache_mib = Some(opt[10..].parse::<usize>()?);
+            }
             opt if start_row.is_none() && opt.starts_with("start=") => {
                 start_row = Some(opt[6..].parse::<usize>()?);
             }
@@ -37,6 +48,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     let start_row = start_row.unwrap_or(0);
+    if cache_mib.is_some_and(|mib| mib > 16 * 1024) {
+        return Err("cache limit exceeds diagnostic bound".into());
+    }
+    let cache_limit = cache_mib.map(|mib| mib * 1024 * 1024);
     let guided = match mode.as_str() {
         "0" => false,
         "1" => true,
@@ -74,6 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let prefix: Vec<_> = input.into_iter().flatten().collect();
     drop(doc);
     drop(raw);
+    let previous_cache_limit = cache_limit.map(memory::set_cache_limit).transpose()?;
     let load_start = Instant::now();
     let backend = MlxBackend::gpu()?;
     let model = if reusable {
@@ -89,17 +105,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         model
     };
     let load_seconds = load_start.elapsed().as_secs_f64();
+    let marker = release_outputs
+        .then(|| backend.upload_f32(&[1.0], &[1]))
+        .transpose()?;
     let mut samples = Vec::with_capacity(trials);
+    let mut starts = Vec::with_capacity(trials);
     let mut signature = None;
     for trial in 0..warmups + trials {
+        if trial >= warmups {
+            starts.push(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs_f64());
+        }
         let start = Instant::now();
         let generated = if guided {
             model.generate_cfg_top1(&prefix, batch, 1.0)?
         } else {
             model.generate_top1(&prefix, batch)?
         };
+        if release_outputs {
+            drop(generated.logits);
+        }
         let codes = backend.read_indices(&generated.codes)?;
         let ids = backend.read_indices(&generated.ids)?;
+        if let Some(marker) = &marker {
+            drop(generated.codes);
+            drop(generated.ids);
+            backend.evaluate(&[backend.add(marker, marker)?])?;
+        }
         let elapsed = start.elapsed().as_secs_f64();
         if codes.len() != batch * 313 || ids.len() != batch * 64 {
             return Err("unexpected WMT14 output shape".into());
@@ -121,7 +152,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             "scope": "generation and code/ID readback; model load excluded",
             "load_seconds": load_seconds, "reusable_loader": reusable,
             "deferred_head": deferred_head, "start": start_row,
-            "trials_seconds": samples, "codes": codes, "raw_ids": ids,
+            "release_outputs": release_outputs, "cache_limit_bytes": cache_limit,
+            "prior_cache_limit_bytes": previous_cache_limit,
+            "trial_start_unix_seconds": starts, "trials_seconds": samples, "codes": codes, "raw_ids": ids,
             "mlx_memory": {"active": memory::active_memory()?, "peak": memory::peak_memory()?,
                            "cache": memory::cache_memory()?}
         }),

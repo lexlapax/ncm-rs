@@ -264,3 +264,24 @@ CUDA. Deferred validation reduced pooled medians from 479.39 to
 loader. The retained summary under
 `corpus/owned-loader/phase4-wmt14-mlx-deferred-head-large-v1.5Ol4Vj/`
 hashes to `090d66892f28353159b85afd96744b192549ec6bd28fe07dc28ccf360b1a2a2b`.
+
+## Long-run latency follow-up
+
+The combined Rust candidate passed all pinned output checks at base
+batch 16 in the first repeated comparison. Its three process medians
+were 473.23, 2689.08 and 847.64 ms, compared with 629.93, 629.79 and
+663.85 ms for adapted Python MLX. Rust's pooled median and p95 were
+681.85 and 4479.36 ms, versus 631.73 and 729.33 ms for Python. In the
+slowest Rust process the initial trials were around 0.47 seconds
+and the final ten were above four seconds. Peak process RSS and
+native MLX peak were lower for Rust in the cell.
+
+The three Rust processes retained about 13,911 MiB of MLX cache
+after their final trial. The ending cache measurements are close
+across Rust processes with very different latency profiles.
+The service snapshots and system counters do not identify the source
+of the tail. The timing probe now accepts a process-local
+`cache-mib=N` setting and a separate `release-outputs` mode. The latter
+drops logits before readback and includes code/ID buffer release and a
+GPU barrier in timing. Trial start timestamps can be compared with
+read-only activity snapshots. These controls are opt-in.

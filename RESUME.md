@@ -130,10 +130,13 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Complete the repeated WMT14 Metal performance comparison and the
-   combined CLI and corpus replay. The earlier bounded retry has
-   passing targeted CLI controls and frozen corpus scores. Keep
-   process RSS and native MLX allocator counters visible separately.
+1. Finish the combined WMT14 CLI and corpus replay and retain the
+   repeated Metal comparison. The first four measured cells improve
+   median and process RSS. Base batch 16 has a multi-second Rust
+   latency tail and fails the current timing comparison. The timing
+   probe can test output release and a bounded process-local MLX
+   cache while preserving the original failure. Keep process RSS
+   and native MLX allocator counters visible separately.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the
