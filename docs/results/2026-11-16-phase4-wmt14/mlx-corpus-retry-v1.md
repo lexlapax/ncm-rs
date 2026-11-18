@@ -93,10 +93,11 @@ SHA-256 values follow.
 | Guided retry exact comparison | `874c1ee5ac482b3b17ec4918cd1c50d2dc33ced522be70a4dd5565aaf462287c` |
 | Guided retry frozen scoring | `915cae3bf2351db1f90bd290ebbe79353a4b9bdb91a67cb494d30791403f89bc` |
 
-The bounded retry is available through the capture example. The
-[Metal teacher-forced comparison](teacher-cuda-reference-v1.md#metal-comparison)
-passes all 26 tensors. CLI integration of the retry and paired latency
-and memory qualification remain open.
+The [Metal teacher-forced comparison](teacher-cuda-reference-v1.md#metal-comparison)
+passes all 26 tensors. The CLI exposes the same bounded retry through
+the experimental `mlx-retry-padded` device. The original corpus
+capture predates the shared implementation. Its repeat on the shared
+path and paired latency and memory qualification remain open.
 
 ## Startup memory preparation
 
@@ -131,7 +132,18 @@ before uploading weights, then rechecks file size and hash against
 the same manifest on each reread. A changed file fails the load. The
 normal CLI currently uses the owned loader. The reuse test checks
 allocation identity, byte identity and rejection of a same-size
-changed file. Paired Mac measurements of this candidate are pending.
+changed file.
+
+Three alternating fresh processes per loader at batch 4 matched the
+pinned codes and raw IDs in each mode. Median peak process RSS fell
+from 2122.84 to 1664.75 MiB at CFG zero and from 2123.06 to 1664.77 MiB
+at CFG one. Native MLX peaks were identical per mode. The median model
+load increased from 1.35 to 2.00 seconds in both modes. The Rust-only
+screen used one warmup and two timed batches per process. Its RSS
+landed about 7 MiB above the nearby repeated Python baseline, which
+used longer runs. The same service PID was observed before and after
+the test. Raw evidence is under
+`corpus/owned-loader/phase4-wmt14-mlx-reusable-v1.xGtw9Z/`.
 
 ## Repeated small-batch baseline
 
@@ -154,3 +166,20 @@ at both sizes. The per-process measurements and timing dispersion are
 retained under `corpus/owned-loader/phase4-wmt14-mlx-small-paired-v1.dAjuOA/`
 in the ignored run evidence directory above. The comparison SHA-256 is
 `e71648f7030c5cef0e798dffe30b45524fd6dd21415dbba5a4e09e7e346f6002`.
+
+
+## Parallel head reduction screen
+
+At `b640f8a`, an opt-in Metal selector distributes each 4,096-score
+row across 32 lanes. Its two real-device tests passed, covering ties,
+signed zero, nonfinite scores and a unique maximum at the last index.
+All 12 alternating batch-1 timing processes matched pinned codes
+and raw IDs. With three warmups and 12 timed trials per process, the
+pooled medians changed from 155.37 to 170.06 ms at CFG zero and
+from 201.16 to 207.25 ms at CFG one. The selector is left out of the
+runtime path. The original guard check remains in use.
+
+The ignored evidence under
+`corpus/owned-loader/phase4-wmt14-mlx-simd-head-v1.KX8PET/`
+includes the unchanged service snapshots, compiler logs, test log
+and timing samples.

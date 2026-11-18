@@ -71,6 +71,16 @@ Supply a JSON array of padded 96-token WMT14 prefixes. The CLI accepts up
 to 32 prefixes at the default scale zero and up to 16 at a positive scale.
 It emits 313 intermediate codes and 64 raw token IDs per row. CUDA uses the
 [one-pass final selector](results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md).
+On Apple Silicon, select `mlx-retry-padded` to opt into one bounded
+retry for batches of one to four prefixes. A tied or nonfinite head
+repeats input rows to eight internally. The same head check runs on
+the padded batch and the command returns only the original rows.
+Successful recovery is reported on standard error.
+
+```sh
+ncm sample-wmt14 artifacts/canonical/wmt14-inference-v1-final mlx-retry-padded prefixes.json 1
+```
+
 WMT14 Metal qualification is in progress.
 
 The WMT14 and LM1B checkpoints at the same immutable revision have been fetched to ignored `artifacts/upstream/wmt14-phase4/` and `artifacts/upstream/lm1b-phase4/` and verified against their published SHA-256 values:

@@ -862,6 +862,9 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
 }
 
 #[cfg(feature = "wmt14-experimental")]
+const WMT14_HEAD_REJECTED: &str = "tied or nonfinite WMT14 head maximum is unsupported";
+
+#[cfg(feature = "wmt14-experimental")]
 impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
     pub fn run_traced(
         &self,
@@ -888,6 +891,43 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
     /// Return experimental CFG-zero top-1 outputs for explicit offline validation.
     pub fn generate_top1(&self, prefix_tokens: &[u32], batch: usize) -> Result<Generated<B>> {
         self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, None)
+    }
+
+    /// Try the original input shape first. If the WMT14 head rejects a
+    /// maximum, repeat rows to one batch of eight and return only the originals.
+    /// The second generation uses the same head guard. The flag reports a retry.
+    pub fn generate_top1_with_padded_retry(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+    ) -> Result<(Generated<B>, bool)> {
+        if !(1..=4).contains(&batch) || prefix_tokens.len() != batch * 96 {
+            return Err(Error::Input(
+                "WMT14 padded retry requires one to four prefixes".into(),
+            ));
+        }
+        let generate = |tokens: &[u32], rows| {
+            if scale == 0.0 {
+                self.generate_top1(tokens, rows)
+            } else {
+                self.generate_cfg_top1(tokens, rows, scale)
+            }
+        };
+        match generate(prefix_tokens, batch) {
+            Err(Error::Backend(message)) if message == WMT14_HEAD_REJECTED => {}
+            result => return result.map(|output| (output, false)),
+        }
+        let padded: Vec<_> = prefix_tokens.iter().copied().cycle().take(8 * 96).collect();
+        let output = generate(&padded, 8)?;
+        Ok((
+            Generated {
+                codes: self.backend.narrow_indices(&output.codes, 0, 0, batch)?,
+                logits: self.backend.narrow(&output.logits, 0, 0, batch)?,
+                ids: self.backend.narrow_indices(&output.ids, 0, 0, batch)?,
+            },
+            true,
+        ))
     }
 
     /// Explicit cached base generation in groups of at most four, with host output.
@@ -1256,9 +1296,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             } else {
                 let selected = b.unique_max_4096(&head_logits)?;
                 if b.read_indices(&selected)?.iter().any(|&x| x >= 4096) {
-                    return Err(Error::Backend(
-                        "tied or nonfinite WMT14 head maximum is unsupported".into(),
-                    ));
+                    return Err(Error::Backend(WMT14_HEAD_REJECTED.into()));
                 }
                 if cfg.is_some() {
                     b.concat_indices(&[selected.clone(), selected], 0)?

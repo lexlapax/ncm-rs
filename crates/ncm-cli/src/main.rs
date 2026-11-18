@@ -288,17 +288,31 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     scale: f64,
+    padded_retry: bool,
 ) -> Result<serde_json::Value> {
     if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
         return Err("invalid WMT14 CFG scale".into());
     }
-    let max_batch = if scale == 0.0 { 32 } else { 16 };
+    let max_batch = if padded_retry {
+        4
+    } else if scale == 0.0 {
+        32
+    } else {
+        16
+    };
     if !(1..=max_batch).contains(&inputs.len()) || inputs.iter().any(|row| row.len() != 96) {
         return Err("invalid WMT14 batch size or prefix length".into());
     }
     let prefixes: Vec<_> = inputs.iter().flatten().copied().collect();
     let teacher = ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?;
-    let output = if scale == 0.0 {
+    let output = if padded_retry {
+        let (output, retried) =
+            teacher.generate_top1_with_padded_retry(&prefixes, inputs.len(), scale)?;
+        if retried {
+            eprintln!("WMT14 retried the rejected head with eight internal rows");
+        }
+        output
+    } else if scale == 0.0 {
         teacher.generate_top1(&prefixes, inputs.len())?
     } else {
         teacher.generate_cfg_top1(&prefixes, inputs.len(), scale)?
@@ -337,6 +351,7 @@ fn dispatch_wmt14(
             artifact,
             inputs,
             scale,
+            false,
         ),
         #[cfg(all(
             feature = "wmt14-experimental",
@@ -344,7 +359,13 @@ fn dispatch_wmt14(
             target_os = "macos",
             target_arch = "aarch64"
         ))]
-        "mlx" => sample_wmt14(ncm_backend_mlx::MlxBackend::gpu()?, artifact, inputs, scale),
+        "mlx" | "mlx-retry-padded" => sample_wmt14(
+            ncm_backend_mlx::MlxBackend::gpu()?,
+            artifact,
+            inputs,
+            scale,
+            device == "mlx-retry-padded",
+        ),
         _ => Err("experimental WMT14 requested device is unavailable in this build".into()),
     }
 }
@@ -400,7 +421,7 @@ fn main_impl() -> Result<()> {
         || (args[1] == "sample-tinystories" && args.len() != 6)
         || (args.len() == 7 && args[1] != "sample-xsum")
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx INPUT_JSON [CFG_SCALE]".into());
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx|mlx-retry-padded INPUT_JSON [CFG_SCALE]".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)

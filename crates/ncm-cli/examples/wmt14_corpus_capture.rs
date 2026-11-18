@@ -34,55 +34,32 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
     let mut failed = 0;
     for (index, batch) in rows.chunks(BATCH).enumerate() {
         let start = first + BATCH * index;
-        let mut prefixes: Vec<_> = batch.iter().flatten().copied().collect();
-        let generate = |prefixes: &[u32], n| {
-            if guided {
-                model.generate_cfg_top1(prefixes, n, 1.0)
+        let prefixes: Vec<_> = batch.iter().flatten().copied().collect();
+        let generated = if padded_retry {
+            model.generate_top1_with_padded_retry(&prefixes, batch.len(), f64::from(guided))
+        } else {
+            let result = if guided {
+                model.generate_cfg_top1(&prefixes, batch.len(), 1.0)
             } else {
-                model.generate_top1(prefixes, n)
-            }
+                model.generate_top1(&prefixes, batch.len())
+            };
+            result.map(|output| (output, false))
         };
-        let mut generated = generate(&prefixes, batch.len());
-        let retried = padded_retry
-            && matches!(&generated, Err(ncm_core::Error::Backend(message))
-                if message == "tied or nonfinite WMT14 head maximum is unsupported");
-        let generated_count = if retried { 8 } else { batch.len() };
-        if retried {
-            eprintln!("batch {start}: retrying rejected head with eight internal rows");
-            prefixes.extend(
-                batch
-                    .iter()
-                    .cycle()
-                    .take(8 - batch.len())
-                    .flatten()
-                    .copied(),
-            );
-            generated = generate(&prefixes, generated_count);
-        }
         let record = match generated {
-            Ok(generated) => {
+            Ok((generated, retried)) => {
                 let codes = backend.read_indices(&generated.codes)?;
                 let ids = backend.read_indices(&generated.ids)?;
-                if codes.len() != generated_count * 313 || ids.len() != generated_count * 64 {
+                if codes.len() != batch.len() * 313 || ids.len() != batch.len() * 64 {
                     return Err("unexpected WMT14 output shape".into());
                 }
-                let codes: Vec<_> = codes
-                    .as_chunks::<313>()
-                    .0
-                    .iter()
-                    .take(batch.len())
-                    .map(<[u32; 313]>::as_slice)
-                    .collect();
-                let ids: Vec<_> = ids
-                    .as_chunks::<64>()
-                    .0
-                    .iter()
-                    .take(batch.len())
-                    .map(<[u32; 64]>::as_slice)
-                    .collect();
+                let codes = codes.as_chunks::<313>().0;
+                let ids = ids.as_chunks::<64>().0;
+                let codes: Vec<_> = codes.iter().map(<[u32; 313]>::as_slice).collect();
+                let ids: Vec<_> = ids.iter().map(<[u32; 64]>::as_slice).collect();
                 let mut record = serde_json::json!({"start": start, "count": batch.len(), "codes": codes, "raw_ids": ids});
                 if retried {
-                    record["internal_retry_batch"] = serde_json::json!(generated_count);
+                    eprintln!("batch {start}: recovered rejected head with eight internal rows");
+                    record["internal_retry_batch"] = serde_json::json!(8);
                 }
                 record
             }

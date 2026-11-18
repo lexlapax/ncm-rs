@@ -79,10 +79,13 @@ pushes needed for Mac work via pulls. Before every commit include an updated
   recovered one rejected batch in each mode. Both frozen scoring
   environments passed on all 3,003 rows. Guided codes and both modes'
   raw IDs match exactly. Base row 632 retains 13 intermediate code
-  differences. The bounded retry is exposed by the capture example.
+  differences. The experimental CLI and capture example share the
+  bounded retry, with device validation of the shared path pending.
   The [Metal teacher-forced comparison](docs/results/2026-11-16-phase4-wmt14/teacher-cuda-reference-v1.md#metal-comparison)
   passes all 26 tensors. The Mac owned loader still peaks near 2,110 MiB.
-  A reusable checked host buffer is available in the timing probe.
+  The optional reusable buffer lowers Mac peak RSS by about 458 MiB
+  and adds about 0.65 seconds to model load. The measured peak is
+  still about 7 MiB above the nearby repeated Python baseline.
 - LM1B-small CUDA's frozen held-out quality comparison fails: the entropy
   confidence interval lower endpoint is -0.007118 versus -0.0046. Its five
   held-out seeds are observed; a rerun is a retest, not fresh held-out data.
@@ -122,8 +125,7 @@ pushes needed for Mac work via pulls. Before every commit include an updated
 
 ## Next actions
 
-1. Complete WMT14 Metal CLI integration of the explicit bounded retry
-   and paired latency and memory
+1. Verify WMT14 Metal CLI recovery and complete paired latency and memory
    qualification. Both modes have passing frozen corpus scores for
    the capture candidate.
 2. Resolve the separate LM1B-small frozen quality failure without silently
