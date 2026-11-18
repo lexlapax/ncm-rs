@@ -323,6 +323,7 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     } else {
         teacher.generate_cfg_top1(&prefixes, inputs.len(), scale)?
     };
+    drop(output.logits);
     let codes = backend.read_indices(&output.codes)?;
     let ids = backend.read_indices(&output.ids)?;
     if codes.len() != inputs.len() * 313 || ids.len() != inputs.len() * 64 {

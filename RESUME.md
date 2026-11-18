@@ -139,7 +139,12 @@ pushes needed for Mac work via pulls. Before every commit include an updated
    Linux CUDA modes match all 3,003 rows and pass both frozen scorer
    environments. A separate [CUDA timing control](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md#cuda-deferred-head-check-comparison)
    found no material median benefit from deferring the guard, so the
-   CUDA CLI uses immediate checks. Metal verification remains open.
+   CUDA CLI uses immediate checks. The CLI and recorder release the
+   unused decoder-logit handle before reading codes and IDs. The
+   [tracked JSONL verifier](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#replaying-a-batchwise-capture)
+   reproduces the earlier comparisons. The Metal probe can measure
+   early release separately from synchronization and cache limits.
+   Metal verification remains open.
 2. Resolve the separate LM1B-small frozen quality failure without silently
    changing its protocol, and complete the remaining profile gates in the
    approved order. If a protocol decision is genuinely necessary, present the

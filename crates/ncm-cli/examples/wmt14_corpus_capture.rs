@@ -53,6 +53,7 @@ fn capture<B: ncm_core::GeneratorBackend + Clone>(
         };
         let record = match generated {
             Ok((generated, retried)) => {
+                drop(generated.logits);
                 let codes = backend.read_indices(&generated.codes)?;
                 let ids = backend.read_indices(&generated.ids)?;
                 if codes.len() != batch.len() * 313 || ids.len() != batch.len() * 64 {

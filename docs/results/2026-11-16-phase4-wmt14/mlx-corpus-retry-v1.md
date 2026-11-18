@@ -318,3 +318,46 @@ of the tail. The timing probe now accepts a process-local
 drops logits before readback and includes code/ID buffer release and a
 GPU barrier in timing. Trial start timestamps can be compared with
 read-only activity snapshots. These controls are opt-in.
+
+## Replaying a batchwise capture
+
+Use the checked artifact and the pinned 3,003-row prefix fixture. The
+recorder writes one JSONL record per group of four prefixes, including
+the final three-row group. The verifier binds the base or guided
+reference to its frozen SHA-256, checks the requested range, and
+records exact code and raw-ID disagreements, rejected batches and
+padded retries. It writes the receipt before exiting with status 1
+for a valid capture that has any disagreement or rejection.
+
+```sh
+target/release/examples/wmt14_corpus_capture ARTIFACT mlx-retry-padded PREFIXES CAPTURE.jsonl 1 0 3003
+python3 tools/reference/compare_wmt14_corpus_capture.py REFERENCE.json CAPTURE.jsonl RECEIPT.json --cfg 1
+```
+
+For a targeted replay, pass the recorder's start and count to the
+verifier with `--start` and `--count`. The verifier also accepts
+CUDA recorder output and runs with the Python standard library.
+
+The WMT14 CLI and recorder now release their own decoder-logit
+handle before reading codes and IDs. A backend can still hold the
+tensor through the ID selection dependency. The Metal timing
+example's `drop-logits` option reproduces the CLI and recorder's
+release point. Its separate `release-outputs` option also measures
+output release and a GPU barrier. Real-device Metal performance
+and allocation effects of this change remain unmeasured.
+
+On Linux CUDA, the release was verified on 24 targeted CLI rows
+and 30 recorder rows in both modes, including the three-row tail.
+The CLI also matched all 48 reference rows at the maximum base
+batch of 32 and guided batch of 16. Feature-specific release build
+and Clippy passed. The full Linux check passed 18 real CUDA
+operator cases. Raw results are in
+`reports/phase4-wmt14-release-logits-cuda-v1.hRpXNM/`.
+
+The verifier reproduced both earlier full CUDA comparisons and
+both retained native and padded Metal comparisons. It retained
+the native rejected batches and the 13 intermediate base-code
+differences at row 632 after retry. The focused tests covered
+missing groups, reordered rows, malformed retries and output
+values outside the declared vocabularies. Supplying the base
+reference for a guided comparison was rejected.

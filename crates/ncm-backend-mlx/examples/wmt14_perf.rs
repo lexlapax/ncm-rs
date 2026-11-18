@@ -25,19 +25,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     ] = args.as_slice()
     else {
         return Err(
-            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [cache-mib=N] [release-outputs]".into(),
+            "usage: wmt14_perf ARTIFACT PREFIXES 0|1 BATCH WARMUPS TRIALS [reusable] [deferred-head] [start=N] [cache-mib=N] [drop-logits|release-outputs]".into(),
         );
     };
     let mut reusable = false;
     let mut deferred_head = false;
     let mut start_row = None;
     let mut cache_mib = None;
+    let mut drop_logits = false;
     let mut release_outputs = false;
     for opt in extras {
         match opt.as_str() {
             "reusable" if !reusable => reusable = true,
             "deferred-head" if !deferred_head => deferred_head = true,
-            "release-outputs" if !release_outputs => release_outputs = true,
+            "drop-logits" if !drop_logits && !release_outputs => drop_logits = true,
+            "release-outputs" if !drop_logits && !release_outputs => release_outputs = true,
             opt if cache_mib.is_none() && opt.starts_with("cache-mib=") => {
                 cache_mib = Some(opt[10..].parse::<usize>()?);
             }
@@ -121,7 +123,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else {
             model.generate_top1(&prefix, batch)?
         };
-        if release_outputs {
+        if drop_logits || release_outputs {
             drop(generated.logits);
         }
         let codes = backend.read_indices(&generated.codes)?;
@@ -152,6 +154,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             "scope": "generation and code/ID readback; model load excluded",
             "load_seconds": load_seconds, "reusable_loader": reusable,
             "deferred_head": deferred_head, "start": start_row,
+            "drop_logits": drop_logits || release_outputs,
             "release_outputs": release_outputs, "cache_limit_bytes": cache_limit,
             "prior_cache_limit_bytes": previous_cache_limit,
             "trial_start_unix_seconds": starts, "trials_seconds": samples, "codes": codes, "raw_ids": ids,

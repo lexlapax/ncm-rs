@@ -2,7 +2,6 @@
 import argparse
 import json
 from pathlib import Path
-from tinystories_artifact import digest_file, json_file
 
 
 def compare(reference, actual, start, count):
@@ -26,6 +25,8 @@ def compare(reference, actual, start, count):
 
 
 def main():
+    from tinystories_artifact import digest_file, json_file
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('reference', type=Path)
     parser.add_argument('candidate', type=Path)
