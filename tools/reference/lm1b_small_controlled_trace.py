@@ -75,6 +75,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--upstream-convolution-precision', action='store_true',
                         help='use the pinned evaluator CUDA convolution settings in this controlled trace')
+    parser.add_argument('--controlled-seed', type=int, choices=(11, 16), default=11)
     args = parser.parse_args()
     out = args.output.resolve()
     if args.output.is_symlink() or out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
@@ -148,7 +149,7 @@ def main():
         raise ValueError('unexpected level geometry')
     all_codes = torch.tensor(code_rows, dtype=torch.int64, device='cuda')
     forced = list(all_codes.split(levels, dim=1))
-    rng = ControlledRandom(11)
+    rng = ControlledRandom(args.controlled_seed)
     initial = torch.tensor([[rng.choose(generator_state['inference']['level0_unigram'].tolist())] for _ in range(2)], dtype=torch.int64, device='cuda')
     calls = [1]
     def record_sample(logits, temperature, top_k, top_p):
@@ -203,6 +204,8 @@ def main():
               'gpu_identity_and_driver': gpu[0], 'gpu_name': torch.cuda.get_device_name(0),
               'tf32': False, 'sdpa': 'math', 'code_reference_sha256': PREFIX_SHA,
               'trace_sha256': digest_file(out / 'trace.safetensors'), 'tensors': sorted(traces)}
+    if args.controlled_seed != 11:
+        report['controlled_seed'] = args.controlled_seed
     if args.upstream_convolution_precision:
         report['cudnn_convolution'] = {'allow_tf32': True, 'benchmark': False, 'deterministic': False,
                                        'legacy_api_requested': cudnn_api_override == '1'}

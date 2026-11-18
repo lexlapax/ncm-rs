@@ -14,13 +14,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, input, input_sha, options @ ..] = args.as_slice() else {
         return Err(
-            "usage: lm1b_small_fixed_code_decode ARTIFACT CODES INPUT_SHA256 [cudnn-default-math]"
+            "usage: lm1b_small_fixed_code_decode ARTIFACT CODES INPUT_SHA256 [cudnn-default-math|cudnn-graph]"
                 .into(),
         );
     };
-    let use_default_math = match options {
-        [] => false,
-        [option] if option == "cudnn-default-math" => true,
+    let mode = match options {
+        [] => "",
+        [option] if ["cudnn-default-math", "cudnn-graph"].contains(&option.as_str()) => option,
         _ => return Err("invalid fixed-code decode option".into()),
     };
     if sha256(&fs::read(Path::new(artifact).join("manifest.json"))?)
@@ -56,10 +56,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         .copied()
         .map(f32::from_le_bytes)
         .collect();
-    let backend = if use_default_math {
-        CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
-    } else {
-        CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
+    let backend = match mode {
+        "cudnn-graph" => CandleBackend::cuda_lm1b_cudnn_graph_experimental(0)?,
+        "cudnn-default-math" => CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?,
+        _ => CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?,
     };
     let allowance = backend.upload_f32(&allowance, &[30528])?;
     let codec = Codec::from_lm1b_small_artifact_experimental(backend.clone(), &artifact)?;

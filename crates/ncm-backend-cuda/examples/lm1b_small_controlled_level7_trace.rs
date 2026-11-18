@@ -28,11 +28,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     assert_eq!(capture::tolerance("decode.logits"), (5e-4, 2e-4));
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, reference, output, options @ ..] = args.as_slice() else {
-        return Err("usage: lm1b_small_controlled_level7_trace ARTIFACT REFERENCE OUTPUT [cudnn-default-math]".into());
+        return Err("usage: lm1b_small_controlled_level7_trace ARTIFACT REFERENCE OUTPUT [cudnn-default-math|cudnn-graph [16]]".into());
     };
-    let use_default_math = match options {
-        [] => false,
-        [option] if option == "cudnn-default-math" => true,
+    let (math, seed) = match options {
+        [] => ("", 11),
+        [option] if ["cudnn-default-math", "cudnn-graph"].contains(&option.as_str()) => {
+            (option.as_str(), 11)
+        }
+        [option, seed] if option == "cudnn-graph" && seed == "16" => (option.as_str(), 16),
         _ => return Err("invalid LM1B trace option".into()),
     };
     let artifact_path = Path::new(artifact);
@@ -59,7 +62,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let input = reference_tensors.tensor("generator.prefix_ids")?;
     let tokens = indices(input.clone())?;
     let artifact = Artifact::load_inference(artifact_path)?;
-    let backend = if use_default_math {
+    let backend = if math == "cudnn-graph" {
+        CandleBackend::cuda_lm1b_cudnn_graph_experimental(0)?
+    } else if math == "cudnn-default-math" {
         CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
     } else if std::env::var_os("NCM_LM1B_QKV_DIAGNOSTIC").is_some() {
         CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
@@ -91,7 +96,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let b = &backend;
     let mut captured = Captured::default();
-    let result = teacher.sample_seeded_traced(&tokens, input.shape()[0], 11, &mut captured)?;
+    let result = teacher.sample_seeded_traced(&tokens, input.shape()[0], seed, &mut captured)?;
     // The shared head projects without bias and adds the level-specific bias
     // afterward. Check that ordering using the actual captured hidden state.
     let weights = artifact.file("generator.safetensors")?;
@@ -121,11 +126,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     {
         return Err("returned sample differs from trace".into());
     }
-    let untraced = teacher.sample_seeded(&tokens, input.shape()[0], 11)?;
+    let untraced = teacher.sample_seeded(&tokens, input.shape()[0], seed)?;
     if b.read_indices(&result.codes)? != b.read_indices(&untraced.codes)?
         || result.ids != untraced.ids
     {
         return Err("untraced sample differs from trace".into());
+    }
+    if math == "cudnn-graph" {
+        let device = teacher.sample_seeded_fully_device(&tokens, input.shape()[0], seed)?;
+        if b.read_indices(&device.codes)? != b.read_indices(&result.codes)?
+            || device.ids != result.ids
+        {
+            return Err("device sampling differs from the controlled trace".into());
+        }
     }
     let codec_stages = initial_codec_stages(b, artifact.file("codec.safetensors")?, &captured)?;
     let mut all = BTreeMap::new();

@@ -132,9 +132,16 @@ Before every commit include an updated
    difference to level-zero residual convolution. The
    [graph and resampling replay](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#graph-convolution-and-interpolation-replay)
    matches all 51 controlled tensors, both complete sampled rows and every
-   codec reconstruction. It uses synchronous graph dispatch. Reuse plans
-   and handles within a bounded cache and check a second development
-   history before measuring the candidate against the existing gates.
+   codec reconstruction. The [cached graph candidate](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#cached-cudnn-graph-candidate)
+   repeats that result and passes a second development history with math
+   attention. It is 14–28% faster at the median than pinned Python in the
+   paired screen. The [observed-seed retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#cached-cudnn-graph-observed-seed-retest)
+   again passes perplexity and misses the entropy interval at
+   `[-0.006796252, -0.000604899]`. The
+   [default-attention control](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#default-pytorch-attention-control)
+   identifies efficient SDPA as the source of the first remaining controlled
+   draw difference, at level 6. Replay the efficient attention operator
+   on identical Q/K/V and masks before further sampler changes.
 2. Complete the remaining LM1B-small gates before medium and large in the
    approved order. Any new acceptance protocol needs explicit review.
 3. For each changed runtime, run the applicable full checks and reproducible

@@ -356,3 +356,41 @@ This compares the immediate pre-change source because earlier reported
 Rust captures used different model revisions. The paired strict captures
 are retained next to the retest. The new performance comparison is
 in the [repeated capacity report](small-cuda-capacity-screen-v1.md#repeated-cudnn-default-math-candidate).
+
+### Cached cuDNN graph observed-seed retest
+
+The cached graph mode runs the validated graph convolution with fused
+linear interpolation and reciprocal area pooling. Both controlled
+histories pass all 51 tensor checks with math attention. Decoding the same 2,560 archived
+code rows matches all 327,680 token IDs in the hash-verified pinned
+Python replay. This checks decoder output on existing rows across the
+two code sources. [Controlled results](small-controlled-cuda-v1.md#cached-graph-and-second-development-history)
+
+The five previously observed quality seeds were regenerated with
+`lm1b_small_heldout_capture` and the explicit trailing `cudnn-graph` option.
+The original Python captures and scores match the frozen receipts.
+The original scorer agrees with the pinned upstream evaluator on
+all five new capture scores.
+
+| Seed | Rust perplexity | Rust entropy (nats) |
+| ---: | ---: | ---: |
+| 42 | 89.070636 | 4.30765806 |
+| 0 | 91.961206 | 4.31181687 |
+| 1 | 95.470849 | 4.31336626 |
+| 2 | 93.949506 | 4.31061902 |
+| 3 | 91.924243 | 4.31137582 |
+
+Both perplexity checks pass. The mean Rust minus Python perplexity
+difference is `-3.396427`, with interval `[-5.970191, -0.868564]`.
+Mean entropy differs by `-0.003736486` nats. Its 95% interval
+`[-0.006796252, -0.000604899]` extends below the frozen
+`-0.0046` lower bound and the comparator exits 1. The existing
+held-out failure remains authoritative.
+
+The commands, captures, scores and repeated summary are under
+`reports/phase4-lm1b-cached-graph-v1.UJFuiB/`. The retest binary
+SHA-256 is `f6e886b332ff59039e780b5b7f7095744a20a9cfdca5142e30df31ecacb828fa`.
+The summary repeats byte for byte at
+`74031c5d2435af5c2084e252131bc0ca5a6e2d1cd9340ab620e4ee6a21eb3c74`.
+The separate performance screen measures better latency and peak RSS
+than pinned Python at all three batch sizes. [Cached graph timing](small-cuda-capacity-screen-v1.md#cached-cudnn-graph-candidate)

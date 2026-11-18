@@ -844,3 +844,72 @@ before releasing them. The runtime tree was restored after the experiment.
 A performance candidate needs a bounded reusable plan and handle, additional
 development-history checks and the standard device regressions. The original
 held-out quality and performance gates still apply.
+
+### Cached graph and second development history
+
+The experimental backend supplies the same fused resampling operations and
+selects the first instant-heuristic graph plan. It caches plans by batch
+and width on a single CUDA stream. cuDNN calls on the reusable handle
+are serialized. Each launch holds CUDA access guards through submission.
+Plans remain alive until stream completion before eviction or destruction.
+A backend clone starts with its own empty graph state. [cuDNN graph API](https://docs.nvidia.com/deeplearning/cudnn/backend/v9.13.0/api/cudnn-graph-library.html)
+
+Use the controlled commands above with the trailing Rust option
+`cudnn-graph`. The seed-11 Rust trace and its initial codec capture repeat
+the synchronous prototype byte for byte. For the second history, append
+`--controlled-seed 16` to the Python command and `16` after the Rust
+`cudnn-graph` option. Both captures use the same pinned prefixes and
+a different deterministic sequence of draws. With PyTorch forced to math attention, each of the two development
+histories passed all 51 checks under the existing bounds, matching all
+1,282 sampled codes, 256 greedy IDs, 256 penalized IDs and every reconstruction
+value per history. The largest final-logit differences are
+`1.907348633e-5` and `2.002716064e-5`, respectively.
+
+The raw traces and comparison summaries are retained at
+`reports/phase4-lm1b-cached-graph-v1.UJFuiB/`. The summaries
+`comparison-seed11.json` and `comparison-seed16.json` bind the Rust and
+Python capture hashes. Their SHA-256 values are
+`f3fff7bca29329abfa8dd248b42875496021fb0a8e47d5b81c0396fb5f621729`
+and `25cb28eb40bd3db832d35d5296cf5f67e500bbea0519b57fb614e26a3a7838f0`.
+The paired timing and allocator screen is recorded separately.
+[Cached graph timing](small-cuda-capacity-screen-v1.md#cached-cudnn-graph-candidate)
+
+
+On both histories the fully device-resident generator matches the codes and
+IDs from the traced CPU-sampling path. The device traces repeat byte for
+byte after hardening the native handle initialization failure path. The
+Linux host suite passed all 532 report tests, the standard CUDA probe
+passed 18 cases, and all four real-device cuDNN lifecycle tests passed.
+The graph lifecycle case submits 20 shapes and revisits cached widths,
+checks the queued output values, and drops the backend on another host
+thread. Feature-specific Clippy passes.
+
+### Default PyTorch attention control
+
+The frozen Python capture leaves attention dispatch at its default. A
+separate controlled seed-11 capture preserved the evaluator convolution
+settings and let Torch select its attention kernel. On this device its
+CPU profiler observed 136 calls to the CUDA efficient attention operator
+and no math attention calls. Against this reference the cached Rust
+candidate has 25 of 51 tensors outside the existing bounds. Their sampled
+codes first differ at level 6, row 0, position 27. This is a comparison with
+the same controlled draws and is separate from the held-out score.
+
+In the Python-only control, switching attention dispatch reproduces the
+same first sampled-code difference. The preceding reconstruction and
+the inputs and outputs of the level-6 post-upsampling convolution are
+bit-identical. The disputed logits differ by up to `2.670288086e-5`.
+The common uniform draw is `0.23733242566231638`. The cumulative
+probability through code 2668 is `0.23733223839194803` with math
+attention and `0.23733243634480927` with default efficient attention.
+The draw selects 2669 and 2668, respectively.
+
+The retained `control-default-sdpa.py` runs with the same reference
+arguments and the retained `default-sdpa-first-draw.py` reproduces the
+draw calculation. The default-attention graph comparison and first-draw
+summary have SHA-256 values
+`8e80d2d7cbd44d36b42f67c4b7d6249cf6c7dfcf96d2d508a9fe11668dbe8f76`
+and `3faa7faa4e3dea2491f8d99ebc0811c12605d108d6c3ba72948b1f02d7fd871f`.
+The first remaining model-level discrepancy is now localized to the
+attention dispatch. It does not establish the cause of the entropy
+interval failure across independent sample streams.

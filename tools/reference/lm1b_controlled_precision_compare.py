@@ -63,6 +63,7 @@ def main():
              'rust_default': args.rust_default}
     before = {name: digest_file(path) for name, path in paths.items()}
     if (before['python_strict'] != REFERENCE or receipt['trace_sha256'] != before['python_evaluator']
+            or receipt.get('controlled_seed', 11) != 11
             or receipt['upstream'] != UPSTREAM or receipt['code_reference_sha256'] != PREFIX_SHA
             or receipt['checkpoint_sha256'] != {name: sha for name, (_, sha) in INPUTS.items()}
             or receipt['tf32'] is not False or receipt['sdpa'] != 'math'

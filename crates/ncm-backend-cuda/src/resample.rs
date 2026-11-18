@@ -98,6 +98,15 @@ impl Prepared {
         })
     }
     pub(crate) fn apply(&self, x: &Tensor) -> Result<Tensor> {
+        self.apply_with_reciprocal(x, false)
+    }
+
+    #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+    pub(crate) fn apply_lm1b_diagnostic(&self, x: &Tensor) -> Result<Tensor> {
+        self.apply_with_reciprocal(x, true)
+    }
+
+    fn apply_with_reciprocal(&self, x: &Tensor, reciprocal: bool) -> Result<Tensor> {
         let x = x.contiguous()?;
         match &self.geometry {
             Geometry::Linear {
@@ -117,11 +126,16 @@ impl Prepared {
                 width,
             } => {
                 let (batch, _, channels) = x.dims3()?;
-                x.index_select(indices, 1)?
+                let sum = x
+                    .index_select(indices, 1)?
                     .reshape((batch, *output, *width, channels))?
                     .broadcast_mul(mask)?
-                    .sum(2)?
-                    .broadcast_div(divisor)
+                    .sum(2)?;
+                if reciprocal {
+                    sum.broadcast_mul(&divisor.recip()?)
+                } else {
+                    sum.broadcast_div(divisor)
+                }
             }
         }
     }

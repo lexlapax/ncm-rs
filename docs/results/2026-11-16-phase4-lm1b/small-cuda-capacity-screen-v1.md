@@ -208,3 +208,53 @@ from the immediate pre-change benchmark. The final Linux
 `tools/check.sh --cuda` suite passed all 532 report tests and 18
 real-device operator cases. Its log hashes to
 `91946353d44f7a720209691f9da4410a7d34a16e51cbe02ea763d2f1b2c5beaa`.
+
+### Cached cuDNN graph candidate
+
+The experimental CUDA backend reuses one stream-bound graph handle, up to 16
+plans, and one growable workspace capped at 128 MiB. It drains the stream
+before plan eviction and cache destruction. Fused linear interpolation and
+reciprocal area pooling match the controlled graph reference.
+[Controlled replay](small-controlled-cuda-v1.md#cached-graph-and-second-development-history)
+
+Use the earlier repeated command with `--rust-cudnn-graph` and a new
+output path. All 18 fresh processes completed, with identical within-runtime
+output signatures across repetitions. The comparison timed 90 requests per
+runtime at each batch size. The run precedes a handle initialization failure-path
+cleanup. The successful launch and sampling paths are the same.
+
+| Batch | Runtime | Median (ms) | p95 (ms) | Peak RSS (MiB) | Model load (s) |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Rust | 44.63 | 47.18 | 1536.80 | 1.273 |
+| 1 | Pinned Python | 62.40 | 65.24 | 2551.58 | 1.182 |
+| 4 | Rust | 109.47 | 112.43 | 1537.67 | 1.272 |
+| 4 | Pinned Python | 134.07 | 137.19 | 2542.13 | 1.204 |
+| 16 | Rust | 370.22 | 373.28 | 1541.21 | 1.268 |
+| 16 | Pinned Python | 432.14 | 435.14 | 2520.27 | 1.189 |
+
+Rust's median latency is 28.5%, 18.3% and 14.3% lower at batches 1, 4
+and 16. The same cells give lower Rust p95 and peak RSS, with longer
+Rust model load. The native allocators report the following medians in MiB.
+
+| Batch | Runtime | Final used | Peak used | Final reserved | Peak reserved |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Rust CUDA default pool | 804.87 | 838.73 | 832.00 | 864.00 |
+| 1 | PyTorch caching allocator | 993.50 | 1296.45 | 1382.00 | 1382.00 |
+| 4 | Rust CUDA default pool | 807.12 | 942.19 | 832.00 | 1056.00 |
+| 4 | PyTorch caching allocator | 1096.39 | 1799.87 | 1914.00 | 1914.00 |
+| 16 | Rust CUDA default pool | 810.12 | 1350.03 | 896.00 | 1696.00 |
+| 16 | PyTorch caching allocator | 1605.52 | 4121.64 | 4792.00 | 4792.00 |
+
+The graph treatment used more pool memory than the earlier default-math
+candidate. These are allocator-specific counters from separate fresh
+process runs. Model and process telemetry is retained separately in
+`reports/phase4-lm1b-cached-graph-v1.UJFuiB/timing/`.
+The manifest SHA-256 is
+`f3a366cda8fed236df63b3b418434307000145c4a1baa58544b1bb6291754a58`.
+The result SHA-256 is
+`73827dbae10066ff928205d2cb49c967ad02615e1d9097cb69538769ed0e79c3`.
+
+Across 164 GPU telemetry snapshots, queries recorded no failures. The
+median sampled process maxima for Rust and Python were 1,034/1,550 MiB,
+1,226/2,082 MiB and 1,866/4,960 MiB at batches 1, 4 and 16. Rust batch
+one had two process observations per run. [Observed-seed quality](small-heldout-cuda-v1.md#cached-cudnn-graph-observed-seed-retest)

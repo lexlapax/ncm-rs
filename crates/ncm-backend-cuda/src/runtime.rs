@@ -37,6 +37,11 @@ impl Clone for CandleBackend {
             {
                 cloned.cudnn_algorithms.allow_default_math =
                     self.cudnn_algorithms.allow_default_math;
+                cloned.cudnn_algorithms.graph_forward = self
+                    .cudnn_algorithms
+                    .graph_forward
+                    .as_ref()
+                    .map(|_| Default::default());
             }
             cloned.xsum_reference = self.xsum_reference;
             #[cfg(feature = "cuda")]
@@ -150,6 +155,13 @@ impl CandleBackend {
         backend.cudnn_algorithms.allow_default_math = true;
         Ok(backend)
     }
+    /// LM1B development diagnostic for cuDNN graph forward convolution.
+    #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+    pub fn cuda_lm1b_cudnn_graph_experimental(ordinal: usize) -> Result<Self> {
+        let mut backend = Self::cuda_lm1b_cudnn_default_math_experimental(ordinal)?;
+        backend.cudnn_algorithms.graph_forward = Some(Default::default());
+        Ok(backend)
+    }
     /// Explicit experimental WMT14 reference-order initial reconstruction.
     #[cfg(feature = "cuda-cudnn")]
     pub fn cuda_wmt14_reference(ordinal: usize) -> Result<Self> {
@@ -224,6 +236,10 @@ impl CandleBackend {
         // Cache lock is released before executing the operator. Plans retain only
         // immutable geometry; activations and outputs remain request-local.
         match plan {
+            #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+            Some(plan) if area && self.cudnn_algorithms.graph_forward.is_some() => {
+                plan.apply_lm1b_diagnostic(x)
+            }
             Some(plan) => plan.apply(x),
             None => x.contiguous(),
         }

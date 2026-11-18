@@ -457,7 +457,16 @@ impl CodecBackend for CandleBackend {
         op!(self, [x], { self.resample(x, length, true) })
     }
     fn linear1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
-        op!(self, [x], { self.resample(x, length, false) })
+        op!(self, [x], {
+            #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
+            if self.cudnn_algorithms.graph_forward.is_some()
+                && length == 128
+                && matches!(x.dims(), [batch, input, 384] if (1..=32).contains(batch) && [8, 16, 24, 32, 40, 52, 64, 76, 92, 108].contains(input))
+            {
+                return crate::lm1b_linear_fma::apply(self, x);
+            }
+            self.resample(x, length, false)
+        })
     }
     fn evaluate(&self, xs: &[Tensor]) -> Result<()> {
         op!(self, [], {

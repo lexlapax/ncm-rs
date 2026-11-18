@@ -23,12 +23,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact_path, seed, output, options @ ..] = args.as_slice() else {
         return Err(
-            "usage: lm1b_small_heldout_capture ARTIFACT SEED OUTPUT [cudnn-default-math]".into(),
+            "usage: lm1b_small_heldout_capture ARTIFACT SEED OUTPUT [cudnn-default-math|cudnn-graph]".into(),
         );
     };
-    let use_default_math = match options {
-        [] => false,
-        [option] if option == "cudnn-default-math" => true,
+    let convolution = match options {
+        [] => None,
+        [option] if option == "cudnn-default-math" => Some("cuDNN default math"),
+        [option] if option == "cudnn-graph" => Some("cuDNN graph"),
         _ => return Err("invalid LM1B capture option".into()),
     };
     let seed = heldout_seed(seed.parse()?)?;
@@ -55,10 +56,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     if rope_path.is_none() {
         return Err("explicit diagnostic rotary tables required".into());
     }
-    let backend = if use_default_math {
-        CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?
-    } else {
-        CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?
+    let backend = match convolution {
+        Some("cuDNN graph") => CandleBackend::cuda_lm1b_cudnn_graph_experimental(0)?,
+        Some(_) => CandleBackend::cuda_lm1b_cudnn_default_math_experimental(0)?,
+        None => CandleBackend::cuda_lm1b_qkv_reference_experimental(0)?,
     };
     let mut model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?;
     if let Some(path) = &rope_path {
@@ -113,9 +114,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         "penalty": "CUDA FP64",
         "artifact_manifest_sha256": "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76", "binary_sha256": binary_sha256,
         "codes": codes, "raw_ids": raw_ids});
-    if use_default_math {
-        report["convolution_math"] = serde_json::json!("cuDNN default math");
-        report["scope"] = serde_json::json!("observed-seed experimental cuDNN default-math retest");
+    if let Some(convolution) = convolution {
+        report["convolution_math"] = serde_json::json!(convolution);
+        let scope = if convolution == "cuDNN graph" {
+            "observed-seed experimental cuDNN graph retest"
+        } else {
+            "observed-seed experimental cuDNN default-math retest"
+        };
+        report["scope"] = serde_json::json!(scope);
     }
     if rope_path.is_some() {
         report["diagnostic"] = serde_json::json!({"rotary_tables_sha256": "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc", "backend": "reference operators with 1 MiB QKV preference"});

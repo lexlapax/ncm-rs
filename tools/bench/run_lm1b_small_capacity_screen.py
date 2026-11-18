@@ -48,11 +48,17 @@ def main():
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--reference-rope-diagnostic', type=Path)
     p.add_argument('--repeated', action='store_true')
-    p.add_argument('--rust-cudnn-default-math', action='store_true')
+    modes = p.add_mutually_exclusive_group()
+    modes.add_argument('--rust-cudnn-default-math', action='store_true')
+    modes.add_argument('--rust-cudnn-graph', action='store_true')
     args = p.parse_args()
-    if args.rust_cudnn_default_math and args.reference_rope_diagnostic is None:
-        p.error('--rust-cudnn-default-math requires --reference-rope-diagnostic')
-    convolution_math = 'cuDNN default math' if args.rust_cudnn_default_math else 'strict FMA'
+    if (args.rust_cudnn_default_math or args.rust_cudnn_graph) and args.reference_rope_diagnostic is None:
+        p.error('experimental cuDNN modes require --reference-rope-diagnostic')
+    rust_mode, convolution_math = None, 'strict FMA'
+    if args.rust_cudnn_graph:
+        rust_mode, convolution_math = 'cudnn-graph', 'cuDNN graph'
+    elif args.rust_cudnn_default_math:
+        rust_mode, convolution_math = 'cudnn-default-math', 'cuDNN default math'
     warmups, trials = (5, 30) if args.repeated else (2, 8)
     out = args.output.resolve()
     if out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
@@ -99,8 +105,8 @@ def main():
                         command = [str(PYTHON), str(ROOT / 'tools/reference/lm1b_small_capacity_probe.py'),
                                    '--upstream', str(ROOT / '.reference/upstream-ncm'), '--source', str(ROOT / 'artifacts/upstream/lm1b-phase4'),
                                    '--size', 'small', '--seed', '11', '--batch', str(batch), '--output', str(out / (stem + '.json'))]
-                    if runtime == 'rust' and args.rust_cudnn_default_math:
-                        command.append('cudnn-default-math')
+                    if runtime == 'rust' and rust_mode:
+                        command.append(rust_mode)
                     if args.repeated:
                         command.append('repeated' if runtime == 'rust' else '--repeated')
                     env = os.environ.copy()

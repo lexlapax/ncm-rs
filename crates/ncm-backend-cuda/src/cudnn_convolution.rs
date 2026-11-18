@@ -48,6 +48,8 @@ impl Drop for SerializedHandle {
 pub(crate) struct AlgorithmCache {
     #[cfg(feature = "lm1b-experimental")]
     pub(crate) allow_default_math: bool,
+    #[cfg(feature = "lm1b-experimental")]
+    pub(crate) graph_forward: Option<crate::cudnn_graph::ForwardCache>,
     entries: std::sync::Mutex<std::collections::VecDeque<(Key, Algorithm)>>,
     handle: std::sync::Mutex<Option<SerializedHandle>>,
 }
@@ -171,6 +173,36 @@ impl CustomOp2 for Conv<'_> {
         let device = &x.device;
         let i32v = |n: usize| i32::try_from(n).map_err(candle_core::Error::wrap);
         let stream = device.cuda_stream();
+        #[cfg(feature = "lm1b-experimental")]
+        if let Some(cache) = &self.cache.graph_forward
+            && !self.transposed
+            && [
+                *input_channels,
+                output_channels,
+                *kernel,
+                self.stride,
+                self.padding,
+            ] == [384, 384, 3, 1, 1]
+        {
+            // SAFETY: the validated device and size above match the descriptor.
+            let mut out =
+                unsafe { device.alloc::<f32>(output_count) }.map_err(candle_core::Error::wrap)?;
+            cache.execute(
+                &stream,
+                &xs,
+                &ws,
+                &mut out,
+                *batch as i64,
+                *input_len as i64,
+            )?;
+            return Ok((
+                CudaStorage {
+                    slice: CudaStorageSlice::F32(out),
+                    device: device.clone(),
+                },
+                vec![*batch, output_channels, output_len].into(),
+            ));
+        }
         stream
             .context()
             .bind_to_thread()

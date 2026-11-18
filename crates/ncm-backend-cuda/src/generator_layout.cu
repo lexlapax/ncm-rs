@@ -615,3 +615,23 @@ extern "C" __global__ void ncm_wmt14_first_max_151680(const float* logits, unsig
     }
     if (tid == 0) output[row] = indices[0];
 }
+
+extern "C" __global__ void ncm_lm1b_linear_fma(const float* input, float* output,
+                                               unsigned batch, unsigned length,
+                                               unsigned output_length, unsigned channels) {
+    unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned total = batch * output_length * channels;
+    if (i >= total) return;
+    unsigned channel = i % channels;
+    unsigned position = (i / channels) % output_length;
+    unsigned row = i / (output_length * channels);
+    float scale = float(length) / float(output_length);
+    float source = fmaxf(__fsub_rn(__fmul_rn(scale, float(position) + 0.5f), 0.5f), 0.0f);
+    unsigned left = min(unsigned(source), length - 1);
+    unsigned right = min(left + 1, length - 1);
+    float weight = fminf(fmaxf(source - float(left), 0.0f), 1.0f);
+    float a = input[(row * length + left) * channels + channel];
+    float b = input[(row * length + right) * channels + channel];
+    float first = __fmul_rn(1.0f - weight, a);
+    output[i] = fmaf(weight, b, first);
+}
