@@ -51,12 +51,15 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                     'drop_logits': True, 'release_outputs': False, 'cache_limit_bytes': None,
                     'decoder_rows': decoder_rows, 'materialize_after': 5}
         if allocator_trace:
-            flags = [*flags, '--control-decoder-rows', str(control_value), '--allocator-trace']
+            flags = [*flags, '--control-decoder-rows', str(control_value), '--allocator-trace',
+                     '--last-transformer-checkpoint', '3']
+            settings['last_transformer_checkpoint'] = 3
 
         def fake_run(command, stem, directory):
             variant = stem.split('-')[2]
             candidate = variant == 'rust'
             self.assertEqual('allocator-trace' in command, allocator_trace and variant != 'python')
+            self.assertEqual('last-transformer-checkpoint=3' in command, allocator_trace and variant != 'python')
             self.assertEqual('materialize-after=5' in command,
                              candidate or (variant == 'rust_control' and factor == 'decoder'))
             wanted_decoder_rows = decoder_rows if candidate or factor == 'checkpoint' else control_value
@@ -121,6 +124,10 @@ class Wmt14MlxBenchTests(unittest.TestCase):
                 self.assertEqual(manifest['rust_control_settings'][field], control_value)
                 self.assertEqual(manifest.get('decoder_control_rows'), control_value)
                 self.assertEqual(manifest.get('allocator_trace', False), allocator_trace)
+                self.assertEqual(manifest['rust_settings'].get('last_transformer_checkpoint'),
+                                 3 if allocator_trace else None)
+                self.assertEqual(manifest['rust_control_settings'].get('last_transformer_checkpoint'),
+                                 3 if allocator_trace else None)
                 other = 'decoder_rows' if factor == 'checkpoint' else 'materialize_after'
                 self.assertEqual(manifest['rust_settings'][other], manifest['rust_control_settings'][other])
                 summary = json.loads((live / 'summary.json').read_bytes())['0:1']
@@ -136,6 +143,14 @@ class Wmt14MlxBenchTests(unittest.TestCase):
 
                 if control_value is not None:
                     manifest_path = live / 'manifest.json'
+                    wrong_settings = dict(manifest['rust_settings'], last_transformer_checkpoint=7)
+                    manifest_path.write_text(json.dumps(dict(manifest, rust_settings=wrong_settings)))
+                    wrong_checkpoint = reports / 'wrong-checkpoint'
+                    with (patch.object(sys, 'argv', [*base_args, '--output', str(wrong_checkpoint),
+                                                     '--replay', str(live)]),
+                          self.assertRaisesRegex(ValueError, 'checkpoint differs from the source manifest')):
+                        bench.main()
+                    self.assertFalse((wrong_checkpoint / 'summary.json').exists())
                     manifest_path.write_text(json.dumps(dict(manifest, decoder_control_rows=value)))
                     wrong_width = reports / 'wrong-width'
                     with (patch.object(sys, 'argv', [*base_args, '--output', str(wrong_width),

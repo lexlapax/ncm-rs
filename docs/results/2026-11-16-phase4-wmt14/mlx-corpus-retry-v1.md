@@ -1240,3 +1240,27 @@ all match pinned codes and raw IDs on ranges 0 and 2656.
 Feature-enabled release build and Clippy passed, as did the WMT14
 model tests. The CUDA receipts are under
 `reports/phase4-wmt14-transformer-checkpoint-cuda-v1.X4e7px/`.
+
+All eleven Metal block positions match pinned codes and raw IDs in
+the four-row timing fixture. Blocks 3 through 9 report the same
+2,096.74 MiB peak, compared with 2,153.81 MiB in the control and
+2,142.62 MiB in the repeated adapted Python MLX cell. Block 3 had
+the lowest short-run median among the exact settings that beat the
+Python allocator peak. With block 3, the padded retry and the
+three-row tail also match the pinned codes and raw IDs.
+
+The focused real-device Metal build and Clippy passed. Linux
+host checks passed all 531 report tests under the benchmark's
+unprivileged identity. The Metal sweep summary hashes to
+`0402318c827a28af60c72f32151dd4145185f26987da5d9a05e9d4223b341e3f`
+under `reports/phase4-wmt14-transformer-checkpoint-linux-v1.tkw2aJ/`.
+The Linux host log SHA-256 is
+`35c06ae9baf89a9f8711272c859c4a1eb98a16b62eb3f7b1bddd91ddb559d172`.
+
+Repeat the candidate using the tracked paired runner.
+
+```sh
+.reference/mlx-venv/bin/python tools/bench/run_phase4_wmt14_mlx_bench.py \
+  --cell 1:4 --materialize-after 5 --decoder-rows 2 --last-transformer-checkpoint 3 \
+  --output reports/wmt14-metal-guided-last-transformer-block3
+```

@@ -154,6 +154,7 @@ def main():
     parser.add_argument('--lifetime', choices=('retain', 'drop', 'release'))
     parser.add_argument('--cache-mib', type=int, metavar='0..16384')
     parser.add_argument('--materialize-after', type=int, choices=range(1, 11))
+    parser.add_argument('--last-transformer-checkpoint', type=int, choices=range(1, 12))
     parser.add_argument('--decoder-rows', type=int, choices=range(1, 33))
     parser.add_argument('--control-decoder-rows', type=int, choices=range(1, 33),
                         help='use this tile size for --control decoder (default is the full projection)')
@@ -173,7 +174,7 @@ def main():
         parser.error('duplicate workload cell')
     if args.replay and (args.allocator_trace or any(option is not None for option in (
             args.control, args.lifetime, args.cache_mib, args.materialize_after,
-            args.decoder_rows, args.control_decoder_rows))):
+            args.decoder_rows, args.control_decoder_rows, args.last_transformer_checkpoint))):
         parser.error('replay reads existing settings')
     factor = args.control
     allocator_trace = args.allocator_trace
@@ -252,6 +253,8 @@ def main():
             options.append(f'decoder-rows={args.decoder_rows}')
         if args.materialize_after is not None:
             options.append(f'materialize-after={args.materialize_after}')
+        if args.last_transformer_checkpoint is not None:
+            options.append(f'last-transformer-checkpoint={args.last_transformer_checkpoint}')
         if factor:
             selected_option = f'{field.replace("_", "-")}={screen_value}'
             control_options = [option for option in options if option != selected_option]
@@ -261,6 +264,8 @@ def main():
                      'reusable_loader': True, 'deferred_head': True,
                      'drop_logits': args.lifetime != 'retain', 'release_outputs': args.lifetime == 'release',
                      'cache_limit_bytes': None if args.cache_mib is None else args.cache_mib * 1024**2}
+        if args.last_transformer_checkpoint is not None:
+            requested['last_transformer_checkpoint'] = args.last_transformer_checkpoint
         packages = json.loads(subprocess.check_output(
             [str(PYTHON), '-c', 'import importlib.metadata as m, importlib.util as u, json; '
              'print(json.dumps({"core": u.find_spec("mlx.core").origin, "mlx": m.version("mlx"), '
@@ -332,6 +337,11 @@ def main():
                     ('drop_logits', report.get('release_outputs', False)),
                     ('release_outputs', False), ('cache_limit_bytes', None), ('materialize_after', None),
                     ('decoder_rows', None))}
+                checkpoint = report.get('last_transformer_checkpoint')
+                if checkpoint is not None:
+                    if type(checkpoint) is not int or checkpoint not in range(1, 12):
+                        raise ValueError('invalid last transformer checkpoint in the Rust report')
+                    actual['last_transformer_checkpoint'] = checkpoint
                 if not args.replay:
                     expected = requested
                     if variant == 'rust_control':
@@ -339,6 +349,11 @@ def main():
                     if (report.get('backend') != 'mlx' or any(key not in report for key in expected)
                             or actual != expected):
                         raise ValueError('Rust execution differs from the requested timing settings')
+                if args.replay and original_manifest.is_file():
+                    key = 'rust_control_settings' if variant == 'rust_control' else 'rust_settings'
+                    retained = original.get(key, {}).get('last_transformer_checkpoint')
+                    if retained != checkpoint:
+                        raise ValueError('last transformer checkpoint differs from the source manifest')
                 if settings.setdefault(variant, actual) != actual:
                     raise ValueError('mixed Rust execution settings')
             record = checked_output(report, runtime, cfg, batch, references[cfg][:batch])
