@@ -28,5 +28,9 @@ ncm-backend-mlx = { path = "../ncm-backend-mlx", optional = true }
 name = "ncm"
 path = "src/main.rs"
 
+[[example]]
+name = "wmt14_cfg_head_probe"
+required-features = ["wmt14-experimental"]
+
 [lints]
 workspace = true
