@@ -15,14 +15,14 @@ cuda = ["cpu", "ncm-backend-cuda/cuda", "wmt14-experimental"]
 cuda-cudnn = ["cuda", "ncm-backend-cuda/cuda-cudnn", "lm1b-experimental"]
 mlx = ["dep:ncm-backend-mlx", "ncm-backend-mlx/mlx", "wmt14-experimental", "lm1b-mlx-experimental"]
 wmt14-experimental = ["ncm-model/wmt14-experimental"]
-lm1b-experimental = ["cuda-cudnn", "ncm-backend-cuda/lm1b-experimental", "ncm-model/lm1b-experimental", "dep:ncm-tokenizers"]
-lm1b-mlx-experimental = ["mlx", "ncm-backend-mlx/lm1b-experimental", "ncm-model/lm1b-experimental", "dep:ncm-tokenizers"]
+lm1b-experimental = ["cuda-cudnn", "ncm-backend-cuda/lm1b-experimental", "ncm-model/lm1b-experimental"]
+lm1b-mlx-experimental = ["mlx", "ncm-backend-mlx/lm1b-experimental", "ncm-model/lm1b-experimental"]
 
 [dependencies]
 ncm-core = { path = "../ncm-core" }
 ncm-io = { path = "../ncm-io" }
 ncm-model = { path = "../ncm-model" }
-ncm-tokenizers = { path = "../ncm-tokenizers", optional = true }
+ncm-tokenizers = { path = "../ncm-tokenizers" }
 serde_json = "1"
 ncm-backend-cuda = { path = "../ncm-backend-cuda", optional = true }
 ncm-backend-mlx = { path = "../ncm-backend-mlx", optional = true }

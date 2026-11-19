@@ -93,21 +93,14 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             result[1] = "generate".into();
         }
         "tinystories-inference-v1" => {
-            if cfg.is_some()
-                || rope.is_some()
-                || decode
-                || stochastic
-                || positive_cfg
-                || top_p
-                || host_fp64
-            {
+            if cfg.is_some() || rope.is_some() || stochastic || positive_cfg || top_p || host_fp64 {
                 return Err("unsupported option for TinyStories".into());
             }
             result[1] = "sample-tinystories".into();
             result.push(seed.unwrap_or(0).to_string());
         }
         "xsum-inference-v1" | "xsum-inference-v2" => {
-            if rope.is_some() || decode || top_p || host_fp64 || (seed.is_some() != stochastic) {
+            if rope.is_some() || top_p || host_fp64 || (seed.is_some() != stochastic) {
                 return Err("unsupported XSum option; stochastic sampling requires both --seed and --experimental-stochastic-xsum".into());
             }
             if (cfg.unwrap_or(0.0) > 0.0) != positive_cfg {
@@ -120,13 +113,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             }
         }
         "wmt14-inference-v1" => {
-            if seed.is_some()
-                || rope.is_some()
-                || decode
-                || stochastic
-                || positive_cfg
-                || top_p
-                || host_fp64
+            if seed.is_some() || rope.is_some() || stochastic || positive_cfg || top_p || host_fp64
             {
                 return Err("unsupported option for WMT14".into());
             }
@@ -215,10 +202,17 @@ mod tests {
             &["--cfg", "1"],
             &["--cfg", "NaN"],
             &["--seed", "1", "--seed", "2"],
-            &["--decode"],
         ] {
             assert!(translate_profile(&args(options), "xsum-inference-v2").is_err());
         }
+        for profile in [
+            "tinystories-inference-v1",
+            "xsum-inference-v2",
+            "wmt14-inference-v1",
+        ] {
+            assert!(translate_profile(&args(&["--decode"]), profile).is_ok());
+        }
+        assert!(translate_profile(&args(&["--decode"]), "sudoku-easy-inspection-v1").is_err());
         assert!(translate_profile(&args(&[]), "owt-inference-v1").is_err());
         assert!(translate_profile(&args(&[]), "lm1b-small-inference-v1").is_err());
         assert!(
