@@ -1,0 +1,81 @@
+"""Offline checks for the Phase 5 cold-request screen."""
+import hashlib
+import signal
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+import phase5_cli_cold_screen as tool
+
+
+class ColdScreenTests(unittest.TestCase):
+    def test_summary_excludes_warmups_and_requires_full_sample_count(self):
+        rows = [{'condition': 'baseline', 'warmup': False, 'elapsed_seconds': float(i + 1),
+                 'max_rss_kib': 100 + i} for i in range(90)]
+        rows += [{'condition': 'baseline', 'warmup': True, 'elapsed_seconds': 9999., 'max_rss_kib': 9999}]
+        result = tool.summarize(rows, 'baseline')
+        self.assertEqual(result['samples'], 90)
+        self.assertEqual(result['median_seconds'], 45.5)
+        self.assertEqual(result['p95_seconds_nearest_rank'], 86.)
+        self.assertEqual(result['max_rss_kib'], 189)
+        with self.assertRaisesRegex(ValueError, 'missing'):
+            tool.summarize(rows[:-2], 'baseline')
+
+    def test_execute_validates_output_and_rss(self):
+        raw = b'{"ids":[]}'
+        expected = hashlib.sha256(raw).hexdigest()
+        def run(argv, **kwargs):
+            self.assertTrue(kwargs['start_new_session'])
+            Path(argv[4]).write_text('1234\n', encoding='utf-8')
+            kwargs['stdout'].write(raw)
+            return Mock(wait=Mock(return_value=0))
+        with tempfile.TemporaryDirectory() as directory, patch.object(tool.subprocess, 'Popen', side_effect=run):
+            result = tool.execute(Path(directory), 'candidate', Path('/bin/ncm'), 'sample',
+                                  Path('/artifact'), Path('/input'), 1, 0, True, expected)
+            self.assertEqual(result['max_rss_kib'], 1234)
+            self.assertTrue(result['warmup'])
+            self.assertEqual(result['output_sha256'], expected)
+
+    def test_dangling_output_symlink_rejected_before_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'link'
+            output.symlink_to(root / 'missing', target_is_directory=True)
+            argv = ['phase5_cli_cold_screen', '--baseline', 'old', '--candidate', 'new',
+                    '--artifact', 'artifact', '--input', 'input', '--output', str(output),
+                    '--baseline-sha256', 'a', '--candidate-sha256', 'b', '--manifest-sha256', 'c',
+                    '--input-sha256', 'd', '--expected-output-sha256', 'e']
+            with patch('sys.argv', argv), self.assertRaisesRegex(ValueError, 'output already exists'):
+                tool.main()
+            self.assertFalse((root / 'missing').exists())
+
+    def test_execute_rejects_failure_and_mismatched_output(self):
+        def run(argv, **kwargs):
+            Path(argv[4]).write_text('1234\n', encoding='utf-8')
+            kwargs['stdout'].write(b'wrong')
+            return Mock(wait=Mock(return_value=0))
+        with tempfile.TemporaryDirectory() as directory, patch.object(tool.subprocess, 'Popen', side_effect=run):
+            with self.assertRaisesRegex(ValueError, 'output hash'):
+                tool.execute(Path(directory), 'baseline', Path('/bin/ncm'), 'generate',
+                             Path('/artifact'), Path('/input'), 1, 0, False, '0' * 64)
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+                tool.subprocess, 'Popen', return_value=Mock(wait=Mock(return_value=2))):
+            with self.assertRaisesRegex(RuntimeError, 'exit 2'):
+                tool.execute(Path(directory), 'baseline', Path('/bin/ncm'), 'generate',
+                             Path('/artifact'), Path('/input'), 1, 0, False, '0' * 64)
+
+    def test_timeout_kills_only_the_spawned_process_group(self):
+        process = Mock(pid=123, wait=Mock(side_effect=[subprocess.TimeoutExpired('time', 900), -9]))
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+                tool.subprocess, 'Popen', return_value=process), patch.object(tool.os, 'killpg') as kill:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                tool.execute(Path(directory), 'baseline', Path('/bin/ncm'), 'generate',
+                             Path('/artifact'), Path('/input'), 1, 0, False, '0' * 64)
+        kill.assert_called_once_with(123, signal.SIGKILL)
+        self.assertEqual(process.wait.call_count, 2)
+
+
+if __name__ == '__main__':
+    unittest.main()
