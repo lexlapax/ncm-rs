@@ -299,3 +299,42 @@ under `reports/phase4-lm1b-efficient-attention-v1.xYWlWf/`.
 The timing manifest and result SHA-256 values are
 `70ea472792c50472f909a59f508c42b13ea579584bb59fec94bfbb3c4b64166b`
 and `80631f560686866a8a425829d1b57f7167131382364350bdcfa605393a3a1a19`.
+
+### Efficient attention with native FP32 top-p
+
+The temporary sampler combines the same efficient-attention model
+with reference-shaped FP32 top-p weights and Rust's usual inverse-CDF
+draws. The earlier paired command takes the archived patch's
+`--rust-cudnn-graph-efficient-fp32` switch. All 18 fresh processes
+completed and the signatures repeated within each runtime and batch.
+Each cell contains 90 timed requests after separate model load and warmup.
+
+| Batch | Runtime | Median (ms) | p95 (ms) | Peak RSS (MiB) | Model load (s) |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | Rust FP32 | 45.59 | 48.31 | 1536.37 | 1.281 |
+| 1 | Pinned Python | 61.74 | 64.79 | 2549.22 | 1.208 |
+| 4 | Rust FP32 | 119.80 | 122.88 | 1539.62 | 1.271 |
+| 4 | Pinned Python | 133.81 | 137.16 | 2545.10 | 1.202 |
+| 16 | Rust FP32 | 423.13 | 426.24 | 1538.01 | 1.262 |
+| 16 | Pinned Python | 432.15 | 435.08 | 2520.23 | 1.201 |
+
+Rust median latency is 26.2%, 10.5% and 2.1% lower than the corresponding
+pinned Python medians. Rust also has lower p95 and peak RSS and longer
+model load in each cell. The preceding FP64 screen ran separately and
+shows larger margins against its own Python control at every measured size.
+The Rust CUDA pool peak used memory measures 838.73, 942.19 and 1350.03 MiB.
+Pinned Python peak allocated memory is 1296.45, 1799.87 and 4121.64 MiB
+in its own allocator. Across 171 activity samples with zero query failures,
+median sampled Rust and Python device process maxima are 1034/1550,
+1194/2082 and 1834/4960 MiB. The Rust batch-one process has two samples
+per run.
+
+The local evidence directory is
+`reports/phase4-lm1b-sampler-audit-v1.O4RAPj/`. The timing manifest
+SHA-256 is `909be5268e4141de639eb14cbad84dae5981f48b73249ce344532304acff48bd`.
+The timing result SHA-256 is
+`ba594390a57d5f0f07b95853a9c6addbed726575ca92e8c0ac4ce36a126b7f91`.
+The helper executable is archived at
+`archived/lm1b_small_capacity_probe` with SHA-256
+`589dda939982b967343305f25f33e2ff3b70253f783aaf732f2109949b3e4709`.
+[Sampler audit](small-controlled-cuda-v1.md#full-observed-sampler-probability-audit)

@@ -1,6 +1,6 @@
 # Phase 4 resume handoff
 
-Last updated: 2026-11-18 UTC. Start by reading `AGENTS.md` and
+Last updated: 2026-11-19 UTC. Start by reading `AGENTS.md` and
 `agent-context-map.md`, inspecting the current worktree, and checking the
 linked Phase 4 contracts and evidence. This handoff summarizes state; the
 source, recorded gates, and current machine state remain authoritative.
@@ -147,9 +147,21 @@ Before every commit include an updated
    passes perplexity but its entropy interval is
    `[-0.005745225, 0.000822536]`. An audit of all 160 batch-eight
    requests reproduces every Rust code and token ID in Python under
-   shared draws. The independent frozen failure remains in effect.
-2. Complete the remaining LM1B-small gates before medium and large in the
-   approved order. Any new acceptance protocol needs explicit review.
+   shared draws. The [FP32 probability audit](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#full-observed-sampler-probability-audit)
+   locates 46 changed choices with the same Rust uniforms. The native FP32
+   prototype reproduces all 1,280 observed FP32 replay rows exactly.
+   Its [observed-seed quality retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#native-fp32-top-p-observed-seed-retest)
+   passes perplexity and misses the entropy interval at
+   `[-0.006047359, 0.000833347]`. It has smaller margins over Python
+   than the FP64 sampler in the [paired timing screen](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-with-native-fp32-top-p).
+   The patch and executables remain in ignored reports. The faster FP64
+   sampler stays in source. The frozen quality failure remains open.
+2. The proposed fresh quality comparison keeps the scorer, margins and
+   independent seed bootstrap, and expands to 80 seeds per runtime.
+   It awaits explicit review of that protocol before generating fresh
+   samples. Mac and Linux runs already have user approval. Complete
+   the Linux LM1B-small gate before Metal and both small gates before
+   medium and large.
 3. For each changed runtime, run the applicable full checks and reproducible
    quality, performance, and memory comparisons on both real target devices.
    Update the context map, commit, and use the existing push authorization.

@@ -452,3 +452,37 @@ quality summary are bound in `observed-matched-draws.json`, SHA-256
 This establishes exact agreement on the observed candidate draws.
 The frozen evaluation still uses each implementation's independent
 draw stream and retains its entropy interval failure.
+
+### Native FP32 top-p observed-seed retest
+
+The [native FP32 sampler](small-controlled-cuda-v1.md#native-fp32-probability-experiment)
+regenerated the five observed Rust seeds at batch eight. The original
+Python captures and scores were reused after verifying their frozen
+digests. The same pinned scorer matched upstream on every Rust capture.
+The independent random streams and existing bootstrap were preserved.
+
+| Seed | Python perplexity | Rust FP32 perplexity | Python entropy | Rust FP32 entropy |
+| ---: | ---: | ---: | ---: | ---: |
+| 42 | 95.537766 | 88.904695 | 4.312504092 | 4.309092447 |
+| 0 | 97.137632 | 91.629203 | 4.315921668 | 4.312282631 |
+| 1 | 98.656143 | 97.197309 | 4.316737156 | 4.316494202 |
+| 2 | 92.686634 | 93.831873 | 4.309963029 | 4.309865166 |
+| 3 | 95.340399 | 91.742931 | 4.318392528 | 4.312156452 |
+
+Rust minus Python mean perplexity is `-3.210513` with a 95% interval
+of `[-6.104267, -0.176281]`. Both perplexity checks pass. Mean entropy
+difference is `-0.002725515` and passes the point check. The entropy
+interval `[-0.006047359, 0.000833347]` crosses the frozen lower limit
+of `-0.0046`. With the same Rust draws, the change from FP64 to FP32
+weights shifts observed mean entropy by `-0.000132874` nats and
+mean perplexity by `+0.028699` points. This result describes the
+observed samples and leaves the original held-out failure in force.
+
+The repeated summary and status are byte-identical. The comparator
+exits 1 and the summary SHA-256 is
+`4ec2aa54cde203fe55571b80b04c7ca6117878092def7b7c3c2574f2d17ac001`.
+The capture executable SHA-256 is
+`b3b74c05bc1291bbf58daee8e46762801df4132655efb22d53d59314f8b2ec0f`.
+The captures, scores, logs and `retest.sh` are retained in
+`reports/phase4-lm1b-sampler-audit-v1.O4RAPj/`. All five seeds
+are previously observed and the CUDA quality gate remains open.

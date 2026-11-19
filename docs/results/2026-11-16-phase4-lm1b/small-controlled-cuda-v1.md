@@ -992,3 +992,82 @@ failed two existing process-observation fixtures. The isolated
 `eda806572dc07e1f353ced707db34df3a0f4d57580966e6955645dd1c39b7d40`.
 The initial log is retained at
 `d2408cba6f99be57eeee4595c9fc3216d8ba636839136f9550395751afe4838f`.
+
+### Full observed sampler probability audit
+
+On the efficient-attention checkpoint path, the pinned Python
+`_sample_level_raw` supplies the actual FP32 top-p probabilities.
+The audit intercepts that tensor and normalizes it in FP64 before
+comparison with unfiltered FP64 softmax on the same logits. It
+covers all 160 previously observed batch-eight requests in each
+of two independently retained populations.
+
+| Replay population | Sampled distributions | Rows with zero FP32 mass in at least one position | Maximum total variation | Mean total variation |
+| --- | ---: | ---: | ---: | ---: |
+| Rust request-local draws | 819,200 | 169,647 | `1.7710e-6` | `6.4084e-8` |
+| Original Python native draws | 819,200 | 170,172 | `1.6485e-6` | `6.4144e-8` |
+
+With Rust's midpoint uniforms and token-ID-ordered FP64 inverse CDF,
+the reference FP32 weights produce 46 different local choices on
+identical logits. The FP32 trajectory differs from the archived FP64
+Rust samples at 6,404 concept positions and 1,730 raw token positions
+after subsequent levels are generated. The maximum conditional
+same-uniform disagreement probability is `0.003490`, obtained from
+the overlap of the two sets of cumulative intervals. This describes
+that choice of coupling. Total variation instead describes the
+distance between the categorical distributions.
+
+A separate replay uses PyTorch's native multinomial and its original
+RNG state. It reproduces every archived original Python concept code
+and raw ID. On each captured logit row, substituting the FP64 softmax
+rounded to FP32 while restoring the same native RNG state changes
+zero selected concepts. The alternate draw advances the RNG to the
+same state, and the original state is restored before continuation.
+The two sample audits describe those observed trajectories. They
+preserve the independent-stream quality protocol and its original
+failure.
+
+The checkpoint hashes, pinned sampler source and artifact-bound
+captures are checked in the retained `audit.py`. Both outputs are
+under `reports/phase4-lm1b-sampler-audit-v1.O4RAPj/`.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `audit.py` | `bc80c1d62e03679390e23d2a327056b34bdea4799aaa32761a780a95447c36ec` |
+| `inverse-cdf.json` | `a5626efb1d9c96f53e9d86d730e2212052d872d9b800fdb6a133627d35505698` |
+| `multinomial.json` | `ec1c39fa724aabea89aa75d005cf5beefc5a3af9e07a24e3022d608e4b7012f4` |
+
+### Native FP32 probability experiment
+
+The earlier [FP32 top-p prototype](#isolated-fp32-top-p-probability-prototypes)
+was applied temporarily to `2376644`, retaining the newer graph, resampling,
+efficient attention and projection paths. It uses the reference-shaped
+FP32 sort, softmax, prefix sum, cutoff and final softmax with Rust's
+token-ID-ordered FP64 inverse CDF. The temporary example selector was
+`cudnn-graph-efficient-fp32`. The candidate accepts score batches up to 32,
+sequence lengths up to 128 and at least two flattened rows. It stayed
+explicitly experimental.
+
+Feature-specific Clippy and two real-device tests pass. The tests
+include 2,565 crafted FP32 boundary rows, strided scores, invalid
+values and shape rejection. The local patch SHA-256 is
+`3b528fb1c97439395569259217b88a35d0faa0a3908144b9c4f7b49a338ae24b`.
+The patch, build/test logs and both executables are under
+`reports/phase4-lm1b-sampler-audit-v1.O4RAPj/`.
+[Paired timing](small-cuda-capacity-screen-v1.md#efficient-attention-with-native-fp32-top-p)
+
+The pinned Python model, using its own FP32 weights with Rust's exact
+uniforms and inverse CDF, reproduces the native FP32 candidate across
+all 160 previously observed batch-eight requests. All 820,480 codes
+and 163,840 raw token IDs match. Comparing the native FP32 and FP64 Rust
+captures independently counts the same 6,404 code and 1,730 raw-ID changes
+as the Python intervention. The bounded result identifies the probability
+path responsible for those changes.
+
+The retained `native-fp32-matched-draws.py` checks the candidate's capture
+and binary receipts and the pinned Python checkout and checkpoints.
+Its source SHA-256 is `f00028b6b96bc3e9efe2d230a7be05359ef5c0d9a594bfa0c40415c50186b18d`.
+Its result SHA-256 is `b09dbf3d4e49d1bfb6e540b677c4c311bcb5f0ee642306acb590f9f94cbc5b34`.
+The [independent-stream retest](small-heldout-cuda-v1.md#native-fp32-top-p-observed-seed-retest)
+still fails the frozen entropy check. The FP32 candidate is archived as
+a diagnostic and the faster FP64 sampler remains in the tracked source.
