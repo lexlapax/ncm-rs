@@ -152,18 +152,125 @@ The exact identities, provenance-only differences and failed Python 3.14.9 `_ssl
 recorded in the [investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
 **Do not substitute a new manifest hash for a qualified one.** Complete, reviewed commands for
-all exporters, a portable reference environment, explicit manifest-hash checks and a clean-clone
-replay are still required here. Existing [Sudoku export](../tools/reference/README.md#sudoku-easy-checkpoint-and-oracle-checks),
+all exporters, a portable reference environment and a full clean-clone replay are still required.
+The limited Sudoku-easy Linux replay below does not close those requirements. Existing [Sudoku export](../tools/reference/README.md#sudoku-easy-checkpoint-and-oracle-checks),
 [XSum rotary export](results/2026-11-15-phase4-xsum/rotary-artifact-profile-v2.md),
 [WMT14 export](results/2026-11-16-phase4-wmt14/artifact-plan-v1.md) and
 [LM1B export](results/2026-11-16-phase4-lm1b/medium-large-artifacts-v1.md) reports are historical
 records, not a substitute for the missing release recipe.
 
-## Inference examples — pending
+### Linux Sudoku-easy development replay
+
+This is the **only** fresh-clone exporter/inference slice screened so far. It reproduces the
+qualified easy manifest, not the unresolved medium/hard artifacts. The recorded Linux reference
+uses Python 3.14.9 with Torch 2.15.0+cu132, the historical Git base and the exact exporter bytes
+shown below. The newer reference venv from the CUDA section supplies the offline dependencies;
+this build-tree Python is not a general-purpose environment. On the tested Arch host its `_ssl`
+module failed to build, so use the system Python for downloads and pip; use this interpreter only
+for the offline export. See the [screen](results/2026-11-19-phase5-cli/linux-fresh-clone-sudoku-v1.md)
+for exact environment and limitations.
+
+The following assumes a **full Git history**, the Linux reference venv and the freshly downloaded
+`artifacts/upstream/sudoku-easy` source from above. It creates a project-local CPython source build
+and a separate temporary exporter worktree. It does not replace existing files:
+
+```sh
+test ! -e .reference/python-3.14.9-src.tar.xz && test ! -L .reference/python-3.14.9-src.tar.xz || exit 1
+test ! -e .reference/Python-3.14.9 && test ! -L .reference/Python-3.14.9 || exit 1
+curl --fail --location --max-filesize 25000000 \
+  --output .reference/python-3.14.9-src.tar.xz \
+  https://www.python.org/ftp/python/3.14.9/Python-3.14.9.tar.xz
+printf '%s  %s\n' e02d9ac21cebda6e46435369744a92c65cc7cd8669697694122cf97ffacd1e53 \
+  .reference/python-3.14.9-src.tar.xz | sha256sum -c - || exit 1
+python3 - <<'PY' || exit 1
+import pathlib, tarfile
+with tarfile.open('.reference/python-3.14.9-src.tar.xz', 'r:xz') as archive:
+    for member in archive.getmembers():
+        path = pathlib.PurePosixPath(member.name)
+        if (path.is_absolute() or '..' in path.parts or not path.parts or
+                path.parts[0] != 'Python-3.14.9' or member.issym() or
+                member.islnk() or member.isdev()):
+            raise ValueError(member.name)
+PY
+tar -xJf .reference/python-3.14.9-src.tar.xz -C .reference || exit 1
+mkdir -p .reference/tmp
+root="$PWD"
+(
+  cd .reference/Python-3.14.9 || exit 1
+  TMPDIR="$root/.reference/tmp" ./configure --prefix="$root/.reference/python-3.14.9" --without-ensurepip || exit 1
+  TMPDIR="$root/.reference/tmp" make -j4 || exit 1
+) || exit 1
+PYTHONPATH="$PWD/.reference/venv/lib/python3.14/site-packages" \
+  .reference/Python-3.14.9/python -c 'import platform,torch; assert platform.python_version()=="3.14.9" and torch.__version__=="2.15.0+cu132"' || exit 1
+
+test ! -e reports/easy-exporter-worktree && test ! -L reports/easy-exporter-worktree || exit 1
+git worktree add --detach reports/easy-exporter-worktree f7aad49c3b904f76c86a3d5e36c3b552d2995000 || exit 1
+test ! -e reports/easy-exporter-worktree/tools/reference/sudoku_artifact.py || exit 1
+git show bbdf4222b734c4ebcb6cfa3ed1f23dbdf0c5f58c:tools/reference/sudoku_artifact.py \
+  > reports/easy-exporter-worktree/tools/reference/sudoku_artifact.py || exit 1
+printf '%s  %s\n' cfcae7d716fa7a9692c57019454bd28da5f8098c6d3bec32698795076dc0034e \
+  reports/easy-exporter-worktree/tools/reference/sudoku_artifact.py | sha256sum -c - || exit 1
+root="$PWD"
+(
+  cd reports/easy-exporter-worktree || exit 1
+  PYTHONPATH="$root/.reference/venv/lib/python3.14/site-packages" \
+    "$root/.reference/Python-3.14.9/python" tools/reference/sudoku_artifact.py \
+    --source "$root/artifacts/upstream/sudoku-easy" \
+    --output "$root/artifacts/canonical/sudoku-easy-qualified" \
+    --report "$root/reports/sudoku-easy-export.json"
+) || exit 1
+printf '%s  %s\n' ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d9832 \
+  artifacts/canonical/sudoku-easy-qualified/manifest.json | sha256sum -c -
+```
+
+The exporter worktree intentionally contains the historical source file restored from a later
+commit; its contents and hash are part of provenance. Inspect its status before removing it. The
+remaining setup guide does not yet specify all artifact exporters or how to reproduce their hashes.
+
+### Synthetic Sudoku-easy request
+
+For the Linux CUDA build above, the following creates a new all-blank synthetic board, compares the
+unified and legacy commands and validates output shapes. It is an operator/inference smoke request,
+not a Sudoku quality or performance benchmark:
+
+```sh
+python3 - <<'PY' || exit 1
+import json
+from pathlib import Path
+row = [11]
+for i in range(9):
+    if i:
+        row.append(10)
+    row.extend([0] * 9)
+row.append(11)
+assert len(row) == 91
+with Path('reports/synthetic-sudoku-input.json').open('x') as stream:
+    json.dump([row], stream, separators=(',', ':'))
+    stream.write('\n')
+PY
+cudnn="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+test ! -e reports/synthetic-sudoku-sample.json && test ! -L reports/synthetic-sudoku-sample.json || exit 1
+test ! -e reports/synthetic-sudoku-alias.json && test ! -L reports/synthetic-sudoku-alias.json || exit 1
+LD_LIBRARY_PATH="$cudnn" target/release/ncm sample artifacts/canonical/sudoku-easy-qualified cuda \
+  reports/synthetic-sudoku-input.json > reports/synthetic-sudoku-sample.json || exit 1
+LD_LIBRARY_PATH="$cudnn" target/release/ncm generate artifacts/canonical/sudoku-easy-qualified cuda \
+  reports/synthetic-sudoku-input.json > reports/synthetic-sudoku-alias.json || exit 1
+cmp reports/synthetic-sudoku-sample.json reports/synthetic-sudoku-alias.json || exit 1
+python3 - <<'PY'
+import json
+with open('reports/synthetic-sudoku-sample.json') as stream:
+    result = json.load(stream)
+assert set(result) == {'codes', 'ids'}
+assert len(result['codes']) == len(result['ids']) == 1
+assert len(result['codes'][0]) == 322 and len(result['ids'][0]) == 89
+PY
+```
+
+## Other inference examples — pending
 
 Run `target/release/ncm --help` and `target/release/ncm sample --help` for the current interface.
-Fully reproducible examples, including safe creation of input files and the LM1B rotary sidecar,
-will be added and tested from fresh clones on both machines before release. The CUDA-only
+Additional reproducible examples, including the LM1B rotary sidecar, must be tested from fresh
+clones on both machines before release. The CUDA-only
 [CLI equivalence screen](results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md) and
 [text-input screen](results/2026-11-19-phase5-cli/cuda-text-input-v1.md) describe the current
 limited development checks, not the release gate.

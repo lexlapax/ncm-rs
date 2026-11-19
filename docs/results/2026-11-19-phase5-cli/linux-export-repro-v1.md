@@ -24,7 +24,7 @@ For easy, TinyStories and XSum, provenance records the base Git commit at export
 
 | Profile | Base commit | Exporter source commit | Exporter SHA-256 |
 | --- | --- | --- | --- |
-| Sudoku easy | `f7aad49c3b904f76c86a3d5e36c3b552d2995000` | `bbdf4222b734c4ebcb6cfa3ed1f23dbdf0c5f58c` | `cfcae7d716fa7a969e0fedf26a85f755e06cd76590463e1e04e17363e35d9832` |
+| Sudoku easy | `f7aad49c3b904f76c86a3d5e36c3b552d2995000` | `bbdf4222b734c4ebcb6cfa3ed1f23dbdf0c5f58c` | `cfcae7d716fa7a9692c57019454bd28da5f8098c6d3bec32698795076dc0034e` |
 | TinyStories | `fdc7db4b6d0316bfef74085994b26a6619cd6847` | `93ae5eb6d51d43a02ae764b2dc928c57d9bd7335` | `f757c3cb694922c2f8cf96a3f6cb40c47ea6bfa8dae262de3b957ee5e204754d` |
 | XSum | `3bdb96b2981145ea71a387b10e662318af85cdc3` | `a92a27516957ae9f3e2e8e52e8d6bf189a600dfc` | `eb90493398ca55087b775a9207200e11d6f312a8e0cd154284569f64cc244319` |
 
