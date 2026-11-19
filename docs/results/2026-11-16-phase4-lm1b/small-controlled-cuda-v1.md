@@ -1195,3 +1195,23 @@ Scripts and results are retained respectively under
 `reports/phase4-lm1b-small-controlled-python-metal-v1/`; the shared codec
 adaptation is retained with the codec evidence. These remain development
 checks, not quality or performance qualification.
+
+Before that first changed draw, the level-zero through level-three
+reconstructions and level-one through level-four post-convolution inputs
+and outputs are bit-identical between the Rust and adapted Python captures.
+The level-four logits differ within the accepted floating-point band.
+The adapted reference uses composed math attention while Rust uses MLX's
+fused attention, among other possible operation-order differences.
+
+A diagnostic replaced the adapted generator's attention with the same MLX
+fused operation. It still fails 22 of 47 captured comparisons, with 360
+sampled code differences after continuations diverge. The first differing
+code offsets by row are 158 and 134, later than the original adapted
+comparison. This isolates one formulation difference but does not prove
+it is the only cause or establish parity. The diagnostic source, capture
+and comparison SHA-256 values are respectively
+`670f3b65ae711bb667be99cefb35be97db576533ade17373df52f3e9862a78c9`,
+`adc5609341ce7db381ffdcc8c7532f8e30e527929f9de9d8769b6fd0179c9309`
+and `fb41e553ea13687b16dc3785f772cde299a11584c6b5b9db306017a387ef1ff6`.
+They are retained under
+`reports/phase4-lm1b-small-controlled-python-metal-fused-v1/`.
