@@ -73,6 +73,7 @@ python3 -m unittest discover -s tools/reference -p "test_text_phase4_data.py" -v
 python3 -m unittest discover -s tools/reference -p "test_compare_artifact_provenance.py" -v
 python3 -m unittest discover -s tools/reference -p "test_fetch_checkpoints.py" -v
 python3 -m unittest discover -s tools/reference -p "test_phase5_tinystories_text_reference.py" -v
+python3 -m unittest discover -s tools/reference -p "test_lm1b_reference_rope_diagnostic.py" -v
 python3 -m py_compile tools/reference/*.py tools/bench/compare.py
 
 if "$cuda"; then

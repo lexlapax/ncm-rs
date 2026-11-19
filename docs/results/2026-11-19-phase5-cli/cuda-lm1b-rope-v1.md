@@ -15,4 +15,11 @@ For this screen the retained already-exported table was copied into that locatio
 
 On real CUDA, seed 42 and input `[[101]]`, all three sizes produced byte-identical stdout using the default sidecar, the explicit `--reference-rope` override, and the earlier retained baseline; this also held with `--decode`. Output hashes are in the [routing](cuda-routing-screen-v1.md) and [decode](cuda-decode-screen-v1.md) screens. The candidate release binary SHA-256 was `4b52d2fb565b7196b4027b70ad6389006a5fa571531c285c7225159bb43c98ae`; build/runtime environment and inputs match those screens. Negative controls with a missing default sidecar and a 32,920-byte all-zero sidecar returned errors identifying the missing path and wrong pinned hash, respectively, before artifact inference.
 
+A later offline exporter safety change uses exclusive output creation, rejecting existing files and
+both live and dangling output symlinks even if created after the initial check. Three offline tests
+cover these cases. A new Linux reference export is byte-identical to the prior retained table and
+matches the pinned hash; its ignored path is `reports/phase5-lm1b-rope-exclusive-v1.safetensors`.
+This does not add GPU or quality evidence. Output parent directories must remain trusted and stable;
+a write failure can leave a partial file for inspection.
+
 CUDA CLI tests (11 passed, corpus test separately ignored), CUDA CLI all-target Clippy and `tools/check.sh --cuda` passed, including 18 real-device operator cases. The default sidecar convention, output equality, and setup remain unverified on Metal. Fresh-clone setup documentation, all remaining text-input decisions and the Phase 5 release gate remain pending. No quality or performance conclusion follows from this screen.

@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **LM1B sidecar output safety:** offline reference exporter now exclusively creates its output, rejecting existing files and live/dangling symlinks, with three dependency-free tests added to `tools/check.sh`. A fresh Linux reference export exactly matches the pinned sidecar and the prior bytes ([evidence](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md)); `tools/check.sh` passes. This is not new GPU, quality or fresh-clone evidence.
+
 - **WMT14 and LM1B export recipes:** added [Linux draft commands](docs/USAGE.md#linux-wmt14-and-lm1b-development-replays) for WMT14, all LM1B sizes and the shared rotary sidecar. Retained inputs reproduced the four qualified manifest hashes and sidecar hash ([scope](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md#wmt14-and-lm1b-guide-command-replays)); twelve shell blocks, document links and `tools/check.sh` pass. No fresh-clone, Mac, inference or quality gate is implied; complete guide replay and Sudoku medium/hard decision remain pending.
 
 - **XSum export recipe:** added the pinned rotary preparation and historical exporter to the [draft guide](docs/USAGE.md#linux-xsum-development-replay); retained inputs reproduced both the rotary payload and qualified manifest ([scope](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md#xsum-guide-command-replay)). Nine guide shell blocks, two rotary tests and `tools/check.sh` pass. No fresh-clone, Mac, inference or quality gate is implied; remaining exporter recipes and complete guide replay are pending.
