@@ -159,3 +159,38 @@ Sources, logs and captures are retained under
 `reports/phase4-lm1b-metal-tf32-precision-v1/`. Transferred Mac inputs and
 results matched their local hashes; the Mac checkout remained clean and its
 service running.
+
+### Operand-rounding and chunked accumulation checks
+
+On the same identical upsample and weights, the public CUDA convolution
+reproduces its original level-zero reconstruction bit-for-bit when either
+or both operands are explicitly rounded to TF32-like precision with
+halfway values away from zero. This establishes the effect of that rounding
+for this fixture; it does not specify CUDA's internal reduction order.
+Nearest-even and halfway-toward-zero variants do not reproduce the CUDA
+output exactly.
+
+A separate CPU FP64 diagnostic compared four input and four weight rounding
+modes at 2,516 positions, including all 470 prior FP64-control failures.
+No combination passed the unchanged tolerance at all sampled positions;
+the closest RMS result was halfway-away rounding for both operands, which
+retained all 470 original failures. This targeted sample is not a full-tensor
+qualification. An initial attempt used an incorrect local input path and was
+rerun after correction.
+
+On Metal, explicitly accumulating rounded products in chunks of 32, 64,
+128 and 384 left respectively 484, 476, 486 and 504 of 393,216 values
+outside the existing tolerance. The single windowed matrix multiplication
+left 497. No candidate passed or changed production behavior. These results
+are consistent with a remaining difference in convolution accumulation or
+related arithmetic, but do not establish its exact implementation.
+
+The CUDA rounded-operand result, CPU sampled result and Metal chunked result
+SHA-256 values are
+`c9ff004a6580f6a4e502ce563325c96ea7420a2f47a3af3035465b9206f7517e`,
+`a6fe4c9c5471267215f5cb242eab9d0e7153beda20fa57f175ed3e04c446ffed` and
+`cdfdc06539c895408f9485f859009f11b75164e47534dafe545c4c9f89bf5acf`.
+Sources and reports are retained under
+`reports/phase4-lm1b-tf32-rounding-identification-v1/`; the transferred
+Metal result matched its Mac original. The Mac checkout was clean and its
+service remained running.
