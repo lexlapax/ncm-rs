@@ -1,6 +1,6 @@
 # Agent context map
 
-Last updated: 2026-11-18 UTC. Read first; load linked context lazily. Keep this file short:
+Last updated: 2026-11-19 UTC. Read first; load linked context lazily. Keep this file short:
 current state, decisions, blockers and next actions. Put durable evidence in `docs/results/`.
 The full pre-compaction history is archived in [docs/history/context-map-2026-11-18.md](docs/history/context-map-2026-11-18.md).
 
@@ -16,7 +16,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 | XSum | Advanced under the [Metal](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md) and [CUDA stochastic](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md) exceptions |
 | WMT14 | Scoped CUDA and Metal top-1 qualification ([evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)) |
 | LM1B-small | **Active.** 80-seed quality passes on CUDA and Metal; CUDA timing passes; Metal latency passes, Metal RSS fails at batches 4/16 (decision pending) |
-| LM1B-medium/large | Artifacts done; model generalized by size; CUDA teacher-forced parity passes on both backends ([parity](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-parity-v1.md)). Next: 80-seed CUDA quality and timing, then Metal |
+| LM1B-medium/large | **CUDA lean bar met:** teacher-forced parity on both backends ([parity](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-parity-v1.md)), 80-seed quality passes ([quality](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#prospective-cuda-results-medium-and-large)), Rust faster with less memory ([timing](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)). Metal pending (Mac on hold) |
 | OWT | Config-only coverage done: pinned config validated (`OwtConfigOnly`), artifacts rejected, synthetic operators at OWT shapes match naive references ([coverage](docs/results/2026-11-19-phase4-owt/config-operator-coverage-v1.md)). Weights unreleased |
 
 - **LM1B-small evidence:** CUDA fixed-history traces, greedy and CLI checks pass. Repeated CUDA
@@ -57,9 +57,7 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
 
-1. **CUDA chain (running):** medium then large 80-seed campaigns
-   (`reports/phase4-lm1b-campaign-prospective-{medium,large}-cuda-v1/`), then medium and large CUDA timing
-   (`reports/phase4-lm1b-{medium,large}-cuda-timing-v1/`). Publish each result, pass or fail, then rerun `tools/check.sh`.
+1. **Done:** medium and large CUDA 80-seed campaigns and timing are published; the full CUDA check passes with the GPU idle.
 2. **Mac (on hold until the user says it is ready):** build and test the RSS fix at `57e5ee6` and rerun the small
    Metal timing; copy `reports/phase4-lm1b-mlx-timing-v1/` to Linux. Then medium and large on Metal: teacher-forced
    decision/ID check, 80-seed campaign (`--rust-device metal --size`) and timing against Python MLX
@@ -76,6 +74,14 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Medium/large CUDA quality and timing (no code changes):** 80-seed campaigns pass. Medium: perplexity
+  +0.07 [-0.48, 0.61], entropy +0.00026 [-0.00084, 0.00137]. Large: perplexity +0.32 [-0.18, 0.81], entropy
+  +0.00080 [-0.00040, 0.00199]. All 160 scores per size are `upstream_exact`, and summaries replay byte for byte.
+  Timing: Rust median is 16/9/4.5% faster for medium at batches 1/4/16 and 12/6/5% faster for large at 1/4/8, with
+  lower RSS and GPU memory. Pinned Python runs out of memory at large batch 16 on the 8 GiB card, so the large
+  sweep uses batch 8 (the campaign batch); the failed run is retained.
+  `setpriv --inh-caps=-all ./tools/check.sh --cuda` passes with the GPU idle (530 report tests, including
+  `test_real_writers_and_owned_process_samples_compose`, which had failed only while the GPU was busy).
 - **LM1B medium/large step 2 (CUDA parity):** `Lm1bSize` (profile, config hash, layers, heads, width) drives
   the teacher, CLI (`ncm sample-lm1b`), and CUDA whitelists (efficient attention heads 16/20, fused rotary
   12/16/20). Both CUDA backends pass 51/51 teacher-forced tensors with zero argmax and ID mismatches
@@ -85,10 +91,7 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
   `setpriv --inh-caps=-all ./tools/check.sh --cuda` passes.
 - **OWT coverage:** `ncm_core::OwtConfigOnly` validates `tests/fixtures/owt-config-v1.json` (pinned upstream
   YAML) and always refuses execution. `ncm-io` rejects OWT profiles, and `owt_shapes.rs` checks area/linear
-  resampling, RoPE and masked attention at OWT's 1,025-position, 16-head shape. The default check passed
-  except `test_real_writers_and_owned_process_samples_compose` (process observation), which fails
-  repeatedly while the medium campaign holds the GPU. It passed in earlier runs today and nothing it uses changed.
-  Rerun `tools/check.sh` after the GPU chain finishes.
+  resampling, RoPE and masked attention at OWT's 1,025-position, 16-head shape.
 - **Campaign and timing by size:** `campaign.py --size`, both cohort runners and the CUDA timing screen
   (`run_lm1b_small_capacity_screen.py --size`) accept all three sizes. A small rehearsal still reproduces the
   archive exactly, and a medium rehearsal completes every stage. The default check passes. Medium and large reuse

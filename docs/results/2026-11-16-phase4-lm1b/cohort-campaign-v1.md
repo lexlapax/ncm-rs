@@ -150,3 +150,43 @@ observed seeds 42 and 0. The approved scorer, margins and bootstrap are unchange
 generalization, a small rehearsal on seeds 42 and 0 still reproduces the archived records exactly. A medium
 rehearsal on the same seeds completed every stage (raw outputs in
 `reports/phase4-lm1b-campaign-sizes-rehearsal-{small,medium}-v1/`).
+
+## Prospective CUDA results: medium and large
+
+The approved gate **passes** on CUDA for both sizes. Each campaign ran the same pre-registered seeds
+(Python 1000–1079, Rust 2000–2079) with `--size medium` or `--size large`. Each runtime produced
+80 × 256 samples in batch-eight requests, and the pinned FLM scorer reported `upstream_exact` for all
+160 scores per size. Medium ran from 08:46 to 10:00 UTC on 2026-11-19 (manifest recorded at `bfe631f`).
+Large ran from 10:00 to 12:08 UTC (manifest at `d5f2de3`, which changed only Metal tooling). Both
+used the same CUDA runner binary.
+
+| Size | Runtime | Mean perplexity (seed SD) | Mean entropy, nats (seed SD) |
+| --- | --- | ---: | ---: |
+| medium | Python (pinned upstream, CUDA) | 88.7748 (1.8059) | 4.339916 (0.003322) |
+| medium | Rust (`sample-lm1b` CUDA path) | 88.8432 (1.7339) | 4.340177 (0.003814) |
+| large | Python (pinned upstream, CUDA) | 81.1847 (1.6057) | 4.338293 (0.003821) |
+| large | Rust (`sample-lm1b` CUDA path) | 81.5003 (1.6171) | 4.339096 (0.003777) |
+
+| Size | Check (Rust minus Python) | Point | 95% interval | Limit | Result |
+| --- | --- | ---: | --- | --- | --- |
+| medium | Perplexity | +0.068388 | [-0.481525, 0.614443] | at most 5.46 | pass |
+| medium | Entropy | +0.000261 | [-0.000839, 0.001368] | within ±0.0046 | pass |
+| large | Perplexity | +0.315610 | [-0.182557, 0.805486] | at most 5.46 | pass |
+| large | Entropy | +0.000803 | [-0.000403, 0.001989] | within ±0.0046 | pass |
+
+The intervals use the frozen bootstrap (10,000 independent seed resamples, RNG seed 42). A second
+`summary` invocation replayed each stored summary byte for byte. This qualifies LM1B-medium and
+LM1B-large CUDA quality under the approved protocol; Metal for these sizes is separate.
+
+| Item | SHA-256 |
+| --- | --- |
+| Medium manifest ([copy](raw/cohort-medium-cuda-v1-manifest.json)) | `d21f0a5f2f8c1eba5a5814a6c86c4dca969bba7c2ac20ddf4f59a4b7ab30a785` |
+| Medium summary ([copy](raw/cohort-medium-cuda-v1-summary.json)) | `414212d9b5b98b3a95f8919174202fa185accd1c209bf7032aa23c0b60cce0ef` |
+| Medium Python / Rust / score receipts | `ac9f61e4…`, `bc9dac7a…`, `b80313f8…` |
+| Large manifest ([copy](raw/cohort-large-cuda-v1-manifest.json)) | `8641fa85a17cd4da941495e60b87b246e3d6b3c1ec5ceeeedc4441bc39d7076f` |
+| Large summary ([copy](raw/cohort-large-cuda-v1-summary.json)) | `f6bd134c68c597b68cec5c640b8c4afc491dc65d601bfb3803ec31a5e3ec0a8e` |
+| Large Python / Rust / score receipts | `4af4e29e…`, `b79115d6…`, `ab3f2a16…` |
+| CUDA runner binary | `d2bbfc56612e8cb319bf283a8a7e10934ca334a70015a256ae94a99616c6206e` |
+
+Raw captures and per-seed scores are in ignored `reports/phase4-lm1b-campaign-prospective-{medium,large}-cuda-v1/`.
+The commands are those of the small run with `--size medium` or `--size large` on `init`.

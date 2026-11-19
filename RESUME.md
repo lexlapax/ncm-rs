@@ -1,6 +1,6 @@
 # Phase 4 handoff
 
-Last updated: 2026-11-18 UTC. The objective is to **complete Phase 4**, not just
+Last updated: 2026-11-19 UTC. The objective is to **complete Phase 4**, not just
 one diagnostic. Start with `AGENTS.md`, `agent-context-map.md`, `git status`,
 [the Phase 4 plan](docs/PLAN.md#phase-4--released-text-profile-compatibility)
 and [the text-profile contract](docs/PHASE4-TEXT.md). Current source and
@@ -38,9 +38,13 @@ protocol, not an approved replacement gate.
   same-device reference is still needed. The earlier five-observed-seed Metal
   retests fail the entropy interval. See [Metal quality and convolution](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md)
   and [sampler evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md).
-- LM1B-medium and large have checkpoint inventories but no qualified GPU
-  runtimes. OpenWebText currently requires synthetic/config/operator coverage;
-  checkpoint and quality work waits for released, validated weights.
+- LM1B-medium and large pass the lean bar on CUDA: teacher-forced parity on both
+  backends, 80-seed quality and timing against Python
+  ([quality](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#prospective-cuda-results-medium-and-large),
+  [timing](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)). Metal is pending.
+  OpenWebText has config-only and synthetic operator coverage
+  ([coverage](docs/results/2026-11-19-phase4-owt/config-operator-coverage-v1.md)); checkpoint and
+  quality work waits for released, validated weights.
 
 ## Latest LM1B-small Metal work
 
@@ -104,15 +108,13 @@ Do not claim full performance qualification from this small screen.
 
 ## Next work, in order
 
-1. Done: the prospective 80-seed CUDA campaign [passes](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#prospective-cuda-result).
-2. Run the Metal seed list against the same Python CUDA captures. Measure Metal
-   latency and memory at batches 1, 4 and 16 against the Python MLX reference.
-   Then close LM1B-small.
-3. Generalize the LM1B code to medium, then large, and qualify each size to the
-   [lean bar](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md#3-minimum-bar-for-lm1b-medium-and-lm1b-large),
-   CUDA first and then Metal.
-4. Add OWT synthetic/config/operator coverage.
-5. Audit Phase 4 against the plan, contract and accepted exceptions, then mark
+1. Done on CUDA: LM1B-small, medium and large quality and timing; OWT config-only coverage.
+   Done on Metal: LM1B-small 80-seed quality and latency.
+2. Mac (only once the user says macstudio is ready; recheck its state first): test the
+   LM1B-small Metal RSS fix at `57e5ee6` and rerun the small Metal timing, then run medium
+   and large on Metal to the same lean bar (teacher-forced check, 80-seed campaign with
+   `--rust-device metal --size`, timing against Python MLX).
+3. Audit Phase 4 against the plan, contract and accepted exceptions, then mark
    it complete.
 
 The ignored local `reports/` directories contain detailed captures, scripts and
