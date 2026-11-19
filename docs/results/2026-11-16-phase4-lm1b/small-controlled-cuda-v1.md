@@ -1118,3 +1118,22 @@ and `1f02b13099fe6442ee0c8190286c0af9585aaa8fdad7d96966193e516ccb8acf`.
 The [independent CUDA quality gate](small-heldout-cuda-v1.md)
 remains open. These requests establish a reproducible CLI entry point
 for this experimental runtime on the tested device.
+
+### Metal controlled stochastic comparison
+
+The experimental Metal path ran the pinned two-row controlled sample on
+Mac Studio. The returned codes and IDs match its untraced replay. The
+existing comparison fails 34 of 51 tensor checks. Generated codes differ
+at 505 of 1,282 positions and penalty-adjusted IDs at 130 of 256 positions.
+Level-five logits pass the existing band. Level-six post-convolution input
+is the first level-specific generator tensor outside the band.
+
+The Metal trace SHA-256 is
+`a464a0e036a8af5d6d191e43747c67007ba14e6e5880d1f214a93a4ab525e870`.
+The failed comparison SHA-256 is
+`1b466fbc90746a203c037b25c0685b34e5075dae0774205d874d75b195a3d783`.
+The Mac trace and log are retained under
+`reports/phase4-lm1b-small-controlled-metal-v1/` and
+`reports/phase4-lm1b-small-controlled-metal-v1.log`. The unchanged
+comparison uses the earlier strict CUDA reference and remains a failed
+stochastic diagnostic. Fixed-history and greedy Metal traces pass separately.

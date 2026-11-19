@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small Metal stochastic:** the two-row controlled trace repeats internally but fails 34 of 51 comparisons against the pinned strict CUDA reference. It differs in 505 codes and 130 penalized IDs. Level-six post-convolution input is the first level-specific generator tensor outside the existing band. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-controlled-stochastic-comparison)
+
 - **LM1B-small Metal greedy:** both development rows pass all 51 unchanged-policy comparisons, with exact generated codes and final IDs. Stochastic Metal comparison is next. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-greedy-cuda-v1.md#metal-greedy-continuation)
 
 - **LM1B-small Metal greedy:** the explicit-initial-code free continuation is ready for comparison with the pinned two-row CUDA reference.
