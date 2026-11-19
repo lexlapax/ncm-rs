@@ -180,9 +180,11 @@ records, not a substitute for the missing release recipe.
 
 ### Linux Sudoku-easy development replay
 
-This is the **only** fresh-clone exporter/inference slice screened so far. It reproduces the
-qualified easy manifest, not the unresolved medium/hard artifacts. The recorded Linux reference
-uses Python 3.14.9 with Torch 2.15.0+cu132, the historical Git base and the exact exporter bytes
+This is the **only** fresh-clone exporter/inference profile screened so far. The build, CUDA check,
+download, export and synthetic example blocks were replayed as written in a
+[fresh-clone slice](results/2026-11-19-phase5-cli/linux-guide-sudoku-replay-v1.md); that is not a
+complete guide replay. It reproduces the qualified easy manifest, not the unresolved medium/hard
+artifacts. The recorded Linux reference uses Python 3.14.9 with Torch 2.15.0+cu132, the historical Git base and the exact exporter bytes
 shown below. The newer reference venv from the CUDA section supplies the offline dependencies;
 this build-tree Python is not a general-purpose environment. On the tested Arch host its `_ssl`
 module failed to build, so use the system Python for downloads and pip; use this interpreter only

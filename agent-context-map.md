@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Fresh-clone Linux Sudoku guide replay:** extracted and followed the guide's CUDA build, `tools/check.sh --cuda` (18 operator results), checkpoint download, historical export and synthetic `sample`/`generate` blocks; the qualified manifest and identical output passed. The inspected clone was removed ([evidence](docs/results/2026-11-19-phase5-cli/linux-guide-sudoku-replay-v1.md)); 13 guide shell blocks and links pass syntax/link checks. Only one profile was replayed, not the full Linux or Mac guide, quality or performance gate.
+
 - **Fresh-clone Linux tokenizer slice:** followed the guide's upstream clone, tokenizer venv, pinned network fetch and conversion from a new clone; all four tokenizer manifests and payloads matched the tracked lock, and the inspected temporary clone was removed ([evidence](docs/results/2026-11-19-phase5-cli/linux-fresh-clone-tokenizers-v1.md)). Added the exercised hash check to the guide; thirteen shell blocks, links and `tools/check.sh` pass. Full setup replay, model execution and Metal remain pending.
 
 - **LM1B sidecar output safety:** offline reference exporter now exclusively creates its output, rejecting existing files and live/dangling symlinks, with three dependency-free tests added to `tools/check.sh`. A fresh Linux reference export exactly matches the pinned sidecar and the prior bytes ([evidence](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md)); `tools/check.sh` passes. This is not new GPU, quality or fresh-clone evidence.
