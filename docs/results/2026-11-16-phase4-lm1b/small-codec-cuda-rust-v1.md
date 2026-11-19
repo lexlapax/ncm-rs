@@ -143,3 +143,36 @@ The patch and comparisons are retained under
 `reports/phase4-lm1b-metal-refinement-three-v1/`; the corresponding Mac
 traces use the `phase4-lm1b-small-codec-metal-three-v1` and
 `phase4-lm1b-small-controlled-metal-three-v1` names.
+
+## Same-device adapted codec comparison
+
+An independently executed Python MLX codec adaptation was run on the Mac
+using the same authenticated artifact and two CUDA fixture inputs. It
+extends the existing Sudoku MLX reference with LM1B's absent encoder
+position table, single full-span up/down convolution names, decoder
+position table and three additional decoder blocks. Its 362 captured tensors
+match the Rust Metal trace under the unchanged per-tensor policy, including
+all exact integer decisions. Against the original CUDA trace, the adapted
+Python capture fails 47 checks, with the same failing tensor names as Rust;
+the failure magnitudes need not be identical. This supports a shared
+cross-device numerical contribution on these fixture rows. It does not
+qualify the adaptation independently, establish stochastic parity, waive
+any CUDA comparison, or establish the Metal profile gate.
+
+The Mac ran `PYTHONPATH=tools/reference:reports
+.reference/mlx-venv/bin/python reports/lm1b_small_mlx_codec_trace.py
+artifacts/canonical/lm1b-small-inference-v1
+reports/phase4-lm1b-small-codec-cuda-reference-v1
+reports/phase4-lm1b-small-codec-python-metal-v4` (one command). The
+Python capture SHA-256 is
+`ce5bda79248936583d74627d5013cac4e01e4580c9d0a58a29a43c885de30f79`.
+The CUDA and same-device comparison hashes are
+`457ae4dd67ab71d2803aef526aa5fa8b92478f7e12d110a2cea799f0284aa826`
+and `13b7fd4d9209e58f93c1639982c38f7b03dc182827c1397328010685f9d1ae7a`.
+The latter explicitly substitutes the existing Rust Metal trace hash for
+the comparator's locked CUDA reference hash; its numerical policy is
+unchanged. Sources and results are retained under
+`reports/phase4-lm1b-small-codec-python-metal-v4/`. The adapted codec
+and capture script hashes are
+`ac55a0bd5dee0551f2a44527a1cbf060dc37959ea06fc5bc72f24c716ed8db63`
+and `df383b769ab203045eb552e6b202b7c7712dadf18146bde8fbd164803f452654`.
