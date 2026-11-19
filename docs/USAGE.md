@@ -451,11 +451,56 @@ assert len(result['codes'][0]) == 322 and len(result['ids'][0]) == 89
 PY
 ```
 
-## Other inference examples — pending
+## Synthetic text examples — CUDA development screen
 
-Run `target/release/ncm --help` and `target/release/ncm sample --help` for the current interface.
-Additional reproducible examples, including the LM1B rotary sidecar, must be tested from fresh
-clones on both machines before release. The CUDA-only
+The examples below assume the Linux CUDA build and the four qualified artifacts and shared LM1B
+sidecar prepared above. They create fresh synthetic inputs and one-row outputs; they are not
+quality, performance or Python-parity tests. TinyStories text must encode to exactly one non-padding
+token; XSum/WMT14 text is truncated and padded per profile. LM1B currently uses the fixed `[[101]]`
+ID input; its `--text` policy is unresolved. WMT14 uses `cuda`, while the other examples use
+`cuda-cudnn`. A [Linux CUDA screen](results/2026-11-19-phase5-cli/cuda-synthetic-text-examples-v1.md)
+used the same requests with retained artifact paths; full fresh-clone and Metal replays remain pending.
+
+```sh
+mkdir reports/text-examples || exit 1
+python3 - <<'PY' || exit 1
+import json
+from pathlib import Path
+root=Path('reports/text-examples')
+for name,value in {'tiny-input':['hello'],
+                   'xsum-input':['The council opened a new park on Tuesday.'],
+                   'wmt14-input':['Das ist ein kleines Beispiel.'],
+                   'lm1b-input':[[101]]}.items():
+    with (root/f'{name}.json').open('x') as stream:
+        json.dump(value,stream,ensure_ascii=False)
+        stream.write('\n')
+PY
+cudnn="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+(
+  set -eC # refuse to overwrite output files
+  export LD_LIBRARY_PATH="$cudnn" OMP_NUM_THREADS=1
+  cli=target/release/ncm
+  dir=reports/text-examples
+  "$cli" sample artifacts/canonical/tinystories-qualified cuda-cudnn "$dir/tiny-input.json" --text --seed 42 --decode > "$dir/tiny-output.json"
+  "$cli" sample artifacts/canonical/xsum-qualified cuda-cudnn "$dir/xsum-input.json" --text --decode > "$dir/xsum-output.json"
+  "$cli" sample artifacts/canonical/wmt14-qualified cuda "$dir/wmt14-input.json" --text --decode > "$dir/wmt14-output.json"
+  "$cli" sample artifacts/canonical/lm1b-small-qualified cuda-cudnn "$dir/lm1b-input.json" --seed 42 --decode > "$dir/lm1b-output.json"
+) || exit 1
+python3 - <<'PY'
+import json
+from pathlib import Path
+for name in ('tiny','xsum','wmt14','lm1b'):
+    result=json.loads((Path('reports/text-examples')/f'{name}-output.json').read_text())
+    if not all(isinstance(result.get(key),list) and len(result[key])==1 for key in ('codes','ids','texts')):
+        raise ValueError(f'{name}: unexpected output shape')
+    if not isinstance(result['texts'][0],str):
+        raise ValueError(f'{name}: decoded output is not text')
+    print(name, 'one decoded row')
+PY
+```
+
+Run `target/release/ncm --help` and `target/release/ncm sample --help` for the complete current interface. These
+examples must still be tested from fresh clones on both machines before release. The CUDA-only
 [CLI equivalence screen](results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md) and
-[text-input screen](results/2026-11-19-phase5-cli/cuda-text-input-v1.md) describe the current
-limited development checks, not the release gate.
+[text-input screen](results/2026-11-19-phase5-cli/cuda-text-input-v1.md) describe separate limited
+checks, not the release gate.

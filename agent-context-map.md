@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Synthetic text examples:** added [draft CUDA commands](docs/USAGE.md#synthetic-text-examples--cuda-development-screen) for TinyStories, XSum, WMT14 and LM1B-small. Four one-row requests passed with retained qualified artifacts and decoded text ([scope](docs/results/2026-11-19-phase5-cli/cuda-synthetic-text-examples-v1.md)); 14 guide shell blocks, links and `tools/check.sh` pass. They are smoke tests, not fresh-clone, Metal, parity, quality or performance evidence.
+
 - **Fresh-clone Linux Sudoku guide replay:** extracted and followed the guide's CUDA build, `tools/check.sh --cuda` (18 operator results), checkpoint download, historical export and synthetic `sample`/`generate` blocks; the qualified manifest and identical output passed. The inspected clone was removed ([evidence](docs/results/2026-11-19-phase5-cli/linux-guide-sudoku-replay-v1.md)); 13 guide shell blocks and links pass syntax/link checks. Only one profile was replayed, not the full Linux or Mac guide, quality or performance gate.
 
 - **Fresh-clone Linux tokenizer slice:** followed the guide's upstream clone, tokenizer venv, pinned network fetch and conversion from a new clone; all four tokenizer manifests and payloads matched the tracked lock, and the inspected temporary clone was removed ([evidence](docs/results/2026-11-19-phase5-cli/linux-fresh-clone-tokenizers-v1.md)). Added the exercised hash check to the guide; thirteen shell blocks, links and `tools/check.sh` pass. Full setup replay, model execution and Metal remain pending.
