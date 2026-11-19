@@ -47,7 +47,7 @@ def execute(output, condition, binary, command, artifact, input_path, group, ord
             profile='sudoku'):
     stem = f'{group}-{ordinal:02d}-{condition}'
     stdout, stderr, rss = (output / f'{stem}.{suffix}' for suffix in ('stdout', 'stderr', 'rss'))
-    device = 'cuda-cudnn' if profile == 'tinystories' else 'cuda'
+    device = 'cuda-cudnn' if profile in ('tinystories', 'xsum') else 'cuda'
     options = (['42'] if command == 'sample-tinystories' else ['--seed', '42']) if profile == 'tinystories' else []
     argv = ['/usr/bin/time', '-f', '%M', '-o', str(rss), str(binary), command,
             str(artifact), device, str(input_path), *options]
@@ -93,7 +93,7 @@ def main():
         parser.add_argument('--' + name, required=True, type=Path)
     for name in ('baseline', 'candidate', 'manifest', 'input', 'expected-output'):
         parser.add_argument('--' + name + '-sha256', required=True)
-    parser.add_argument('--profile', choices=('sudoku', 'tinystories'), default='sudoku')
+    parser.add_argument('--profile', choices=('sudoku', 'tinystories', 'xsum', 'wmt14'), default='sudoku')
     parser.add_argument('--watch-file', type=Path, action='append', default=[],
                         help='additional native library to hash before and after measurement')
     args = parser.parse_args()
@@ -128,7 +128,8 @@ def main():
         try:
             for group in range(1, ROUNDS + 1):
                 for ordinal in range(WARMUPS + TRIALS):
-                    old_command = 'sample-tinystories' if args.profile == 'tinystories' else 'generate'
+                    old_command = {'sudoku': 'generate', 'tinystories': 'sample-tinystories',
+                                   'xsum': 'sample-xsum', 'wmt14': 'sample-wmt14'}[args.profile]
                     order = [('baseline', baseline, old_command), ('candidate', candidate, 'sample')]
                     if (group + ordinal) % 2:
                         order.reverse()

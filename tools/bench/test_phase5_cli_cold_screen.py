@@ -55,6 +55,22 @@ class ColdScreenTests(unittest.TestCase):
         self.assertEqual(calls[0][5:], ['/old', 'sample-tinystories', '/artifact', 'cuda-cudnn', '/input', '42'])
         self.assertEqual(calls[1][5:], ['/new', 'sample', '/artifact', 'cuda-cudnn', '/input', '--seed', '42'])
 
+    def test_top1_text_profiles_use_correct_device_without_sampling_flags(self):
+        raw = b'{}'
+        expected = hashlib.sha256(raw).hexdigest()
+        calls = []
+        def run(argv, **kwargs):
+            calls.append(argv)
+            Path(argv[4]).write_text('1234\n', encoding='utf-8')
+            kwargs['stdout'].write(raw)
+            return Mock(wait=Mock(return_value=0))
+        with tempfile.TemporaryDirectory() as directory, patch.object(tool.subprocess, 'Popen', side_effect=run):
+            for profile, alias in (('xsum', 'sample-xsum'), ('wmt14', 'sample-wmt14')):
+                tool.execute(Path(directory), profile, Path('/old'), alias, Path('/artifact'),
+                             Path('/input'), 1, 0, True, expected, profile)
+        self.assertEqual(calls[0][5:], ['/old', 'sample-xsum', '/artifact', 'cuda-cudnn', '/input'])
+        self.assertEqual(calls[1][5:], ['/old', 'sample-wmt14', '/artifact', 'cuda', '/input'])
+
     def test_dangling_output_symlink_rejected_before_work(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

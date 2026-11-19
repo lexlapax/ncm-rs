@@ -44,8 +44,9 @@ measure the CLI's device peak. No GPU reservation or absence of competing work w
 
 ## Reproduce
 
-The runner SHA-256 is `f0ce2842f26ce4625ba532abd2fd83b0960713cf5b8ef4c07daab348bb12ba06`;
-the ignored result SHA-256 is `2db9e7df31f7001351c251d9526432fd4eb63ff936c1bf70d30f7d5156b3c6b4`
+The runner used here had SHA-256 `f0ce2842f26ce4625ba532abd2fd83b0960713cf5b8ef4c07daab348bb12ba06`;
+it was later extended for separate [XSum/WMT14 screens](cuda-xsum-wmt14-cold-screen-v1.md).
+The ignored result SHA-256 is `2db9e7df31f7001351c251d9526432fd4eb63ff936c1bf70d30f7d5156b3c6b4`
 and GPU CSV SHA-256 is `8ce854bd5d867805a5b30de999d91040c16c2c9b824735527b2007d2159b0326`.
 Use a fresh output directory; raw files stay ignored.
 
