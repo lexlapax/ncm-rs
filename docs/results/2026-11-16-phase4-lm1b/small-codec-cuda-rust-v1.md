@@ -176,3 +176,12 @@ unchanged. Sources and results are retained under
 and capture script hashes are
 `ac55a0bd5dee0551f2a44527a1cbf060dc37959ea06fc5bc72f24c716ed8db63`
 and `df383b769ab203045eb552e6b202b7c7712dadf18146bde8fbd164803f452654`.
+
+A second Mac capture additionally reran encoding, decoded reconstructed
+codes and decoded supplied codes without observation. Traced and untraced
+codes, logits and IDs were exactly equal; the complete 362-tensor capture
+was byte-identical to the first Python MLX capture. Its script SHA-256 is
+`1cad1997d81558d3e522fc6fc41e653d051b3dceda0651ebd836a2c731d1a373`;
+the script is retained alongside the earlier evidence and its Mac output
+uses `reports/phase4-lm1b-small-codec-python-metal-v5/`. This checks
+instrumentation consistency, not the adaptation's independent qualification.
