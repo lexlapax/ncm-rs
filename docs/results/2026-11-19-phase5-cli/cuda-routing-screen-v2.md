@@ -24,6 +24,13 @@ setpriv --inh-caps=-all env LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14
 
 Use a fresh output directory for a rerun. The runner uses explicit `--reference-rope`; the default-sidecar route was separately screened. Automated negative controls reject malformed output, byte differences, failed processes and identical baseline/candidate binaries. The earlier routing, text and decode screens retain their separate scopes and limitations. Mac execution, user decisions, fresh-clone setup and the release gate remain pending.
 
+After that screen, the runner's output-path preflight was corrected to reject live and dangling
+symlinks before resolving the destination. The updated runner SHA-256 is
+`2af9fdd181a6ab05ce8c1f4bfddbbd99c4eaf81985fa564943f20e6178cad81a`; five offline tests and
+`tools/check.sh` passed, including symlink negative controls. The nine-profile CUDA screen above
+used the earlier runner hash, not this new version; no GPU rerun or new parity claim is implied.
+Output parent directories must remain trusted and stable.
+
 ## CLI rejection integration checks
 
 `crates/ncm-cli/tests/unified_rejections.rs` invokes the actual CLI with ten synthetic manifests

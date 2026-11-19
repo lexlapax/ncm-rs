@@ -84,11 +84,14 @@ def main():
     parser.add_argument('--candidate-sha256', required=True)
     parser.add_argument('--platform', choices=('cuda', 'mlx'), required=True)
     args = parser.parse_args()
-    baseline, candidate, artifacts, inputs, xsum, wmt14, rope, output = (
-        getattr(args, name).resolve() for name in
-        ('baseline', 'candidate', 'artifacts', 'inputs', 'xsum_input', 'wmt14_input', 'rope', 'output'))
-    if output.exists():
+    if args.output.exists() or args.output.is_symlink():
         raise ValueError('output directory already exists')
+    baseline, candidate, artifacts, inputs, xsum, wmt14, rope = (
+        getattr(args, name).resolve() for name in
+        ('baseline', 'candidate', 'artifacts', 'inputs', 'xsum_input', 'wmt14_input', 'rope'))
+    # Do not resolve the final component: a dangling symlink must not become a destination.
+    # As with the input artifacts, parent directories must be trusted and stable.
+    output = args.output.absolute()
     if digest(baseline) != args.baseline_sha256 or digest(candidate) != args.candidate_sha256:
         raise ValueError('binary hash differs from requested identity')
     if baseline == candidate or args.baseline_sha256 == args.candidate_sha256:

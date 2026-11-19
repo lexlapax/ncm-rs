@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **CLI equivalence runner output safety:** reject live/dangling output symlinks before resolving the destination; five offline tests and `tools/check.sh` pass. The earlier nine-profile CUDA screen retains its original runner identity ([evidence](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md)); the updated runner has not been GPU-rerun and adds no parity or quality evidence.
+
 - **CUDA overlength text:** one synthetic 1,101-token input per XSum/WMT14 was tested against its pinned Python-truncated IDs: baseline alias, candidate alias, unified IDs and unified text matched byte-for-byte; decoded ID/text paths matched and preserved IDs/codes. The [documented commands](docs/results/2026-11-19-phase5-cli/cuda-text-truncation-v1.md) were replayed with fresh outputs. Report shell blocks/links and `tools/check.sh` pass. This is not corpus generation, quality, performance or Metal evidence.
 
 - **Text truncation/padding boundaries:** seven synthetic inputs per profile, including overlength, empty, Unicode and special strings, matched the pinned Python XSum/WMT14 encoders in an artifact-bound Rust test ([evidence](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#synthetic-truncation-and-padding-boundaries)). Three references per profile were byte-identical; output preflight and `tools/check.sh` pass. This checks encoding only, not model acceptance, GPU generation or quality.

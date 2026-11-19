@@ -49,6 +49,26 @@ class EquivalenceTests(unittest.TestCase):
                 runner.main()
             self.assertFalse((root / 'output').exists())
 
+    def test_output_symlinks_are_rejected_before_reading_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / 'target'
+            target.mkdir()
+            live, dangling = root / 'live', root / 'dangling'
+            live.symlink_to(target, target_is_directory=True)
+            dangling.symlink_to(root / 'missing', target_is_directory=True)
+            for output in (live, dangling):
+                argv = ['phase5_cli_equivalence', '--baseline', 'old', '--candidate', 'new',
+                        '--baseline-sha256', 'a', '--candidate-sha256', 'b', '--artifacts', 'artifacts',
+                        '--inputs', 'inputs', '--xsum-input', 'xsum', '--wmt14-input', 'wmt',
+                        '--rope', 'rope', '--platform', 'cuda', '--output', str(output)]
+                with patch('sys.argv', argv), patch.object(runner, 'digest') as digest:
+                    with self.assertRaisesRegex(ValueError, 'output directory already exists'):
+                        runner.main()
+                    digest.assert_not_called()
+            self.assertFalse((root / 'missing').exists())
+            self.assertEqual(list(target.iterdir()), [])
+
     def test_differences_and_process_failures_do_not_pass(self):
         good = self.make_output()
         different = good.replace(b'[[1,', b'[[2,', 1)
