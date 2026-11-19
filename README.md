@@ -39,7 +39,7 @@ the artifact profile; existing `sample-*` commands remain available. Run `ncm --
 ```sh
 ncm inspect ARTIFACT
 ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode]
-ncm sample ARTIFACT DEVICE TEXT_JSON --text [--decode]  # XSum or WMT14
+ncm sample ARTIFACT DEVICE TEXT_JSON --text [--decode]  # TinyStories, XSum or WMT14
 ncm generate ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]     # Sudoku
 ncm reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]  # Sudoku codec
 ```
@@ -50,8 +50,9 @@ covers one fixed batch per profile. Its [text-input](docs/results/2026-11-19-pha
 [LM1B rotary](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md) screens have narrower scopes.
 Metal equivalents are pending. LM1B requires the separately generated, hash-pinned rotary sidecar
 beside the artifact, or `--reference-rope FILE`; no table approximation or device fallback is used.
-TinyStories accepts one non-padding prefix token per row; LM1B accepts only its fixed `[101]`
-start-token rows. Both currently reject `--text`.
+TinyStories accepts one non-padding prefix token per row; its `--text` mode rejects strings
+that do not encode to exactly one non-padding token. LM1B accepts only its fixed `[101]`
+start-token rows and currently rejects `--text`.
 
 - FP32 only in this phase; BF16/FP16 and quantization are deferred. OWT inference is unsupported.
 - Neither runtime reproduces the PyTorch random stream; Metal/CUDA draw-level differences are a

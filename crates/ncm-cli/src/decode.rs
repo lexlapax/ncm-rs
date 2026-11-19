@@ -81,10 +81,6 @@ impl Decoder {
     }
 
     pub(super) fn encode_texts(&self, texts: &[String]) -> Result<Vec<Vec<u32>>> {
-        let length = self
-            .policy
-            .input_length
-            .ok_or("text input is not supported for this profile")?;
         if texts.is_empty() || texts.len() > 128 {
             return Err("text input must contain 1..=128 strings".into());
         }
@@ -92,8 +88,12 @@ impl Decoder {
             .iter()
             .map(|text| {
                 let mut ids = self.tokenizer.encode(text)?;
-                ids.truncate(length);
-                ids.resize(length, self.policy.pad);
+                if let Some(length) = self.policy.input_length {
+                    ids.truncate(length);
+                    ids.resize(length, self.policy.pad);
+                } else {
+                    validate_tinystories_prefix(&ids)?;
+                }
                 Ok(ids)
             })
             .collect()
@@ -118,9 +118,48 @@ impl Decoder {
     }
 }
 
+fn validate_tinystories_prefix(ids: &[u32]) -> Result<()> {
+    if !matches!(ids, [id] if *id < 8192 && *id != 1) {
+        return Err("TinyStories text must encode to exactly one non-padding token".into());
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Decoder, evaluator_ids, policy};
+    use super::{Decoder, evaluator_ids, policy, validate_tinystories_prefix};
+
+    #[test]
+    fn tinystories_text_requires_exactly_one_non_padding_id() {
+        for ids in [&[][..], &[1], &[8192], &[2, 3]] {
+            assert!(validate_tinystories_prefix(ids).is_err());
+        }
+        for ids in [&[0][..], &[2], &[8191]] {
+            assert!(validate_tinystories_prefix(ids).is_ok());
+        }
+    }
+    #[test]
+    #[ignore = "requires pinned local TinyStories artifact"]
+    fn tinystories_text_uses_pinned_tokenizer_and_rejects_unrepresentable_prefixes() {
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_TINYSTORIES_ARTIFACT").unwrap())
+                .unwrap();
+        let decoder = Decoder::from_artifact(&artifact).unwrap();
+        let texts = ["a", "hello", "<|endoftext|>"].map(str::to_owned);
+        assert_eq!(
+            decoder.encode_texts(&texts).unwrap(),
+            [vec![99], vec![5663], vec![0]]
+        );
+        for text in ["", "<|pad|>", "hello world", "😀"] {
+            assert!(
+                decoder.encode_texts(&[text.to_owned()]).is_err(),
+                "{text:?}"
+            );
+        }
+        assert!(decoder.encode_texts(&[]).is_err());
+        assert!(decoder.encode_texts(&vec!["a".to_owned(); 129]).is_err());
+    }
+
     #[test]
     #[ignore = "requires pinned local artifacts and external reference corpora"]
     fn corpus_text_encoding_matches_every_reference_row() {

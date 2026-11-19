@@ -95,14 +95,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             result[1] = "generate".into();
         }
         "tinystories-inference-v1" => {
-            if cfg.is_some()
-                || rope.is_some()
-                || text
-                || stochastic
-                || positive_cfg
-                || top_p
-                || host_fp64
-            {
+            if cfg.is_some() || rope.is_some() || stochastic || positive_cfg || top_p || host_fp64 {
                 return Err("unsupported option for TinyStories".into());
             }
             result[1] = "sample-tinystories".into();
@@ -228,12 +221,15 @@ mod tests {
             assert!(translate_profile(&args(&["--decode"]), profile).is_ok());
         }
         assert!(translate_profile(&args(&["--decode"]), "sudoku-easy-inspection-v1").is_err());
-        for profile in ["xsum-inference-v2", "wmt14-inference-v1"] {
+        for profile in [
+            "tinystories-inference-v1",
+            "xsum-inference-v2",
+            "wmt14-inference-v1",
+        ] {
             assert!(translate_profile(&args(&["--text", "--decode"]), profile).is_ok());
             assert!(translate_profile(&args(&["--text", "--text"]), profile).is_err());
         }
         assert!(translate_profile(&args(&["--text"]), "sudoku-easy-inspection-v1").is_err());
-        assert!(translate_profile(&args(&["--text"]), "tinystories-inference-v1").is_err());
         assert!(
             translate_profile(
                 &args(&["--text", "--reference-rope", "rope"]),

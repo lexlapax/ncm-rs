@@ -1,6 +1,6 @@
 # Phase 5 text input: XSum and WMT14
 
-2026-11-19. `ncm sample ARTIFACT DEVICE INPUT_JSON --text` now accepts a JSON array of strings for XSum and WMT14. It uses the artifact's authenticated tokenizer; XSum truncates to 512 IDs and pads with 50257, WMT14 truncates to 96 and pads with 151643. TinyStories and LM1B still explicitly reject `--text`. Correction: TinyStories accepts any single valid non-padding prefix token, not only a fixed start token; LM1B requires `[101]`. This is not a completed Phase 5 text-input gate.
+2026-11-19. `ncm sample ARTIFACT DEVICE INPUT_JSON --text` now accepts a JSON array of strings for XSum and WMT14. It uses the artifact's authenticated tokenizer; XSum truncates to 512 IDs and pads with 50257, WMT14 truncates to 96 and pads with 151643. At this screen TinyStories and LM1B rejected `--text`; TinyStories support was added later (below). Correction: TinyStories accepts any single valid non-padding prefix token, not only a fixed start token; LM1B requires `[101]`. This is not a completed Phase 5 text-input gate.
 
 ## Corpus-exact encoding
 
@@ -27,4 +27,8 @@ For the first corpus row of each profile, four fresh processes compared equivale
 
 ## TinyStories prefix correction
 
-The current TinyStories teacher accepts one prefix ID per row in `0..8192`, excluding pad ID 1; it is **not** restricted to start ID 0. On CUDA, seed 42 and prefix `[[2]]` produced byte-identical stdout through the pre-change binary, candidate alias and candidate unified command (SHA-256 `efe7256404004b6551c25868fabebb2c2d06f12841662cb907473db34d11d03c`). It differed from the prior `[[0]]` output at 639 of 641 codes. This is a two-input development screen, not a claim that arbitrary multi-token prefixes are supported or qualified. `--text` for TinyStories is still not implemented.
+The current TinyStories teacher accepts one prefix ID per row in `0..8192`, excluding pad ID 1; it is **not** restricted to start ID 0. On CUDA, seed 42 and prefix `[[2]]` produced byte-identical stdout through the pre-change binary, candidate alias and candidate unified command (SHA-256 `efe7256404004b6551c25868fabebb2c2d06f12841662cb907473db34d11d03c`). It differed from the prior `[[0]]` output at 639 of 641 codes. This is a two-input development screen, not a claim that arbitrary multi-token prefixes are supported or qualified.
+
+## TinyStories text input
+
+`--text` now encodes using the artifact tokenizer and requires exactly one non-padding token per input string; it does not truncate multi-token input. The pinned upstream tokenizer encodes `a`, `hello` and `<|endoftext|>` as `[99]`, `[5663]` and `[0]`; Rust's artifact-bound tokenizer agrees. On CUDA with seed 42, the three-row text request produced byte-identical stdout to the equivalent IDs via the baseline, alias and unified commands (SHA-256 `5657f32f642395268128b19df66e283ab5644ae59bc4869a0e542c467b5d2f63`). With `--decode`, text and ID inputs also matched (SHA-256 `ba9da3f1183b3e7a025693af4d3218ee431d61fc0af9bc87e27b4cbe4d364cfd`), and the non-text fields match the baseline. Empty, `<|pad|>`, `hello world` and `😀` inputs were rejected explicitly. Candidate release binary SHA-256 `cbd3d8d1fa39cbd878c6ff5f41a4f32aafe726d7706ee7c0dc28e0fd4e3a9b67`. The first screening harness accidentally overwrote its own text input with an output; that failed run was discarded and the clean rerun used disjoint filenames. Raw captures are in ignored `reports/phase5-tiny-text-v2/`. Metal, broader inputs and performance checks are pending.

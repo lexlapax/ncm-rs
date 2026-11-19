@@ -18,15 +18,16 @@ Usage: ncm sample ARTIFACT DEVICE INPUT_JSON [OPTIONS]
 
 The artifact manifest selects Sudoku, TinyStories, XSum, WMT14 or LM1B.
 INPUT_JSON contains token-ID rows; with --text it contains an array of strings.
---text currently supports XSum and WMT14 only. LM1B requires the pinned rotary
-export named lm1b-reference-rope-v1.safetensors beside the artifact directory,
+--text supports TinyStories (one non-padding token), XSum and WMT14; LM1B
+text input is unsupported. LM1B requires the pinned rotary export named
+lm1b-reference-rope-v1.safetensors beside the artifact directory,
 or an explicit --reference-rope FILE.
 
 Options:
   --seed N                       Seed TinyStories or LM1B (default 0).
   --cfg S                        Classifier-free guidance scale (default 0).
   --decode                       Include evaluator-decoded text for text profiles.
-  --text                         Encode XSum/WMT14 strings using artifact tokenizer.
+  --text                         Encode TinyStories/XSum/WMT14 strings using artifact tokenizer.
   --reference-rope FILE          Override default LM1B rotary table path.
   --host-fp64                    LM1B Metal host FP64 sampling.
   --top-p-fp32                   Experimental LM1B Metal top-p sampler.
