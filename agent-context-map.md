@@ -9,7 +9,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 - **Phases 0–3 complete.** Phase 2 closed with a [scoped Apple immediate-memory exception](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md).
   Phase 3 Sudoku is complete on CUDA and Metal ([report](docs/results/2026-11-14-phase3-sudoku/README.md)).
 - **Phase 4 complete with scoped, user-accepted exceptions** (2026-11-19, [audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md), [contract](docs/PHASE4-TEXT.md), [handoff](RESUME.md)).
-- **Phase 5 planned** ([PHASE5.md](docs/PHASE5.md)): user chose release first, lean, and FP32 only (2026-11-19). Next is step 1, the v0.1.0 release candidate.
+- **Phase 5 step 1 in progress** ([PHASE5.md](docs/PHASE5.md)): user chose release first, lean, and FP32 only (2026-11-19). `ncm sample` routes supported profiles to existing paths; ordinary GPU CLI features enable the prior experimental feature paths. A [CUDA routing screen](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v1.md) matches baseline, alias and unified stdout for one request per profile. Text I/O, LM1B's no-extra-argument rotary setup, Metal validation, performance and the release gate remain pending.
 
 | Profile | Status |
 | --- | --- |
@@ -56,8 +56,7 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
 
-1. **Phase 5 step 1 (CUDA, then Metal):** unified `ncm sample` dispatching on the manifest profile, with byte-identical
-   output against the current commands; fold the `*-experimental` build features into `cuda`/`mlx`; `--decode` and `--text`
+1. **Phase 5 step 1 (CUDA, then Metal):** complete unified `ncm sample` (LM1B currently needs `--reference-rope`; decoder support is LM1B-only), confirm byte-identical output against the current commands; finish validating the `*-experimental` feature folding; `--decode` and `--text`
    for every text profile with corpus-exact encoding gates; `docs/USAGE.md` verified from a fresh clone; README and release
    notes; then ask before tagging `v0.1.0`.
 2. Steps 2–4 follow [PHASE5.md](docs/PHASE5.md): profile, user picks targets, targeted optimizations, close.
@@ -74,6 +73,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 - CUDA check: `NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 ./tools/check.sh --cuda`.
 
 ## Checks run for this update
+
+- **Phase 5 CLI routing:** CLI binary tests (9 passed) and all-target Clippy with `cuda-cudnn`; `setpriv --inh-caps=-all ... ./tools/check.sh --cuda` passes, including 18 real CUDA operator cases. [CUDA screen](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v1.md) compares baseline, alias and unified output for one request per profile. CLI link/test required `LIBRARY_PATH=$PWD/.reference/phase4-cudnn-probe-lib` and `LD_LIBRARY_PATH=$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib`; the first attempt without those failed to link `-lcudnn`. Metal and performance checks are pending.
 
 - **Phase 5 plan (docs only) and cleanup:** wrote `docs/PHASE5.md`. Deleted untracked data not needed for Phase 5 on both
   machines: raw reports, superseded artifacts, build caches, old `.reference` snapshots and logs. Afterwards

@@ -1,5 +1,6 @@
 //! JSON-array inference on an explicitly selected backend.
 mod lm1b;
+mod sample;
 
 #[cfg(any(
     feature = "cpu",
@@ -453,7 +454,10 @@ fn read_inputs(input_path: &Path) -> Result<Vec<Vec<u32>>> {
 }
 
 fn main_impl() -> Result<()> {
-    let args: Vec<_> = std::env::args().collect();
+    let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|arg| arg == "sample") {
+        args = sample::translate(&args)?;
+    }
     if args.len() == 3 && args[1] == "inspect" {
         let artifact = Artifact::load(&args[2])?;
         println!("{}", serde_json::to_string_pretty(artifact.manifest())?);
@@ -517,6 +521,22 @@ fn main() {
     if let Err(e) = main_impl() {
         eprintln!("ncm: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod feature_tests {
+    #[test]
+    fn ordinary_gpu_features_enable_qualified_profiles() {
+        const {
+            assert!(!cfg!(feature = "cuda") || cfg!(feature = "wmt14-experimental"));
+            assert!(!cfg!(feature = "cuda-cudnn") || cfg!(feature = "lm1b-experimental"));
+            assert!(
+                !cfg!(feature = "mlx")
+                    || (cfg!(feature = "wmt14-experimental")
+                        && cfg!(feature = "lm1b-mlx-experimental"))
+            );
+        }
     }
 }
 
