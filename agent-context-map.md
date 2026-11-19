@@ -73,6 +73,15 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
+- **Metal RSS fix attempt (user chose "try one targeted fix"; Metal untested, Mac on hold):** host FP64
+  penalties now read decoder logits through `visit_f32_rows` in blocks of two rows
+  (`LM1B_PENALTY_ROWS`). On MLX each block is a separate exact GPU copy (multiply by one), so the CPU
+  never touches the full logits buffer. The default (CUDA/CPU) implementation slices one host copy.
+  Values and order are unchanged. Hypothesis being tested: Rust RSS growth equals the CPU-touched
+  decoder logits. Checks: a new CPU row-visit test passes, and `setpriv --inh-caps=-all ./tools/check.sh --cuda`
+  passes. A Metal row-visit test was added to `lm1b_categorical_fp32.rs` but not yet run. Next on the Mac:
+  build and test, check host and device FP32 outputs are identical before/after at batches 1/4/16, and rerun
+  `run_lm1b_small_mlx_timing.py`.
 - Metal 80-seed campaign and full Metal timing ran at `0a3ce34`; `tools/check.sh --mlx` passed on the Mac
   at `0a3ce34`. The Mac candidate worktree was removed after it was confirmed identical to the commit.
 - **Metal sampler change:** a short Metal screen of the old default (host FP64 draws) was 34–47%

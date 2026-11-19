@@ -3719,9 +3719,16 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             }
             ids
         } else {
-            b.visit_f32(&logits, |values| {
-                lm1b_penalized_parallel(values, &self.allowance, batch)
-            })??
+            // Two rows per block bounds host-visible logits to two rows while keeping two
+            // penalty threads busy; per-row arithmetic and order are unchanged.
+            let row_len = 128 * 30528;
+            let mut ids = Vec::with_capacity(batch * 128);
+            for block in b.visit_f32_rows(&logits, LM1B_PENALTY_ROWS, |values| {
+                lm1b_penalized_parallel(values, &self.allowance, values.len() / row_len)
+            })? {
+                ids.extend(block?);
+            }
+            ids
         };
         trace.indices(
             "generator.penalized_ids",
@@ -3806,6 +3813,9 @@ fn validate_lm1b_request(
     }
     Ok(())
 }
+
+#[cfg(feature = "lm1b-experimental")]
+const LM1B_PENALTY_ROWS: usize = 2;
 
 #[cfg(feature = "lm1b-experimental")]
 fn lm1b_penalized_parallel(logits: &[f32], allowance: &[f32], batch: usize) -> Result<Vec<u32>> {

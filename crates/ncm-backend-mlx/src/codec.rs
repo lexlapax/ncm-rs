@@ -417,6 +417,35 @@ impl CodecBackend for MlxBackend {
         .map_err(error)?;
         Ok(f(flat.try_as_slice::<f32>().map_err(error)?))
     }
+    fn visit_f32_rows<R>(
+        &self,
+        x: &MlxTensor,
+        rows: usize,
+        mut f: impl FnMut(&[f32]) -> R,
+    ) -> Result<Vec<R>> {
+        check(x, Dtype::Float32)?;
+        let Some(&leading) = x.0.shape().first() else {
+            return Err(Error::Input("row visits need a leading axis".into()));
+        };
+        if rows == 0 {
+            return Err(Error::Input("row visits need rows".into()));
+        }
+        let leading = usize::try_from(leading).map_err(error)?;
+        let mut results = Vec::with_capacity(leading.div_ceil(rows));
+        for start in (0..leading).step_by(rows) {
+            let block = self.slice(x, 0, start, rows.min(leading - start))?;
+            // Multiplying by one materializes a separate, exactly equal buffer, so the host
+            // never touches (and makes resident) the full source tensor.
+            let copy = with_stream(&self.stream, || -> ops::Result<_> {
+                let copy = block.0.multiply(Array::from_f32(1.0))?.reshape(&[-1])?;
+                copy.eval()?;
+                Ok(copy)
+            })
+            .map_err(error)?;
+            results.push(f(copy.try_as_slice::<f32>().map_err(error)?));
+        }
+        Ok(results)
+    }
     fn read_indices(&self, x: &MlxTensor) -> Result<Vec<u32>> {
         check(x, Dtype::Uint32)?;
         with_stream(&self.stream, || -> ops::Result<_> {

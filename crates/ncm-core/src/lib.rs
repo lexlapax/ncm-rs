@@ -42,6 +42,25 @@ pub trait CodecBackend: WeightBackend {
     fn visit_f32<R>(&self, x: &Self::Tensor, f: impl FnOnce(&[f32]) -> R) -> Result<R> {
         Ok(f(&self.read_f32(x)?))
     }
+    /// Calls `f` on consecutive blocks of at most `rows` leading-axis rows, in order, with each
+    /// block's FP32 values in row-major order. Backends may materialize each block separately
+    /// to bound host-visible residency; values are identical to `read_f32`.
+    fn visit_f32_rows<R>(
+        &self,
+        x: &Self::Tensor,
+        rows: usize,
+        mut f: impl FnMut(&[f32]) -> R,
+    ) -> Result<Vec<R>> {
+        let shape = self.shape(x);
+        let (Some(&leading), true) = (shape.first(), rows > 0) else {
+            return Err(Error::Input(
+                "row visits need a leading axis and rows".into(),
+            ));
+        };
+        let values = self.read_f32(x)?;
+        let width = values.len() / leading.max(1);
+        Ok(values.chunks(rows * width.max(1)).map(&mut f).collect())
+    }
     fn read_indices(&self, x: &Self::Indices) -> Result<Vec<u32>>;
     fn shape(&self, x: &Self::Tensor) -> Vec<usize>;
     fn indices_shape(&self, x: &Self::Indices) -> Vec<usize>;
