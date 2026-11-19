@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small Metal greedy:** the explicit-initial-code free continuation is ready for comparison with the pinned two-row CUDA reference.
+
 - **LM1B-small Metal teacher:** user directed work to Mac. The two-row fixed-history trace passes all 51 comparisons and matches forced codes, greedy and penalty-adjusted IDs. Metal generation, quality and performance remain pending. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-teacher-cuda-rust-v1.md#metal-fixed-history-comparison)
 
 - **LM1B-small Metal work:** the user directed work to Mac while the Linux entropy failure remains recorded. The fixed-history Metal trace probe uses the pinned CUDA oracle. Metal qualification is pending.
