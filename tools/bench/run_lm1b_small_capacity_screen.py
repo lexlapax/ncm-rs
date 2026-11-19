@@ -22,9 +22,9 @@ REFERENCE = ROOT / 'reports/phase4-lm1b-small-dev-seed-11-v1.json'
 
 
 
-def summarize(rows, trials=8):
+def summarize(rows, trials=8, batches=(1, 4, 16)):
     summaries = {}
-    for batch in (1, 4, 16):
+    for batch in batches:
         summaries[str(batch)] = {}
         for runtime in ('python', 'rust'):
             selected = [row for row in rows if row['runtime'] == runtime and row['batch'] == batch]
@@ -38,7 +38,7 @@ def summarize(rows, trials=8):
                 raise ValueError(f'invalid timings for {runtime} batch {batch}')
             summaries[str(batch)][runtime] = {'median_seconds': statistics.median(values), 'p95_seconds': values[math.ceil(len(values) * .95) - 1],
                                   'samples': len(values), 'samples_per_second_at_median': batch / statistics.median(values)}
-    if len(rows) != 18:
+    if len(rows) != 6 * len(batches):
         raise ValueError('unexpected extra results')
     return summaries
 
@@ -48,11 +48,14 @@ def main():
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--reference-rope-diagnostic', type=Path)
     p.add_argument('--repeated', action='store_true')
+    p.add_argument('--batch', type=int, choices=(1, 4, 8, 16),
+                   help='measure only this batch size (default: 1, 4 and 16)')
     modes = p.add_mutually_exclusive_group()
     modes.add_argument('--rust-cudnn-default-math', action='store_true')
     modes.add_argument('--rust-cudnn-graph', action='store_true')
     modes.add_argument('--rust-cudnn-graph-efficient', action='store_true')
     args = p.parse_args()
+    batches = (args.batch,) if args.batch is not None else (1, 4, 16)
     if (args.rust_cudnn_default_math or args.rust_cudnn_graph or args.rust_cudnn_graph_efficient) and args.reference_rope_diagnostic is None:
         p.error('experimental cuDNN modes require --reference-rope-diagnostic')
     rust_mode, convolution_math = None, 'strict FMA'
@@ -85,7 +88,7 @@ def main():
     manifest = {'scope': 'non-held-out LM1B-small multi-batch development performance screen; not a gate',
                 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                 'sources_sha256': before, 'order': 'alternating runtime per fresh process',
-                'warmups': warmups, 'trials': trials, 'repetitions': 3, 'batches': [1, 4, 16], 'rust_penalty': 'device',
+                'warmups': warmups, 'trials': trials, 'repetitions': 3, 'batches': batches, 'rust_penalty': 'device',
                 'rust_diagnostic': 'reference tables and 1 MiB QKV preference' if args.reference_rope_diagnostic else 'default',
                 'rust_convolution_math': convolution_math,
                 'telemetry': 'nvidia-smi approximately once per second',
@@ -98,7 +101,7 @@ def main():
     process = None
     rows = []
     try:
-        for batch in (1, 4, 16):
+        for batch in batches:
             for rep in range(3):
                 for runtime in (('python', 'rust') if rep % 2 == 0 else ('rust', 'python')):
                     stem = f'{runtime}-b{batch}-r{rep}'
@@ -166,7 +169,7 @@ def main():
         thread.join()
     if before != {str(path): digest(path) for path in source}:
         raise ValueError('source or capture changed')
-    summaries = summarize(rows, trials)
+    summaries = summarize(rows, trials, batches)
     result = {'scope': manifest['scope'], 'rows': rows, 'summary': summaries,
               'limits': 'separate random streams; desktop GPU activity; device process telemetry is sampled and allocator counters have runtime-specific scopes'}
     (out / 'result.json').write_text(json.dumps(result, indent=2, sort_keys=True, allow_nan=False) + '\n')

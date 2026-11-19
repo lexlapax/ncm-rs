@@ -143,7 +143,9 @@ Before every commit include an updated
    dispatch. Shared-draw requests match at batches 1, 4 and 16. The
    [paired timing](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-and-cached-graph-candidate)
    favors Rust by 17–32% at the median, with lower p95 and RSS at all three
-   sizes. The [new observed-seed retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#efficient-attention-observed-seed-retest)
+   sizes. The [batch-eight comparison](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-at-the-quality-workload-batch-size)
+   also favors Rust in median, p95 and peak RSS at the quality workload size.
+   The [new observed-seed retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#efficient-attention-observed-seed-retest)
    passes perplexity but its entropy interval is
    `[-0.005745225, 0.000822536]`. An audit of all 160 batch-eight
    requests reproduces every Rust code and token ID in Python under
@@ -158,7 +160,10 @@ Before every commit include an updated
    sampler stays in source. The frozen quality failure remains open.
 2. The proposed fresh quality comparison keeps the scorer, margins and
    independent seed bootstrap, and expands to 80 seeds per runtime.
-   It awaits explicit review of that protocol before generating fresh
+   The [workflow preflight](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#larger-cohort-workflow-preflight)
+   regenerates and scores four archived captures exactly with one load
+   per runtime, and reproduces the frozen verdicts through the draft
+   comparator. It awaits protocol approval before generating fresh
    samples. Mac and Linux runs already have user approval. Complete
    the Linux LM1B-small gate before Metal and both small gates before
    medium and large.

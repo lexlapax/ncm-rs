@@ -517,3 +517,54 @@ The diagnostic and its logs are under
 The result SHA-256 is
 `e81d0b98225937c4faec5abd2137dbe181aec206182caed4e5ac9db58cff448f`.
 The existing scorer and frozen evidence retain their original identities.
+
+### Larger-cohort workflow preflight
+
+The draft capture tools each loaded once and regenerated seeds 42 and 0
+on real CUDA. The Rust tool uses the efficient-attention FP64 sampler.
+Python resets its native CPU and CUDA streams per seed. The captures
+match all 656,384 codes and 131,072 raw IDs in the four hash-checked
+archived captures. End-to-end capture took 13.71 seconds for Rust and
+19.08 seconds for Python in this single run. Both capture tools also
+reject duplicate and out-of-scope seeds before loading artifacts.
+
+One GPT-2-large load scored all four regenerated captures in 66.85
+seconds, including process startup, input verification and exact
+cross-checks. Perplexity, summed negative log likelihood, token counts
+and all 1,024 per-sample entropy values match the archived scores.
+Peak allocated CUDA memory was 4,585.22 MiB. The scorer verifies the
+capture source or binary receipt, pinned tokenizer/model files,
+regenerated IDs and upstream scorer identities.
+
+The draft independent-bootstrap comparator reproduces the recorded
+original and efficient-attention verdicts, including the exact
+point differences and interval endpoints. Synthetic 80-record
+cohorts exercise a passing identical comparison and a comparison
+whose entropy point check passes while its interval fails. The
+comparator rejects missing, duplicate, wrong-count, nonfinite and
+out-of-manifest records. Reversing the supplied record order
+preserves the comparison for a fixed manifest. A second complete
+control run produces the same result bytes.
+
+The proposed fresh quality run would use 80 seeds and 20,480 samples
+per runtime, with batch eight and 256 samples per seed. It would
+record the seed lists in order alongside the exact candidate,
+checkpoint, evaluator and tokenizer identities before generation.
+The proposal preserves the existing scorer, numerical margins and
+independent seed bootstrap with 10,000 draws. The preflight uses
+only observed captures and synthetic metric records. The original
+five-seed failure remains on record. The proposed protocol awaits
+approval.
+
+Raw scripts, captures, score reports and logs are in
+`reports/phase4-lm1b-cohort-preflight-v1/`.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `lm1b_small_cohort_preflight.rs` | `9c7fbb7edf45c13b98d9b1ed0045819c5a42a2b0dcbd4474d1f8b0a828af2687` |
+| `runner` | `f782119bc97a911772f313acd93e36a701bb8c8a7a2e7a15572ea43eea500785` |
+| `python_capture.py` | `36368ff7320750458beb9f27bcfa977f8ad1d1cc2e966487fb19b9755052d813` |
+| `compare.py` | `72b1c2801e70b9aacccefdfa373b416fc199cfd0334b19c1204dd9385c0de635` |
+| `compare.json` | `872785b73a2675ea6f7925690fdfefdcac2cc807a7a9d05fb8ef4a03a46b059d` |
+| `score.py` | `e636d6c9deb93b8a95e2a4cc0e368c72de03b0056d4a59cff58d2bc5bfd30d95` |
+| `score.json` | `1dc4e7257bd1115a69995c5b2248d7c5c171ef697c88a3df2ffb37ac562e4ac8` |

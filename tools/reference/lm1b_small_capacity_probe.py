@@ -29,7 +29,7 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--size', choices=tuple(CONFIGS), required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--batch', type=int, choices=(1, 4, 16), required=True)
+    parser.add_argument('--batch', type=int, choices=(1, 4, 8, 16), required=True)
     parser.add_argument('--seed', type=int, choices=(11, 12, 13, 14, 15), default=11)
     parser.add_argument('--repeated', action='store_true')
     args = parser.parse_args()

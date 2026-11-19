@@ -3,10 +3,10 @@ import unittest
 from run_lm1b_small_capacity_screen import summarize
 
 
-def rows():
+def rows(batches=(1, 4, 16)):
     return [{'runtime': runtime, 'batch': batch, 'rep': rep,
              'signatures': ['a' * 64] * 8, 'seconds': [float(batch)] * 8}
-            for batch in (1, 4, 16) for runtime in ('python', 'rust') for rep in range(3)]
+            for batch in batches for runtime in ('python', 'rust') for rep in range(3)]
 
 
 class CapacitySummaryTests(unittest.TestCase):
@@ -23,6 +23,16 @@ class CapacitySummaryTests(unittest.TestCase):
         repeated[1]['seconds'].append(1.0)
         with self.assertRaisesRegex(ValueError, 'invalid timings'):
             summarize(repeated, 30)
+
+    def test_single_batch_keeps_all_processes_and_rejects_extra_rows(self):
+        data = rows((8,))
+        result = summarize(data, batches=(8,))
+        self.assertEqual(list(result), ['8'])
+        self.assertEqual(result['8']['rust']['samples'], 24)
+        with self.assertRaisesRegex(ValueError, 'incomplete repetitions'):
+            summarize(data[:-1], batches=(8,))
+        with self.assertRaisesRegex(ValueError, 'unexpected extra results'):
+            summarize(data + rows((4,)), batches=(8,))
 
     def test_missing_duplicate_changed_and_nonfinite_fail(self):
         data = rows()

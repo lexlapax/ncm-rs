@@ -34,8 +34,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let (warmups, trials) = if repeated { (5, 30) } else { (2, 8) };
     let batch: usize = batch.parse()?;
-    if ![1, 4, 16].contains(&batch) {
-        return Err("only diagnostic batches 1, 4 and 16 supported".into());
+    if ![1, 4, 8, 16].contains(&batch) {
+        return Err("only diagnostic batches 1, 4, 8 and 16 supported".into());
     }
     if sha256(&fs::read(format!("{artifact}/manifest.json"))?)
         != "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76"

@@ -338,3 +338,47 @@ The helper executable is archived at
 `archived/lm1b_small_capacity_probe` with SHA-256
 `589dda939982b967343305f25f33e2ff3b70253f783aaf732f2109949b3e4709`.
 [Sampler audit](small-controlled-cuda-v1.md#full-observed-sampler-probability-audit)
+
+### Efficient attention at the quality workload batch size
+
+The current efficient-attention FP64 candidate was paired with pinned
+Python at batch eight on the RTX 3060 Ti. Each runtime ran three fresh
+processes in alternating order, with five warmups and 30 synchronized
+generation and readback measurements per process. Generation uses
+development seed 11 and the runtime's own draws. All 30 code and ID
+signatures repeat across the three processes within each runtime.
+
+| Runtime | Median (ms) | p95 (ms) | IQR (ms) | Samples/s at median | Peak RSS (MiB) | Load (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Rust | 189.03 | 192.47 | 2.32 | 42.32 | 1534.03 | 1.273 |
+| Pinned Python | 230.65 | 233.89 | 1.55 | 34.68 | 2539.56 | 1.202 |
+
+Rust has 18.0% lower median latency, 17.7% lower p95 and 39.6% lower
+peak process RSS. The Rust pool and PyTorch allocator report their
+respective native counters in MiB.
+
+| Runtime | Final used | Peak used | Final reserved | Peak reserved |
+| --- | ---: | ---: | ---: | ---: |
+| Rust CUDA default pool | 807.40 | 1077.41 | 832.00 | 1248.00 |
+| PyTorch caching allocator | 1282.69 | 2555.40 | 2654.00 | 2654.00 |
+
+The 59 telemetry snapshots have zero failed queries. Median sampled
+process maxima are 1,418 MiB for Rust and 2,822 MiB for Python, with
+seven device process samples per Rust run and nine to ten per Python
+run. The desktop was active. The allocation figures neither measure
+physical GPU peaks nor place the two allocators on an identical scope.
+
+To reproduce, use the [repeated CUDA commands](#repeated-cuda-timing-and-allocator-measurements)
+with `--batch 8 --rust-cudnn-graph-efficient` and a fresh output
+directory. The supervisor and both probes accept the explicit batch-eight
+size. Its aggregation tests cover completeness and rejection of extra
+records for a single cell. The CUDA-feature release build, formatting
+check, focused Clippy and four aggregation tests pass.
+
+The manifest and result are in
+`reports/phase4-lm1b-efficient-batch8-v1.UzeRF0/timing/`, SHA-256
+`23325d5e7930f97d61aa3fdd33ff36c2338e3b126fa92510cc0e8f7287d83bf7`
+and `8b8a8f07bd9bcc1862d98004b826bb5320e65a33beb7fb001aa10cd38ca526cd`.
+This supplements the existing batch 1/4/16 comparison. The evaluation
+[quality gate](small-heldout-cuda-v1.md#efficient-attention-observed-seed-retest)
+remains open.
