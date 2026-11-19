@@ -57,3 +57,21 @@ The failed comparison SHA-256 is
 The Mac trace and log are retained under
 `reports/phase4-lm1b-small-codec-metal-v1/` and
 `reports/phase4-lm1b-small-codec-metal-v1.log`.
+
+The captured level-zero upsampled tensor is bit-identical between the
+CUDA reference and Metal on these fixture rows. Their first recorded
+level-zero decode contribution differences therefore arise in the
+subsequent refinement operation. On that shared captured input, a
+CPU FP32 convolution and residual calculation differs from both
+captured outputs. Its maximum absolute differences are
+`0.0001678466796875` from CUDA and `0.000091552734375` from Metal.
+An FP64 CPU calculation also differs from both. These controls do not
+establish a replacement implementation or identify every arithmetic
+difference inside refinement.
+
+The control checks the pinned artifact and both trace hashes. Its
+source SHA-256 is
+`d266baf8bed00074f1250ce0276f27680ac21d5c9fb6023eb810bf050f2c1ec2`
+and its result SHA-256 is
+`96954ed6accec215368943dbd21ec6eccfee0a89b69e84838ec0219704592983`.
+Both are retained in `reports/phase4-lm1b-metal-refine-control-v1/`.

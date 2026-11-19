@@ -4,7 +4,7 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **LM1B-small Metal codec:** 47 of 362 pinned codec fixture checks fail. Level-zero decode contribution has two values outside tolerance. The stochastic trace also differs in initial reconstruction before its first sampled-code divergence. [Codec](docs/results/2026-11-16-phase4-lm1b/small-codec-cuda-rust-v1.md#metal-codec-comparison) [Stochastic](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-controlled-stochastic-comparison)
+- **LM1B-small Metal codec:** 47 of 362 pinned codec fixture checks fail. Level-zero decode contribution has two values outside tolerance despite bit-identical upsampled inputs. Independent CPU FP32 and FP64 refinement calculations differ from both GPU outputs. The stochastic trace also differs in initial reconstruction before its first sampled-code divergence. [Codec](docs/results/2026-11-16-phase4-lm1b/small-codec-cuda-rust-v1.md#metal-codec-comparison) [Stochastic](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-controlled-stochastic-comparison)
 
 - **LM1B-small Metal stochastic:** the two-row controlled trace repeats internally but fails 34 of 51 comparisons against the pinned strict CUDA reference. It differs in 505 codes and 130 penalized IDs. The first changed choice is level 5, row 0, position 20 at a shared inverse-CDF boundary. Replaying all 1,282 choices on Metal logits matches exactly. Level-six post-convolution input is the first level-specific generator tensor outside the existing band. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-controlled-stochastic-comparison)
 
