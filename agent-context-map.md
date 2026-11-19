@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Sudoku provenance comparison:** searched every local and Mac Git blob and 2,171 bounded local files without locating the historical exporter. A [tracked verifier](tools/reference/compare_artifact_provenance.py) directly compares every non-provenance payload byte and verifies hashes, inventories and only the specified provenance change; it passed for both retained medium/hard re-exports. Six verifier tests and `tools/check.sh` pass. [Details](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md#byte-level-comparison-of-alternate-exports). Neither alternate manifest is approved.
+
 - **Reproducible CLI screen:** [CUDA report](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md) records a tracked runner passing nine fixed profile requests and four unit tests including negative controls; `tools/check.sh` passes (537 report tests). A read-only Mac checkout/unreachable-blob search did not find the missing historical Sudoku exporter; no Mac files changed or MLX test run.
 
 - **Linux export reproducibility (investigation only):** [report](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md) records seven exact manifest reproductions and the two Sudoku medium/hard provenance-only mismatches. A project-local Python 3.14.9 build-tree interpreter enabled old exporters; installation failed on `_ssl`, and no general Python setup or fresh clone is claimed. `tools/check.sh` passes. Original artifacts and pins unchanged.
