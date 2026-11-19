@@ -92,3 +92,21 @@ and its result SHA-256 is
 `8fdb7209aa3c5b44c6ce18dc8361658b8adf1223ea6c13072e5758db2e749d28`.
 They are retained under
 `reports/phase4-lm1b-metal-refine-cuda-control-v1/`.
+
+An isolated Metal experiment applied the existing XSum windowed
+matrix-multiplication refinement to the LM1B length-128 shape. The
+unchanged codec comparator reports 80 failing tensors, including 16
+out-of-band level-zero decode-contribution values. The controlled
+stochastic comparator reports 37 failing tensors, 483 differing codes
+and 102 differing penalty-selected IDs. These counts describe separate
+cascading continuations. The experiment does not resolve the existing
+47 codec and 34 stochastic failures.
+
+The reversible patch SHA-256 is
+`783093c63e134d0efade2279d0a4ccd470b067d92513d5ab07e8426d1ca4d64f`.
+The codec and stochastic comparison hashes are
+`e1a15f08c04cfe71ab8f49f0430a531d0dbd6a93cb0397926151f0e7ac59cdba`
+and `a36a357ab2ec5bd5b67821782aa7a26013f17dc84fa3cfe87a6b13841c1fa6fd`.
+The patch and reports are retained under
+`reports/phase4-lm1b-metal-refinement-experiment-v1/`. The Mac
+checkout was verified clean after reversing the experiment.
