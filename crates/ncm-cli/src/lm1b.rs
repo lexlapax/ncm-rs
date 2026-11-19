@@ -178,7 +178,10 @@ mod backend {
         sampling: Sampling,
     ) -> Result<serde_json::Value> {
         let prefixes = prefixes(&crate::read_inputs(Path::new(input))?)?;
-        if !fs::metadata(reference_rope)?.is_file() {
+        if !fs::metadata(reference_rope)
+            .map_err(|e| format!("LM1B rotary table {reference_rope}: {e}"))?
+            .is_file()
+        {
             return Err("LM1B-small reference rotary table must be a regular file".into());
         }
         let mut bytes = Vec::new();

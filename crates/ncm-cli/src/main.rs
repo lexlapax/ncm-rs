@@ -1,5 +1,6 @@
 //! JSON-array inference on an explicitly selected backend.
 mod decode;
+mod help;
 mod lm1b;
 mod sample;
 
@@ -460,6 +461,10 @@ fn read_inputs(input_path: &Path) -> Result<Vec<Vec<u32>>> {
 
 fn main_impl() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if let Some(message) = help::requested(&args) {
+        print!("{message}");
+        return Ok(());
+    }
     let unified = args.get(1).is_some_and(|arg| arg == "sample");
     let decode = unified && args.iter().skip(5).any(|arg| arg == "--decode");
     let text = unified && args.iter().skip(5).any(|arg| arg == "--text");
@@ -487,7 +492,7 @@ fn main_impl() -> Result<()> {
         || (args[1] == "sample-tinystories" && args.len() != 6)
         || (args.len() == 7 && args[1] != "sample-xsum")
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx|mlx-retry-padded INPUT_JSON [CFG_SCALE] | ncm sample-lm1b ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32|--host-fp64]".into());
+        return Err("invalid command or arguments; run `ncm --help`".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)

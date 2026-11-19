@@ -135,10 +135,16 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             }
             result[1] = "sample-lm1b".into();
             result.push(seed.unwrap_or(0).to_string());
-            result.push(
-                rope.ok_or("LM1B currently requires --reference-rope FILE")?
-                    .clone(),
-            );
+            let default_rope = Path::new(&args[2])
+                .join("..")
+                .join("lm1b-reference-rope-v1.safetensors");
+            result.push(match rope {
+                Some(path) => path.clone(),
+                None => default_rope
+                    .to_str()
+                    .ok_or("LM1B default rotary path is not valid UTF-8")?
+                    .to_owned(),
+            });
             if decode {
                 result.push("--decode".into());
             }
@@ -236,7 +242,11 @@ mod tests {
             .is_err()
         );
         assert!(translate_profile(&args(&[]), "owt-inference-v1").is_err());
-        assert!(translate_profile(&args(&[]), "lm1b-small-inference-v1").is_err());
+        let default_rope = translate_profile(&args(&[]), "lm1b-small-inference-v1").unwrap();
+        assert_eq!(
+            default_rope[6],
+            "artifact/../lm1b-reference-rope-v1.safetensors"
+        );
         assert!(
             translate_profile(
                 &args(&["--seed", "1", "--experimental-stochastic-xsum"]),

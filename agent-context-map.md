@@ -9,7 +9,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 - **Phases 0–3 complete.** Phase 2 closed with a [scoped Apple immediate-memory exception](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md).
   Phase 3 Sudoku is complete on CUDA and Metal ([report](docs/results/2026-11-14-phase3-sudoku/README.md)).
 - **Phase 4 complete with scoped, user-accepted exceptions** (2026-11-19, [audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md), [contract](docs/PHASE4-TEXT.md), [handoff](RESUME.md)).
-- **Phase 5 step 1 in progress** ([PHASE5.md](docs/PHASE5.md)): user chose release first, lean, and FP32 only (2026-11-19). `ncm sample` routes supported profiles to existing paths; ordinary GPU CLI features enable the prior experimental feature paths. A [CUDA routing screen](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v1.md) matches baseline, alias and unified stdout for one request per profile; a [decode screen](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md) matches the pinned references on those text outputs. XSum/WMT14 `--text` has [corpus-exact Linux encoding and CUDA end-to-end screens](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md); TinyStories/LM1B text input, LM1B's no-extra-argument rotary setup, Metal validation, performance and the release gate remain pending.
+- **Phase 5 step 1 in progress** ([PHASE5.md](docs/PHASE5.md)): user chose release first, lean, and FP32 only (2026-11-19). `ncm sample` routes supported profiles to existing paths; ordinary GPU CLI features enable the prior experimental feature paths. A [CUDA routing screen](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v1.md) matches baseline, alias and unified stdout for one request per profile; a [decode screen](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md) matches the pinned references on those text outputs. XSum/WMT14 `--text` has [corpus-exact Linux encoding and CUDA end-to-end screens](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md); [LM1B's default rotary sidecar](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md) preserves CUDA output without a command-line rope argument; Metal validation remains pending. TinyStories/LM1B text-input behavior awaits the user's decision; performance and the release gate remain pending.
 
 | Profile | Status |
 | --- | --- |
@@ -56,7 +56,7 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
 
-1. **Phase 5 step 1 (CUDA, then Metal):** complete unified `ncm sample` (LM1B currently needs `--reference-rope`), confirm byte-identical output against the current commands; finish validating the `*-experimental` feature folding; validate `--decode` and finish `--text`
+1. **Phase 5 step 1 (CUDA, then Metal):** complete unified `ncm sample` (LM1B defaults to a separately exported, hash-pinned sibling rotary file), confirm byte-identical output against the current commands; finish validating the `*-experimental` feature folding; validate `--decode` and finish `--text`
    for every text profile; XSum/WMT14 corpus encoding passes on Linux, CUDA end-to-end is screened, Metal remains pending; `docs/USAGE.md` verified from a fresh clone; README and release
    notes; then ask before tagging `v0.1.0`.
 2. Steps 2–4 follow [PHASE5.md](docs/PHASE5.md): profile, user picks targets, targeted optimizations, close.
@@ -73,6 +73,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 - CUDA check: `NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 ./tools/check.sh --cuda`.
 
 ## Checks run for this update
+
+- **LM1B rotary sidecar and help:** [CUDA screen](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md): default sidecar, override and baseline outputs match for small/medium/large with and without decode; missing and wrong-hash sidecars are rejected. CLI tests (11 passed), CLI Clippy and `tools/check.sh --cuda` pass. `ncm --help` and `ncm sample --help` describe current options and experimental paths; `tools/check.sh` also passed. Metal, fresh-clone setup, and text-input decision are pending.
 
 - **Phase 5 text input:** XSum 11,334/11,334 and WMT14 3,003/3,003 Rust-encoded padded prefixes match pinned reference rows; first-row CUDA generations match ID input both with and without decoding. [Evidence and reproduction](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md). CLI tests (10 passed, corpus test separately run), CLI Clippy and `tools/check.sh --cuda` pass. TinyStories/LM1B `--text` and Metal remain pending.
 
