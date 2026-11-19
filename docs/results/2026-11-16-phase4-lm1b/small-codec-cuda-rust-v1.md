@@ -75,3 +75,20 @@ source SHA-256 is
 and its result SHA-256 is
 `96954ed6accec215368943dbd21ec6eccfee0a89b69e84838ec0219704592983`.
 Both are retained in `reports/phase4-lm1b-metal-refine-control-v1/`.
+
+A strict PyTorch CUDA control applied the pinned level-zero weights,
+bias and residual blend to the shared captured upsampled tensor. It
+reproduced every CUDA reference contribution bit exactly. On the same
+input and weights, the captured Metal contribution differs in 74,808
+of 98,304 values, with maximum absolute difference
+`0.00014495849609375` and RMS difference
+`0.000004671209741979684`. This isolates the fixture's discrepancy
+to the refinement computation on the two devices. It does not yet
+supply a Metal correction.
+
+The control source SHA-256 is
+`00275d62bbc2786aed1ad7146592be9470b9e7ef28935c529bf73d1185d74939`
+and its result SHA-256 is
+`8fdb7209aa3c5b44c6ce18dc8361658b8adf1223ea6c13072e5758db2e749d28`.
+They are retained under
+`reports/phase4-lm1b-metal-refine-cuda-control-v1/`.
