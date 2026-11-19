@@ -239,3 +239,29 @@ Sources, fixtures, traces and comparisons are retained under
 `reports/phase4-lm1b-metal-accumulator-generalization-v1/` and
 `reports/phase4-lm1b-tf32-rounding-identification-v1/`. The temporary CUDA
 probe was removed; the Mac checkout remained clean and its service running.
+
+### Controlled-policy regression and reduction-order screen
+
+A CPU screen reevaluated the existing accumulation formulations using the
+controlled component band on 2,516 retained positions, including the 470
+prior FP64-control failures. The best tested formulation was the previous
+eight-product, one-bit truncation candidate with bias first; it still failed
+55 sampled positions. Reordering channel/kernel layout, reversing accumulation,
+and testing FP32 reduction orders inside each group did not improve that
+count. These selected positions are diagnostic, not a full-tensor pass.
+
+The maintained `test_lm1b_small_controlled_comparison.py` now checks that
+`reconstruction.level_00` uses the component band, that a logit argmax change
+is reported even inside its numerical band, and that code comparisons are
+exact. The focused test and the related codec-policy tests passed (seven tests
+in total). Run them with `PYTHONPATH=tools/reference .reference/venv/bin/python
+-m unittest tools.reference.test_codec_trace
+tools.reference.test_lm1b_small_controlled_comparison`. This test does not
+change the tolerance, candidate result or qualification status.
+
+The component-screen, layout-screen and inner-reduction result SHA-256 values
+are `d69ee56dac12f687303b774ac1af05c49482eeb49de150b9b434bb11e3cb8693`,
+`c89898bcfaaebc69979aa99342bdaf054a0fbc51ce9c717667aac2d557f13051` and
+`68d8b6ef97f62af64be403a2cdf346d1c99f299c0ca4ee442b20df2bde2bfee8`.
+The diagnostic sources and reports remain under
+`reports/phase4-lm1b-tf32-rounding-identification-v1/`.
