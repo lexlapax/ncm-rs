@@ -227,6 +227,44 @@ The exporter worktree intentionally contains the historical source file restored
 commit; its contents and hash are part of provenance. Inspect its status before removing it. The
 remaining setup guide does not yet specify all artifact exporters or how to reproduce their hashes.
 
+### Linux TinyStories development replay
+
+This offline export uses the same build-tree Python 3.14.9 and Linux reference venv as the
+Sudoku-easy replay. Download `tinystories` using the checkpoint downloader and the budget above;
+verify the source before export. This command expects the converted `tinystories` tokenizer from
+the tokenizer section and a full Git history. It reconstructs the historical exporter in a
+separate worktree and checks the qualified manifest, without changing the current exporter.
+The export commands were replayed using retained source and tokenizer assets, **not** a fresh
+clone or a fresh download; see the [replay evidence](results/2026-11-19-phase5-cli/linux-export-repro-v1.md#tinystories-guide-command-replay).
+
+```sh
+.reference/venv/bin/python tools/reference/fetch_checkpoints.py \
+  --profile tinystories --output artifacts/upstream/tinystories --verify || exit 1
+test ! -e reports/tiny-exporter-worktree && test ! -L reports/tiny-exporter-worktree || exit 1
+git worktree add --detach reports/tiny-exporter-worktree fdc7db4b6d0316bfef74085994b26a6619cd6847 || exit 1
+test ! -e reports/tiny-exporter-worktree/tools/reference/tinystories_artifact.py || exit 1
+git show 93ae5eb6d51d43a02ae764b2dc928c57d9bd7335:tools/reference/tinystories_artifact.py \
+  > reports/tiny-exporter-worktree/tools/reference/tinystories_artifact.py || exit 1
+printf '%s  %s\n' f757c3cb694922c2f8cf96a3f6cb40c47ea6bfa8dae262de3b957ee5e204754d \
+  reports/tiny-exporter-worktree/tools/reference/tinystories_artifact.py | sha256sum -c - || exit 1
+root="$PWD"
+(
+  cd reports/tiny-exporter-worktree || exit 1
+  PYTHONPATH="$root/.reference/venv/lib/python3.14/site-packages" \
+    "$root/.reference/Python-3.14.9/python" tools/reference/tinystories_artifact.py \
+    --source "$root/artifacts/upstream/tinystories" \
+    --tokenizer-asset "$root/artifacts/canonical/tokenizers-qualified/tinystories" \
+    --output "$root/artifacts/canonical/tinystories-qualified" \
+    --report "$root/reports/tinystories-export.json"
+) || exit 1
+printf '%s  %s\n' 0337e4d2ab2e52d6808123847ad945749276a616d5865e3db5f9861f4ff48db1 \
+  artifacts/canonical/tinystories-qualified/manifest.json | sha256sum -c -
+```
+
+The worktree deliberately contains the restored untracked exporter. Inspect its status and contents
+before removing it; do not overwrite or discard unrelated work. This is an export identity check,
+not a text-generation or quality gate.
+
 ### Synthetic Sudoku-easy request
 
 For the Linux CUDA build above, the following creates a new all-blank synthetic board, compares the

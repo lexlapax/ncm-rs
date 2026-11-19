@@ -34,6 +34,21 @@ Medium and hard provenance names base `e1ffb121a8094505173c03d27669b6486f9b9abd`
 
 A subsequent read-only search of the Mac checkout (`702168c`, clean) found only the tracked current Sudoku exporter (`e639675…`). A complete hash scan found no matching blob among all 4,919 Linux Git blobs (331,616,501 bytes) or all 4,694 Mac Git blobs (319,427,740 bytes). A separate Linux scan of 2,171 regular files (100–200,000 bytes) in `reports/`, `.reference/`, `docs/`, `tools/` and `tests/`, excluding environments, build trees and symlinks, also found no match. No Mac files were changed and no MLX test was run. These searches do not prove the original exporter is unavailable elsewhere.
 
+## TinyStories guide command replay
+
+The [draft guide](../../USAGE.md#linux-tinystories-development-replay) now gives the historical
+TinyStories export and qualified manifest check. On Linux, the downloader's `--verify` checked
+all five retained files in `artifacts/upstream/tinystories-phase4` (578,228,368 bytes). The guide's
+worktree/export sequence was run with that retained path and fresh replay-specific output/report
+paths, rather than its intended fresh-download paths. It verified the historical exporter hash,
+reported bit-exact roundtrips, and produced manifest SHA-256
+`0337e4d2ab2e52d6808123847ad945749276a616d5865e3db5f9861f4ff48db1`. The ignored report
+`reports/phase5-guide-tiny-replay.json` has SHA-256
+`493c6f6f71cf2e481a76d6d0b178d80ca320ea0309b2c4ecbcf2056ec5218490`. The temporary worktree
+contained only the expected restored exporter; after inspecting its status and hash, it was
+removed. The output remains in ignored `artifacts/canonical/phase5-guide-tiny-replay/`.
+This did not exercise a fresh clone, fresh download, Mac, inference or model quality.
+
 ## Byte-level comparison of alternate exports
 
 `tools/reference/compare_artifact_provenance.py` independently verifies both requested manifest hashes and each declared file's size and SHA-256, compares every non-provenance file byte-for-byte, compares all other manifest fields including tensor inventories, and allows exactly the explicitly listed provenance keys to differ. It revalidates inputs after comparison. It assumes stable trusted directories and is not a substitute for `ncm-io` validation, GPU qualification or user approval. The tool SHA-256 is `4856913542f7c652974c28c11325cf5c5ea4fd4ce34e97d36d41a1652a11c729`; six tests including tampered and rehashed payload, tensor, JSON and symlink negative controls pass through `tools/check.sh`.
