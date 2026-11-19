@@ -1,136 +1,113 @@
 # ncm-rs
 
-A Rust port in progress of [HazyResearch/NCM](https://github.com/HazyResearch/ncm):
-Next-Concept Modeling for parallel, coarse-to-fine text generation.
+A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm),
+Next-Concept Modeling for parallel, coarse-to-fine generation. Production inference uses
+native CUDA or MLX, not Python; Python is used offline for conversion, references and evaluation.
 
-**Status: Phase 3 complete for greedy Sudoku on CUDA and MLX.**
-The earlier Linux/CUDA and Apple Silicon/MLX remediation is accepted. The
-[additional plan](docs/PHASE2-OPTIMIZATION-REVIEW.md#approved-five-step-phase-2-plan-and-decision-gates)
-has since produced controlled **78/78** timing and host-memory audits on
-[Linux](docs/results/2026-11-11-phase2-optimization/cuda-bounded-linux-gate-v1.md)
-and [Apple](docs/results/2026-11-11-phase2-optimization/cuda-bounded-mlx-check-v1.md),
-with quality checks passing and earlier failures retained. The new Linux candidate's
-synchronized native CUDA-pool snapshots are below 1.05× prior Rust. The [final audit](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md) records the accepted immediate B4 snapshot exception (1.058744× prior Rust), and separately discloses a 1.20127× B4 encode MLX active-memory peak; neither is host RSS.
-The [Phase 3 comparison](docs/results/2026-11-14-phase3-sudoku/README.md) records
-all three 2,000-board evaluations and generation latency, throughput and memory
-on both platforms. Metal matched every original Python code and output; CUDA had
-one intermediate near-tie code difference and no final output differences.
-The earlier accepted FP32 Sudoku codec and pinned TinyStories/GPT-2/Qwen/BERT
-tokenizers passed [correctness/performance/memory acceptance](docs/results/2026-11-10-phase2-acceptance/README.md):
-642 trained traces / 2,500 decisions and 78 performance/memory comparisons on each
-platform, with unchanged thresholds. CUDA codec latency and Apple loading/memory
-deficits are remediated; original negative results remain published.
-Text tokenizer support does not imply full text-model inference.
-The greedy Sudoku generator and explicit-device CLI have passed the scoped
-Phase 3 checks; a general inference release is not yet claimed. See the
-[Phase 1 acceptance checklist](docs/PHASE1.md) and [Phase 2 contract](docs/PHASE2.md).
-Within each phase, Linux/CUDA is validated
-first, then macOS/MLX; both gates are required before advancing.
+**Status: Phase 4 complete with scoped, user-accepted exceptions; Phase 5 release candidate in progress.**
+This is not yet a released inference package. The Phase 5 unified CLI has CUDA development screens,
+but its Metal validation, fresh-clone setup, performance evidence and release gates remain pending.
+See the [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md),
+[Phase 5 plan](docs/PHASE5.md) and [current state](agent-context-map.md).
 
-## Goals
+## Profile and evidence matrix
 
-- Shared, idiomatic Rust model logic and Python-free production inference.
-- Apple Silicon: **MLX through `mlx-rs`**, not Candle's Metal backend.
-- Linux/NVIDIA: **Candle CUDA**, with specialized kernels only where profiling warrants them.
-- Checkpoint and numerical parity first; measured speed improvements second.
-- Eventually port training, separately from inference compatibility.
+The table describes the **Phase 3/4 qualified paths**, not a claim that every new Phase 5 CLI
+option has been qualified on both devices. Results are for the specified machines, settings and
+workloads; the linked reports disclose measurement limits and earlier failures.
 
-“Rust as much as possible” is not “no native libraries”: MLX uses C/C++/Metal,
-CUDA uses NVIDIA libraries/kernels. Python is confined to offline conversion,
-reference fixtures, and initially external evaluation oracles.
+| Profile | Qualified scope | Quality and performance evidence |
+| --- | --- | --- |
+| Sudoku easy, medium, hard | FP32 greedy, CUDA and Metal | [6,000-board quality and timing](docs/results/2026-11-14-phase3-sudoku/README.md); CUDA has one intermediate near-tie code difference, with no final-ID difference. |
+| TinyStories | Seeded sampling, CUDA and Metal; scoped exceptions | [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md#per-profile-disposition); [accepted Metal numerical and latency-tail exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md). |
+| XSum | Top-1, CFG 0, CUDA and Metal; scoped exceptions | [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md#per-profile-disposition); [Metal output differences](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md) and [CUDA stochastic exceptions](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md). |
+| WMT14 | Scoped top-1, CUDA and Metal | [CLI and profile qualification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification), including quality, timing, memory and retained Metal intermediate differences. |
+| LM1B small, medium, large | Seeded generation, CUDA and Metal; approved 80-seed gate | [Quality campaign](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md), [CUDA timing](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md), [Metal timing](docs/results/2026-11-16-phase4-lm1b/medium-large-metal-v1.md#latency-and-memory-against-python-mlx), and [scoped user decisions](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md). |
+| OpenWebText | Config and synthetic operators only | [Coverage](docs/results/2026-11-19-phase4-owt/config-operator-coverage-v1.md); weights are unreleased and inference is refused. |
 
-## Read the plan
+Historical results compare the tested Rust implementation with the pinned original Python CUDA
+reference or a separately identified Python MLX adaptation, as appropriate. They are not benchmarks
+of the current release candidate. The original LM1B five-seed entropy gate failed; the user-approved
+80-seed gate and the retained failure are both documented in the linked decisions.
 
-1. [Research and upstream audit](docs/RESEARCH.md)
-2. [Architecture and runtime decisions](docs/ARCHITECTURE.md)
-3. [Phased port plan and acceptance gates](docs/PLAN.md)
-4. [Testing and performance protocol](docs/TESTING.md)
-5. [Checkpoint/artifact contract proposal](docs/ARTIFACTS.md)
-6. [Periodic upstream compatibility](docs/UPSTREAM.md)
-7. [Quality/performance reporting and publication](docs/REPORTING.md)
+## CLI and current limitations
 
-Agents: start with [AGENTS.md](AGENTS.md) and its lazy-loading
-[context map](agent-context-map.md); update the map before every commit.
-
-The first vertical slice is **Sudoku on both runtimes**, followed by TinyStories,
-XSum, WMT14, and LM1B. OpenWebText checkpoint testing is blocked: the inspected
-Hugging Face revision contains only `owt/TODO.md`. Upstream has model-side training
-pieces but no end-to-end training pipeline; training reproduction is a later project.
-
-## Workspace
-
-| Path | Responsibility / current scope |
-| --- | --- |
-| `crates/ncm-core` | Validated codec configuration, provisional backend contract, errors |
-| `crates/ncm-model` | Shared FP32 Sudoku codec, blocks and eager greedy generator |
-| `crates/ncm-tokenizers` | Sudoku, pinned HF tokenizers and TinyStories byte BPE |
-| `crates/ncm-io` | Versioned manifests, safetensors, artifact validation |
-| `crates/ncm-backend-cuda` | Candle CUDA codec/operators; CPU fixture path and real-device checks |
-| `crates/ncm-backend-mlx` | Native MLX codec/operators, real-Metal tests and memory probes |
-| `crates/ncm-cli` | Artifact inspection, explicit-device Sudoku inference and experimental text sampling |
-| `tools/reference` | Pinned operator/model oracles and scoped Sudoku checkpoint exporter |
-| `tests/fixtures` | 18 synthetic FP32 operator cases, Sudoku tokenizer goldens and fixture policy |
-| `tools/bench` | Validated aggregation of raw probe results |
-| `benches` | Benchmark protocol and reproduction links |
-
-Candle is pinned to 0.11.1 behind the backend crate's opt-in `cpu`/`cuda` features.
-Default builds do not require a GPU SDK. MLX is opt-in on Apple Silicon with a
-pinned native runtime. The shared backend contract supports the qualified Sudoku
-codec and generator. The [text profile contract](docs/PHASE4-TEXT.md)
-documents the separate experimental samplers and qualification status.
-
-The CLI accepts JSON arrays of token-ID rows and requires an explicit device:
+The explicit-device CLI accepts JSON arrays of token-ID rows. The new unified command dispatches on
+the artifact profile; existing `sample-*` commands remain available. Run `ncm --help` or
+`ncm sample --help` for current arguments and explicitly experimental options.
 
 ```sh
 ncm inspect ARTIFACT
-ncm generate ARTIFACT cuda INPUT_JSON 128
-ncm reconstruct ARTIFACT mlx INPUT_JSON 128
+ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode]
+ncm sample ARTIFACT DEVICE TEXT_JSON --text [--decode]  # XSum or WMT14
+ncm generate ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]     # Sudoku
+ncm reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]  # Sudoku codec
 ```
 
-Build with the corresponding `ncm-cli` feature (`cuda` on Linux, `mlx` on Apple
-Silicon). Generation accepts 91-token prefixes; reconstruction accepts 89-token
-boards. The final argument is an optional batch size from 1 to 128.
+The unified command's CUDA [baseline/alias equivalence screen](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md)
+covers one fixed batch per profile. Its [text-input](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md),
+[decode](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md) and
+[LM1B rotary](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md) screens have narrower scopes.
+Metal equivalents are pending. LM1B requires the separately generated, hash-pinned rotary sidecar
+beside the artifact, or `--reference-rope FILE`; no table approximation or device fallback is used.
+TinyStories accepts one non-padding prefix token per row; LM1B accepts only its fixed `[101]`
+start-token rows. Both currently reject `--text`.
 
-[First public operator comparison](docs/results/2026-11-09-cuda-operators/README.md):
-correctness passes, but composed resampling is substantially slower than PyTorch.
-These tiny microprobes establish no NCM quality or generation speedup.
-[Apple Phase 1 results](docs/results/2026-11-10-mlx-phase1/README.md) include the
-negative finding that Rust copied loading is slower and has higher host RSS than
-the adapted Python baseline.
+- FP32 only in this phase; BF16/FP16 and quantization are deferred. OWT inference is unsupported.
+- Neither runtime reproduces the PyTorch random stream; Metal/CUDA draw-level differences are a
+  [scoped LM1B exception](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md#2-metal-stochastic-draw-differences-scoped-exception).
+- XSum stochastic sampling and positive CFG, LM1B Metal `--top-p-fp32`, and WMT14's
+  `mlx-retry-padded` device are experimental; they are not covered by the ordinary top-1 release bar.
+- No serving API, streaming, cancellation or concurrent-request throughput is qualified.
+- Batch limits depend on model, device and available memory. On the tested 8 GiB CUDA card the
+  pinned Python LM1B-large baseline ran out of memory at batch 16; its timing sweep used batch 8,
+  and Rust large batch 16 was not measured ([report](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)).
+  CLI argument limits are not a guarantee that a batch fits.
+- A reproducible setup document and fresh-clone verification are pending. In particular, the
+  historical Sudoku medium/hard exporter identity is unresolved; see the
+  [export investigation](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
-## Local checks
+Release notes are a [draft](docs/RELEASE-NOTES-v0.1.0.md), not a published release. No model weights,
+evaluation data or prebuilt inference binaries are included in Git.
 
-Rust **1.99.1+** (edition 2024), rustfmt, Clippy and Python 3. This is a
-conservative tested toolchain floor, not a claim that every older version fails.
-The earlier Rust 1.88 claim was invalid: Candle 0.11.1 uses x86 intrinsics that
-are unstable on that compiler. Build CI has been replaced with local validation
-at the user's request; only the metadata-only upstream watcher runs on GitHub.
+## Build and local checks
+
+Rust **1.99.1+** (edition 2024), rustfmt, Clippy and Python 3 are required for local checks. The
+normal workspace does not require a GPU SDK. CUDA builds require a compatible toolkit, driver,
+compute capability and cuDNN for `cuda-cudnn`; MLX builds require Apple Silicon and matching native
+MLX libraries. The tested development setups are documented in the
+[reference tools guide](tools/reference/README.md); they are not yet a fresh-clone release recipe.
 
 ```sh
 ./tools/check.sh
-# Optional: additionally validate on the local NVIDIA GPU (tested Linux setup).
-NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 \
-  ./tools/check.sh --cuda
+# Linux, tested RTX 3060 Ti configuration; real GPU required:
+NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 ./tools/check.sh --cuda
+# Apple Silicon with the documented native MLX environment:
+./tools/check.sh --mlx
 ```
 
-On Apple Silicon, use `./tools/check.sh --mlx` with the
-[documented native MLX environment](tools/reference/README.md#apple-silicon--mlx-phase-1).
+Checks do not download weights or run SSH jobs. Default checks exercise CPU fixtures and report
+utilities; opt-in GPU checks run on real hardware. Passing an operator smoke test is not a model
+quality or performance gate. Build CI is intentionally disabled; the metadata-only upstream watcher
+remains enabled.
 
-The script works from any working directory, fails on the first error, does not
-install tools or download weights, and never launches SSH jobs. The default runs
-CPU fixtures and report-tool tests; `--cuda` additionally runs the real-device
-operator probe and writes a fresh report under `reports/`. It needs no Python
-Torch installation. A smoke report is not a full three-run benchmark comparison.
+## Workspace and project documents
 
-The [Sudoku artifact report](docs/results/2026-11-10-sudoku-artifacts/README.md)
-records byte-exact conversion, CPU/CUDA tensor readback and Python model traces.
-It does not establish Rust model parity. The later Linux and Apple reports close
-Phase 1's capability/baseline gates. Phase 2 adds qualified codec/tokenizer
-parity and remediation; Phase 3 adds the scoped end-to-end Sudoku comparison.
-Recheck Mac availability before starting a later phase's hardware runs.
+| Path | Responsibility |
+| --- | --- |
+| `crates/ncm-core`, `crates/ncm-model` | Validated configuration, shared FP32 model and backend contracts |
+| `crates/ncm-tokenizers`, `crates/ncm-io` | Pinned tokenizers and checked artifact loading |
+| `crates/ncm-backend-cuda`, `crates/ncm-backend-mlx` | Explicit CUDA and native MLX adapters |
+| `crates/ncm-cli` | Inspection and explicit-device inference CLI |
+| `tools/reference`, `tests/fixtures`, `tools/bench` | Offline conversion, pinned oracles, tests and reporting |
+
+See [architecture](docs/ARCHITECTURE.md), [plan](docs/PLAN.md),
+[testing](docs/TESTING.md), [artifact contract](docs/ARTIFACTS.md),
+[reporting](docs/REPORTING.md) and [upstream policy](docs/UPSTREAM.md). Agents start with
+[AGENTS.md](AGENTS.md) and the [context map](agent-context-map.md).
 
 ## Provenance and license
 
-MIT; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Research is pinned to upstream
-`c70274273f489abc73832b2b98584a8483b6b203`. Model and dataset licenses must be tracked
-separately; no weights or evaluation data are bundled.
+MIT; see [LICENSE](LICENSE) and [NOTICE](NOTICE). The pinned upstream code is
+`c70274273f489abc73832b2b98584a8483b6b203`; checkpoint revision is
+`d342ce8aaea58830eef3b8ad473664673e41f692`. Model and dataset licenses are tracked separately.

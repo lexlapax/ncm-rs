@@ -1,6 +1,6 @@
 # Phase 5 text input: XSum and WMT14
 
-2026-11-19. `ncm sample ARTIFACT DEVICE INPUT_JSON --text` now accepts a JSON array of strings for XSum and WMT14. It uses the artifact's authenticated tokenizer; XSum truncates to 512 IDs and pads with 50257, WMT14 truncates to 96 and pads with 151643. TinyStories and LM1B still explicitly reject `--text`; their inference paths accept only fixed start-token inputs. This is not a completed Phase 5 text-input gate.
+2026-11-19. `ncm sample ARTIFACT DEVICE INPUT_JSON --text` now accepts a JSON array of strings for XSum and WMT14. It uses the artifact's authenticated tokenizer; XSum truncates to 512 IDs and pads with 50257, WMT14 truncates to 96 and pads with 151643. TinyStories and LM1B still explicitly reject `--text`. Correction: TinyStories accepts any single valid non-padding prefix token, not only a fixed start token; LM1B requires `[101]`. This is not a completed Phase 5 text-input gate.
 
 ## Corpus-exact encoding
 
@@ -24,3 +24,7 @@ This explicit ignored test passed on Linux. It checks both row counts and compar
 ## End-to-end CUDA screen
 
 For the first corpus row of each profile, four fresh processes compared equivalent ID and `--text` input, both without and with `--decode`. Stdout matched byte-for-byte in each pair and matched the corresponding earlier retained baseline output. The common hashes are XSum `87be072a79210d62215efaa82f801c64612f6868cf545a3fb888ca14aee6cdca` (IDs) and `6db35c54fece2e27ea0e96e6f4e29cebba23a42bd20e899401218658cd2a0328` (decoded), WMT14 `17257d936f55b159c8cdc8ce9a465bf9d0498a446d544215c171eae82f2a604a` and `fd68c625bc98b4e7fccfde240db198c67ae8251e8607110b5319e8a617098d32`. The release binary built with `--features cuda-cudnn` had SHA-256 `9a80df0c2087d7f39e7b05971ae515799d69a6991971255a78299cd622b0d3df`. Build and runtime environment are as in [the earlier screen](cuda-routing-screen-v1.md). This proves the tested CUDA requests only; Metal and broader end-to-end cases are pending.
+
+## TinyStories prefix correction
+
+The current TinyStories teacher accepts one prefix ID per row in `0..8192`, excluding pad ID 1; it is **not** restricted to start ID 0. On CUDA, seed 42 and prefix `[[2]]` produced byte-identical stdout through the pre-change binary, candidate alias and candidate unified command (SHA-256 `efe7256404004b6551c25868fabebb2c2d06f12841662cb907473db34d11d03c`). It differed from the prior `[[0]]` output at 639 of 641 codes. This is a two-input development screen, not a claim that arbitrary multi-token prefixes are supported or qualified. `--text` for TinyStories is still not implemented.
