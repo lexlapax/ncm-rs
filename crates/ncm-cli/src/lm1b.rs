@@ -1,8 +1,8 @@
-//! Explicit experimental LM1B-small inference on Linux CUDA.
+//! Explicit experimental LM1B-small inference on CUDA or Metal.
 use super::Result;
 
 pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
-    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn INPUT_JSON SEED REFERENCE_ROPE [--decode]";
+    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode]";
     let [
         _,
         _,
@@ -21,25 +21,52 @@ pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
         [flag] if flag == "--decode" => true,
         _ => return Err(USAGE.into()),
     };
-    if device != "cuda-cudnn" {
-        return Err("experimental LM1B-small requires an explicit cuda-cudnn device".into());
-    }
-    #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
-    {
-        cuda::sample(artifact, input, seed.parse()?, reference_rope, decode)
-    }
-    #[cfg(not(all(feature = "lm1b-experimental", target_os = "linux")))]
-    {
-        let _ = (artifact, input, seed, reference_rope, decode);
-        Err("experimental LM1B-small CUDA is unavailable in this build".into())
+    match device.as_str() {
+        "cuda-cudnn" => {
+            #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
+            {
+                backend::sample_cuda(artifact, input, seed.parse()?, reference_rope, decode)
+            }
+            #[cfg(not(all(feature = "lm1b-experimental", target_os = "linux")))]
+            {
+                let _ = (artifact, input, seed, reference_rope, decode);
+                Err("experimental LM1B-small CUDA is unavailable in this build".into())
+            }
+        }
+        "mlx" => {
+            #[cfg(all(
+                feature = "lm1b-mlx-experimental",
+                target_os = "macos",
+                target_arch = "aarch64"
+            ))]
+            {
+                backend::sample_mlx(artifact, input, seed.parse()?, reference_rope, decode)
+            }
+            #[cfg(not(all(
+                feature = "lm1b-mlx-experimental",
+                target_os = "macos",
+                target_arch = "aarch64"
+            )))]
+            {
+                let _ = (artifact, input, seed, reference_rope, decode);
+                Err("experimental LM1B-small Metal is unavailable in this build".into())
+            }
+        }
+        _ => Err("experimental LM1B-small requires an explicit cuda-cudnn or mlx device".into()),
     }
 }
 
-#[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
-mod cuda {
+#[cfg(any(
+    all(feature = "lm1b-experimental", target_os = "linux"),
+    all(
+        feature = "lm1b-mlx-experimental",
+        target_os = "macos",
+        target_arch = "aarch64"
+    )
+))]
+mod backend {
     use super::Result;
-    use ncm_backend_cuda::CandleBackend;
-    use ncm_core::CodecBackend;
+    use ncm_core::GeneratorBackend;
     use ncm_io::Artifact;
     use ncm_model::{Lm1bSmallTeacher, lm1b_small_reference_rope};
     use ncm_tokenizers::TextTokenizer;
@@ -54,12 +81,56 @@ mod cuda {
 
     const ROTARY_BYTES: u64 = 32_920;
 
-    pub(super) fn sample(
+    #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
+    pub(super) fn sample_cuda(
         artifact: &str,
         input: &str,
         seed: u64,
         reference_rope: &str,
         decode: bool,
+    ) -> Result<serde_json::Value> {
+        sample(
+            || ncm_backend_cuda::CandleBackend::cuda_lm1b_efficient_experimental(0),
+            artifact,
+            input,
+            seed,
+            reference_rope,
+            decode,
+            true,
+        )
+    }
+
+    #[cfg(all(
+        feature = "lm1b-mlx-experimental",
+        target_os = "macos",
+        target_arch = "aarch64"
+    ))]
+    pub(super) fn sample_mlx(
+        artifact: &str,
+        input: &str,
+        seed: u64,
+        reference_rope: &str,
+        decode: bool,
+    ) -> Result<serde_json::Value> {
+        sample(
+            ncm_backend_mlx::MlxBackend::gpu,
+            artifact,
+            input,
+            seed,
+            reference_rope,
+            decode,
+            false,
+        )
+    }
+
+    fn sample<B: GeneratorBackend + Clone>(
+        make_backend: impl FnOnce() -> ncm_core::Result<B>,
+        artifact: &str,
+        input: &str,
+        seed: u64,
+        reference_rope: &str,
+        decode: bool,
+        device_sampling: bool,
     ) -> Result<serde_json::Value> {
         let prefixes = prefixes(&crate::read_inputs(Path::new(input))?)?;
         if !fs::metadata(reference_rope)?.is_file() {
@@ -87,13 +158,17 @@ mod cuda {
         } else {
             None
         };
-        let backend = CandleBackend::cuda_lm1b_efficient_experimental(0)?;
+        let backend = make_backend()?;
         let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?
             .with_reference_rope_diagnostic(&cosine, &sine)?;
         drop(artifact);
 
         let batch = prefixes.len();
-        let output = model.sample_seeded_fully_device(&prefixes, batch, seed)?;
+        let output = if device_sampling {
+            model.sample_seeded_fully_device(&prefixes, batch, seed)?
+        } else {
+            model.sample_seeded(&prefixes, batch, seed)?
+        };
         let codes = backend.read_indices(&output.codes)?;
         if codes.len() != batch * 641
             || output.ids.len() != batch * 128
@@ -139,5 +214,42 @@ mod cuda {
             assert_eq!(prefixes(&[vec![101]]).unwrap(), [101]);
             assert_eq!(prefixes(&vec![vec![101]; 32]).unwrap(), [101; 32]);
         }
+    }
+}
+
+#[cfg(test)]
+mod dispatch_tests {
+    use super::sample;
+
+    fn args(device: &str) -> Vec<String> {
+        [
+            "ncm",
+            "sample-lm1b-small",
+            "artifact",
+            device,
+            "input",
+            "11",
+            "rope",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect()
+    }
+
+    #[test]
+    fn unsupported_device_is_rejected_before_files_are_opened() {
+        let err = sample(&args("cpu")).unwrap_err().to_string();
+        assert!(err.contains("explicit cuda-cudnn or mlx"));
+    }
+
+    #[cfg(not(all(
+        feature = "lm1b-mlx-experimental",
+        target_os = "macos",
+        target_arch = "aarch64"
+    )))]
+    #[test]
+    fn unavailable_metal_is_not_silently_replaced() {
+        let err = sample(&args("mlx")).unwrap_err().to_string();
+        assert!(err.contains("Metal is unavailable"));
     }
 }

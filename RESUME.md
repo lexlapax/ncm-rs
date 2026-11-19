@@ -113,7 +113,7 @@ Before every commit include an updated
 
 ## Next actions
 
-1. Continue LM1B-small on Linux CUDA. The [experimental CLI](docs/PHASE4-TEXT.md#experimental-lm1b-small-cuda-command)
+1. Continue LM1B-small on Linux CUDA. The [experimental CLI](docs/PHASE4-TEXT.md#experimental-lm1b-small-commands)
    reaches the current efficient FP64 path and passes retained-request
    parity and the batch-32 repeat. Its [optional BERT decoder](docs/results/2026-11-16-phase4-lm1b/bert-decode-development-v1.md#rust-flm-decoder-and-cli-text-output)
    matches the pinned evaluator, including the six padded model IDs.

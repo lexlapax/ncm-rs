@@ -1074,7 +1074,7 @@ a diagnostic and the faster FP64 sampler remains in the tracked source.
 
 ### Experimental Linux CLI
 
-The opt-in [CLI command](../../PHASE4-TEXT.md#experimental-lm1b-small-cuda-command)
+The opt-in [CLI command](../../PHASE4-TEXT.md#experimental-lm1b-small-commands)
 selects the existing efficient-attention CUDA backend and the FP64
 sampler and final penalty path. It uses the checked inference artifact
 and requires the hash-pinned rotary export explicitly. The rotary file
@@ -1215,3 +1215,45 @@ and comparison SHA-256 values are respectively
 and `fb41e553ea13687b16dc3785f772cde299a11584c6b5b9db306017a387ef1ff6`.
 They are retained under
 `reports/phase4-lm1b-small-controlled-python-metal-fused-v1/`.
+
+## Experimental Metal CLI
+
+The opt-in [LM1B command](../../PHASE4-TEXT.md#experimental-lm1b-small-commands)
+now accepts `mlx` on Apple Silicon when built with
+`lm1b-mlx-experimental`. It uses the existing Metal backend and the host
+FP64 controlled sampler and penalties; CUDA retains its efficient device
+sampler and penalties. Both require the same authenticated artifact,
+explicit rotary export, bounded start-token input and explicit device.
+Unavailable or unsupported devices fail rather than select a fallback.
+
+On the Mac, a two-row seed-11 request with `--decode` produced the same
+1,282 codes and 256 penalty-adjusted IDs as an independently invoked
+traced and untraced model path using the same rotary export. The CLI output
+repeated byte-for-byte and contained two text strings. Invalid prefix and
+seed controls failed, as did CPU and unavailable CUDA selections. The
+focused Metal feature tests and Clippy passed. The full Mac
+`tools/check.sh --mlx` passed, including all 18 real-Metal operator cases;
+the existing service remained running and the checkout was restored.
+
+The repeated Metal CLI JSON SHA-256 is
+`a30a142b45af11bc703d97966e496169f527cec2e27242e2dcd8dd7307acfc56`;
+the model trace SHA-256 is
+`718dffd7118bc7daa393be366bf0df3590d7e86dd5943be169962dd5ba0c87b7`.
+The full Metal log SHA-256 is
+`e5946c5f2123a08f69b5495263ad1938fd7a5bf276ae4b1810c27cd07427f773`.
+The source patch, captured output and trace are retained under
+`reports/phase4-lm1b-metal-cli-candidate-v1/` and
+`reports/phase4-lm1b-metal-cli-api-reference-v1/`; Mac logs use the
+`phase4-lm1b-metal-cli-*` prefix. The separate controlled reference
+failures above remain unresolved: matching the model API does not qualify
+the Metal sampler or the profile.
+
+On Linux, the refactored CUDA command reproduced the retained seed-42,
+batch-eight CLI JSON byte-for-byte (SHA-256
+`93f31722241a565405acf14c19dfe4789f1202921b97fb7c76db7760403ab74f`).
+CUDA-feature CLI Clippy and five unit tests passed. The full
+`tools/check.sh --cuda` passed, including 18 real-CUDA operator cases;
+its log SHA-256 is
+`5778daf996267dc9611f17ed41600f2e021295e9c8b737af4e8d7f154577dad1`.
+The default-build tests also verify unavailable Metal does not fall back.
+These checks do not resolve the frozen Linux quality failure.

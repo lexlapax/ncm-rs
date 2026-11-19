@@ -127,7 +127,7 @@ For later XSum and WMT14 evaluation, read-only Hugging Face dataset metadata at 
 
 All four files were fetched into ignored `artifacts/upstream/text-evaluation-6580ba41/` and verified against those sizes and hashes. `tools/reference/text_phase4_data.py` checks an opcode allowlist, forbids pickle globals and persistent references, checks exact row shapes and writes non-executable JSON. The locally converted XSum file has 11,334 560-token rows and references (SHA-256 `cba412c100c1264a7a107b2df3bacd20bff5846325ce48fd5aa353b4726daa6a`); WMT14 has 3,003 source/reference text pairs (SHA-256 `36035390ce542834f8dfeeac004c1b532aff247a4ff39910f4a16efd009ca47c`). Outputs are ignored under `artifacts/canonical/text-phase4-v1/`; conversion does not establish model support or an evaluation result. The pinned XSum upstream decoder applies frequency, deficit and adjacency adjustments sequentially in float64 before argmax, so [MLX's lack of GPU FP64 support](https://ml-explore.github.io/mlx/build/html/python/data_types.html) requires a qualified exact or explicitly reviewed alternative rather than silent float32 substitution.
 
-## Experimental LM1B-small CUDA command
+## Experimental LM1B-small commands
 
 On Linux, build the CLI with `lm1b-experimental` and use the explicit
 `cuda-cudnn` device. The efficient backend requires CUDA compute
@@ -145,6 +145,14 @@ target/release/ncm sample-lm1b-small \
   reports/phase4-lm1b-level7-replay-v1/reference-rope-tables.safetensors
 ```
 
+On Apple Silicon, the explicitly experimental Metal command uses the same
+artifact, input and rotary export. Build with `cargo build --locked --release
+-p ncm-cli --features lm1b-mlx-experimental` and replace `cuda-cudnn` with
+`mlx` in the command above. The Metal path runs the controlled FP64 host
+sampler and decoding penalties; it does not silently fall back to CUDA. Its
+stochastic comparisons remain failed and this command is not a qualified
+LM1B Metal release.
+
 Each JSON input row supplies BERT start token `101`. A request accepts
 1 to 32 rows and an unsigned 64-bit request seed. The command returns a
 JSON object with a 641-code row and a 128-raw-ID row for each input. It
@@ -161,4 +169,4 @@ records parity with the pinned evaluator.
 The [CLI verification](results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#experimental-linux-cli)
 covers retained CUDA requests and the maximum batch size. The
 [held-out CUDA entropy gate](results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md)
-and the later LM1B Metal checks remain open.
+and LM1B Metal qualification remain open.

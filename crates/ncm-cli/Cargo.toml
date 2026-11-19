@@ -16,6 +16,7 @@ cuda-cudnn = ["cuda", "ncm-backend-cuda/cuda-cudnn"]
 mlx = ["dep:ncm-backend-mlx", "ncm-backend-mlx/mlx"]
 wmt14-experimental = ["ncm-model/wmt14-experimental"]
 lm1b-experimental = ["cuda-cudnn", "ncm-backend-cuda/lm1b-experimental", "ncm-model/lm1b-experimental", "dep:ncm-tokenizers"]
+lm1b-mlx-experimental = ["mlx", "ncm-model/lm1b-experimental", "dep:ncm-tokenizers"]
 
 [dependencies]
 ncm-core = { path = "../ncm-core" }

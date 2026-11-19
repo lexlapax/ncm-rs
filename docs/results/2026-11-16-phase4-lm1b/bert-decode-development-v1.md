@@ -51,7 +51,7 @@ checks that generic BERT decoding rejects rows containing padded IDs,
 and that the LM1B adapter rejects 30528, `u32::MAX` and an over-limit
 array of padded IDs.
 
-The [experimental CLI](../../PHASE4-TEXT.md#experimental-lm1b-small-cuda-command)
+The [experimental CLI](../../PHASE4-TEXT.md#experimental-lm1b-small-commands)
 uses the embedded pinned BERT asset when `--decode` is present. On the
 RTX 3060 Ti, five requests at batches 1, 8, 16 and 32 produce 65 exact
 text rows against Python's `bert.batch_decode`. Each request's raw
