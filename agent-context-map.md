@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small cold startup memory:** early host-bundle release saves 0.71–1.32 MiB. The reusable buffer saves 371–375 MiB and adds 0.45–0.47 s across four cold cells. All 48 CLI calls match retained outputs. Both patches are archived and the faster borrowed startup path remains active. [Comparison](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#cold-cli-weight-loading)
+
 - **LM1B-small Rust FLM decoding:** the pinned BERT adapter retains specials, omits the six padded model IDs from text and rejects IDs outside the model range. The updated probe exactly matches 1,288 pinned BERT strings. CUDA `sample-lm1b-small --decode` matches 65 Python text rows and five archived raw responses, including batch 32. The model quality gate remains open. [Decoding evidence](docs/results/2026-11-16-phase4-lm1b/bert-decode-development-v1.md#rust-flm-decoder-and-cli-text-output)
 
 - **LM1B-small manifest-bound campaign:** the local draft binds generation, scoring and comparison to one manifest. On two observed seeds per runtime, all 1,024 regenerated rows and all scores repeat exactly. Completed stages revalidate on replay, and five manifest, receipt or inventory tampering controls fail closed. Synthetic 80-entry seed-list checks pass; no fresh cohort has run. Protocol approval remains pending. [Rehearsal](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#manifest-bound-cuda-rehearsal)

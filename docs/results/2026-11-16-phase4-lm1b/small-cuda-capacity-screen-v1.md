@@ -382,3 +382,50 @@ and `8b8a8f07bd9bcc1862d98004b826bb5320e65a33beb7fb001aa10cd38ca526cd`.
 This supplements the existing batch 1/4/16 comparison. The evaluation
 [quality gate](small-heldout-cuda-v1.md#efficient-attention-observed-seed-retest)
 remains open.
+
+### Cold CLI weight loading
+
+Two Linux CUDA experiments change only how the CLI retains validated
+weight bundles during startup. The first releases the codec payload
+after uploading it and before uploading the generator. The second
+uses one reusable host buffer for both bundles and verifies each
+reloaded bundle against the admitted manifest.
+
+Each experiment runs three alternating pairs of fresh processes per
+cell on the RTX 3060 Ti. The input artifact, reference rotary tables,
+request seed and output mode are fixed within each pair. The wall
+time includes process startup, artifact validation, upload, generation
+and JSON output. Text requests include BERT decoding. Peak RSS comes
+from GNU time and covers the complete CLI process.
+
+Across the four cells, early release lowers median peak RSS by
+0.71–1.32 MiB and changes median wall time by 0.2–0.7% in this
+screen. The reusable buffer provides a larger reduction in RSS.
+
+| Output and batch | Borrowed wall (s) | Reusable wall (s) | Borrowed RSS (MiB) | Reusable RSS (MiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Raw, 1 | 1.610 | 2.064 | 1211.57 | 836.61 |
+| Raw, 8 | 1.733 | 2.198 | 1212.66 | 837.29 |
+| Text, 8 | 1.731 | 2.198 | 1214.12 | 843.27 |
+| Text, 32 | 2.226 | 2.699 | 1213.99 | 843.43 |
+
+In the measured cold invocations, the reusable buffer saves
+370.56–375.37 MiB of peak RSS and adds 0.45–0.47 seconds of wall
+time. All 48 calls in the two experiments match their archived
+output bytes. The CLI uses the faster borrowed startup path.
+Both experiment patches are archived for comparison and further
+memory-budget work. After restoring the borrowed path, the CLI
+rebuild has the archived baseline binary hash and repeats the pinned
+single-row decoded output. Steady-state generation and native
+device allocator peaks are outside this cold screen.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Early-release result | `b0b015fee99a2eab3e32c0dc4168c862a65b394ca57edf9ad2d5ced30b50fe97` |
+| Early-release patch | `137fa6e7693751bb4171b86ef58b6bd8213e373cb8604239599be97459de4440` |
+| Reusable-buffer result | `a66afb94c1297462784e90c3734d040894328128de1296e9c85a40f8aa38d333` |
+| Reusable-buffer patch | `59c3a1ab56df351463a3f37f927fc11761f98614f9b3eab1346161f0f209a567` |
+
+The raw timing records, scripts, patches and the exact binaries are in
+`reports/phase4-lm1b-owned-startup-v1/` and
+`reports/phase4-lm1b-reusable-startup-v1/`.

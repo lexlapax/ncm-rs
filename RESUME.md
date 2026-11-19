@@ -117,6 +117,10 @@ Before every commit include an updated
    reaches the current efficient FP64 path and passes retained-request
    parity and the batch-32 repeat. Its [optional BERT decoder](docs/results/2026-11-16-phase4-lm1b/bert-decode-development-v1.md#rust-flm-decoder-and-cli-text-output)
    matches the pinned evaluator, including the six padded model IDs.
+   The [cold startup comparison](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#cold-cli-weight-loading)
+   found a 371–375 MiB RSS saving with a reusable buffer at a cost of
+   0.45–0.47 seconds per cold invocation. The CLI uses the faster
+   borrowed path and the experimental patches are retained.
    The [repeated performance run](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#repeated-cuda-timing-and-allocator-measurements)
    favors Rust in median, p95 and process RSS at all three measured sizes.
    Resolve the frozen entropy interval failure. The replay reproduced the
