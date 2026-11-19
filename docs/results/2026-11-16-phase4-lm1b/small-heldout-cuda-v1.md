@@ -634,3 +634,71 @@ setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false \
   PYTHONPATH="$PWD/tools/reference:$PWD/$cohort:$tokens" \
   .reference/venv/bin/python "$probe" "$cohort" "$out"
 ```
+
+### Manifest-bound CUDA rehearsal
+
+The local campaign bundle runs generation, scoring and comparison as
+separate stages tied to one manifest SHA-256. The manifest records the
+ordered seed lists, batch and sample counts, metric parameters, upstream
+evaluator hashes, checked artifact and table hashes, Python capture
+source and exact Rust executable. Each runtime loads its generator once.
+Scoring loads GPT-2-large once and uses the checked shared-forward
+verifier. The comparison resamples seed means independently.
+
+The campaign publishes each capture directory and the score directory
+only after its complete inventory and receipts validate. An incomplete
+stage keeps its attempt directory. Re-running a completed stage
+validates its files before reuse. The summary verifies every capture
+and score against the stage receipts, preserves the run's mode and
+binds the result back to the manifest.
+
+The rehearsal regenerates observed seeds 42 and 0 for both runtimes
+on CUDA. All 656,384 concept codes, 131,072 raw IDs, 1,024 entropy
+values and the four PPL, summed NLL and token-count records match the
+earlier hash-checked archives. Both capture stages and the scorer skip
+model work on a verified replay, and the summary is byte-identical.
+Controls reject a wrong manifest digest before generation, an extra
+capture, a missing score, and changed manifest, capture or score bytes.
+Separate in-memory controls exercise valid 80-entry seed lists and
+reject insufficient, overlapping, already observed and out-of-range
+lists. The three frozen-comparator unit tests pass.
+
+The actual run is labeled `rehearsal`. The proposed 80-seed mode has
+no generated captures or scores, and its qualification decision remains
+pending. The original five-seed gate failure stays in the record.
+
+The bundle, binary, staged receipts and control logs are retained at
+`reports/phase4-lm1b-cohort-campaign-v1/`.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `campaign.py` | `3cc51db477e9541988ead2589d571dfb0979aacb922165a798b4d8220f27532e` |
+| `runner` | `b89a18920c38adcb37336b463dfbe315e24f2c6cd68a9f946c2318f3d2edef2b` |
+| `rehearsal/manifest.json` | `656ada14d7efaeebc3492ac3cc55cc3f89f2a788a6d13a684873a2c5ac13c0b7` |
+| `rehearsal/summary.json` | `545ec82c16093f9cec6d5e2864d79be27e13fc6d55f40669397041431743ee97` |
+| `controls.json` | `98490e2e5efe16ccba3566d473fc529d63f0fed80cc67d6f54ae3c814fb0f67f` |
+
+Repeat the observed-only rehearsal from the repository root with the
+retained bundle and a new run directory. The first command returns the
+hash supplied to each subsequent stage.
+
+```sh
+bundle="$PWD/reports/phase4-lm1b-cohort-campaign-v1"
+parent=$(mktemp -d reports/phase4-lm1b-campaign-repeat.XXXXXX)
+run="$PWD/$parent/run"
+tokens="$PWD/.reference/tokenizers-venv/lib/python3.14/site-packages"
+lib="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+export PYTHONPATH="$PWD/tools/reference:$tokens" LD_LIBRARY_PATH="$lib"
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false PYTHONDONTWRITEBYTECODE=1
+python=.reference/venv/bin/python
+sha=$(setpriv --inh-caps=-all "$python" "$bundle/campaign.py" \
+  init "$run" --mode rehearsal --seeds "$bundle/observed-seeds.json")
+for runtime in python rust; do
+  setpriv --inh-caps=-all "$python" "$bundle/campaign.py" \
+    capture "$run" --manifest-sha256 "$sha" --runtime "$runtime"
+done
+setpriv --inh-caps=-all "$python" "$bundle/campaign.py" \
+  score "$run" --manifest-sha256 "$sha"
+setpriv --inh-caps=-all "$python" "$bundle/campaign.py" \
+  summary "$run" --manifest-sha256 "$sha"
+```

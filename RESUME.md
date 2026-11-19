@@ -168,10 +168,13 @@ Before every commit include an updated
    comparator. The [shared-forward scorer draft](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#sharing-one-gpt-2-forward-pass-per-scoring-batch)
    reproduces all ten archived scores and cuts median scoring time by
    44.4% in the paired CUDA screen, at comparable peak allocation.
-   The proposed protocol awaits approval before generating fresh
-   samples. Mac and Linux runs already have user approval. Complete
-   the Linux LM1B-small gate before Metal and both small gates before
-   medium and large.
+   The [manifest-bound rehearsal](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#manifest-bound-cuda-rehearsal)
+   exercises capture, scoring and comparison end to end on observed
+   seeds and preserves all intermediate receipts. The larger mode's
+   seed-list controls pass. The proposed protocol awaits approval before
+   generating fresh samples. Mac and Linux runs already have user approval.
+   Complete the Linux LM1B-small gate before Metal and both small gates
+   before medium and large.
 3. For each changed runtime, run the applicable full checks and reproducible
    quality, performance, and memory comparisons on both real target devices.
    Update the context map, commit, and use the existing push authorization.
