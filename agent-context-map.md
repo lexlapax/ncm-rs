@@ -17,7 +17,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 | WMT14 | Scoped CUDA and Metal top-1 qualification ([evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)) |
 | LM1B-small | **Active.** 80-seed quality passes on CUDA and Metal; CUDA timing passes; Metal latency passes, Metal RSS fails at batches 4/16 (decision pending) |
 | LM1B-medium/large | Artifacts done; model generalized by size; CUDA teacher-forced parity passes on both backends ([parity](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-parity-v1.md)). Next: 80-seed CUDA quality and timing, then Metal |
-| OWT | Synthetic/config/operator coverage required; none found in `crates/`. Weights unreleased |
+| OWT | Config-only coverage done: pinned config validated (`OwtConfigOnly`), artifacts rejected, synthetic operators at OWT shapes match naive references ([coverage](docs/results/2026-11-19-phase4-owt/config-operator-coverage-v1.md)). Weights unreleased |
 
 - **LM1B-small evidence:** CUDA fixed-history traces, greedy and CLI checks pass. Repeated CUDA
   timing beats pinned Python in median, p95 and process RSS at batches 1, 4 and 16; Rust model load
@@ -55,14 +55,16 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Next actions, in order
 
-1. Done except one decision: Metal RSS at batches 4/16 (accept a scoped exception, or reduce host
-   logits residency). Earlier text in this step: generate the `rust_metal` list (device FP32 sampler) on the Mac and score it against the same Python CUDA captures from
-   `reports/phase4-lm1b-campaign-prospective-cuda-v1/`. Run a Metal batch 1/4/16 latency/memory
-   comparison against the Python MLX reference. Then close LM1B-small.
-   Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
-2. Generalize LM1B model/config/CLI from small to medium, then large; apply the bar above.
-3. Add OWT synthetic/config/operator coverage.
-4. Audit Phase 4 against the plan and contract, update docs, and mark Phase 4 complete.
+Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
+
+1. **CUDA chain (running):** medium then large 80-seed campaigns
+   (`reports/phase4-lm1b-campaign-prospective-{medium,large}-cuda-v1/`), then medium and large CUDA timing
+   (`reports/phase4-lm1b-{medium,large}-cuda-timing-v1/`). Publish each result, pass or fail, then rerun `tools/check.sh`.
+2. **Mac (on hold until the user says it is ready):** build and test the RSS fix at `57e5ee6` and rerun the small
+   Metal timing; copy `reports/phase4-lm1b-mlx-timing-v1/` to Linux. Then medium and large on Metal: teacher-forced
+   decision/ID check, 80-seed campaign (`--rust-device metal --size`) and timing against Python MLX
+   (`run_lm1b_small_mlx_timing.py` and the MLX probes still assume small).
+3. Audit Phase 4 against the plan and contract, update docs, and mark Phase 4 complete.
 
 ## Working rules carried forward
 
@@ -80,6 +82,12 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
   against evaluator settings (default attention dispatch, convolution TF32). The efficient path against strict fails by
   design: level-zero reconstruction equals PyTorch with convolution TF32 exactly.
   `setpriv --inh-caps=-all ./tools/check.sh --cuda` passes.
+- **OWT coverage:** `ncm_core::OwtConfigOnly` validates `tests/fixtures/owt-config-v1.json` (pinned upstream
+  YAML) and always refuses execution. `ncm-io` rejects OWT profiles, and `owt_shapes.rs` checks area/linear
+  resampling, RoPE and masked attention at OWT's 1,025-position, 16-head shape. The default check passed
+  except `test_real_writers_and_owned_process_samples_compose` (process observation), which fails
+  repeatedly while the medium campaign holds the GPU. It passed in earlier runs today and nothing it uses changed.
+  Rerun `tools/check.sh` after the GPU chain finishes.
 - **Campaign and timing by size:** `campaign.py --size`, both cohort runners and the CUDA timing screen
   (`run_lm1b_small_capacity_screen.py --size`) accept all three sizes. A small rehearsal still reproduces the
   archive exactly, and a medium rehearsal completes every stage. The default check passes. Medium and large reuse

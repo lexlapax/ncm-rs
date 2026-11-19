@@ -594,3 +594,17 @@ fn lm1b_sizes_have_separate_budgets() {
     save(dir.path(), &manifest);
     assert!(Artifact::load(dir.path()).is_err());
 }
+
+#[test]
+fn owt_artifacts_are_rejected_until_a_checkpoint_is_released() {
+    for profile in ["owt-inference-v1", "openwebtext-inference-v1"] {
+        let (dir, mut manifest) = lm1b_small_fixture();
+        manifest.profile = profile.into();
+        save(dir.path(), &manifest);
+        assert!(Artifact::load(dir.path()).is_err(), "{profile} accepted");
+        assert!(
+            Artifact::load_inference(dir.path()).is_err(),
+            "{profile} accepted"
+        );
+    }
+}

@@ -47,3 +47,10 @@ The operator fixture is not a checkpoint/model fixture. The scoped Sudoku oracle
 now generates 56 model traces from pinned weights; large traces, weights and
 licensed data remain outside Git. See [testing policy](../../docs/TESTING.md) and the
 [measurement report](../../docs/results/2026-11-09-cuda-operators/README.md).
+
+`owt-config-v1.json` is the pinned upstream `config/eval/owt.yaml` at commit
+`c70274273f489abc73832b2b98584a8483b6b203` (YAML SHA-256
+`854658b904e3faeeae3496aeacdd6536913a445552d721611349f9f7177c29ca`), converted to JSON with sorted
+keys and no value changes (fixture SHA-256
+`7f0bf6b8e61fc1f7fd13d44c95db478ac91b20fa4e18c9a50b33c8c7416d48c6`). It backs config-only OWT
+validation; no OWT checkpoint exists.

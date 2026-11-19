@@ -1,9 +1,11 @@
 //! Validated FP32 codec configuration and native backend contracts.
 
 mod config;
+mod owt;
 pub use config::{
     Auxiliary, CodecConfig, FineDrop, Levels, QuantizerConfig, RawCodecConfig, Residual,
 };
+pub use owt::OwtConfigOnly;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
