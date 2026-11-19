@@ -104,8 +104,7 @@ Do not claim full performance qualification from this small screen.
 
 ## Next work, in order
 
-1. Promote the 80-seed campaign tooling into tracked tools. Run the prospective
-   CUDA campaign with the pre-registered seeds and publish the result, pass or fail.
+1. Done: the prospective 80-seed CUDA campaign [passes](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#prospective-cuda-result).
 2. Run the Metal seed list against the same Python CUDA captures. Measure Metal
    latency and memory at batches 1, 4 and 16 against the Python MLX reference.
    Then close LM1B-small.

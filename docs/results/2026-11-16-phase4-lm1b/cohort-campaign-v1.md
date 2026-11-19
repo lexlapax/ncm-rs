@@ -76,4 +76,33 @@ prospective comparison fails.
 
 ## Prospective CUDA result
 
-Pending.
+The approved gate **passes** on CUDA. The campaign ran on 2026-11-19 from 05:31 to 06:15 UTC at
+commit `90b494c`, using the pre-registered seed lists: Python 1000–1079 and Rust 2000–2079. Each
+runtime produced 80 × 256 samples in batch-eight requests, and every seed was scored with the
+pinned upstream FLM scorer (`upstream_exact` true for all 160 scores).
+
+| Runtime | Seeds | Mean perplexity (seed SD) | Mean entropy, nats (seed SD) |
+| --- | ---: | ---: | ---: |
+| Python (pinned upstream, CUDA) | 80 | 93.9160 (2.3354) | 4.312720 (0.003564) |
+| Rust (`sample-lm1b-small` CUDA path) | 80 | 94.3599 (2.2683) | 4.313447 (0.003390) |
+
+| Check (Rust minus Python) | Point | 95% interval | Limit | Result |
+| --- | ---: | --- | --- | --- |
+| Perplexity | +0.443887 | [-0.271116, 1.145112] | at most 5.46 | pass |
+| Entropy | +0.000727 | [-0.000325, 0.001795] | within ±0.0046 | pass |
+
+The intervals use independent seed resampling (10,000 draws, RNG seed 42), as frozen. A second
+`summary` invocation replayed the stored summary byte for byte. This qualifies LM1B-small CUDA
+quality under the approved protocol. It does not erase the earlier five-seed failure, and it does
+not qualify Metal, medium or large.
+
+| Item | SHA-256 |
+| --- | --- |
+| Manifest ([copy](raw/cohort-cuda-v1-manifest.json)) | `c6f3e157ce86a0bf1b3dc6ee25f491ad2c3a87774d8f48be87a8565d1c54d85b` |
+| Summary ([copy](raw/cohort-cuda-v1-summary.json)) | `b1dbedd9205ee9eb1dd645005bb9f3592fbbbbc86cb322dd458e4d9ceef5c511` |
+| Python capture receipt | `2991e28de20959bbbe93d763a23fead4a6b813f72e64c75995466655ec08f09d` |
+| Rust capture receipt | `a8274b7f5186a44df3191305c173b33b6df84d0be5694e30bc5f5abeb4976d2f` |
+| Score receipt | `6992bfecc04844394601e001904818fb02501208349b564f25161b22e0d4ca62` |
+| Runner binary | `8868ff94534cebe72e72ae874248a75d8bf1e44558d8add86982290244dfdedc` |
+
+The raw captures and per-seed scores are in ignored `reports/phase4-lm1b-campaign-prospective-cuda-v1/`.

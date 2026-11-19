@@ -15,7 +15,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 | TinyStories | Advanced under [user-accepted exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md) |
 | XSum | Advanced under the [Metal](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md) and [CUDA stochastic](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md) exceptions |
 | WMT14 | Scoped CUDA and Metal top-1 qualification ([evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)) |
-| LM1B-small | **Active.** Quality gate and Metal performance open (below) |
+| LM1B-small | **Active.** CUDA passes the 80-seed quality gate; Metal quality and performance open |
 | LM1B-medium/large | Checkpoint inventories only; model code is still small-specific (`crates/ncm-model/src/lm1b_small.rs`) |
 | OWT | Synthetic/config/operator coverage required; none found in `crates/`. Weights unreleased |
 
@@ -24,6 +24,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
   is slower ([performance](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#repeated-cuda-timing-and-allocator-measurements)).
   The frozen five-seed entropy interval failed on CUDA and every observed-seed retest; the
   failures stay on record ([quality](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md)).
+  The approved **80-seed CUDA gate passes**: perplexity +0.44 [-0.27, 1.15], entropy +0.00073
+  [-0.00032, 0.00180] ([result](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#prospective-cuda-result)).
   Metal fixed-history decisions and IDs match CUDA; draw-level differences are now covered by
   the exception below. Metal quality and Metal performance against Python MLX are not yet measured.
   The independent [Python MLX reference](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-development-reference-for-complete-requests)
@@ -45,14 +47,14 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Next actions, in order
 
-1. Run the prospective CUDA campaign (Python and Rust CUDA lists) with the now-tracked tooling and
-   publish it in [cohort-campaign-v1.md](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md).
+1. Metal: add a Metal campaign runner (CLI default host-FP64 sampler), generate the `rust_metal`
+   list on the Mac and score it against the same Python CUDA captures from
+   `reports/phase4-lm1b-campaign-prospective-cuda-v1/`. Run a Metal batch 1/4/16 latency/memory
+   comparison against the Python MLX reference. Then close LM1B-small.
    Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
-2. Metal: generate the `rust_metal` list and compare it with the same Python CUDA captures. Run a
-   Metal batch 1/4/16 latency/memory comparison against the Python MLX reference. Then close LM1B-small.
-3. Generalize LM1B model/config/CLI from small to medium, then large; apply the bar above.
-4. Add OWT synthetic/config/operator coverage.
-5. Audit Phase 4 against the plan and contract, update docs, and mark Phase 4 complete.
+2. Generalize LM1B model/config/CLI from small to medium, then large; apply the bar above.
+3. Add OWT synthetic/config/operator coverage.
+4. Audit Phase 4 against the plan and contract, update docs, and mark Phase 4 complete.
 
 ## Working rules carried forward
 
@@ -63,6 +65,7 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
+- Prospective 80-seed CUDA campaign passed; the summary replays byte for byte. No code changed.
 - The 80-seed campaign tooling is now tracked in `tools/reference/lm1b_campaign/` plus a CUDA example runner.
   A rehearsal with the tracked tool on observed seeds 42/0 reproduces the archived records and comparison
   exactly. Feature Clippy and `setpriv --inh-caps=-all ./tools/check.sh` pass (533 report tests).
