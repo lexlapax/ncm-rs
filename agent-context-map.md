@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B cutoff parity regression:** a deterministic 8,192-logit fixture retains all probabilities in the pinned CUDA sampler but Metal removes 4,608 low-probability entries. A real-device ordering test passes; an explicit ignored CUDA-parity test fails when run. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#deterministic-cutoff-regression)
+
 - **LM1B experimental Metal FP32 top-p:** explicit `--top-p-fp32` computes MLX filtering before host FP64 draws. Rust probabilities match Python MLX bit-for-bit on 133 rows; a same-logit replay matches all 1,282 choices. Upstream CUDA boundary differences remain; the five observed-seed quality retest also fails the frozen entropy interval. CUDA and Metal regression suites pass, but this is not qualified and the default sampler is unchanged. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#explicit-experimental-metal-fp32-sampler)
 
 - **LM1B sampling documentation:** the experimental command now explicitly states that its FP64 full-distribution sampler omits upstream FP32 top-p filtering and does not reproduce PyTorch RNG. Host and public Metal exponential alternatives still fail targeted same-logit draws; no runtime change was accepted. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#exponential-formulation-follow-up)

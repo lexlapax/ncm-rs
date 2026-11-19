@@ -1405,3 +1405,27 @@ Validation also included `tools/check.sh --cuda` and `tools/check.sh --mlx`
 (each passed 18 device operator cases), feature-specific tests and Clippy on
 both platforms, and exact default CUDA and default/experimental Metal CLI output
 comparisons. These checks do not establish model-quality or numerical parity.
+
+#### Deterministic cutoff regression
+
+A compact synthetic row makes a Metal/CUDA cutoff difference reproducible
+without retained model logits: for index `i` in `0..8192`, the logit is
+`-5 * (i % 256) / 32`. Invoking the pinned upstream sampler on CUDA and
+capturing its multinomial weights retains all 8,192 probabilities; the
+smallest is approximately `2.24523e-20`. The existing Metal FP32 formulation
+zeros 4,608 entries on this machine. Their pre-filter Metal probability mass
+is approximately `2.511e-8`. This is a deliberately constructed arithmetic
+case, not an estimate of model-output mismatch rates or a quality result.
+
+A real-Metal test checks that filtering preserves logit order and normalization
+without requiring the current cutoff mismatch. A separate ignored parity test
+asserts the CUDA reference behavior and currently fails when explicitly enabled.
+On the Mac, `cargo test --locked --release -p ncm-backend-mlx --features
+mlx,lm1b-experimental --test lm1b_top_p_probabilities` passed two tests with
+that parity test ignored. Adding `top_p_cutoff_matches_cuda_reference --
+--ignored` ran the parity check and failed, as expected. Logs are retained as
+`reports/phase4-lm1b-metal-top-p-cutoff-test-v4.log` and
+`reports/phase4-lm1b-metal-top-p-cutoff-reference-v2.log` on the Mac. An initial
+test command omitted the `mlx` feature and ran zero tests; it is not counted as
+validation. The known cross-device sampler mismatch and Phase 4 gates remain
+open.
