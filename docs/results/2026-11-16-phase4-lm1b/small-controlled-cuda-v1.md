@@ -1309,3 +1309,28 @@ under `reports/phase4-lm1b-metal-top-p-fidelity-v1/`. An initial Metal run
 failed because the existing helper did not support the fixture's unsigned
 integer tensor; the rerun used MLX's native loader. The Mac service remained
 running and no production sampler changed.
+
+### Exponential formulation follow-up
+
+On the same 133 deliberately selected boundary draws, replacing Metal's
+exponential with host FP64 exponentiation cast to FP32 still differed from
+upstream on 32 CUDA-logit rows, 33 Metal-logit rows and two tie rows. The
+host FP32 variant differed on 30, 32 and two respectively. These targeted
+counts are not normal-use mismatch rates. Both used the grouped scan and
+ordered reduction; neither produced upstream probabilities or choices in
+every case.
+
+The public MLX power-of-two and `expm1 + 1` formulations were also compared
+with captured CUDA exponentials. Both differed at more elements than MLX's
+ordinary `exp` on each fixture group. No alternative was accepted or added
+to the runtime. The command documentation now states the existing
+full-distribution-versus-upstream FP32 filtering limitation explicitly.
+
+The host-FP64 and host-FP32 comparison SHA-256 values are
+`dc4a21528ef7bf6628482d829912462a879c28d8e2835346b08e0970c40b8288` and
+`6d4d371787122c16135f2e8df907d9f92b12e467d9b0e4947d6170781884a416`.
+The public-MLX exponential capture SHA-256 is
+`35e30dcf6b469613b4c5052ed2b52ce9bf0061fb919a19f13334974fc839ec46`.
+Sources and outputs remain under
+`reports/phase4-lm1b-metal-top-p-fidelity-v1/`. The Mac checkout remained
+clean and its existing service remained running.

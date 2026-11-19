@@ -156,8 +156,13 @@ LM1B Metal release.
 Each JSON input row supplies BERT start token `101`. A request accepts
 1 to 32 rows and an unsigned 64-bit request seed. The command returns a
 JSON object with a 641-code row and a 128-raw-ID row for each input. It
-uses the FP64 inverse-CDF sampler and FP64 decoding penalties. Pass the
-same request seed and batch shape to replay a Rust request.
+uses a full-distribution FP64 inverse-CDF sampler and FP64 decoding penalties.
+The pinned upstream sampler additionally applies FP32 sorting and cumulative
+top-p filtering even when top-p is one; rounding can make that filtering
+change a choice. The experimental command does not reproduce that FP32
+probability path or PyTorch's random stream. Pass the same request seed and
+batch shape to replay a Rust request; the same seed does not promise the same
+output as PyTorch. See the [sampling fidelity investigation](results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-fp32-top-p-same-logit-investigation).
 
 Append `--decode` to also include a `texts` array decoded with the
 artifact's pinned BERT tokenizer. It retains special tokens and omits
