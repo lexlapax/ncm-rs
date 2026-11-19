@@ -335,6 +335,10 @@ name = "lm1b_small_greedy_trace"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
 
 [[example]]
+name = "lm1b_small_cohort_campaign"
+required-features = ["lm1b-experimental", "cuda-cudnn"]
+
+[[example]]
 name = "lm1b_small_controlled_trace"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
 

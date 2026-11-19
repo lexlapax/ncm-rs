@@ -45,8 +45,9 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Next actions, in order
 
-1. Promote the 80-seed campaign tooling from ignored `reports/phase4-lm1b-cohort-campaign-v1/` into
-   tracked tools. Run the prospective CUDA campaign (Python and Rust CUDA lists) and publish it.
+1. Run the prospective CUDA campaign (Python and Rust CUDA lists) with the now-tracked tooling and
+   publish it in [cohort-campaign-v1.md](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md).
+   Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
 2. Metal: generate the `rust_metal` list and compare it with the same Python CUDA captures. Run a
    Metal batch 1/4/16 latency/memory comparison against the Python MLX reference. Then close LM1B-small.
 3. Generalize LM1B model/config/CLI from small to medium, then large; apply the bar above.
@@ -62,8 +63,11 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
-- Docs-only change: the map was compacted, user decisions and pre-registered seeds were added, and RESUME.md was updated.
-  All relative links in the archive and in this map were verified to resolve.
+- The 80-seed campaign tooling is now tracked in `tools/reference/lm1b_campaign/` plus a CUDA example runner.
+  A rehearsal with the tracked tool on observed seeds 42/0 reproduces the archived records and comparison
+  exactly. Feature Clippy and `setpriv --inh-caps=-all ./tools/check.sh` pass (533 report tests).
+  [Evidence](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md).
+- The local `.claude/settings.json` permission allowlist is uncommitted and awaits the user's decision.
 
 ## Task routing
 
