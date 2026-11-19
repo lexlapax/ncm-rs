@@ -43,11 +43,14 @@ def summarize(records, condition):
             'median_max_rss_kib': statistics.median(rss), 'max_rss_kib': rss[-1]}
 
 
-def execute(output, condition, binary, command, artifact, input_path, group, ordinal, warmup, expected):
+def execute(output, condition, binary, command, artifact, input_path, group, ordinal, warmup, expected,
+            profile='sudoku'):
     stem = f'{group}-{ordinal:02d}-{condition}'
     stdout, stderr, rss = (output / f'{stem}.{suffix}' for suffix in ('stdout', 'stderr', 'rss'))
+    device = 'cuda-cudnn' if profile == 'tinystories' else 'cuda'
+    options = (['42'] if command == 'sample-tinystories' else ['--seed', '42']) if profile == 'tinystories' else []
     argv = ['/usr/bin/time', '-f', '%M', '-o', str(rss), str(binary), command,
-            str(artifact), 'cuda', str(input_path)]
+            str(artifact), device, str(input_path), *options]
     before = time.perf_counter_ns()
     with stdout.open('xb') as out, stderr.open('xb') as err:
         proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
@@ -90,6 +93,7 @@ def main():
         parser.add_argument('--' + name, required=True, type=Path)
     for name in ('baseline', 'candidate', 'manifest', 'input', 'expected-output'):
         parser.add_argument('--' + name + '-sha256', required=True)
+    parser.add_argument('--profile', choices=('sudoku', 'tinystories'), default='sudoku')
     parser.add_argument('--watch-file', type=Path, action='append', default=[],
                         help='additional native library to hash before and after measurement')
     args = parser.parse_args()
@@ -124,12 +128,14 @@ def main():
         try:
             for group in range(1, ROUNDS + 1):
                 for ordinal in range(WARMUPS + TRIALS):
-                    order = [('baseline', baseline, 'generate'), ('candidate', candidate, 'sample')]
+                    old_command = 'sample-tinystories' if args.profile == 'tinystories' else 'generate'
+                    order = [('baseline', baseline, old_command), ('candidate', candidate, 'sample')]
                     if (group + ordinal) % 2:
                         order.reverse()
                     for condition, binary, command in order:
                         record = execute(output, condition, binary, command, artifact, input_path,
-                                         group, ordinal, ordinal < WARMUPS, args.expected_output_sha256)
+                                         group, ordinal, ordinal < WARMUPS, args.expected_output_sha256,
+                                         args.profile)
                         records.append(record)
                         if monitor.poll() is not None:
                             raise RuntimeError('GPU monitor exited during measurement')
@@ -150,7 +156,8 @@ def main():
     result = {'scope': 'fresh CLI process including load, generation and stdout; no warm in-process timing',
               'quality_scope': 'one fixed-request output hash only; not full quality',
               'device_memory_scope': 'system-wide sampled GPU usage only; native allocation/reservation peaks not measured',
-              'platform': 'Linux CUDA', 'rounds': ROUNDS, 'warmups_per_group_per_condition': WARMUPS,
+              'platform': 'Linux CUDA', 'profile': args.profile, 'rounds': ROUNDS,
+              'warmups_per_group_per_condition': WARMUPS,
               'trials_per_group_per_condition': TRIALS, 'monitor_returncode': monitor.returncode,
               'gpu_csv_sha256': digest(output / 'gpu.csv'),
               'watched_sha256': {str(path): sha for path, sha in watched.items()},

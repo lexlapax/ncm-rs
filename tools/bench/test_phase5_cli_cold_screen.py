@@ -38,6 +38,23 @@ class ColdScreenTests(unittest.TestCase):
             self.assertTrue(result['warmup'])
             self.assertEqual(result['output_sha256'], expected)
 
+    def test_tinystories_uses_matching_seed_and_cudnn_device(self):
+        raw = b'{}'
+        expected = hashlib.sha256(raw).hexdigest()
+        calls = []
+        def run(argv, **kwargs):
+            calls.append(argv)
+            Path(argv[4]).write_text('1234\n', encoding='utf-8')
+            kwargs['stdout'].write(raw)
+            return Mock(wait=Mock(return_value=0))
+        with tempfile.TemporaryDirectory() as directory, patch.object(tool.subprocess, 'Popen', side_effect=run):
+            tool.execute(Path(directory), 'baseline', Path('/old'), 'sample-tinystories',
+                         Path('/artifact'), Path('/input'), 1, 0, True, expected, 'tinystories')
+            tool.execute(Path(directory), 'candidate', Path('/new'), 'sample',
+                         Path('/artifact'), Path('/input'), 1, 0, True, expected, 'tinystories')
+        self.assertEqual(calls[0][5:], ['/old', 'sample-tinystories', '/artifact', 'cuda-cudnn', '/input', '42'])
+        self.assertEqual(calls[1][5:], ['/new', 'sample', '/artifact', 'cuda-cudnn', '/input', '--seed', '42'])
+
     def test_dangling_output_symlink_rejected_before_work(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -55,7 +55,9 @@ screen uses a blocking wait with an alarm timeout and isolated process-group cle
 
 ## Reproduce
 
-The final runner SHA-256 is `a7991823d74165395b0a95219e9a876be06ed42e8c8c75f528ed4acbeb45c0d3`.
+The runner used for this screen had SHA-256 `a7991823d74165395b0a95219e9a876be06ed42e8c8c75f528ed4acbeb45c0d3`.
+It was later extended for a separate [TinyStories screen](cuda-tinystories-cold-screen-v1.md);
+that updated runner was not used for the Sudoku measurements below.
 The ignored raw result SHA-256 is `279698ef160131ecc3ca793ecb32071a70f8fc2d8233444b24e3d90b28d4888a`;
 the sampled GPU CSV SHA-256 is `009da93a40b4ed50e626ab9a220bf6e7f15510c9d5d0772ac3fc1497a8e812d8`.
 The fixed input is evaluation-derived and is not committed. Use a fresh output directory; raw
