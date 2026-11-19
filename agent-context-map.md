@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B Metal FP32 sampling fidelity:** on 133 deliberately chosen same-logit boundary draws, the full-FP64 path differs from pinned upstream by construction. A grouped Metal scan reproduces CUDA masks when given its exact probabilities, but the ordered Metal softmax/scan pipeline still differs on 65 choices; exponentials differ too. No production sampler or gate changed. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-fp32-top-p-same-logit-investigation)
+
 - **LM1B directed-rounding control:** CPU round-toward-zero partial sums reduce initial reconstruction error but fail the controlled component band on the original batch (173 values) and two independently verified evaluator fixtures (21 and 52). No Metal runtime change was accepted. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#directed-rounding-control)
 
 - **LM1B controlled-comparison regression:** focused tests now enforce the reconstruction component band, in-band argmax reporting and exact codes. Seven related policy tests pass. Alternate accumulation order still fails 55 selected component-band positions; no Metal correction was accepted. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#controlled-policy-regression-and-reduction-order-screen)

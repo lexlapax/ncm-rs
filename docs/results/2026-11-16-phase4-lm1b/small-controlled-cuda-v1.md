@@ -1257,3 +1257,55 @@ its log SHA-256 is
 `5778daf996267dc9611f17ed41600f2e021295e9c8b737af4e8d7f154577dad1`.
 The default-build tests also verify unavailable Metal does not fall back.
 These checks do not resolve the frozen Linux quality failure.
+
+## Metal FP32 top-p same-logit investigation
+
+The current experimental Metal command uses the full FP64 inverse-CDF path;
+the pinned upstream `top_p=1` implementation performs FP32 sorting,
+softmax, cumulative filtering and a second softmax. To test this gap on the
+Mac, the upstream CUDA function's probabilities were captured on 64 retained
+CUDA level-one logit rows, 64 retained Metal level-one rows and five existing
+synthetic cutoff-tie rows. The upstream function was invoked on each group
+with its actual row count, and a public CUDA reconstruction of the stages
+reproduced the captured upstream probabilities bit-for-bit.
+
+One 32-bit draw per row was deliberately chosen at a boundary where the
+upstream FP32 distribution and the full-FP64 distribution choose different
+codes. Consequently all 133 full-FP64 choices differ by construction;
+this is **not** a measured normal-use mismatch rate. A straightforward MLX
+FP32 top-p formulation differs from upstream on 39 of 64 CUDA-logit draws,
+41 of 64 Metal-logit draws and two of five tie draws. These are same-logit,
+same-draw tests; the adapted MLX path is not a Rust implementation or a
+quality gate.
+
+For these fixtures, MLX and CUDA sorting indices match exactly, including
+all five synthetic tie rows. The sorted FP32 softmax values nevertheless
+differ in 440,381, 443,364 and 37,236 elements in the three groups. Giving
+MLX's native cumulative sum the *exact captured CUDA sorted probabilities*
+still changes the final cutoff masks in 26, 29 and three rows respectively.
+A grouped FP32 scan with the reference-shaped reduction order reproduces
+all three CUDA masks exactly when supplied those CUDA probabilities.
+
+A second Metal diagnostic combined the grouped scan with a strided FP32
+softmax reduction. It still differs from upstream on 30, 34 and one of the
+three groups' deliberately chosen draws. Its masks differ in seven, eleven
+and zero rows. Ordered CUDA softmax reconstruction matches all captured
+upstream probabilities exactly; the Metal exponentials themselves differ
+bitwise, so scan order alone cannot close the probability gap. CPU exponential
+formulations also did not reproduce every CUDA value. These results identify
+separate same-input scan and exponential issues but do not establish general
+sort equivalence, production sampler correctness, a new quality result or a
+reason to change a frozen gate.
+
+The reference capture SHA-256 is
+`8175af98005430f1aebd35f1e1b4965cb3b9889aafe5fd47853d49bdbaa5ccd9`.
+The straightforward and ordered-pipeline comparisons are
+`1dc67d213f3fcb63f9af5bd23cbc38d80b7e18fc6d0817adb8023cc143e414cd` and
+`d10fd3dae76f86fed61845e15cb05e29babf1b1b0601a8c8405f98ccd348e516`.
+The intermediate-stage comparison SHA-256 is
+`766ba35acd265f9820885d3bd30e803c475fc08c9139e6ecc3e0abe3f35602ba`.
+The sources, probabilities, masks, targeted draws and results are retained
+under `reports/phase4-lm1b-metal-top-p-fidelity-v1/`. An initial Metal run
+failed because the existing helper did not support the fixture's unsigned
+integer tensor; the rerun used MLX's native loader. The Mac service remained
+running and no production sampler changed.
