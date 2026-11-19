@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "scope": "Exploratory active-desktop fresh-process Rust CLI startup, load, generation and output; not release qualification",
+  "platform": "Linux CUDA RTX 3060 Ti",
+  "baseline_binary_sha256": "f10abaaec672dd7c0c62034972fb4b15fc204f2b1f5693e4a09f5e9640767098",
+  "candidate_binary_sha256": "cbd3d8d1fa39cbd878c6ff5f41a4f32aafe726d7706ee7c0dc28e0fd4e3a9b67",
+  "samples_per_condition": 90,
+  "unit_notes": "latencies in seconds; RSS in KiB; p95 nearest rank; per-process maximum RSS summarized by median and max",
+  "missing": ["persistent-process latency", "native device peak", "Python comparison", "quality", "Metal", "release performance gate"],
+  "profiles": {
+    "sudoku-easy": {
+      "raw_result_sha256": "279698ef160131ecc3ca793ecb32071a70f8fc2d8233444b24e3d90b28d4888a",
+      "gpu_csv_sha256": "009da93a40b4ed50e626ab9a220bf6e7f15510c9d5d0772ac3fc1497a8e812d8",
+      "baseline": {"median_seconds": 0.5551153185, "p95_seconds_nearest_rank": 0.617827652, "median_absolute_deviation_seconds": 0.013013288000000012, "median_max_rss_kib": 602076.0, "max_rss_kib": 604264},
+      "candidate": {"median_seconds": 0.5541452495, "p95_seconds_nearest_rank": 0.589607657, "median_absolute_deviation_seconds": 0.013511965999999986, "median_max_rss_kib": 601880.0, "max_rss_kib": 604944}
+    },
+    "tinystories": {
+      "raw_result_sha256": "2db9e7df31f7001351c251d9526432fd4eb63ff936c1bf70d30f7d5156b3c6b4",
+      "gpu_csv_sha256": "8ce854bd5d867805a5b30de999d91040c16c2c9b824735527b2007d2159b0326",
+      "baseline": {"median_seconds": 1.103932056, "p95_seconds_nearest_rank": 1.122228982, "median_absolute_deviation_seconds": 0.005453726999999908, "median_max_rss_kib": 929832.0, "max_rss_kib": 932836},
+      "candidate": {"median_seconds": 1.1037593595000001, "p95_seconds_nearest_rank": 1.118419334, "median_absolute_deviation_seconds": 0.006182593999999764, "median_max_rss_kib": 929480.0, "max_rss_kib": 932496}
+    },
+    "xsum": {
+      "raw_result_sha256": "c0d2e9f27a87e0de85c098c866d63329f09be307f42cd93971b315ad5a3ed3d1",
+      "gpu_csv_sha256": "4b756826ec3d663688a56d77a77db933c787c669d61fd2c9711a1e6d06201a48",
+      "baseline": {"median_seconds": 1.285126148, "p95_seconds_nearest_rank": 1.302422759, "median_absolute_deviation_seconds": 0.006412485000000023, "median_max_rss_kib": 1012716.0, "max_rss_kib": 1013456},
+      "candidate": {"median_seconds": 1.283963119, "p95_seconds_nearest_rank": 1.299876481, "median_absolute_deviation_seconds": 0.004975598999999886, "median_max_rss_kib": 1012900.0, "max_rss_kib": 1013512}
+    },
+    "wmt14": {
+      "raw_result_sha256": "45d58ead0d1b988bbb4572f105d4cd186acb4889c44f09fbaf1ded2d19b0f713",
+      "gpu_csv_sha256": "f608605bc1565530364941f862404c430e7f9e0e185aa1facddcb0a19a988c37",
+      "baseline": {"median_seconds": 1.8379860465000002, "p95_seconds_nearest_rank": 1.866316223, "median_absolute_deviation_seconds": 0.007371535999999845, "median_max_rss_kib": 1498944.0, "max_rss_kib": 1499252},
+      "candidate": {"median_seconds": 1.834102906, "p95_seconds_nearest_rank": 1.8715578, "median_absolute_deviation_seconds": 0.008535392500000016, "median_max_rss_kib": 1499024.0, "max_rss_kib": 1499444}
+    },
+    "lm1b-small": {
+      "raw_result_sha256": "08c5013f84c469ad34e3ea3f99f1a2c32deed51993f095cc7ba1ebdaecd77450",
+      "gpu_csv_sha256": "1070ff9a3cf239cc67a0eabb77677f7e2ba6b679c00dcf9cbb099721ed9c7d8a",
+      "baseline": {"median_seconds": 1.5780160109999999, "p95_seconds_nearest_rank": 1.61341937, "median_absolute_deviation_seconds": 0.006013550000000145, "median_max_rss_kib": 1238596.0, "max_rss_kib": 1241948},
+      "candidate": {"median_seconds": 1.578826044, "p95_seconds_nearest_rank": 1.612660761, "median_absolute_deviation_seconds": 0.007252513999999932, "median_max_rss_kib": 1235056.0, "max_rss_kib": 1237336}
+    },
+    "lm1b-medium": {
+      "raw_result_sha256": "cef345bf90c3aaf498c2973965a8dff32c524ad031f7354984e5719e13160f7b",
+      "gpu_csv_sha256": "906bf02c488f512f8d3d01cf19863a1bfb6b7875323d1c1fd6ebca6d7c4ff263",
+      "baseline": {"median_seconds": 2.7276271605, "p95_seconds_nearest_rank": 2.772705112, "median_absolute_deviation_seconds": 0.010417913499999987, "median_max_rss_kib": 2097922.0, "max_rss_kib": 2099088},
+      "candidate": {"median_seconds": 2.7273218865, "p95_seconds_nearest_rank": 2.754314837, "median_absolute_deviation_seconds": 0.007012761499999964, "median_max_rss_kib": 2093138.0, "max_rss_kib": 2096648}
+    },
+    "lm1b-large": {
+      "raw_result_sha256": "0a0907ae6d7eeac16b5dfccdb8872dda2c89f992e18da03785e33a4c85cb783c",
+      "gpu_csv_sha256": "4769ee2ea9d1ba9c552efd767792df3c2d1c55ce6e96d479c910584942eb8744",
+      "baseline": {"median_seconds": 4.851749781, "p95_seconds_nearest_rank": 4.877999433, "median_absolute_deviation_seconds": 0.010117721500000343, "median_max_rss_kib": 3692030.0, "max_rss_kib": 3695048},
+      "candidate": {"median_seconds": 4.8560997885, "p95_seconds_nearest_rank": 4.886872509, "median_absolute_deviation_seconds": 0.009241483000000272, "median_max_rss_kib": 3690248.0, "max_rss_kib": 3691944}
+    }
+  }
+}

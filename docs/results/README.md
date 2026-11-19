@@ -1,5 +1,31 @@
 # Published comparison index
 
+## Phase 5: release candidate in progress
+
+These reports are development evidence, **not** a Phase 5 completion or release claim. The
+[interim step 1 audit](2026-11-19-phase5-cli/step1-interim-audit-v1.md) records unresolved
+artifact and CLI decisions. Linux qualification, the Mac replay, full quality/performance evidence,
+profiling and the release gates remain pending. The [current context map](../../agent-context-map.md)
+tracks the latest state.
+
+| Report | Scope | Status and limits |
+| --- | --- | --- |
+| [CUDA CLI routing](2026-11-19-phase5-cli/cuda-routing-screen-v2.md) | Baseline, alias and unified output for nine fixed-profile requests; invalid-device screens | CUDA fixed-request identity only; not corpus/quality/performance or Metal. |
+| [Decode](2026-11-19-phase5-cli/cuda-decode-screen-v1.md), [text input](2026-11-19-phase5-cli/cuda-text-input-v1.md), [overlength CUDA text](2026-11-19-phase5-cli/cuda-text-truncation-v1.md) | Retained-output decoding, corpus encoding, synthetic boundaries and selected CUDA generation | LM1B text policy and Metal checks pending; synthetic tests are not quality gates. |
+| [Linux fresh-clone setup](2026-11-19-phase5-cli/linux-guide-integrated-replay-v1.md), [export investigation](2026-11-19-phase5-cli/linux-export-repro-v1.md) | Seven exact-manifest fresh downloads/exports, tokenizer setup and synthetic examples | Sudoku medium/hard identities and complete Linux/Mac guide verification remain open. |
+| [CUDA cold Sudoku](2026-11-19-phase5-cli/cuda-sudoku-cold-screen-v1.md), [TinyStories](2026-11-19-phase5-cli/cuda-tinystories-cold-screen-v1.md), [XSum/WMT14](2026-11-19-phase5-cli/cuda-xsum-wmt14-cold-screen-v1.md), [LM1B small](2026-11-19-phase5-cli/cuda-lm1b-cold-screen-v1.md), [LM1B medium/large](2026-11-19-phase5-cli/cuda-lm1b-medium-large-cold-screen-v1.md) | Rust baseline/candidate fresh-process startup, loading and one request per profile | Exploratory active-desktop screens; no native device peak, Python comparison, quality or release performance gate. |
+
+The [compact cold-screen aggregates](2026-11-19-phase5-cli/cuda-cold-aggregates-v1.json) reproduce
+selected statistics from the seven retained raw result files. They are not a complete result bundle:
+raw captures remain local and ignored, not durably published. For each profile, the stored raw-result
+and GPU-CSV hashes identify `reports/phase5-cli-cold-<profile>-v1/` (Sudoku-easy uses `-v4/`). The
+aggregates were checked against those hashes and independently recomputed from 90 non-warmup rows per
+condition: median, nearest-rank p95, median absolute deviation, and median/maximum process peak RSS.
+All 210 warmup/measured output hashes per screen agreed. See each report for commands, hashes,
+measurement scope and limitations; no new measurement or release-gate pass is implied.
+
+## Historical phase evidence
+
 The [Phase 4 final audit](2026-11-19-phase4-audit/phase4-final-audit-v1.md) records the
 per-profile text evidence on CUDA and Metal and the accepted exceptions.
 The [Phase 3 Sudoku report](2026-11-14-phase3-sudoku/README.md) records the
