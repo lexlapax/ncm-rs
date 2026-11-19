@@ -568,3 +568,69 @@ Raw scripts, captures, score reports and logs are in
 | `compare.json` | `872785b73a2675ea6f7925690fdfefdcac2cc807a7a9d05fb8ef4a03a46b059d` |
 | `score.py` | `e636d6c9deb93b8a95e2a4cc0e368c72de03b0056d4a59cff58d2bc5bfd30d95` |
 | `score.json` | `1dc4e7257bd1115a69995c5b2248d7c5c171ef697c88a3df2ffb37ac562e4ac8` |
+
+### Sharing one GPT-2 forward pass per scoring batch
+
+The draft verifier runs the hash-checked upstream FLM function and
+checks every input-ID and attention-mask batch against an independent
+tokenization. The pinned GPT-2-large model runs once per batch. The
+upstream scorer receives its usual output, and the local verifier
+independently calculates cross entropy, the first-EOS validity mask,
+and the cumulative NLL and token counts from those same logits.
+
+The first draft verifies the current logits inside the model callback.
+This overlaps the verifier's reduction with upstream's live logits
+from the preceding batch, raising peak allocated CUDA memory to
+5,347.60 MiB. The second draft verifies the preceding batch before
+launching the next model call and checks the last batch after the
+upstream function returns. This brings peak allocated memory back
+to 4,585.72 MiB. An explicit same-process check reproduces the first
+draft's peak on Python seed 42.
+
+Both drafts reproduce all ten archived seed scores, including perplexity,
+summed NLL, token counts and 2,560 entropy values. The second run
+alternates the two scoring paths on four captures in one model process.
+The measured scope starts after model loading and BERT decode.
+
+| Path | Median per seed (s) | GPT-2 calls per seed | Peak allocated (MiB) |
+| --- | ---: | ---: | ---: |
+| Two independent forwards | 14.960 | 32 | 4,585.22–4,585.72 |
+| Shared forwards, verify before next batch | 8.319 | 16 | 4,585.72 |
+
+Median scoring time falls 44.4% in these four paired cases. The warm
+PyTorch cache reports 5,678 MiB peak reserved in both paths. This
+allocator measurement reflects a single process and excludes physical
+GPU memory outside PyTorch. The CUDA control rejects changed token IDs
+before calling the model. Small CPU tensor controls check a short
+final batch, changed attention masks, empty input, incomplete upstream
+calls and nonfinite results.
+
+The first and second experiments are archived under
+`reports/phase4-lm1b-shared-forward-score-v1/` and
+`reports/phase4-lm1b-shared-forward-score-v2/`. The second directory
+has the tested verifier, paired probe, CPU controls and receipts. The
+verifier is a draft for a larger comparison. The official five-seed
+scorer and its reported verdict retain their original identities.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| First run `result.json` | `7011dd8ccdfba962200b1208de7bc14f356445aca042c8958c7c4bade9e15612` |
+| Second run `probe.py` | `2a5840b1a52257cd8f33426f3070257db3c71962b9d3cac57b77a1b4079de045` |
+| Second run `result.json` | `426eeac77dc73da7f765bc871e09874bbcba6f18031ac62162c33ed191e74e14` |
+| Second run `lm1b_shared_forward_score.py` | `e3cd699f2cd4a76668863d4ace0644bda7976183e4d0169db4d25efed759dabb` |
+| Second run `controls.json` | `580e8eb9e8917abb8b0f66fa1ca115681b8b0e0f4f74dc5abb4eac7ce2ca5986` |
+
+To repeat the second run from the repository root, use the archived
+cohort inputs and a new output directory.
+
+```sh
+probe=reports/phase4-lm1b-shared-forward-score-v2/probe.py
+cohort=reports/phase4-lm1b-cohort-preflight-v1
+out=$(mktemp -d reports/phase4-lm1b-shared-forward-repeat.XXXXXX)
+lib="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+tokens="$PWD/.reference/tokenizers-venv/lib/python3.14/site-packages"
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false \
+  PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 LD_LIBRARY_PATH="$lib" \
+  PYTHONPATH="$PWD/tools/reference:$PWD/$cohort:$tokens" \
+  .reference/venv/bin/python "$probe" "$cohort" "$out"
+```

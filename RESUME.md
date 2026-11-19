@@ -163,7 +163,10 @@ Before every commit include an updated
    The [workflow preflight](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#larger-cohort-workflow-preflight)
    regenerates and scores four archived captures exactly with one load
    per runtime, and reproduces the frozen verdicts through the draft
-   comparator. It awaits protocol approval before generating fresh
+   comparator. The [shared-forward scorer draft](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#sharing-one-gpt-2-forward-pass-per-scoring-batch)
+   reproduces all ten archived scores and cuts median scoring time by
+   44.4% in the paired CUDA screen, at comparable peak allocation.
+   The proposed protocol awaits approval before generating fresh
    samples. Mac and Linux runs already have user approval. Complete
    the Linux LM1B-small gate before Metal and both small gates before
    medium and large.

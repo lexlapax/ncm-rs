@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small shared GPT-2 forwards:** the local verifier checks the upstream token and attention inputs and separately reduces the same logits. A deferred reduction avoids the first prototype's extra 762 MiB allocation. The revised draft reproduces all ten archived scores at 16 model calls per seed, with a paired median of 8.319 s versus 14.960 s and comparable peak allocation. The prototype is archived and the fresh protocol decision remains pending. [Scoring evidence](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#sharing-one-gpt-2-forward-pass-per-scoring-batch)
+
 - **LM1B-small batch-eight CUDA timing:** three fresh process pairs and 90 timed requests per runtime favor the efficient FP64 path. Median Rust/Python latency is 189.03/230.65 ms, p95 is 192.47/233.89 ms, and peak RSS is 1534.03/2539.56 MiB. The explicit batch selector preserves the existing default cells. The release build, CUDA-feature Clippy, formatting and four aggregation tests pass. [Timing](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-at-the-quality-workload-batch-size)
 
 - **LM1B-small larger-cohort workflow preflight:** one model load per runtime reproduces all 1,024 archived sample rows across Rust and Python. One GPT-2-large load reproduces every archived score. The draft comparator exactly reproduces both five-seed verdicts, checks passing and failing synthetic 80-seed cases and rejects invalid cohorts. Future seed generation and the proposed protocol await review. [Preflight](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#larger-cohort-workflow-preflight)
