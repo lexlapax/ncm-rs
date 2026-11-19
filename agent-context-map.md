@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small Metal teacher:** user directed work to Mac. The two-row fixed-history trace passes all 51 comparisons and matches forced codes, greedy and penalty-adjusted IDs. Metal generation, quality and performance remain pending. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-teacher-cuda-rust-v1.md#metal-fixed-history-comparison)
+
 - **LM1B-small Metal work:** the user directed work to Mac while the Linux entropy failure remains recorded. The fixed-history Metal trace probe uses the pinned CUDA oracle. Metal qualification is pending.
 
 - **LM1B-small cold startup memory:** early host-bundle release saves 0.71–1.32 MiB. The reusable buffer saves 371–375 MiB and adds 0.45–0.47 s across four cold cells. All 48 CLI calls match retained outputs. Both patches are archived and the faster borrowed startup path remains active. [Comparison](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#cold-cli-weight-loading)

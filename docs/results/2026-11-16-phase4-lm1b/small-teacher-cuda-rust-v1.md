@@ -33,3 +33,23 @@ for the CPU penalty selector; all-feature model tests/lint and the full CUDA
 check passed, including 18 device operator cases. This two-history result does not establish free
 generation, stochastic sampling, quality, performance, Metal, or Phase 4
 completion. Raw traces and logs are ignored local artifacts.
+
+## Metal fixed-history comparison
+
+Following the user's direction to proceed on Mac, the experimental Metal
+teacher ran the two pinned fixed histories on Mac Studio. The existing
+comparison passes all 51 tensors under the unchanged policy. All 1,282
+forced codes, 256 greedy IDs and 256 penalty-adjusted IDs match the
+pinned CUDA reference. The trace SHA-256 is
+`0536dddbd966408f4b9ab5dca9e4975414de2f9ed242aab320d29ad5e5395b50`.
+The comparison SHA-256 is
+`2e59d6771ac890a0db6949354f37fbc1aae1316c5d36607fd958dca9a44dbf2d`.
+
+The Mac run uses the repository's prebuilt MLX runtime. An initial
+attempt without that configuration failed because the Metal compiler
+toolchain was unavailable. The corrected run completed. Its output is
+retained under `reports/phase4-lm1b-small-teacher-metal-v1/` and its
+Mac log is `reports/phase4-lm1b-small-teacher-metal-v3.log`. This
+fixed-history comparison is one part of Metal qualification. Free
+generation, quality and performance checks remain pending. The Linux
+entropy failure remains recorded.
