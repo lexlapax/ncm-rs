@@ -74,11 +74,13 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Updated equivalence runner CUDA rerun:** the hardened runner compared baseline, alias and unified stdout for all nine fixed requests; hashes and row counts match the previous screen ([evidence](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md#updated-runner-cuda-rerun)). Five runner tests and `tools/check.sh` pass. This repeats the existing fixture scope with the updated runner and newer candidate, not corpus, quality, performance or Metal validation.
+
 - **CUDA TinyStories cold-request screen:** extended the cold runner for a fixed seed-42 TinyStories request; 210 fresh baseline/candidate processes produced identical stdout, with measured medians 1103.932/1103.759 ms and median peak RSS 908.039/907.695 MiB ([report](docs/results/2026-11-19-phase5-cli/cuda-tinystories-cold-screen-v1.md)). Six runner tests, report syntax/links and `tools/check.sh` pass. This active-desktop screen includes startup/loading, not persistent-process inference, native device peaks, Python comparison, other profiles, Metal or the performance gate.
 
 - **Interim step 1 audit:** mapped the release-candidate requirements to scoped artifacts and open gates ([audit](docs/results/2026-11-19-phase5-cli/step1-interim-audit-v1.md)); observed legacy XSum positive-CFG/seed calls reach input loading without experimental flags while unified calls reject them. No inference was run. Audit links and `tools/check.sh` pass; GitHub release lookup timed out, so remote publication status is unknown. This is not a final Phase 5 audit or release gate.
 
-- **CLI equivalence runner output safety:** reject live/dangling output symlinks before resolving the destination; five offline tests and `tools/check.sh` pass. The earlier nine-profile CUDA screen retains its original runner identity ([evidence](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md)); the updated runner has not been GPU-rerun and adds no parity or quality evidence.
+- **CLI equivalence runner output safety:** reject live/dangling output symlinks before resolving the destination; five offline tests and `tools/check.sh` pass. The earlier nine-profile CUDA screen retains its original runner identity ([evidence](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md)); the subsequent updated-runner rerun is recorded above.
 
 - **CUDA overlength text:** one synthetic 1,101-token input per XSum/WMT14 was tested against its pinned Python-truncated IDs: baseline alias, candidate alias, unified IDs and unified text matched byte-for-byte; decoded ID/text paths matched and preserved IDs/codes. The [documented commands](docs/results/2026-11-19-phase5-cli/cuda-text-truncation-v1.md) were replayed with fresh outputs. Report shell blocks/links and `tools/check.sh` pass. This is not corpus generation, quality, performance or Metal evidence.
 

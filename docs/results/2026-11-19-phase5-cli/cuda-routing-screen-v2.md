@@ -28,8 +28,19 @@ After that screen, the runner's output-path preflight was corrected to reject li
 symlinks before resolving the destination. The updated runner SHA-256 is
 `2af9fdd181a6ab05ce8c1f4bfddbbd99c4eaf81985fa564943f20e6178cad81a`; five offline tests and
 `tools/check.sh` passed, including symlink negative controls. The nine-profile CUDA screen above
-used the earlier runner hash, not this new version; no GPU rerun or new parity claim is implied.
-Output parent directories must remain trusted and stable.
+used the earlier runner hash. Output parent directories must remain trusted and stable.
+
+### Updated-runner CUDA rerun
+
+The updated runner was subsequently run on CUDA against the same nine fixed requests, using the
+same baseline and the newer candidate binary SHA-256
+`cbd3d8d1fa39cbd878c6ff5f41a4f32aafe726d7706ee7c0dc28e0fd4e3a9b67`. It reported all nine
+baseline/alias/unified byte comparisons passing. Every output hash and row count matched the
+prior screen. Its ignored `reports/phase5-cli-equivalence-runner-v3/result.json` SHA-256 is
+`4ec4b555db3bafe437eb0a582b726d9be7518449f512186a0cbef7ea7322ad8b`. The command above was used
+with that candidate hash and `--output reports/phase5-cli-equivalence-runner-v3`; all other inputs,
+flags and environment were unchanged. This rerun tests the hardened runner on the same cases, not
+additional corpus, quality, performance or Metal coverage.
 
 ## CLI rejection integration checks
 
