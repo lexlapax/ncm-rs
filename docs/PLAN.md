@@ -1,6 +1,7 @@
 # Phased port and validation plan
 
-The user approved implementation on 2026-11-09. **Phases 0–3 are complete;
+The user approved implementation on 2026-11-09. **Phases 0–4 are complete;
+Phase 4 closed on 2026-11-19 with scoped, user-accepted exceptions ([audit](results/2026-11-19-phase4-audit/phase4-final-audit-v1.md));
 Phase 2 has the user-accepted Apple immediate-memory exception after the additional five-step optimization plan approved on 2026-11-11.** The earlier codec/tokenizer remediation passes unchanged correctness
 and all 78 performance/memory comparisons on both platforms; its
 [acceptance](results/2026-11-10-phase2-acceptance/README.md) remains valid historical
@@ -183,6 +184,8 @@ latency, throughput and peak memory. Publish the **first end-to-end comparison**
 against pinned Python and retain raw per-board outputs. No silent CPU fallback.
 
 ## Phase 4 — released text-profile compatibility
+
+**Complete with scoped, user-accepted exceptions** (2026-11-19, [audit](results/2026-11-19-phase4-audit/phase4-final-audit-v1.md)).
 
 Port incrementally, running the full preceding regression suite after each profile:
 

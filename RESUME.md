@@ -1,7 +1,6 @@
 # Phase 4 handoff
 
-Last updated: 2026-11-19 UTC. The objective is to **complete Phase 4**, not just
-one diagnostic. Start with `AGENTS.md`, `agent-context-map.md`, `git status`,
+Last updated: 2026-11-19 UTC. Phase 4 is now complete (see below); this handoff is kept for its history. Start with `AGENTS.md`, `agent-context-map.md`, `git status`,
 [the Phase 4 plan](docs/PLAN.md#phase-4--released-text-profile-compatibility)
 and [the text-profile contract](docs/PHASE4-TEXT.md). Current source and
 recorded evidence take precedence over this summary.
@@ -110,10 +109,9 @@ Do not claim full performance qualification from this small screen.
 
 ## Next work, in order
 
-1. Done: LM1B small, medium and large qualified on CUDA and Metal under the user's
-   decisions; OWT config-only coverage.
-2. Audit Phase 4 against the plan, contract and accepted exceptions, then mark
-   it complete.
+Phase 4 is complete with scoped, user-accepted exceptions
+([audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md)). Phase 5 has not
+started; ask the user before beginning it.
 
 The ignored local `reports/` directories contain detailed captures, scripts and
 logs; they are not portable Git artifacts. Use the linked tracked evidence for

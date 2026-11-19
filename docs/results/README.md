@@ -1,5 +1,7 @@
 # Published comparison index
 
+The [Phase 4 final audit](2026-11-19-phase4-audit/phase4-final-audit-v1.md) records the
+per-profile text evidence on CUDA and Metal and the accepted exceptions.
 The [Phase 3 Sudoku report](2026-11-14-phase3-sudoku/README.md) records the
 completed Linux/CUDA and Apple/MLX full-board quality, latency, throughput and
 memory comparisons and final publication check. Entries below

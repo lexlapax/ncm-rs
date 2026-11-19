@@ -8,7 +8,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 - **Phases 0–3 complete.** Phase 2 closed with a [scoped Apple immediate-memory exception](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md).
   Phase 3 Sudoku is complete on CUDA and Metal ([report](docs/results/2026-11-14-phase3-sudoku/README.md)).
-- **Phase 4 active** ([plan](docs/PLAN.md#phase-4--released-text-profile-compatibility), [contract](docs/PHASE4-TEXT.md), [handoff](RESUME.md)).
+- **Phase 4 complete with scoped, user-accepted exceptions** (2026-11-19, [audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md), [contract](docs/PHASE4-TEXT.md), [handoff](RESUME.md)).
+- **Phase 5** (optimization and inference release, [plan](docs/PLAN.md)) has not started; it needs the user's go-ahead and scope.
 
 | Profile | Status |
 | --- | --- |
@@ -55,9 +56,8 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
 
-1. **Done:** LM1B small, medium and large are qualified on CUDA and Metal (quality, parity, CLI, timing).
-2. **Phase 4 audit:** check every profile against [the plan](docs/PLAN.md#phase-4--released-text-profile-compatibility),
-   [the contract](docs/PHASE4-TEXT.md) and the accepted exceptions; write the audit, update docs, and mark Phase 4 complete.
+1. **Done:** Phase 4 audit written; PLAN, contract and results index mark Phase 4 complete with exceptions.
+2. **Next:** ask the user whether to start Phase 5 and with what scope. Do not start it unprompted.
 
 ## Working rules carried forward
 
@@ -68,6 +68,9 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Phase 4 audit (docs only):** [audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md) maps every
+  profile to tokenizer, teacher-forced, end-to-end, quality and performance evidence on both GPUs; all relative links
+  resolve. LM1B tokenizer, codec and license bytes are identical across sizes. Default `tools/check.sh` passes.
 - **Metal, all LM1B sizes (no code changes):** Mac at `30349ae`: `tools/check.sh --mlx`, five real-Metal sampler tests
   (with `lm1b-experimental`) and feature Clippy pass. Small output is byte-identical before and after the memory fix
   (`0a3ce34` vs `30349ae`, batches 1/4/16, both samplers). Medium and large Metal teacher traces pass 51/51 against

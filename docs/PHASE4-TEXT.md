@@ -184,6 +184,14 @@ the six padded model IDs 30522 through 30527 from the text. The
 records parity with the pinned evaluator.
 
 The [CLI verification](results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#experimental-linux-cli)
-covers retained CUDA requests and the maximum batch size. The
+covers retained CUDA requests and the maximum batch size. The frozen five-seed
 [held-out CUDA entropy gate](results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md)
-and LM1B Metal qualification remain open.
+failed and stays on record; the user replaced it with the
+[80-seed protocol](results/2026-11-16-phase4-lm1b/user-decisions-v1.md), which passes on CUDA and Metal.
+
+`ncm sample-lm1b` takes the same arguments and accepts the small, medium and large
+artifacts; `sample-lm1b-small` remains an alias. Medium and large meet the
+[lean bar](results/2026-11-16-phase4-lm1b/user-decisions-v1.md#3-minimum-bar-for-lm1b-medium-and-lm1b-large)
+on both devices ([CUDA](results/2026-11-16-phase4-lm1b/medium-large-cuda-parity-v1.md),
+[Metal](results/2026-11-16-phase4-lm1b/medium-large-metal-v1.md)). Phase 4 closure is
+recorded in the [final audit](results/2026-11-19-phase4-audit/phase4-final-audit-v1.md).
