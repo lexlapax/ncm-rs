@@ -36,6 +36,32 @@ setpriv --inh-caps=-all env \
   cargo test --locked -p ncm-cli --bin ncm tinystories_single_token_decode_matches_upstream_vocabulary -- --ignored
 ```
 
+## Synthetic TinyStories multi-token decode
+
+The artifact-bound CLI decoder matched the pinned upstream `BPETokenizer` on 137 synthetic rows:
+nine empty, EOS/padding and split UTF-8 edge cases, plus 128 fixed-seed random 128-token rows.
+The Python reference applies the evaluator's first-EOS and padding policy. The cases include an
+emoji reconstructed from four separately tokenized bytes and incomplete byte sequences. The
+ignored Rust test checks the exact reference hash and all decoded strings. This is host-side
+synthetic coverage, not generated-corpus, GPU inference or Metal qualification.
+
+The generator reuses the upstream revision, clean-checkout, source-hash, package-version and
+TinyStories tokenizer preflight used by the single-token reference, and rechecks inputs after
+capture. Generator SHA-256 is `84224a51cdc4101d7aeee6e7595a0b66ce01335f79705ca5688c842bfea50a86`;
+two captures matched byte-for-byte at SHA-256
+`0c2361bece994e027a1db7a9e93b856cf27cf8aff9c1b1194d39f979623f737b`. The output preflight and
+artifact-bound test passed. Use a fresh reference path:
+
+```sh
+setpriv --inh-caps=-all .reference/tokenizers-venv/bin/python tools/reference/phase5_tinystories_decode_reference.py \
+  --upstream .reference/upstream-ncm --tokenizer-asset artifacts/canonical/tokenizers-qualified/tinystories \
+  --output reports/NEW-tinystories-decode-reference.json
+setpriv --inh-caps=-all env \
+  NCM_TINYSTORIES_ARTIFACT="$PWD/artifacts/canonical/tinystories-phase4-v1" \
+  NCM_TINYSTORIES_DECODE_REFERENCE="$PWD/reports/NEW-tinystories-decode-reference.json" \
+  cargo test --locked -p ncm-cli --bin ncm tinystories_multi_token_decode_matches_upstream -- --ignored
+```
+
 ## Synthetic XSum and WMT14 decode boundaries
 
 A separate Linux host-side test compared the CLI's actual artifact-bound decoder with pinned

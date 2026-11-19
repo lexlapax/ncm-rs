@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **TinyStories multi-token decode:** the artifact-bound CLI decoder matched pinned upstream on 137 synthetic rows including split/partial UTF-8, EOS/pad and 128 fixed-seed random sequences ([evidence](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#synthetic-tinystories-multi-token-decode)). Two references match byte-for-byte; output-preflight, ignored artifact-bound test and `tools/check.sh` pass. This is host-side synthetic coverage, not generated-corpus, GPU or Metal qualification.
+
 - **TinyStories single-token decode:** artifact-bound CLI decoder matched the existing pinned upstream reference for all 8,192 vocabulary IDs, with EOS/pad handled under evaluator policy ([evidence](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#tinystories-single-token-vocabulary-decode)). The ignored real-artifact test, report syntax/links and `tools/check.sh` pass. This does not cover multi-token sequences, generated corpus, GPU inference or Metal.
 
 - **Synthetic decoder boundaries:** artifact-bound XSum/WMT14 `Decoder::add_texts` matched pinned Python evaluator decoding for 135 synthetic rows per profile, including EOS, padding, model-only IDs and fixed-seed random IDs ([evidence](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#synthetic-xsum-and-wmt14-decode-boundaries)). Two reference captures per profile matched; output-preflight test, the ignored artifact-bound test and `tools/check.sh` pass. This is host-side synthetic coverage, not corpus, GPU inference or Metal validation.

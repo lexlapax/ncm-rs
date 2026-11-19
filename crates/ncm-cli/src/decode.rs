@@ -223,6 +223,30 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires pinned TinyStories artifact and synthetic decode reference"]
+    fn tinystories_multi_token_decode_matches_upstream() {
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_TINYSTORIES_ARTIFACT").unwrap())
+                .unwrap();
+        let decoder = Decoder::from_artifact(&artifact).unwrap();
+        drop(artifact);
+        let raw =
+            std::fs::read(std::env::var("NCM_TINYSTORIES_DECODE_REFERENCE").unwrap()).unwrap();
+        assert_eq!(
+            ncm_io::sha256(&raw),
+            "0c2361bece994e027a1db7a9e93b856cf27cf8aff9c1b1194d39f979623f737b"
+        );
+        let data: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+        let ids: Vec<Vec<u32>> = serde_json::from_value(data["ids"].clone()).unwrap();
+        let texts: Vec<String> = serde_json::from_value(data["texts"].clone()).unwrap();
+        assert_eq!(ids.len(), 137);
+        assert_eq!(texts.len(), ids.len());
+        let mut result = serde_json::json!({"ids": ids});
+        decoder.add_texts(&mut result).unwrap();
+        assert_eq!(result["texts"], serde_json::json!(texts));
+    }
+
+    #[test]
     #[ignore = "requires pinned local artifacts and external reference corpora"]
     fn corpus_text_encoding_matches_every_reference_row() {
         for (artifact_var, reference_var, count) in [
