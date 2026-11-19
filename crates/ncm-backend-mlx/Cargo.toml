@@ -12,6 +12,7 @@ publish = false
 default = []
 mlx = ["dep:mlx-rs", "dep:ncm-core", "dep:ncm-io", "dep:safetensors"]
 wmt14-experimental = ["ncm-model/wmt14-experimental"]
+lm1b-experimental = ["ncm-model/lm1b-experimental"]
 
 [target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies]
 mlx-rs = { git = "https://github.com/oxiglade/mlx-rs", rev = "adf439bf5361d8a02955de7aaf651b0c45900945", optional = true, features = ["safetensors"] }
@@ -183,3 +184,7 @@ required-features = ["mlx"]
 [[example]]
 name = "xsum_top1_row_refined_norm_experimental"
 required-features = ["mlx"]
+
+[[example]]
+name = "lm1b_small_teacher_trace"
+required-features = ["mlx", "lm1b-experimental"]
