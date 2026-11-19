@@ -311,6 +311,86 @@ recipe checks its pristine hash before replacing it in the new worktree. Inspect
 contents before removing that worktree; do not discard unrelated changes. This is an export
 identity check, not a text-generation or quality gate.
 
+### Linux WMT14 and LM1B development replays
+
+These exports use the Linux reference venv with **Python 3.14.10 and Torch 2.15.0+cu132**;
+these versions are recorded in provenance, so other versions can change the manifest. Download
+`wmt14` and each needed `lm1b-SIZE` separately with the budgets above. Each LM1B download has
+its own tokenizer checkpoint. Prepare the converted `qwen3` and `bert` tokenizers first. These
+commands were replayed using retained inputs, not a fresh clone or download; see the
+[replay evidence](results/2026-11-19-phase5-cli/linux-export-repro-v1.md#wmt14-and-lm1b-guide-command-replays).
+They check artifact identities only; the rotary sidecar is prepared separately below.
+
+```sh
+.reference/venv/bin/python -c 'import platform,torch; assert platform.python_version()=="3.14.10" and torch.__version__=="2.15.0+cu132"' || exit 1
+.reference/venv/bin/python tools/reference/fetch_checkpoints.py \
+  --profile wmt14 --output artifacts/upstream/wmt14 --verify || exit 1
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false \
+  .reference/venv/bin/python tools/reference/wmt14_runtime_artifact.py \
+  --source artifacts/upstream/wmt14 --tokenizer-asset artifacts/canonical/tokenizers-qualified/qwen3 \
+  --output artifacts/canonical/wmt14-qualified || exit 1
+printf '%s  %s\n' 01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81 \
+  artifacts/canonical/wmt14-qualified/manifest.json | sha256sum -c - || exit 1
+
+for size in medium large; do
+  .reference/venv/bin/python tools/reference/fetch_checkpoints.py \
+    --profile "lm1b-$size" --output "artifacts/upstream/lm1b-$size" --verify || exit 1
+  setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false \
+    .reference/venv/bin/python tools/reference/lm1b_small_runtime_artifact.py \
+    --size "$size" --source "artifacts/upstream/lm1b-$size" \
+    --tokenizer-asset artifacts/canonical/tokenizers-qualified/bert \
+    --output "artifacts/canonical/lm1b-$size-qualified" || exit 1
+done
+printf '%s  %s\n%s  %s\n' \
+  2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c artifacts/canonical/lm1b-medium-qualified/manifest.json \
+  86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a artifacts/canonical/lm1b-large-qualified/manifest.json | sha256sum -c - || exit 1
+```
+
+The small qualified manifest records an earlier exporter, so use its historical worktree instead
+of substituting the generalized exporter. Its exporter requires output under that worktree's own
+`artifacts/canonical`; the command moves the checked result to the main artifact directory.
+Inspect the worktree, including ignored files, before removing it; preserve unrelated work.
+
+```sh
+.reference/venv/bin/python tools/reference/fetch_checkpoints.py \
+  --profile lm1b-small --output artifacts/upstream/lm1b-small --verify || exit 1
+test ! -e reports/lm1b-small-exporter-worktree && test ! -L reports/lm1b-small-exporter-worktree || exit 1
+git worktree add --detach reports/lm1b-small-exporter-worktree 9d791f88c75614bf531d897603d1896394145a79 || exit 1
+printf '%s  %s\n' a8dd547b02b06a557c581c885e4eea289a5a8ffa60a6682556737409c06caf52 \
+  reports/lm1b-small-exporter-worktree/tools/reference/lm1b_small_runtime_artifact.py | sha256sum -c - || exit 1
+root="$PWD"
+(
+  cd reports/lm1b-small-exporter-worktree || exit 1
+  setpriv --inh-caps=-all env OMP_NUM_THREADS=1 TOKENIZERS_PARALLELISM=false \
+    "$root/.reference/venv/bin/python" tools/reference/lm1b_small_runtime_artifact.py \
+    --source "$root/artifacts/upstream/lm1b-small" \
+    --tokenizer-asset "$root/artifacts/canonical/tokenizers-qualified/bert" \
+    --output artifacts/canonical/lm1b-small-qualified
+) || exit 1
+printf '%s  %s\n' 58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76 \
+  reports/lm1b-small-exporter-worktree/artifacts/canonical/lm1b-small-qualified/manifest.json | sha256sum -c - || exit 1
+test ! -e artifacts/canonical/lm1b-small-qualified && test ! -L artifacts/canonical/lm1b-small-qualified || exit 1
+mv -T -n reports/lm1b-small-exporter-worktree/artifacts/canonical/lm1b-small-qualified \
+  artifacts/canonical/lm1b-small-qualified || exit 1
+test ! -e reports/lm1b-small-exporter-worktree/artifacts/canonical/lm1b-small-qualified || exit 1
+printf '%s  %s\n' 58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76 \
+  artifacts/canonical/lm1b-small-qualified/manifest.json | sha256sum -c -
+```
+
+For all three LM1B artifacts in `artifacts/canonical`, prepare the shared pinned sidecar in that
+same directory. The default CLI looks beside the artifact directory; the alias still accepts an
+explicit sidecar path. Check that the output is absent, including a dangling symlink, and use a
+trusted, stable directory. The hash must match exactly; do not substitute a numerical approximation.
+
+```sh
+test ! -e artifacts/canonical/lm1b-reference-rope-v1.safetensors && test ! -L artifacts/canonical/lm1b-reference-rope-v1.safetensors || exit 1
+setpriv --inh-caps=-all .reference/venv/bin/python tools/reference/lm1b_reference_rope_diagnostic.py \
+  --upstream .reference/upstream-ncm \
+  --output artifacts/canonical/lm1b-reference-rope-v1.safetensors || exit 1
+printf '%s  %s\n' 9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc \
+  artifacts/canonical/lm1b-reference-rope-v1.safetensors | sha256sum -c -
+```
+
 ### Synthetic Sudoku-easy request
 
 For the Linux CUDA build above, the following creates a new all-blank synthetic board, compares the

@@ -69,6 +69,26 @@ reference remain under ignored `artifacts/canonical/phase5-guide-xsum-replay/` a
 `reports/phase5-guide-xsum-rope/`. No fresh clone, fresh download, Mac, inference or quality
 validation is implied.
 
+## WMT14 and LM1B guide command replays
+
+The [draft guide](../../USAGE.md#linux-wmt14-and-lm1b-development-replays) documents retained-input
+Linux export replays for WMT14 and all three LM1B sizes. The downloader verified each profile's
+three retained files. Commands used `artifacts/upstream/wmt14-phase4` or the shared retained
+`artifacts/upstream/lm1b-phase4`, and replay-specific output paths, rather than the guide's separate
+fresh-download paths. Python was 3.14.10 and Torch 2.15.0+cu132. WMT14 and medium/large used the
+current exporter; small used the tracked exporter at `9d791f88c75614bf531d897603d1896394145a79`
+in a new worktree. All four exports produced their qualified manifest hashes in the results table
+above. WMT14 reported bit-exact roundtrip; LM1B uses the same checked tensor-saving helper.
+Outputs remain under ignored `artifacts/canonical/phase5-guide-{wmt14,lm1b-small,lm1b-medium,lm1b-large}-replay/`.
+The small output was moved out of its worktree after checking its hash and the destination; the
+worktree's only remaining ignored files were generated Python bytecode and it was then removed.
+
+The pinned upstream LM1B rotary generator was also run to the new ignored path
+`reports/phase5-guide-lm1b-rope.safetensors`, producing SHA-256
+`9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc` as required. These replays
+are not fresh-clone or download verification and do not run inference, qualify a Mac build, or
+establish model quality or performance.
+
 ## Byte-level comparison of alternate exports
 
 `tools/reference/compare_artifact_provenance.py` independently verifies both requested manifest hashes and each declared file's size and SHA-256, compares every non-provenance file byte-for-byte, compares all other manifest fields including tensor inventories, and allows exactly the explicitly listed provenance keys to differ. It revalidates inputs after comparison. It assumes stable trusted directories and is not a substitute for `ncm-io` validation, GPU qualification or user approval. The tool SHA-256 is `4856913542f7c652974c28c11325cf5c5ea4fd4ce34e97d36d41a1652a11c729`; six tests including tampered and rehashed payload, tensor, JSON and symlink negative controls pass through `tools/check.sh`.
