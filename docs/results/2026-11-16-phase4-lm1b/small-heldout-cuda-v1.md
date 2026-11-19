@@ -486,3 +486,34 @@ The capture executable SHA-256 is
 The captures, scores, logs and `retest.sh` are retained in
 `reports/phase4-lm1b-sampler-audit-v1.O4RAPj/`. All five seeds
 are previously observed and the CUDA quality gate remains open.
+
+### Reusing the scoring model across archived captures
+
+Three archived captures from the [efficient-attention retest](#efficient-attention-observed-seed-retest)
+were scored in separate processes and then in one process reusing a
+single loaded GPT-2-large model. Both paths run the existing scorer with
+all per-capture, artifact, upstream and exact metric checks. Each path
+reproduces every archived scoring field except that allocator high-water
+counters are compared separately. Peak allocated memory is 4,585.22 MiB
+in all six records.
+
+| Capture | Separate process (s) | Persistent process (s) |
+| --- | ---: | ---: |
+| Python seed 42 | 21.414 | 19.175 |
+| Rust seed 1 | 21.456 | 18.411 |
+| Rust seed 3 | 21.498 | 18.465 |
+| Total | 64.368 | 56.050 |
+
+The separate timings include Python startup and module imports for each
+capture. The persistent timings include its one model load and exclude
+its one shared startup and imports. The persistent runs follow the
+separate processes in this single screen. These timings suggest a
+reduction in repeated startup and model loading. They do not measure
+end-to-end time for a new qualification run.
+
+The diagnostic and its logs are under
+`reports/phase4-lm1b-warm-scorer-v1.ltZFq4/`. The probe SHA-256 is
+`d68e08c33f4664a0a69de9ff126db74ebba93bdf523ffa5068f9484591d610ab`.
+The result SHA-256 is
+`e81d0b98225937c4faec5abd2137dbe181aec206182caed4e5ac9db58cff448f`.
+The existing scorer and frozen evidence retain their original identities.
