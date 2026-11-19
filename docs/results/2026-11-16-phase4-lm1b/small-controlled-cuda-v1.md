@@ -1147,3 +1147,14 @@ the same stream reproduces all 1,282 Metal choices. This identifies
 the observed first divergence and leaves the full stochastic gate open.
 The audit and result are retained under
 `reports/phase4-lm1b-metal-first-choice-v1/`.
+
+Before the first sampled-code difference, Metal and strict CUDA already
+differ in the initial reconstruction. On the captured two-row stochastic
+history, `reconstruction.level_00` differs in 74,984 values with maximum
+absolute difference `0.00012969970703125`. Level-five logits differ in
+619,374 values with maximum `0.00017547607421875`, within the accumulated
+comparison band. The raw per-boundary audit is retained under
+`reports/phase4-lm1b-metal-prechoice-v1/`; result SHA-256 is
+`c1165cfd8cfacc88e08b0aaf0f0ea4c9c80049ad19b36019f0b91fe243ccd26a`.
+The separately captured [codec fixtures](small-codec-cuda-rust-v1.md#metal-codec-comparison)
+show level-zero numerical differences on their own inputs.

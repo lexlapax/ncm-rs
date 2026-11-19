@@ -38,3 +38,22 @@ performance, Metal, or the Phase 4 gate. All-feature model tests and all-target
 lint for core, model and CUDA passed. The full CUDA check passed, including 18
 device operator cases; the initial check stopped at formatting, corrected before
 the passing run. Logs are in ignored `reports/`.
+
+## Metal codec comparison
+
+On the two pinned codec fixture rows, the Metal trace completes all 362
+tensors. The unchanged comparison fails 47 checks. The level-zero decode
+contribution exceeds the tolerance in two values, with maximum absolute
+difference `0.00014495849609375`. The encoder level-zero quantizer input
+also has two values outside tolerance, with maximum difference
+`0.0067138671875`. These fixtures differ from the controlled stochastic
+inputs, so this comparison does not by itself identify the cause of that
+sample's first changed choice.
+
+The Metal trace SHA-256 is
+`08f3f4cb2751b900495130b85d3748f19ec620252ee26ba8bec05c7f7412c9a9`.
+The failed comparison SHA-256 is
+`5b0906269efbd893ae457354bf4246489dc0e775046ce8360c46ba50353fc045`.
+The Mac trace and log are retained under
+`reports/phase4-lm1b-small-codec-metal-v1/` and
+`reports/phase4-lm1b-small-codec-metal-v1.log`.
