@@ -265,3 +265,27 @@ are `d69ee56dac12f687303b774ac1af05c49482eeb49de150b9b434bb11e3cb8693`,
 `68d8b6ef97f62af64be403a2cdf346d1c99f299c0ca4ee442b20df2bde2bfee8`.
 The diagnostic sources and reports remain under
 `reports/phase4-lm1b-tf32-rounding-identification-v1/`.
+
+### Directed-rounding control
+
+A CPU diagnostic tested FP32 rounding toward zero for both each eight-product
+partial sum and its accumulation, using the same authenticated input and the
+controlled component tolerance. It left 173 of 393,216 values outside the
+band on the original eight-row reconstruction, versus 432 for the previous
+CPU bit-clearing candidate. Its RMS difference was `0.0000154013`; reducing
+that error does not make the comparison pass.
+
+For the independent seed-11 and seed-16 two-row fixtures, public PyTorch CUDA
+reproduced each retained evaluator reconstruction bit-for-bit. Applying the
+same CPU directed-rounding diagnostic to those inputs left respectively 21
+and 52 of 98,304 values outside the component band. These controls use the
+existing tolerance; they do not establish a passing Metal implementation,
+full-generation parity or a quality pass. No runtime change was made.
+
+The original-batch, seed-11 and seed-16 result SHA-256 values are
+`12d7b9605df1b69d700a74462dc8e5ae1b59c65d1a8aff0b13858b184373601a`,
+`64003a36c1d7ff306a9140565cabd0d04601fdf654691200907a4592a299232a` and
+`a16029f38431c5e62652c53ef6c11bde6a2b83a05ff1279d8f6091e399d0bfd2`.
+The source scripts and results remain in
+`reports/phase4-lm1b-tf32-rounding-identification-v1/` and
+`reports/phase4-lm1b-metal-accumulator-generalization-v1/`.
