@@ -1,8 +1,8 @@
-//! Explicit experimental LM1B-small inference on CUDA or Metal.
+//! Explicit experimental LM1B inference (small, medium or large, from the artifact) on CUDA or Metal.
 use super::Result;
 
 pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
-    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32|--host-fp64]";
+    const USAGE: &str = "usage: ncm sample-lm1b ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32|--host-fp64]";
     let [
         _,
         _,
@@ -191,9 +191,8 @@ mod backend {
         let (cosine, sine) = lm1b_small_reference_rope(&bytes)?;
 
         let artifact = Artifact::load_inference(artifact)?;
-        if artifact.manifest().profile != "lm1b-small-inference-v1" {
-            return Err("unsupported LM1B-small inference artifact".into());
-        }
+        // Small, medium and large are admitted; any other profile fails explicitly.
+        ncm_model::Lm1bSize::from_profile(&artifact.manifest().profile)?;
         let tokenizer = if decode {
             Some(TextTokenizer::from_asset_bytes(
                 artifact.file("tokenizer-manifest.json")?,

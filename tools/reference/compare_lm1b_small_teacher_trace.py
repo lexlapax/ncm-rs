@@ -37,9 +37,11 @@ def main():
     parser.add_argument('reference', type=Path)
     parser.add_argument('candidate', type=Path)
     parser.add_argument('output', type=Path)
+    parser.add_argument('--reference-sha256', default=REFERENCE,
+                        help='expected reference trace hash (default: the pinned LM1B-small trace)')
     args = parser.parse_args()
     torch.set_num_threads(1)
-    if args.output.exists() or digest_file(args.reference) != REFERENCE:
+    if args.output.exists() or digest_file(args.reference) != args.reference_sha256:
         raise ValueError('output exists or reference hash differs')
     candidate_sha = digest_file(args.candidate)
     with safe_open(args.reference, framework='pt', device='cpu') as ref, safe_open(args.candidate, framework='pt', device='cpu') as candidate:
@@ -48,7 +50,7 @@ def main():
         rows = [compare_tensor(name, ref.get_tensor(name), candidate.get_tensor(name)) for name in ref.keys()]
     failures = [row for row in rows if row['mismatches'] or row.get('argmax_mismatches', 0)]
     result = {'schema_version': 1, 'scope': 'two-row fixed-history generator comparison; not sampling, quality or performance',
-              'reference_sha256': REFERENCE, 'candidate_sha256': candidate_sha, 'policy': POLICY,
+              'reference_sha256': args.reference_sha256, 'candidate_sha256': candidate_sha, 'policy': POLICY,
               'trace_count': len(rows), 'all_passed': not failures, 'failures': failures, 'traces': rows}
     json_file(args.output, result)
     print(f'{len(rows)} tensors; {len(failures)} fail the unchanged policy')

@@ -58,7 +58,8 @@ impl CustomOp3 for Attention {
     ) -> Result<(CudaStorage, Shape)> {
         let (batch, heads, width, depth) = ql.shape().dims4()?;
         if !(1..=32).contains(&batch)
-            || ![6, 12].contains(&heads)
+            // Codec (6) and generator heads for small (12), medium (16) and large (20).
+            || ![6, 12, 16, 20].contains(&heads)
             || !(1..=129).contains(&width)
             || depth != 64
             || kl.shape() != ql.shape()

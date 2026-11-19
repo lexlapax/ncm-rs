@@ -20,7 +20,8 @@ pub use generator::{Lm1bSample, Lm1bSmallTeacher};
 pub use generator::{Wmt14HostOutput, Wmt14Teacher};
 #[cfg(feature = "lm1b-experimental")]
 pub use lm1b_small::{
-    Lm1bSmallCodecInspection, Lm1bSmallGeneratorInspection, lm1b_small_reference_rope,
+    LM1B_SIZES, Lm1bSize, Lm1bSmallCodecInspection, Lm1bSmallGeneratorInspection,
+    lm1b_small_reference_rope,
 };
 pub use wmt14_generator::Wmt14GeneratorInspection;
 pub use xsum_decode::select_xsum_tokens_cpu;

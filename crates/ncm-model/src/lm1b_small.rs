@@ -1,4 +1,4 @@
-//! Preflight of pinned LM1B-small model and diagnostic rotary bytes.
+//! Preflight of pinned LM1B models (small, medium, large) and diagnostic rotary bytes.
 use crate::{has_nonfinite_f32_le, xsum_generator};
 use ncm_core::{CodecConfig, Error, RawCodecConfig, Result};
 use ncm_io::Artifact;
@@ -7,6 +7,66 @@ use std::collections::BTreeMap;
 
 const CONFIG_SHA: &str = "1bc5e0c10050c8221ec72c277d8510a9a541117db5705cb12173f12b733a1475";
 const LEVELS: [usize; 12] = [1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128];
+
+/// A pinned LM1B generator size. All sizes share the codec, tokenizer, levels and
+/// 64-wide attention heads; only generator depth, head count and width differ.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Lm1bSize {
+    pub profile: &'static str,
+    config_sha256: &'static str,
+    pub layers: usize,
+    pub heads: usize,
+    pub width: usize,
+}
+
+/// The three released LM1B sizes, with their exported `config.json` SHA-256.
+pub const LM1B_SIZES: [Lm1bSize; 3] = [
+    Lm1bSize {
+        profile: "lm1b-small-inference-v1",
+        config_sha256: CONFIG_SHA,
+        layers: 12,
+        heads: 12,
+        width: 768,
+    },
+    Lm1bSize {
+        profile: "lm1b-medium-inference-v1",
+        config_sha256: "017c3a44d475ee549a969ee08c484936471430de0560f0f91dcd881969a8f3fd",
+        layers: 24,
+        heads: 16,
+        width: 1024,
+    },
+    Lm1bSize {
+        profile: "lm1b-large-inference-v1",
+        config_sha256: "cb824d57d3ab56717858176fd7ca59939b17d92cca33bccda3b05da2774a7d61",
+        layers: 36,
+        heads: 20,
+        width: 1280,
+    },
+];
+
+impl Lm1bSize {
+    /// The size for an artifact profile; unknown profiles fail explicitly.
+    pub fn from_profile(profile: &str) -> Result<Self> {
+        LM1B_SIZES
+            .into_iter()
+            .find(|size| size.profile == profile)
+            .ok_or_else(|| Error::Config("unsupported LM1B artifact profile".into()))
+    }
+
+    /// The size whose pinned configuration has exactly these bytes.
+    fn from_config(config: &[u8]) -> Result<Self> {
+        let digest = ncm_io::sha256(config);
+        LM1B_SIZES
+            .into_iter()
+            .find(|size| size.config_sha256 == digest)
+            .ok_or_else(|| Error::Config("unexpected pinned LM1B config".into()))
+    }
+
+    /// Generator tensors in the artifact, including the two mask/level metadata tensors.
+    pub fn generator_tensors(&self) -> usize {
+        expected_shapes(self).len() + 2
+    }
+}
 
 /// Admit the pinned LM1B-small reference rotary diagnostic.
 pub fn lm1b_small_reference_rope(bytes: &[u8]) -> Result<(Vec<f32>, Vec<f32>)> {
@@ -37,14 +97,12 @@ pub fn lm1b_small_reference_rope(bytes: &[u8]) -> Result<(Vec<f32>, Vec<f32>)> {
 }
 
 pub(crate) fn codec_config(artifact: &Artifact) -> Result<CodecConfig> {
-    if artifact.manifest().profile != "lm1b-small-inference-v1" {
-        return Err(Error::Config("unsupported LM1B artifact profile".into()));
-    }
+    let size = Lm1bSize::from_profile(&artifact.manifest().profile)?;
     let config = artifact
         .file("config.json")
         .map_err(|e| Error::Weights(e.to_string()))?;
-    if ncm_io::sha256(config) != CONFIG_SHA {
-        return Err(Error::Config("unexpected pinned LM1B config".into()));
+    if Lm1bSize::from_config(config)? != size {
+        return Err(Error::Config("LM1B config differs from profile".into()));
     }
     // This exact pinned configuration includes training-only fields outside the
     // shared inference wire schema. Remove only those known fields after hashing.
@@ -70,20 +128,28 @@ pub(crate) fn codec_config(artifact: &Artifact) -> Result<CodecConfig> {
     for name in ["dual", "w_full", "w_trunc"] {
         fine.remove(name);
     }
+    // Medium and large configs name the shared tokenizer checkpoint as "../tokenizer.pt".
+    // The path is metadata only and the config bytes are already pinned per size.
+    if let Some(path) = vq.get_mut("checkpoint_path")
+        && path == "../tokenizer.pt"
+    {
+        *path = "tokenizer.pt".into();
+    }
     let raw: RawCodecConfig = serde_json::from_value(vq.clone())?;
     CodecConfig::validate_lm1b_small(raw)
 }
 
-fn expected_shapes() -> BTreeMap<String, Vec<usize>> {
+fn expected_shapes(size: &Lm1bSize) -> BTreeMap<String, Vec<usize>> {
+    let w = size.width;
     let mut shapes = BTreeMap::new();
     for (name, shape) in [
         ("l0_queries", vec![1, 1, 384]),
-        ("lm_heads.head.weight", vec![8192, 768]),
-        ("transformer.wle.weight", vec![12, 768]),
-        ("transformer.wte.weight", vec![768, 384]),
-        ("transformer.wte.bias", vec![768]),
-        ("transformer.ln_f.weight", vec![768]),
-        ("transformer.ln_f.bias", vec![768]),
+        ("lm_heads.head.weight", vec![8192, w]),
+        ("transformer.wle.weight", vec![12, w]),
+        ("transformer.wte.weight", vec![w, 384]),
+        ("transformer.wte.bias", vec![w]),
+        ("transformer.ln_f.weight", vec![w]),
+        ("transformer.ln_f.bias", vec![w]),
     ] {
         shapes.insert(name.into(), shape);
     }
@@ -95,22 +161,22 @@ fn expected_shapes() -> BTreeMap<String, Vec<usize>> {
         );
         shapes.insert(format!("post_upsample_convs.{level}.bias"), vec![384]);
     }
-    for block in 0..12 {
+    for block in 0..size.layers {
         for (name, shape) in [
-            ("ln_1.weight", vec![768]),
-            ("ln_1.bias", vec![768]),
-            ("ln_2.weight", vec![768]),
-            ("ln_2.bias", vec![768]),
-            ("attn.c_attn.weight", vec![2304, 768]),
-            ("attn.c_attn.bias", vec![2304]),
-            ("attn.c_proj.weight", vec![768, 768]),
-            ("attn.c_proj.bias", vec![768]),
+            ("ln_1.weight", vec![w]),
+            ("ln_1.bias", vec![w]),
+            ("ln_2.weight", vec![w]),
+            ("ln_2.bias", vec![w]),
+            ("attn.c_attn.weight", vec![3 * w, w]),
+            ("attn.c_attn.bias", vec![3 * w]),
+            ("attn.c_proj.weight", vec![w, w]),
+            ("attn.c_proj.bias", vec![w]),
             ("attn.q_norm.weight", vec![64]),
             ("attn.k_norm.weight", vec![64]),
-            ("mlp.c_fc.weight", vec![3072, 768]),
-            ("mlp.c_fc.bias", vec![3072]),
-            ("mlp.c_proj.weight", vec![768, 3072]),
-            ("mlp.c_proj.bias", vec![768]),
+            ("mlp.c_fc.weight", vec![4 * w, w]),
+            ("mlp.c_fc.bias", vec![4 * w]),
+            ("mlp.c_proj.weight", vec![w, 4 * w]),
+            ("mlp.c_proj.bias", vec![w]),
         ] {
             shapes.insert(format!("transformer.blocks.{block}.{name}"), shape);
         }
@@ -169,11 +235,7 @@ pub struct Lm1bSmallCodecInspection {
 }
 impl Lm1bSmallCodecInspection {
     pub fn from_preparation_bytes(config: &[u8], codec: &[u8]) -> Result<Self> {
-        if ncm_io::sha256(config) != CONFIG_SHA {
-            return Err(Error::Config(
-                "unexpected pinned LM1B-small preparation config".into(),
-            ));
-        }
+        Lm1bSize::from_config(config)?;
         let tensors = SafeTensors::deserialize(codec).map_err(|e| Error::Weights(e.to_string()))?;
         let shapes = expected_codec_shapes();
         if tensors.len() != shapes.len() {
@@ -223,6 +285,7 @@ fn validate_distribution(tensor: &TensorView<'_>, width: usize) -> Result<()> {
 /// Checks known preparation bytes on the host; it does not construct a model,
 /// authenticate an artifact, upload weights, or enable LM1B inference.
 pub struct Lm1bSmallGeneratorInspection {
+    pub size: Lm1bSize,
     pub generator_tensors: usize,
     pub inference_tensors: usize,
 }
@@ -232,14 +295,10 @@ impl Lm1bSmallGeneratorInspection {
         generator: &[u8],
         inference: &[u8],
     ) -> Result<Self> {
-        if ncm_io::sha256(config) != CONFIG_SHA {
-            return Err(Error::Config(
-                "unexpected pinned LM1B-small preparation config".into(),
-            ));
-        }
+        let size = Lm1bSize::from_config(config)?;
         let tensors =
             SafeTensors::deserialize(generator).map_err(|e| Error::Weights(e.to_string()))?;
-        let shapes = expected_shapes();
+        let shapes = expected_shapes(&size);
         if tensors.len() != shapes.len() + 2 {
             return Err(Error::Weights("LM1B generator inventory differs".into()));
         }
@@ -276,6 +335,7 @@ impl Lm1bSmallGeneratorInspection {
             validate_distribution(&tensor, width)?;
         }
         Ok(Self {
+            size,
             generator_tensors: tensors.len(),
             inference_tensors: tensors_inference.len(),
         })
@@ -285,19 +345,41 @@ impl Lm1bSmallGeneratorInspection {
 #[cfg(test)]
 mod tests {
     use super::{
-        Lm1bSmallCodecInspection, Lm1bSmallGeneratorInspection, expected_codec_shapes,
-        expected_shapes, validate_distribution,
+        LM1B_SIZES, Lm1bSize, Lm1bSmallCodecInspection, Lm1bSmallGeneratorInspection,
+        expected_codec_shapes, expected_shapes, validate_distribution,
     };
     use safetensors::{Dtype, tensor::TensorView};
 
     #[test]
     fn exact_generator_shape_inventory() {
-        let shapes = expected_shapes();
+        let shapes = expected_shapes(&LM1B_SIZES[0]);
         assert_eq!(shapes.len(), 211);
         assert_eq!(shapes["lm_heads.head.weight"], [8192, 768]);
         assert_eq!(shapes["post_upsample_convs.11.weight"], [384, 384, 3]);
         assert!(!shapes.contains_key("lm_heads.0.weight"));
         assert!(Lm1bSmallGeneratorInspection::from_preparation_bytes(b"{}", b"", b"").is_err());
+    }
+
+    #[test]
+    fn sizes_match_released_inventories() {
+        let counts: Vec<_> = LM1B_SIZES.iter().map(Lm1bSize::generator_tensors).collect();
+        assert_eq!(counts, [213, 381, 549]);
+        for size in LM1B_SIZES {
+            assert_eq!(size.width, size.heads * 64);
+            assert_eq!(Lm1bSize::from_profile(size.profile).unwrap(), size);
+        }
+        let large = expected_shapes(&LM1B_SIZES[2]);
+        assert_eq!(
+            large["transformer.blocks.35.attn.c_attn.weight"],
+            [3840, 1280]
+        );
+        assert_eq!(
+            large["transformer.blocks.35.mlp.c_proj.weight"],
+            [1280, 5120]
+        );
+        assert!(!large.contains_key("transformer.blocks.36.ln_1.weight"));
+        assert!(Lm1bSize::from_profile("lm1b-huge-inference-v1").is_err());
+        assert!(Lm1bSize::from_config(b"{}").is_err());
     }
 
     #[test]

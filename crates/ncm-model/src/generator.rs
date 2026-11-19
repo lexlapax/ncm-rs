@@ -3162,9 +3162,11 @@ pub struct Lm1bSample<B: ncm_core::GeneratorBackend> {
     pub ids: Vec<u32>,
 }
 
-/// Experimental LM1B-small teacher and sampler; not a qualified runtime.
+/// Experimental LM1B teacher and sampler for the small, medium and large profiles.
+/// The size comes from the artifact profile and must match its pinned config.
 #[cfg(feature = "lm1b-experimental")]
 pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
+    size: crate::Lm1bSize,
     codec: crate::Codec<B>,
     backend: B,
     diagnostic_level: Option<usize>,
@@ -3184,7 +3186,8 @@ pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
 #[cfg(feature = "lm1b-experimental")]
 impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
-        crate::Lm1bSmallGeneratorInspection::from_preparation_bytes(
+        let size = crate::Lm1bSize::from_profile(&artifact.manifest().profile)?;
+        let inspected = crate::Lm1bSmallGeneratorInspection::from_preparation_bytes(
             artifact
                 .file("config.json")
                 .map_err(|e| Error::Weights(e.to_string()))?,
@@ -3195,6 +3198,9 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
                 .file("inference.safetensors")
                 .map_err(|e| Error::Weights(e.to_string()))?,
         )?;
+        if inspected.size != size || inspected.generator_tensors != size.generator_tensors() {
+            return Err(Error::Weights("LM1B generator differs from profile".into()));
+        }
         let codec = crate::Codec::from_lm1b_small_artifact_experimental(backend.clone(), artifact)?;
         let bytes = artifact
             .file("generator.safetensors")
@@ -3216,8 +3222,8 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
         let input = take_affine(&mut weights, "transformer.wte")?;
         let levels = take(&mut weights, "transformer.wle.weight")?;
         let final_norm = take_affine(&mut weights, "transformer.ln_f")?;
-        let mut blocks = Vec::with_capacity(12);
-        for i in 0..12 {
+        let mut blocks = Vec::with_capacity(size.layers);
+        for i in 0..size.layers {
             let p = format!("transformer.blocks.{i}");
             blocks.push(GeneratorBlock {
                 ln_1: take_affine(&mut weights, &format!("{p}.ln_1"))?,
@@ -3249,8 +3255,8 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             &backend,
             codec.config().levels(),
             1,
-            768,
-            12,
+            size.width,
+            size.heads,
             10000,
             Some((&cosine, &sine)),
         )?;
@@ -3268,6 +3274,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
         let initial_distribution = upload_values(t.data())?.into_owned();
         let device_allowance = backend.upload_f32(&allowance, &[30528])?;
         Ok(Self {
+            size,
             codec,
             backend,
             diagnostic_level: None,
@@ -3291,8 +3298,8 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             &self.backend,
             self.codec.config().levels(),
             1,
-            768,
-            12,
+            self.size.width,
+            self.size.heads,
             10000,
             Some((cosine, sine)),
         )?;
@@ -3565,8 +3572,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                         &prefix,
                         &target,
                         1,
-                        12,
-                        768,
+                        self.size.heads,
+                        self.size.width,
                         length,
                         true,
                         None,
@@ -3581,8 +3588,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                         &prefix,
                         &target,
                         1,
-                        12,
-                        768,
+                        self.size.heads,
+                        self.size.width,
                         length,
                     )?
                 };

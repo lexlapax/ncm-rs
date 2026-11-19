@@ -16,7 +16,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 | XSum | Advanced under the [Metal](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md) and [CUDA stochastic](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md) exceptions |
 | WMT14 | Scoped CUDA and Metal top-1 qualification ([evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)) |
 | LM1B-small | **Active.** 80-seed quality passes on CUDA and Metal; CUDA timing passes; Metal latency passes, Metal RSS fails at batches 4/16 (decision pending) |
-| LM1B-medium/large | Step 1 done: inference artifacts exported and loadable through `ncm-io` ([artifacts](docs/results/2026-11-16-phase4-lm1b/medium-large-artifacts-v1.md)). Model code is still small-specific (`crates/ncm-model/src/lm1b_small.rs`, `Lm1bSmallTeacher` in `generator.rs`) |
+| LM1B-medium/large | Artifacts done; model generalized by size; CUDA teacher-forced parity passes on both backends ([parity](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-parity-v1.md)). Next: 80-seed CUDA quality and timing, then Metal |
 | OWT | Synthetic/config/operator coverage required; none found in `crates/`. Weights unreleased |
 
 - **LM1B-small evidence:** CUDA fixed-history traces, greedy and CLI checks pass. Repeated CUDA
@@ -73,6 +73,13 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
+- **LM1B medium/large step 2 (CUDA parity):** `Lm1bSize` (profile, config hash, layers, heads, width) drives
+  the teacher, CLI (`ncm sample-lm1b`), and CUDA whitelists (efficient attention heads 16/20, fused rotary
+  12/16/20). Both CUDA backends pass 51/51 teacher-forced tensors with zero argmax and ID mismatches
+  at all three sizes against matching references: the cuDNN backend against strict, and the efficient backend
+  against evaluator settings (default attention dispatch, convolution TF32). The efficient path against strict fails by
+  design: level-zero reconstruction equals PyTorch with convolution TF32 exactly.
+  `setpriv --inh-caps=-all ./tools/check.sh --cuda` passes. Campaign size support is in the working tree (untested).
 - **LM1B medium/large step 1:** the exporter takes `--size`; medium and large artifacts (manifests `2fea4a25…`,
   `86676fed…`) are deterministic across two exports, and `ncm-io` has separate per-size budgets plus a new test.
   The generalized CPU probe loads all three sizes. `setpriv --inh-caps=-all ./tools/check.sh` passes.

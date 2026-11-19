@@ -37,7 +37,8 @@ impl CustomOp3 for Rotary {
             candle_core::bail!("invalid rotary rank")
         };
         if !(1..=128).contains(batch)
-            || *heads != 12
+            // XSum and LM1B-small use 12 heads; LM1B-medium 16 and LM1B-large 20.
+            || ![12, 16, 20].contains(heads)
             || !(1..=560).contains(seq)
             || *width != 64
             || lc.dims() != [*seq, 32]

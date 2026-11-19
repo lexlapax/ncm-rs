@@ -1,5 +1,8 @@
-"""Capture pinned upstream LM1B-small fixed-history generator traces on CUDA."""
+"""Capture pinned upstream LM1B (small, medium or large) fixed-history generator traces on CUDA.
+
+All sizes use the same two fixed development-code histories from the small seed-11 capture."""
 import argparse
+import contextlib
 import ast
 import json
 import os
@@ -17,7 +20,12 @@ from tinystories_artifact import ROOT, UPSTREAM, digest_file, json_file, verify_
 from lm1b_inventory import CHECKPOINTS
 from lm1b_export_preparation import CONFIGS
 
-INPUTS = {'tokenizer.pt': CHECKPOINTS['tokenizer.pt'], 'small/generator.pt': CHECKPOINTS['small/generator.pt'], 'small/config.yaml': CONFIGS['small']}
+SIZES = ('small', 'medium', 'large')
+
+
+def inputs(size):
+    return {'tokenizer.pt': CHECKPOINTS['tokenizer.pt'], f'{size}/generator.pt': CHECKPOINTS[f'{size}/generator.pt'],
+            f'{size}/config.yaml': CONFIGS[size]}
 
 PREFIX_SHA = '5c961e193f0ea101afc2282f673eb3fde02ae6c752e8dd6dde069c3b25a8f90d'
 
@@ -38,7 +46,13 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--prefixes', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--size', choices=SIZES, default='small')
+    parser.add_argument('--sdpa', choices=('math', 'default'), default='math',
+                        help='math forces the strict reference; default uses PyTorch dispatch, as upstream runs')
+    parser.add_argument('--upstream-convolution-precision', action='store_true',
+                        help='use the pinned evaluator CUDA convolution settings (TF32, nondeterministic)')
     args = parser.parse_args()
+    INPUTS = inputs(args.size)
     out = args.output.resolve()
     if args.output.is_symlink() or out.exists() or not out.is_relative_to((ROOT / 'reports').resolve()):
         raise ValueError('new output under reports required')
@@ -51,8 +65,8 @@ def main():
     head = subprocess.check_output(['git', '-C', str(upstream), 'rev-parse', 'HEAD'], text=True).strip()
     if head != UPSTREAM or subprocess.check_output(['git', '-C', str(upstream), 'status', '--porcelain'], text=True).strip():
         raise ValueError('upstream checkout must be clean and pinned')
-    for name, (size, sha) in INPUTS.items():
-        verify_input(args.source / name, size, sha)
+    for name, (length, sha) in INPUTS.items():
+        verify_input(args.source / name, length, sha)
     if args.prefixes.is_symlink() or digest_file(args.prefixes) != PREFIX_SHA:
         raise ValueError('prefix reference differs')
     code_rows = fixed_codes(json.loads(args.prefixes.read_bytes()))
@@ -81,14 +95,14 @@ def main():
     torch.set_num_threads(1)
     torch.manual_seed(42)
     torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = args.upstream_convolution_precision
     torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-    cfg = OmegaConf.create(yaml.safe_load((args.source / 'small/config.yaml').read_bytes()))
-    if cfg.task != 'lm1b-small':
+    torch.backends.cudnn.deterministic = not args.upstream_convolution_precision
+    cfg = OmegaConf.create(yaml.safe_load((args.source / f'{args.size}/config.yaml').read_bytes()))
+    if cfg.task != f'lm1b-{args.size}':
         raise ValueError('unexpected task')
     codec_state = torch.load(args.source / 'tokenizer.pt', map_location='cpu', weights_only=True, mmap=True)
-    generator_state = torch.load(args.source / 'small/generator.pt', map_location='cpu', weights_only=True, mmap=True)
+    generator_state = torch.load(args.source / f'{args.size}/generator.pt', map_location='cpu', weights_only=True, mmap=True)
     codec = VQVAE(**cfg.tokenizer.vqvae)
     codec.load_state_dict(codec_state['model'], strict=True)
     codec = codec.cuda().eval()
@@ -123,7 +137,8 @@ def main():
             save(f'generator.level_{level:02d}.post_conv_input', args[0])
             save(f'generator.level_{level:02d}.post_conv_output', output)
         handles.append(model.post_upsample_convs[level].register_forward_hook(hook))
-    with torch.inference_mode(), sdpa_kernel(SDPBackend.MATH):
+    attention = sdpa_kernel(SDPBackend.MATH) if args.sdpa == 'math' else contextlib.nullcontext()
+    with torch.inference_mode(), attention:
         prefix = torch.full((2, 1), 101, dtype=torch.int64, device='cuda')
         save('generator.prefix_ids', prefix)
         save('generator.initial_codes', forced[0])
@@ -143,19 +158,20 @@ def main():
         torch.cuda.synchronize()
     for handle in handles:
         handle.remove()
-    for name, (size, sha) in INPUTS.items():
-        verify_input(args.source / name, size, sha)
+    for name, (length, sha) in INPUTS.items():
+        verify_input(args.source / name, length, sha)
     if (before != {str(p): digest_file(p) for p in watched} or
             subprocess.check_output(['git', '-C', str(upstream), 'rev-parse', 'HEAD'], text=True).strip() != head or
             subprocess.check_output(['git', '-C', str(upstream), 'status', '--porcelain'], text=True).strip()):
         raise ValueError('source changed during capture')
     out.mkdir(parents=True)
     save_file(traces, out / 'trace.safetensors')
-    report = {'scope': 'two LM1B-small fixed development-code histories and supplied unigram level zero; not sampling or quality',
+    report = {'scope': f'two fixed development-code histories through LM1B-{args.size} and supplied unigram level zero; not sampling or quality',
+              'size': args.size,
               'upstream': head, 'sources': before, 'checkpoint_sha256': {k: v[1] for k, v in INPUTS.items()},
               'torch': torch.__version__, 'cuda': torch.version.cuda, 'cudnn': torch.backends.cudnn.version(),
               'gpu_identity_and_driver': gpu[0], 'gpu_name': torch.cuda.get_device_name(0),
-              'tf32': False, 'sdpa': 'math', 'code_reference_sha256': PREFIX_SHA,
+              'tf32': False, 'sdpa': args.sdpa, 'convolution_tf32': args.upstream_convolution_precision, 'code_reference_sha256': PREFIX_SHA,
               'trace_sha256': digest_file(out / 'trace.safetensors'), 'tensors': sorted(traces)}
     json_file(out / 'report.json', report)
     print(json.dumps({'tensors': len(traces), 'trace_sha256': report['trace_sha256'],
