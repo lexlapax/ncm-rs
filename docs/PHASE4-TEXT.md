@@ -151,6 +151,13 @@ JSON object with a 641-code row and a 128-raw-ID row for each input. It
 uses the FP64 inverse-CDF sampler and FP64 decoding penalties. Pass the
 same request seed and batch shape to replay a Rust request.
 
+Append `--decode` to also include a `texts` array decoded with the
+artifact's pinned BERT tokenizer. It retains special tokens and omits
+the six padded model IDs 30522 through 30527 from the text. The
+`ids` array contains every raw ID before decoding. The
+[decoding comparison](results/2026-11-16-phase4-lm1b/bert-decode-development-v1.md#rust-flm-decoder-and-cli-text-output)
+records parity with the pinned evaluator.
+
 The [CLI verification](results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#experimental-linux-cli)
 covers retained CUDA requests and the maximum batch size. The
 [held-out CUDA entropy gate](results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md)

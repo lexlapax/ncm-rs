@@ -115,8 +115,9 @@ Before every commit include an updated
 
 1. Continue LM1B-small on Linux CUDA. The [experimental CLI](docs/PHASE4-TEXT.md#experimental-lm1b-small-cuda-command)
    reaches the current efficient FP64 path and passes retained-request
-   parity and the batch-32 repeat. The
-   [repeated performance run](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#repeated-cuda-timing-and-allocator-measurements)
+   parity and the batch-32 repeat. Its [optional BERT decoder](docs/results/2026-11-16-phase4-lm1b/bert-decode-development-v1.md#rust-flm-decoder-and-cli-text-output)
+   matches the pinned evaluator, including the six padded model IDs.
+   The [repeated performance run](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#repeated-cuda-timing-and-allocator-measurements)
    favors Rust in median, p95 and process RSS at all three measured sizes.
    Resolve the frozen entropy interval failure. The replay reproduced the
    original result byte for byte, with an interval of

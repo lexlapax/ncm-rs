@@ -42,24 +42,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let mut reserved = 0;
     for (index, row) in reference.rows.iter().enumerate() {
-        if row.ids.iter().any(|&id| id >= 30528) {
-            return Err(format!("invalid model ID at row {index}").into());
-        }
-        let ids: Vec<_> = row.ids.iter().copied().filter(|&id| id < 30522).collect();
-        if ids.len() != row.ids.len() {
+        if row.ids.iter().any(|&id| id >= 30522) {
             if row.kind != "synthetic" || tokenizer.decode(&row.ids, false).is_ok() {
                 return Err(format!("unexpected reserved ID behavior at row {index}").into());
             }
             reserved += 1;
         }
-        if tokenizer.decode(&ids, false)? != row.text {
+        if tokenizer.decode_lm1b_flm(&row.ids)? != row.text {
             return Err(format!("decoded text differs at row {index}").into());
+        }
+    }
+    for ids in [
+        vec![30528],
+        vec![101, u32::MAX],
+        vec![30522; 1024 * 1024 + 1],
+    ] {
+        if tokenizer.decode_lm1b_flm(&ids).is_ok() {
+            return Err("LM1B FLM admitted an invalid ID or an oversized request".into());
         }
     }
     println!(
         "{}",
         serde_json::json!({"rows": reference.rows.len(),
-        "synthetic_rows_with_reserved_ids": reserved, "matches_after_explicit_reserved_id_filter": true})
+        "synthetic_rows_with_reserved_ids": reserved, "matches_lm1b_flm_decoder": true})
     );
     Ok(())
 }

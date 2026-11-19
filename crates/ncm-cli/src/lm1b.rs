@@ -2,22 +2,35 @@
 use super::Result;
 
 pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
-    let [_, _, artifact, device, input, seed, reference_rope] = args else {
-        return Err(
-            "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn INPUT_JSON SEED REFERENCE_ROPE"
-                .into(),
-        );
+    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn INPUT_JSON SEED REFERENCE_ROPE [--decode]";
+    let [
+        _,
+        _,
+        artifact,
+        device,
+        input,
+        seed,
+        reference_rope,
+        options @ ..,
+    ] = args
+    else {
+        return Err(USAGE.into());
+    };
+    let decode = match options {
+        [] => false,
+        [flag] if flag == "--decode" => true,
+        _ => return Err(USAGE.into()),
     };
     if device != "cuda-cudnn" {
         return Err("experimental LM1B-small requires an explicit cuda-cudnn device".into());
     }
     #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
     {
-        cuda::sample(artifact, input, seed.parse()?, reference_rope)
+        cuda::sample(artifact, input, seed.parse()?, reference_rope, decode)
     }
     #[cfg(not(all(feature = "lm1b-experimental", target_os = "linux")))]
     {
-        let _ = (artifact, input, seed, reference_rope);
+        let _ = (artifact, input, seed, reference_rope, decode);
         Err("experimental LM1B-small CUDA is unavailable in this build".into())
     }
 }
@@ -29,6 +42,7 @@ mod cuda {
     use ncm_core::CodecBackend;
     use ncm_io::Artifact;
     use ncm_model::{Lm1bSmallTeacher, lm1b_small_reference_rope};
+    use ncm_tokenizers::TextTokenizer;
     use std::{fs, io::Read, path::Path};
 
     fn prefixes(inputs: &[Vec<u32>]) -> Result<Vec<u32>> {
@@ -45,6 +59,7 @@ mod cuda {
         input: &str,
         seed: u64,
         reference_rope: &str,
+        decode: bool,
     ) -> Result<serde_json::Value> {
         let prefixes = prefixes(&crate::read_inputs(Path::new(input))?)?;
         if !fs::metadata(reference_rope)?.is_file() {
@@ -63,6 +78,15 @@ mod cuda {
         if artifact.manifest().profile != "lm1b-small-inference-v1" {
             return Err("unsupported LM1B-small inference artifact".into());
         }
+        let tokenizer = if decode {
+            Some(TextTokenizer::from_asset_bytes(
+                artifact.file("tokenizer-manifest.json")?,
+                artifact.file("tokenizer.json")?,
+                artifact.file("tokenizer.LICENSE")?,
+            )?)
+        } else {
+            None
+        };
         let backend = CandleBackend::cuda_lm1b_efficient_experimental(0)?;
         let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?
             .with_reference_rope_diagnostic(&cosine, &sine)?;
@@ -91,7 +115,15 @@ mod cuda {
             .iter()
             .map(<[u32; 128]>::as_slice)
             .collect();
-        Ok(serde_json::json!({ "codes": codes, "ids": ids }))
+        let mut result = serde_json::json!({ "codes": codes, "ids": ids });
+        if let Some(tokenizer) = tokenizer {
+            let texts = ids
+                .iter()
+                .map(|row| tokenizer.decode_lm1b_flm(row))
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            result["texts"] = serde_json::json!(texts);
+        }
+        Ok(result)
     }
 
     #[cfg(test)]

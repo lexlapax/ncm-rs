@@ -19,6 +19,7 @@ pub enum AssetError {
     Json(#[from] serde_json::Error),
 }
 pub type Result<T> = std::result::Result<T, AssetError>;
+const MAX_DECODE_IDS: usize = 1024 * 1024;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TokenizerMetadata {
@@ -219,13 +220,32 @@ impl TextTokenizer {
         }
     }
     pub fn decode(&self, ids: &[u32], skip_special_tokens: bool) -> Result<String> {
-        if ids.len() > 1024 * 1024
+        if ids.len() > MAX_DECODE_IDS
             || ids
                 .iter()
                 .any(|&id| id as usize >= self.metadata.total_vocab_size)
         {
             return Err(invalid("invalid token ID or request size"));
         }
+        self.decode_validated(ids, skip_special_tokens)
+    }
+
+    /// Match the pinned LM1B FLM scorer's BERT decoding with specials retained.
+    /// BERT has no token for the six padded LM1B IDs 30522 through 30527.
+    pub fn decode_lm1b_flm(&self, ids: &[u32]) -> Result<String> {
+        if self.metadata.profile != "bert" {
+            return Err(invalid(
+                "LM1B FLM decoding requires the pinned BERT tokenizer",
+            ));
+        }
+        if ids.len() > MAX_DECODE_IDS || ids.iter().any(|&id| id >= 30528) {
+            return Err(invalid("invalid LM1B model token ID or request size"));
+        }
+        // The pinned HF decoder omits IDs absent from its vocabulary.
+        self.decode_validated(ids, false)
+    }
+
+    fn decode_validated(&self, ids: &[u32], skip_special_tokens: bool) -> Result<String> {
         let decoded = match &self.implementation {
             Implementation::ByteBpe(bpe) => bpe.decode(ids, skip_special_tokens)?,
             Implementation::HuggingFace(tokenizer) => tokenizer
