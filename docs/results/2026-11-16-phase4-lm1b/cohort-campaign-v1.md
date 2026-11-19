@@ -138,3 +138,15 @@ records equal in perplexity, NLL, token count and every entropy value).
 
 Raw captures are in ignored `reports/phase4-lm1b-campaign-metal-capture-v1/` (Mac and Linux) and
 `reports/phase4-lm1b-campaign-prospective-metal-v1/` (Linux).
+
+## Medium and large
+
+The campaign takes `--size small|medium|large` (default small). The size selects the artifact,
+its manifest pin, and the pinned upstream generator and config. Both Rust runners derive the size from the
+artifact manifest. Medium and large reuse the pre-registered lists in
+[cohort-seeds-v1.json](cohort-seeds-v1.json). No medium or large sample had been generated with any
+of those seeds before the prospective runs. The only earlier medium samples are a two-seed rehearsal on
+observed seeds 42 and 0. The approved scorer, margins and bootstrap are unchanged. After the
+generalization, a small rehearsal on seeds 42 and 0 still reproduces the archived records exactly. A medium
+rehearsal on the same seeds completed every stage (raw outputs in
+`reports/phase4-lm1b-campaign-sizes-rehearsal-{small,medium}-v1/`).

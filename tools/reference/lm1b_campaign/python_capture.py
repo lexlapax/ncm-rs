@@ -25,7 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--upstream', type=Path, required=True)
     parser.add_argument('--source', type=Path, required=True)
-    parser.add_argument('--size', choices=('small',), required=True)
+    parser.add_argument('--size', choices=('small', 'medium', 'large'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--seeds', type=Path, required=True)
     parser.add_argument('--count', type=int, choices=(256,), default=256)

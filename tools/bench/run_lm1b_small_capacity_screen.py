@@ -1,4 +1,4 @@
-"""Alternating fresh-process LM1B multi-batch development timing screen."""
+"""Alternating fresh-process LM1B (small, medium or large) multi-batch development timing screen."""
 import argparse
 import json
 import math
@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PYTHON = ROOT / '.reference/venv/bin/python'
 CUDNN = ROOT / '.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib'
 RUST = ROOT / 'target/release/examples/lm1b_small_capacity_probe'
-ARTIFACT = ROOT / 'artifacts/canonical/lm1b-small-inference-v1'
+SIZES = ('small', 'medium', 'large')
 CAPTURE = ROOT / 'reports/phase4-lm1b-small-device-dev-seed-11-v1.json'
 REFERENCE = ROOT / 'reports/phase4-lm1b-small-dev-seed-11-v1.json'
 
@@ -48,6 +48,7 @@ def main():
     p.add_argument('--output', required=True, type=Path)
     p.add_argument('--reference-rope-diagnostic', type=Path)
     p.add_argument('--repeated', action='store_true')
+    p.add_argument('--size', choices=SIZES, default='small')
     p.add_argument('--batch', type=int, choices=(1, 4, 8, 16),
                    help='measure only this batch size (default: 1, 4 and 16)')
     modes = p.add_mutually_exclusive_group()
@@ -56,6 +57,7 @@ def main():
     modes.add_argument('--rust-cudnn-graph-efficient', action='store_true')
     args = p.parse_args()
     batches = (args.batch,) if args.batch is not None else (1, 4, 16)
+    artifact = ROOT / f'artifacts/canonical/lm1b-{args.size}-inference-v1'
     if (args.rust_cudnn_default_math or args.rust_cudnn_graph or args.rust_cudnn_graph_efficient) and args.reference_rope_diagnostic is None:
         p.error('experimental cuDNN modes require --reference-rope-diagnostic')
     rust_mode, convolution_math = None, 'strict FMA'
@@ -73,7 +75,7 @@ def main():
                                             'CUDA_LAUNCH_BLOCKING', 'CUBLAS_WORKSPACE_CONFIG', 'NVIDIA_TF32_OVERRIDE')):
         raise ValueError('unexpected environment override')
     source = [Path(__file__).resolve(), ROOT / 'tools/reference/lm1b_small_capacity_probe.py',
-              ROOT / 'tools/bench/run_phase4_xsum_bench.py', RUST, ARTIFACT / 'manifest.json',
+              ROOT / 'tools/bench/run_phase4_xsum_bench.py', RUST, artifact / 'manifest.json',
               ROOT / 'Cargo.lock', ROOT / 'crates/ncm-backend-cuda/examples/lm1b_small_capacity_probe.rs']
     source.append(ROOT / 'crates/ncm-backend-cuda/examples/support/cuda_pool.rs')
     for directory in ['crates/ncm-core/src', 'crates/ncm-model/src', 'crates/ncm-backend-cuda/src']:
@@ -85,7 +87,8 @@ def main():
         source.append(args.reference_rope_diagnostic.resolve())
     before = {str(path): digest(path) for path in source}
     out.mkdir(parents=True)
-    manifest = {'scope': 'non-held-out LM1B-small multi-batch development performance screen; not a gate',
+    manifest = {'scope': f'non-held-out LM1B-{args.size} multi-batch development performance screen',
+                'size': args.size,
                 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                 'sources_sha256': before, 'order': 'alternating runtime per fresh process',
                 'warmups': warmups, 'trials': trials, 'repetitions': 3, 'batches': batches, 'rust_penalty': 'device',
@@ -106,11 +109,11 @@ def main():
                 for runtime in (('python', 'rust') if rep % 2 == 0 else ('rust', 'python')):
                     stem = f'{runtime}-b{batch}-r{rep}'
                     if runtime == 'rust':
-                        command = [str(RUST), str(ARTIFACT), str(batch)]
+                        command = [str(RUST), str(artifact), str(batch)]
                     else:
                         command = [str(PYTHON), str(ROOT / 'tools/reference/lm1b_small_capacity_probe.py'),
                                    '--upstream', str(ROOT / '.reference/upstream-ncm'), '--source', str(ROOT / 'artifacts/upstream/lm1b-phase4'),
-                                   '--size', 'small', '--seed', '11', '--batch', str(batch), '--output', str(out / (stem + '.json'))]
+                                   '--size', args.size, '--seed', '11', '--batch', str(batch), '--output', str(out / (stem + '.json'))]
                     if runtime == 'rust' and rust_mode:
                         command.append(rust_mode)
                     if args.repeated:

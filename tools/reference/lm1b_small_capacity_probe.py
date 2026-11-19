@@ -83,8 +83,8 @@ def main():
     exec(decoder, scope)
     if args.seed in set(cfg.eval.seeds) or cfg.eval.batch_size != 8 or cfg.eval.n_samples != 256:
         raise ValueError('development seed or evaluation settings differ')
-    if args.seed != 11 or args.size != 'small':
-        raise ValueError('only non-held-out small seed 11 supported')
+    if args.seed != 11:
+        raise ValueError('only non-held-out development seed 11 supported')
     def generate():
         level0 = torch.multinomial(inference['level0_unigram'].float().cpu(), args.batch, replacement=True).view(args.batch, 1).cuda()
         with torch.no_grad():

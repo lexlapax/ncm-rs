@@ -1,4 +1,4 @@
-//! Capture an explicit LM1B-small seed list on Metal with one Rust model load.
+//! Capture an explicit LM1B seed list (small, medium or large, from the artifact) on Metal with one Rust model load.
 //!
 //! Uses the same model, pinned rotary tables and default device FP32 sampler as
 //! `ncm sample-lm1b-small ... mlx`. Request seeds follow the CUDA campaign runner.
@@ -13,8 +13,21 @@ use std::{
     path::Path,
 };
 
-const ARTIFACT_MANIFEST_SHA256: &str =
-    "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76";
+/// Pinned artifact manifests for each LM1B size.
+const SIZES: [(&str, &str); 3] = [
+    (
+        "small",
+        "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76",
+    ),
+    (
+        "medium",
+        "2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c",
+    ),
+    (
+        "large",
+        "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+    ),
+];
 const ROTARY_TABLES_SHA256: &str =
     "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc";
 
@@ -47,9 +60,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     let artifact_path = Path::new(artifact_path);
-    if sha256(&fs::read(artifact_path.join("manifest.json"))?) != ARTIFACT_MANIFEST_SHA256 {
+    let manifest_sha256 = sha256(&fs::read(artifact_path.join("manifest.json"))?);
+    let Some(&(size, _)) = SIZES.iter().find(|(_, sha)| *sha == manifest_sha256) else {
         return Err("unexpected artifact manifest".into());
-    }
+    };
     let rope_bytes = fs::read(rope)?;
     if sha256(&rope_bytes) != ROTARY_TABLES_SHA256 {
         return Err("unexpected rotary tables".into());
@@ -87,11 +101,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             );
             eprintln!("completed batch {}/32", batch + 1);
         }
-        let report = serde_json::json!({"scope": "LM1B-small cohort Rust Metal capture",
-            "size": "small", "seed": seed, "count": 256, "batch_size": 8, "device": "metal",
+        let report = serde_json::json!({"scope": "LM1B cohort Rust Metal capture",
+            "size": size, "seed": seed, "count": 256, "batch_size": 8, "device": "metal",
             "rng": "SplitMix64 request seed (heldout_seed << 32) | zero_based_batch; host FP64 level zero, then 24-bit midpoint uniforms",
             "sampler": "device FP32 inverse CDF", "penalty": "host FP64", "convolution_math": "MLX Metal",
-            "artifact_manifest_sha256": ARTIFACT_MANIFEST_SHA256, "binary_sha256": binary_sha256,
+            "artifact_manifest_sha256": manifest_sha256, "binary_sha256": binary_sha256,
             "seed_manifest_sha256": sha256(&seed_bytes),
             "diagnostic": {"rotary_tables_sha256": ROTARY_TABLES_SHA256},
             "codes": codes, "raw_ids": raw_ids});

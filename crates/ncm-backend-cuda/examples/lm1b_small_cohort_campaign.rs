@@ -1,4 +1,4 @@
-//! Capture an explicit LM1B-small seed list with one Rust model load.
+//! Capture an explicit LM1B seed list (small, medium or large, from the artifact) with one Rust model load.
 use ncm_backend_cuda::CandleBackend;
 use ncm_core::CodecBackend;
 use ncm_io::{Artifact, sha256};
@@ -9,6 +9,22 @@ use std::{
     io::Write,
     path::Path,
 };
+
+/// Pinned artifact manifests for each LM1B size.
+const SIZES: [(&str, &str); 3] = [
+    (
+        "small",
+        "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76",
+    ),
+    (
+        "medium",
+        "2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c",
+    ),
+    (
+        "large",
+        "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+    ),
+];
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
@@ -36,11 +52,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     let artifact_path = Path::new(artifact_path);
-    if sha256(&fs::read(artifact_path.join("manifest.json"))?)
-        != "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76"
-    {
+    let manifest_sha256 = sha256(&fs::read(artifact_path.join("manifest.json"))?);
+    let Some(&(size, _)) = SIZES.iter().find(|(_, sha)| *sha == manifest_sha256) else {
         return Err("unexpected artifact manifest".into());
-    }
+    };
     let binary_sha256 = sha256(&fs::read(std::env::current_exe()?)?);
     let artifact = Artifact::load_inference(artifact_path)?;
     let rope_path = std::env::var_os("NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC");
@@ -80,11 +95,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             );
             eprintln!("completed batch {}/32", batch + 1);
         }
-        let mut report = serde_json::json!({"scope": "LM1B-small cohort Rust capture",
-            "size": "small", "seed": seed, "count": 256, "batch_size": 8,
+        let mut report = serde_json::json!({"scope": "LM1B cohort Rust capture",
+            "size": size, "seed": seed, "count": 256, "batch_size": 8,
             "rng": "SplitMix64 request seed (heldout_seed << 32) | zero_based_batch; CUDA FP64 inverse CDF with CPU level-zero sampling",
             "penalty": "CUDA FP64",
-            "artifact_manifest_sha256": "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76", "binary_sha256": binary_sha256,
+            "artifact_manifest_sha256": manifest_sha256, "binary_sha256": binary_sha256,
             "codes": codes, "raw_ids": raw_ids});
         report["convolution_math"] = serde_json::json!("cuDNN graph and efficient attention");
         report["seed_manifest_sha256"] = serde_json::json!(sha256(&seed_bytes));

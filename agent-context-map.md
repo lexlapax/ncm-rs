@@ -79,7 +79,11 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
   at all three sizes against matching references: the cuDNN backend against strict, and the efficient backend
   against evaluator settings (default attention dispatch, convolution TF32). The efficient path against strict fails by
   design: level-zero reconstruction equals PyTorch with convolution TF32 exactly.
-  `setpriv --inh-caps=-all ./tools/check.sh --cuda` passes. Campaign size support is in the working tree (untested).
+  `setpriv --inh-caps=-all ./tools/check.sh --cuda` passes.
+- **Campaign and timing by size:** `campaign.py --size`, both cohort runners and the CUDA timing screen
+  (`run_lm1b_small_capacity_screen.py --size`) accept all three sizes. A small rehearsal still reproduces the
+  archive exactly, and a medium rehearsal completes every stage. The default check passes. Medium and large reuse
+  the pre-registered seed lists, which are fresh for those models.
 - **LM1B medium/large step 1:** the exporter takes `--size`; medium and large artifacts (manifests `2fea4a25…`,
   `86676fed…`) are deterministic across two exports, and `ncm-io` has separate per-size budgets plus a new test.
   The generalized CPU probe loads all three sizes. `setpriv --inh-caps=-all ./tools/check.sh` passes.

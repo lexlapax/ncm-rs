@@ -24,7 +24,6 @@ RUNNER = ROOT / 'target/release/examples/lm1b_small_cohort_campaign'
 RUNNER_SOURCE = ROOT / 'crates/ncm-backend-cuda/examples/lm1b_small_cohort_campaign.rs'
 METAL_RUNNER_SOURCE = ROOT / 'crates/ncm-backend-mlx/examples/lm1b_small_cohort_campaign.rs'
 UPSTREAM_DIR = ROOT / '.reference/upstream-ncm'
-ARTIFACT = ROOT / 'artifacts/canonical/lm1b-small-inference-v1'
 PY_SOURCE = ROOT / 'artifacts/upstream/lm1b-phase4'
 BERT = ROOT / 'artifacts/upstream/tokenizers-v1/bert'
 BERT_MANIFEST = ROOT / 'artifacts/canonical/tokenizers-qualified/bert/manifest.json'
@@ -34,15 +33,40 @@ ROPE = ROOT / 'reports/phase4-lm1b-level7-replay-v1/reference-rope-tables.safete
 CUDNN = ROOT / '.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib'
 SHARD = UPSTREAM_DIR / 'scripts/eval_shard.py'
 EVALUATOR = UPSTREAM_DIR / 'scripts/eval_merge.py'
-MANIFEST_SHA = '58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76'
 ROPE_SHA = '9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc'
 SHARD_SHA = 'e1eb550123ec76601d1af9c59c2bb7a81d5ca683a662948fcb4d8164dd510c4a'
 EVAL_SHA = '6452cb5cc06a2355ab7cd16b9809b7144a557418e9041e4617f3c50aef5655fc'
-PY_WEIGHTS = {
-    'small/generator.pt': 'b0789d5a2aad9114d40976d26bd1af09d8cea0b0bec7d385b6a44739f77256fe',
-    'tokenizer.pt': 'd88aa17b66d730f2cb1fb31c5dbe63888a10da47ed8bea29dcb1f89423c3059c',
-    'small/config.yaml': '4db04299a87f7eb1627de0abb2f0b257e50e5ea0138edda771ad287cdabd7edf',
+TOKENIZER_SHA = 'd88aa17b66d730f2cb1fb31c5dbe63888a10da47ed8bea29dcb1f89423c3059c'
+# Per size: exported artifact manifest, and pinned upstream generator and config hashes.
+SIZES = {
+    'small': ('58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76',
+              'b0789d5a2aad9114d40976d26bd1af09d8cea0b0bec7d385b6a44739f77256fe',
+              '4db04299a87f7eb1627de0abb2f0b257e50e5ea0138edda771ad287cdabd7edf'),
+    'medium': ('2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c',
+               '5aa4621472c2e658ab343e50d98abc808e4c2c6dd26eaf8535897b6a540c1604',
+               '93a42e0923b38f06f186072fdc37c1a2b4db5298c7577755390dd36c651d8142'),
+    'large': ('86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a',
+              'ec34d6c56a81f428303b2fa3a8e1615ceee81b7dec7f59380427f46808ec224c',
+              '4410e3710360cae162f8be4186a44a0c7c473be674a1ac3d1d940bfe45d5e70c'),
 }
+
+
+def artifact(size):
+    return ROOT / f'artifacts/canonical/lm1b-{size}-inference-v1'
+
+
+def manifest_sha(size):
+    return SIZES[size][0]
+
+
+def py_weights(size):
+    _, generator, config = SIZES[size]
+    return {f'{size}/generator.pt': generator, 'tokenizer.pt': TOKENIZER_SHA, f'{size}/config.yaml': config}
+
+
+def plan_size(plan):
+    # Plans written before sizes were supported are small campaigns.
+    return plan.get('size', 'small')
 PARAMS = {'batch_size': 8, 'samples_per_seed': 256, 'entropy_margin': 0.0046,
           'ppl_margin': 5.46, 'bootstrap_draws': 10_000, 'bootstrap_seed': 42}
 
@@ -96,9 +120,9 @@ def checkout_identity():
             'upstream checkout differs from the pinned clean source')
 
 
-def pins():
+def pins(size='small'):
     checkout_identity()
-    fixed = {ARTIFACT / 'manifest.json': MANIFEST_SHA, ROPE: ROPE_SHA, SHARD: SHARD_SHA, EVALUATOR: EVAL_SHA}
+    fixed = {artifact(size) / 'manifest.json': manifest_sha(size), ROPE: ROPE_SHA, SHARD: SHARD_SHA, EVALUATOR: EVAL_SHA}
     files = [Path(__file__).resolve(), RUNNER, HERE / 'python_capture.py',
              RUNNER_SOURCE, METAL_RUNNER_SOURCE, HERE / 'compare.py',
              HERE / 'lm1b_shared_forward_score.py', BERT_MANIFEST, TOKENIZER_LOCK,
@@ -117,21 +141,21 @@ def manifest(path, sha):
     plan, _ = json_file(path, sha)
     require(plan['schema_version'] == 1 and plan['params'] == PARAMS, 'unknown campaign parameters')
     seed_lists(plan['mode'], plan['seeds'])
-    require(plan['pins'] == pins(), 'campaign input identity changed')
+    require(plan['pins'] == pins(plan_size(plan)), 'campaign input identity changed')
     return plan
 
 
 def validate_capture(item, plan, runtime, seed, seed_sha):
     require((item['size'], item['seed'], item['count'], item['batch_size'], item['seed_manifest_sha256'])
-            == ('small', seed, 256, 8, seed_sha), f'unexpected capture metadata for {runtime} seed {seed}')
+            == (plan_size(plan), seed, 256, 8, seed_sha), f'unexpected capture metadata for {runtime} seed {seed}')
     if runtime == 'python':
-        require(item['upstream'] == UPSTREAM and item['input_sha256'] == PY_WEIGHTS
+        require(item['upstream'] == UPSTREAM and item['input_sha256'] == py_weights(plan_size(plan))
                 and item['source_sha256'][str(HERE / 'python_capture.py')] ==
                 plan['pins'][str(HERE / 'python_capture.py')],
                 'Python capture identity differs')
     elif plan.get('rust_device') == 'metal':
         require(item['binary_sha256'] == plan['metal_runner_sha256'] and item['device'] == 'metal'
-                and item['artifact_manifest_sha256'] == MANIFEST_SHA
+                and item['artifact_manifest_sha256'] == manifest_sha(plan_size(plan))
                 and item['convolution_math'] == 'MLX Metal'
                 and item['sampler'] == 'device FP32 inverse CDF'
                 and item['penalty'] == 'host FP64'
@@ -139,7 +163,7 @@ def validate_capture(item, plan, runtime, seed, seed_sha):
                 'Rust Metal capture identity differs')
     else:
         require(item['binary_sha256'] == plan['pins'][str(RUNNER)]
-                and item['artifact_manifest_sha256'] == MANIFEST_SHA
+                and item['artifact_manifest_sha256'] == manifest_sha(plan_size(plan))
                 and item['convolution_math'] == 'cuDNN graph and efficient attention'
                 and item['penalty'] == 'CUDA FP64'
                 and item['diagnostic']['rotary_tables_sha256'] == ROPE_SHA,
@@ -225,10 +249,10 @@ def capture(plan, plan_sha, run, runtime, imported=None):
         command = None
     elif runtime == 'python':
         command = [sys.executable, HERE / 'python_capture.py', '--upstream', UPSTREAM_DIR,
-                   '--source', PY_SOURCE, '--size', 'small', '--seeds', seed_path, '--output', attempt]
+                   '--source', PY_SOURCE, '--size', plan_size(plan), '--seeds', seed_path, '--output', attempt]
     else:
         env.update(LD_LIBRARY_PATH=str(CUDNN), NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC=str(ROPE))
-        command = [RUNNER, ARTIFACT, seed_path, attempt]
+        command = [RUNNER, artifact(plan_size(plan)), seed_path, attempt]
     if command is not None:
         print(f'capturing {runtime} in {attempt.name}', flush=True)
         with (attempt / 'run.log').open('x') as log:
@@ -354,6 +378,7 @@ def main():
     init.add_argument('--mode', choices=('rehearsal', 'prospective'), required=True)
     init.add_argument('--seeds', type=Path, required=True)
     init.add_argument('--rust-device', choices=('cuda', 'metal'), default='cuda')
+    init.add_argument('--size', choices=tuple(SIZES), default='small')
     init.add_argument('--metal-runner-sha256', help='Metal mode: SHA-256 of the built Apple runner')
     init.add_argument('--python-from', type=Path,
                       help='Metal mode: published Python capture directory of the CUDA campaign')
@@ -403,7 +428,8 @@ def main():
                     'Metal options require --rust-device metal')
         plan = {'schema_version': 1, 'params': PARAMS, 'mode': args.mode, 'seeds': seeds,
                 'seed_registry': {'path': str(args.seeds), 'sha256': registry_sha},
-                **extra, 'pins': pins(), 'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+                **extra, **({'size': args.size} if args.size != 'small' else {}),
+                'pins': pins(args.size), 'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
         run.mkdir()
         atomic_publish(path, plan)
         if metal:

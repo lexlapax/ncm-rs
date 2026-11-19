@@ -36,8 +36,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     if ![1, 4, 8, 16].contains(&batch) {
         return Err("only diagnostic batches 1, 4, 8 and 16 supported".into());
     }
-    if sha256(&fs::read(format!("{artifact}/manifest.json"))?)
-        != "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76"
+    // Pinned small, medium and large artifact manifests; the model reads its size from the profile.
+    if ![
+        "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76",
+        "2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c",
+        "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+    ]
+    .contains(&sha256(&fs::read(format!("{artifact}/manifest.json"))?).as_str())
     {
         return Err("artifact differs".into());
     }
