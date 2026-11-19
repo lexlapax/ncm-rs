@@ -21,8 +21,21 @@ raw captures remain local and ignored, not durably published. For each profile, 
 and GPU-CSV hashes identify `reports/phase5-cli-cold-<profile>-v1/` (Sudoku-easy uses `-v4/`). The
 aggregates were checked against those hashes and independently recomputed from 90 non-warmup rows per
 condition: median, nearest-rank p95, median absolute deviation, and median/maximum process peak RSS.
-All 210 warmup/measured output hashes per screen agreed. See each report for commands, hashes,
-measurement scope and limitations; no new measurement or release-gate pass is implied.
+All 210 warmup/measured output hashes per screen agreed. To recheck the retained local captures,
+with trusted stable input directories:
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/audit_phase5_cold_aggregates.py \
+  --aggregate docs/results/2026-11-19-phase5-cli/cuda-cold-aggregates-v1.json \
+  --aggregate-sha256 adff3aea3317dd3bd7af0886bf6d0d2d1dbf854f96286de7ec642e71248fd762 \
+  --reports reports
+```
+
+The audit checks capture hashes, the recorded binary identities, trial inventory, stdout hashes
+and selected recomputed statistics; it does not reverify binaries or establish measurement
+validity, GPU isolation, quality or release qualification. Its source SHA-256 is
+`d1e5b1ff869bdd0f2312cd314df57a3efcfec5da60c9a414df7bfc6f4ff9c4aa`; four negative-control tests
+and `tools/check.sh` passed. See each report for commands, hashes, measurement scope and limitations.
 
 ## Historical phase evidence
 
