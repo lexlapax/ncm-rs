@@ -42,6 +42,37 @@ with that candidate hash and `--output reports/phase5-cli-equivalence-runner-v3`
 flags and environment were unchanged. This rerun tests the hardened runner on the same cases, not
 additional corpus, quality, performance or Metal coverage.
 
+## Invalid-device checks with qualified artifacts
+
+`tools/bench/phase5_cli_invalid_devices.py` invoked the actual `cuda-cudnn` build's unified
+command with the deliberately invalid device name `phase5-invalid-device` and the same nine
+qualified artifact manifests and fixed input paths as the routing screen. All nine exited 1,
+wrote no stdout and returned their profile-specific unavailable-device diagnostic; none fell
+back to inference. LM1B rejects the device before loading input/artifact payloads, while the other
+paths load the artifact and input before rejecting. This covers one invalid name on Linux, not
+every unsupported option/device combination, GPU inference, or Metal.
+
+The runner validates the binary and manifest hashes before executing, fingerprints the runner,
+shared profile table, binary, manifests and inputs before/after, and writes its report only after
+all checks pass. It assumes trusted stable inputs and output parent directories. Two offline
+negative-control tests passed. Runner SHA-256 is
+`42a33f625f6906a9f770551829595fcd7c0b4816beb7bd192c3587f95edbb98d`; ignored report
+`reports/phase5-cli-invalid-devices-v1.json` SHA-256 is
+`eb22ed92fae4b45e501469a4459ba6597fba6f97df3639263e7c453336371d4c`. To reproduce with a new
+output path:
+
+```sh
+setpriv --inh-caps=-all env LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" OMP_NUM_THREADS=1 \
+  python3 tools/bench/phase5_cli_invalid_devices.py \
+  --binary target/phase5-candidate/release/ncm \
+  --binary-sha256 cbd3d8d1fa39cbd878c6ff5f41a4f32aafe726d7706ee7c0dc28e0fd4e3a9b67 \
+  --artifacts artifacts/canonical --inputs artifacts/canonical/sudoku-data-phase3 \
+  --xsum-input reports/phase5-cli-equivalence/xsum.json --wmt14-input reports/phase5-cli-equivalence/wmt14.json \
+  --tiny-input reports/phase5-cli-equivalence-runner-v3/tiny-input.json \
+  --lm1b-input reports/phase5-cli-equivalence-runner-v3/lm1b-input.json \
+  --output reports/NEW-cli-invalid-devices.json
+```
+
 ## CLI rejection integration checks
 
 `crates/ncm-cli/tests/unified_rejections.rs` invokes the actual CLI with ten synthetic manifests
