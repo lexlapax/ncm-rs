@@ -1,4 +1,6 @@
 //! JSON-array inference on an explicitly selected backend.
+mod lm1b;
+
 #[cfg(any(
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
@@ -437,11 +439,29 @@ fn dispatch(
         _ => Err("requested device is unavailable in this build; no fallback".into()),
     }
 }
+fn read_inputs(input_path: &Path) -> Result<Vec<Vec<u32>>> {
+    let file = fs::File::open(input_path)?;
+    if !file.metadata()?.is_file() {
+        return Err("input must be a regular file".into());
+    }
+    let mut bytes = Vec::new();
+    file.take(1024 * 1024 + 1).read_to_end(&mut bytes)?;
+    if bytes.len() > 1024 * 1024 {
+        return Err("input exceeds 1 MiB".into());
+    }
+    Ok(serde_json::from_slice(&bytes)?)
+}
+
 fn main_impl() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     if args.len() == 3 && args[1] == "inspect" {
         let artifact = Artifact::load(&args[2])?;
         println!("{}", serde_json::to_string_pretty(artifact.manifest())?);
+        return Ok(());
+    }
+    if args.get(1).is_some_and(|arg| arg == "sample-lm1b-small") {
+        let result = lm1b::sample(&args)?;
+        println!("{}", serde_json::to_string(&result)?);
         return Ok(());
     }
     if !(5..=7).contains(&args.len())
@@ -452,7 +472,7 @@ fn main_impl() -> Result<()> {
         || (args[1] == "sample-tinystories" && args.len() != 6)
         || (args.len() == 7 && args[1] != "sample-xsum")
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx|mlx-retry-padded INPUT_JSON [CFG_SCALE]".into());
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx|mlx-retry-padded INPUT_JSON [CFG_SCALE] | ncm sample-lm1b-small ARTIFACT cuda-cudnn INPUT_JSON SEED REFERENCE_ROPE".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)
@@ -473,17 +493,7 @@ fn main_impl() -> Result<()> {
     } else {
         Artifact::load(&args[2])?
     };
-    let input_path = Path::new(&args[4]);
-    let file = fs::File::open(input_path)?;
-    if !file.metadata()?.is_file() {
-        return Err("input must be a regular file".into());
-    }
-    let mut bytes = Vec::new();
-    file.take(1024 * 1024 + 1).read_to_end(&mut bytes)?;
-    if bytes.len() > 1024 * 1024 {
-        return Err("input exceeds 1 MiB".into());
-    }
-    let inputs: Vec<Vec<u32>> = serde_json::from_slice(&bytes)?;
+    let inputs = read_inputs(Path::new(&args[4]))?;
     let result = if args[1] == "sample-xsum" {
         let cfg_scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
         let seed = args.get(6).map(|s| s.parse::<u64>()).transpose()?;

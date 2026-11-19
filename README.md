@@ -67,7 +67,7 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 | `crates/ncm-io` | Versioned manifests, safetensors, artifact validation |
 | `crates/ncm-backend-cuda` | Candle CUDA codec/operators; CPU fixture path and real-device checks |
 | `crates/ncm-backend-mlx` | Native MLX codec/operators, real-Metal tests and memory probes |
-| `crates/ncm-cli` | Artifact inspection and explicit-device Sudoku reconstruction/generation |
+| `crates/ncm-cli` | Artifact inspection, explicit-device Sudoku inference and experimental text sampling |
 | `tools/reference` | Pinned operator/model oracles and scoped Sudoku checkpoint exporter |
 | `tests/fixtures` | 18 synthetic FP32 operator cases, Sudoku tokenizer goldens and fixture policy |
 | `tools/bench` | Validated aggregation of raw probe results |
@@ -76,7 +76,8 @@ pieces but no end-to-end training pipeline; training reproduction is a later pro
 Candle is pinned to 0.11.1 behind the backend crate's opt-in `cpu`/`cuda` features.
 Default builds do not require a GPU SDK. MLX is opt-in on Apple Silicon with a
 pinned native runtime. The shared backend contract supports the qualified Sudoku
-codec and generator; other model profiles and sampling modes remain future work.
+codec and generator. The [text profile contract](docs/PHASE4-TEXT.md)
+documents the separate experimental samplers and qualification status.
 
 The CLI accepts JSON arrays of token-ID rows and requires an explicit device:
 

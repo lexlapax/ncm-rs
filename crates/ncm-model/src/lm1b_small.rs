@@ -1,4 +1,4 @@
-//! Host-only preflight of pinned LM1B-small generator preparation bytes.
+//! Preflight of pinned LM1B-small model and diagnostic rotary bytes.
 use crate::{has_nonfinite_f32_le, xsum_generator};
 use ncm_core::{CodecConfig, Error, RawCodecConfig, Result};
 use ncm_io::Artifact;
@@ -7,6 +7,34 @@ use std::collections::BTreeMap;
 
 const CONFIG_SHA: &str = "1bc5e0c10050c8221ec72c277d8510a9a541117db5705cb12173f12b733a1475";
 const LEVELS: [usize; 12] = [1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128];
+
+/// Admit the pinned LM1B-small reference rotary diagnostic.
+pub fn lm1b_small_reference_rope(bytes: &[u8]) -> Result<(Vec<f32>, Vec<f32>)> {
+    if ncm_io::sha256(bytes) != "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc" {
+        return Err(Error::Weights(
+            "unexpected LM1B diagnostic rotary tables".into(),
+        ));
+    }
+    let tables = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+    let values = |name| -> Result<Vec<f32>> {
+        let tensor = tables
+            .tensor(name)
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        if tensor.dtype() != Dtype::F32 || tensor.shape() != [128, 32] {
+            return Err(Error::Weights(
+                "unexpected LM1B rotary shape or type".into(),
+            ));
+        }
+        Ok(tensor
+            .data()
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|bytes| f32::from_le_bytes(*bytes))
+            .collect())
+    };
+    Ok((values("cosine")?, values("sine")?))
+}
 
 pub(crate) fn codec_config(artifact: &Artifact) -> Result<CodecConfig> {
     if artifact.manifest().profile != "lm1b-small-inference-v1" {

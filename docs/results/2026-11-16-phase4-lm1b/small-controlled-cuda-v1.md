@@ -1071,3 +1071,50 @@ Its result SHA-256 is `b09dbf3d4e49d1bfb6e540b677c4c311bcb5f0ee642306acb590f9f94
 The [independent-stream retest](small-heldout-cuda-v1.md#native-fp32-top-p-observed-seed-retest)
 still fails the frozen entropy check. The FP32 candidate is archived as
 a diagnostic and the faster FP64 sampler remains in the tracked source.
+
+### Experimental Linux CLI
+
+The opt-in [CLI command](../../PHASE4-TEXT.md#experimental-lm1b-small-cuda-command)
+selects the existing efficient-attention CUDA backend and the FP64
+sampler and final penalty path. It uses the checked inference artifact
+and requires the hash-pinned rotary export explicitly. The rotary file
+decoder is shared with the capacity probe. The CLI releases the host
+artifact after loading the model and emits JSON arrays of intermediate
+codes and raw token IDs for each start-token row.
+
+The final release binary reproduces 15,384 concept codes and 3,072 raw
+IDs exactly across three archived batch-eight requests using seeds 42,
+0 and 3 and request indices 0, 1 and 31, respectively. The first
+development timing signatures match at batches 1, 4, 8 and 16. Two
+batch-32 calls using the development request seed repeat byte for byte.
+Across both tested builds all nine positive outputs have identical
+hashes.
+
+The CLI rejects an empty batch, a wrong or multi-token prefix, more
+than 32 rows, a short or wrong-hash rotary file, an invalid request seed
+and an unsupported device. These checks return errors before opening
+the supplied missing model artifact. The default build explicitly
+reports that the experimental CUDA path is unavailable. The feature
+build, three CLI unit tests, feature-specific CLI Clippy and CUDA
+capacity-example Clippy pass. The full Linux `tools/check.sh --cuda`
+suite passes 533 report and data tests and all 18 real-device CUDA
+operator cases. Its final log SHA-256 is
+`cc22456fa65b576ff2c0fa92caeec933bc6262004ee62602b91a6141b5d610dd`.
+After sharing the rotary validator, the existing capacity example
+also reproduces all eight retained batch-eight output signatures.
+Its replay log SHA-256 is
+`765075fd5ce5c7bdf45f341d34853d4d5bf33adaa41a040d2bc421f099738e94`.
+
+The first build exposed a missing CLI forwarding flag for the model
+feature. The first focused Clippy check flagged the fixed-size slice
+calls. Both were corrected and verified on the final binary. Raw
+captures, two sets of logs, and negative controls remain under
+`reports/phase4-lm1b-small-cli-v1/`. The release binary SHA-256 is
+`782da09d8dbc4cc0ca3fd749619de12c1109502b08ea0094bee1ca20de69b300`.
+The final smoke script and receipt SHA-256 values are
+`8adedab9aa5026698782ac9d93ec61e5670ad768557cacc24ba260f6de0d5373`
+and `1f02b13099fe6442ee0c8190286c0af9585aaa8fdad7d96966193e516ccb8acf`.
+
+The [independent CUDA quality gate](small-heldout-cuda-v1.md)
+remains open. These requests establish a reproducible CLI entry point
+for this experimental runtime on the tested device.

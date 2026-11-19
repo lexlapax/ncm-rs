@@ -2,8 +2,7 @@
 use ncm_backend_cuda::CandleBackend;
 use ncm_core::CodecBackend;
 use ncm_io::{Artifact, sha256};
-use ncm_model::Lm1bSmallTeacher;
-use safetensors::{Dtype, SafeTensors};
+use ncm_model::{Lm1bSmallTeacher, lm1b_small_reference_rope};
 use std::{error::Error, fs, time::Instant};
 
 #[path = "support/cuda_pool.rs"]
@@ -61,25 +60,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let mut model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?;
     if let Some(path) = &rope_path {
-        let data = fs::read(path)?;
-        if sha256(&data) != "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc" {
-            return Err("unexpected diagnostic rotary tables".into());
-        }
-        let tables = SafeTensors::deserialize(&data)?;
-        let values = |name| -> Result<Vec<f32>, Box<dyn Error>> {
-            let tensor = tables.tensor(name)?;
-            if tensor.dtype() != Dtype::F32 || tensor.shape() != [128, 32] {
-                return Err("unexpected rotary tensor shape or type".into());
-            }
-            Ok(tensor
-                .data()
-                .as_chunks::<4>()
-                .0
-                .iter()
-                .map(|x| f32::from_le_bytes(*x))
-                .collect())
-        };
-        model = model.with_reference_rope_diagnostic(&values("cosine")?, &values("sine")?)?;
+        let (cosine, sine) = lm1b_small_reference_rope(&fs::read(path)?)?;
+        model = model.with_reference_rope_diagnostic(&cosine, &sine)?;
     }
     backend.device().synchronize()?;
     let load_seconds = load_start.elapsed().as_secs_f64();
