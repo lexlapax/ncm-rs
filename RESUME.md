@@ -109,9 +109,9 @@ Do not claim full performance qualification from this small screen.
 
 ## Next work, in order
 
-Phase 4 is complete with scoped, user-accepted exceptions
-([audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md)). Phase 5 has not
-started; ask the user before beginning it.
+Phase 4 is complete ([audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md)). Phase 5 is planned in
+[PHASE5.md](docs/PHASE5.md): a lean FP32 release first (step 1, `v0.1.0`), then profiling and user-chosen
+targeted optimizations.
 
 The ignored local `reports/` directories contain detailed captures, scripts and
 logs; they are not portable Git artifacts. Use the linked tracked evidence for

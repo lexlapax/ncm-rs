@@ -9,7 +9,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 - **Phases 0–3 complete.** Phase 2 closed with a [scoped Apple immediate-memory exception](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md).
   Phase 3 Sudoku is complete on CUDA and Metal ([report](docs/results/2026-11-14-phase3-sudoku/README.md)).
 - **Phase 4 complete with scoped, user-accepted exceptions** (2026-11-19, [audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md), [contract](docs/PHASE4-TEXT.md), [handoff](RESUME.md)).
-- **Phase 5** (optimization and inference release, [plan](docs/PLAN.md)) has not started; it needs the user's go-ahead and scope.
+- **Phase 5 planned** ([PHASE5.md](docs/PHASE5.md)): user chose release first, lean, and FP32 only (2026-11-19). Next is step 1, the v0.1.0 release candidate.
 
 | Profile | Status |
 | --- | --- |
@@ -56,8 +56,15 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
 
-1. **Done:** Phase 4 audit written; PLAN, contract and results index mark Phase 4 complete with exceptions.
-2. **Next:** ask the user whether to start Phase 5 and with what scope. Do not start it unprompted.
+1. **Phase 5 step 1 (CUDA, then Metal):** unified `ncm sample` dispatching on the manifest profile, with byte-identical
+   output against the current commands; fold the `*-experimental` build features into `cuda`/`mlx`; `--decode` and `--text`
+   for every text profile with corpus-exact encoding gates; `docs/USAGE.md` verified from a fresh clone; README and release
+   notes; then ask before tagging `v0.1.0`.
+2. Steps 2–4 follow [PHASE5.md](docs/PHASE5.md): profile, user picks targets, targeted optimizations, close.
+3. **Retained local inputs** after the 2026-11-19 cleanup: pinned upstream checkpoints and evaluators, one current
+   artifact per profile, the reference environments, `reports/phase4-lm1b-level7-replay-v1/reference-rope-tables.safetensors`
+   and `reports/phase4-wmt14-uncached-cfg-link-v1/` (Linux), and `reports/phase4-lm1b-metal-cli-rope-v1.safetensors` (Mac).
+   Raw Phase 4 captures were deleted; the docs keep their hashes.
 
 ## Working rules carried forward
 
@@ -68,6 +75,9 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Phase 5 plan (docs only) and cleanup:** wrote `docs/PHASE5.md`. Deleted untracked data not needed for Phase 5 on both
+  machines: raw reports, superseded artifacts, build caches, old `.reference` snapshots and logs. Afterwards
+  `tools/check.sh --cuda` and `tools/check.sh --mlx` pass, and the LM1B CLI samples and decodes on both GPUs.
 - **Phase 4 audit (docs only):** [audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md) maps every
   profile to tokenizer, teacher-forced, end-to-end, quality and performance evidence on both GPUs; all relative links
   resolve. LM1B tokenizer, codec and license bytes are identical across sizes. Default `tools/check.sh` passes.

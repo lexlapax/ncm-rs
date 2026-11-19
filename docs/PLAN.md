@@ -213,6 +213,9 @@ checkpoint metadata before advertising support. A blocked artifact stays blocked
 
 ## Phase 5 — optimization and inference release
 
+**Active, narrowed by user decision (2026-11-19):** a lean FP32 release first, then targeted optimization.
+See [PHASE5.md](PHASE5.md).
+
 Profile real batch/level shapes, then prioritize demonstrated bottlenecks:
 
 - Correct reusable prefix K/V, including padded prefixes, level-zero queries and
