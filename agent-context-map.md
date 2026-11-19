@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small Metal large batches:** fixed-history development seed 11 at batch 15 matches the composed reference. At batches 16 and 32 the affine Python reference differs on 13 and 20 draws. An explicit replay of fused Q/K RoPE matches every draw at both sizes. Fixed-history decoding matches all Metal token IDs. CUDA and Rust Metal batch-16 traces captured, comparison pending. [Resume](RESUME.md#latest-lm1b-small-metal-work)
+
 - **LM1B-small Metal development reference:** native MLX Q/K RMS normalization aligns all 47 shared generator tensors on the retained two-row trace. The checked-in Python MLX tool matches 8,333 Rust CLI codes and 1,664 final IDs across four requests. Cross-device and quality gates remain open. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-development-reference-for-complete-requests)
 
 - **LM1B single-row scan isolation:** the FP32 tile and warp order reproduces every CUB prefix on the retained CUDA probabilities. It still disagrees when driven by MLX probabilities. CUDA exponentials with the host replay recover the full reference pipeline. No runtime behavior changed. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#single-row-cuda-scan-and-softmax-replay)

@@ -44,6 +44,21 @@ protocol, not an approved replacement gate.
 
 ## Latest LM1B-small Metal work
 
+The latest fixed-history Metal check uses development seed 11 and the pinned
+rotary tables. The independent Python reference matches all draws at batch 15.
+At batch 16 the composed path differs on 18 draws and matching native affine
+layer normalization reduces this to 13. At batch 32 the affine reference
+differs on 20 draws. The Python decoder matches the Rust final IDs on the
+forced histories at all three sizes. Replaying the Rust fused Q/K RoPE kernel
+in Python eliminates the sampled-choice differences at batches 16 and 32.
+This isolates the kernel's numerical effect. The independent composed
+reference's differences remain.
+
+The original pinned Python CUDA and Rust Metal both completed batch-16 traces
+on the exact retained Rust history. Comparing those traces and the composed
+Python MLX trace is the current correctness task. Raw evidence is in
+`reports/phase4-lm1b-metal-large-batch-v1/` on the machines that ran it.
+
 The checked-in Python MLX development reference matches all 8,333 codes and
 1,664 final IDs on four Mac requests. Q/K RMS normalization
 aligned all 47 shared generator tensors on the two-row trace. Go to the
