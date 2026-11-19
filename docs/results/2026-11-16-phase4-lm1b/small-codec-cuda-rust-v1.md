@@ -124,3 +124,22 @@ The corresponding Mac traces and logs use the
 `phase4-lm1b-small-codec-metal-barriers-v1` and
 `phase4-lm1b-small-controlled-metal-barriers-v1` names. The source
 patch was reversed and the Mac checkout verified clean.
+
+A third reversible Mac experiment computed the three kernel taps as
+separate matrix multiplications and added their outputs. With the same
+pinned fixtures and unchanged comparisons, 126 of 362 codec checks and
+37 of 51 controlled stochastic checks failed. The latter included 866
+of 1,282 generated codes and 194 of 256 penalty-selected IDs differing;
+these are cascading continuations, not independent draws on the same
+history. This formulation does not correct the Metal discrepancy and was
+reversed. The Mac checkout was clean afterward.
+
+The patch SHA-256 is
+`e94160b087f36034c019b3a9aa150f462fa90dda4687e20487537936f3f9bbe1`.
+The codec and controlled comparison SHA-256 values are
+`70f12a15cc6a867121ca25b9cd4680d2e8dbd3050396c9f13f3bf638559f4be4`
+and `d15a2fd171bbcc9ce66441be9a9d1939dc8da99c8e91320652482f933078eef9`.
+The patch and comparisons are retained under
+`reports/phase4-lm1b-metal-refinement-three-v1/`; the corresponding Mac
+traces use the `phase4-lm1b-small-codec-metal-three-v1` and
+`phase4-lm1b-small-controlled-metal-three-v1` names.
