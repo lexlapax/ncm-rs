@@ -192,3 +192,7 @@ required-features = ["mlx", "lm1b-experimental"]
 [[example]]
 name = "lm1b_small_greedy_trace"
 required-features = ["mlx", "lm1b-experimental"]
+
+[[example]]
+name = "lm1b_small_controlled_trace"
+required-features = ["mlx", "lm1b-experimental"]

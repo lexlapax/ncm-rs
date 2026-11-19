@@ -42,3 +42,17 @@ setpriv --inh-caps=-all env RUSTC_WRAPPER= ./tools/check.sh --cuda > reports/pha
 This two-row development diagnostic is not stochastic generation, held-out
 quality, performance, Metal, or completion of the Phase 4 gate. Captures and
 logs remain in ignored local `reports/`.
+
+## Metal greedy continuation
+
+On Mac Studio, the two-row Metal greedy continuation passes all 51
+comparisons against the pinned CUDA reference using the unchanged
+policy. The generated codes, greedy IDs and penalty-adjusted IDs match.
+The Metal trace SHA-256 is
+`45e82d9cbb327ad9f5ea2a8ada2105382d9ec8c9fd538e1b5f68850769c37b05`.
+The comparison SHA-256 is
+`3c40d2c7c02545f6843bb8482611dcac235a39ee2cc918d1da6f93bfa5c23e4c`.
+The initial codes are supplied, and stochastic quality and performance
+remain separate checks. The Mac trace and log are retained under
+`reports/phase4-lm1b-small-greedy-metal-v1/` and
+`reports/phase4-lm1b-small-greedy-metal-v1.log`.
