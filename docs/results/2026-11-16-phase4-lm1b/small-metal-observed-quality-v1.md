@@ -93,3 +93,39 @@ Sources, traces and results are retained under
 launch was interrupted after detecting that its temporary source still selected
 the efficient backend; the corrected strict run produced the recorded result.
 Temporary example sources were removed and the Mac checkout restored.
+
+## Bounded Metal convolution precision experiment
+
+Using the same seed-42 batch and authenticated artifact, an adapted Python
+MLX diagnostic reproduced the recorded Metal level-zero reconstruction
+bit-for-bit. Rounding both residual-convolution operands to a TF32-like
+10-bit mantissa with halfway values away from zero reduced error against the
+efficient CUDA reconstruction from RMS `0.0042393702` to `0.0000965048`
+and maximum `0.0465850830` to `0.0007629395`. However, 548 of 393,216
+reconstruction values still exceed the existing accumulated tolerance.
+Nearest-even rounding left 1,027 values outside, and truncation was worse.
+These are formulation tests on one input, not a change to the oracle or the
+accepted numerical policy.
+
+With the same rounded reconstruction, a separate adapted Python Metal
+level-one calculation reproduced all 64 CUDA sampled choices; its baseline
+reproduced Metal's choices and differed from CUDA in three. The adapted
+full-generation diagnostic still differed from CUDA in all eight rows:
+3,491 of 5,128 codes differed when rounding all codec refinements, and 3,823
+when also rounding generator post-convolutions. Its unmodified baseline
+already differed from Rust Metal in 356 codes in one row, limiting any
+conclusion about the Rust backend. The candidate does not pass the numerical
+or complete-generation checks and was not added to production.
+
+The precision, level-one and full-generation result SHA-256 values are
+`6f9483d5b5dd218aa9b4ce8de8eadab8ae6ba4063af3254dc1c97f2bcb572f8c`,
+`1c89cc097ce9b6645072e46818803bf368cacdb40c95243b62bbd5221c8dac84` and
+`e31a0e00df40479f56b0312f6c5d2566eae68660d95c562c589195ce7a53eee7`.
+Their source hashes are
+`48e86f56ccdd58afb3dbb335bf62019afa781909e324962b01137c860652e232`,
+`56747efdfe2f0e41d9e10022298c7f16b3cf430f2adb38cb66182aa73fc8ff13` and
+`5ddc3562b7a48c5b5ac34f9694f2d0f50c25cad7e1d4324c8caa46d122cb2bf9`.
+Sources, authenticated inputs and results are retained under
+`reports/phase4-lm1b-metal-tf32-precision-v1/`; the Mac results match the
+transferred files. The Mac checkout stayed clean and its service remained
+running.
