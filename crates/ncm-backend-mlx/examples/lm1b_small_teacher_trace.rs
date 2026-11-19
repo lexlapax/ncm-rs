@@ -36,20 +36,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     if output.exists() {
         return Err("output must not exist".into());
     }
-    if sha256(&fs::read(artifact_path.join("manifest.json"))?)
-        != "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76"
+    let manifest = sha256(&fs::read(artifact_path.join("manifest.json"))?);
+    let small = manifest == "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76";
+    if !small
+        && manifest != "2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c"
+        && manifest != "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a"
     {
         return Err("unexpected artifact manifest".into());
     }
-    if sha256(&fs::read(reference.join("report.json"))?)
-        != "00f20a4a67127293d5d01d3c146e0e3cf3cc9a2aa1992570e36901599b886d0c"
-    {
-        return Err("unexpected reference report".into());
-    }
+    let report = sha256(&fs::read(reference.join("report.json"))?);
     let data = fs::read(reference.join("trace.safetensors"))?;
-    if sha256(&data) != "fd815da45bc20fde58aa44e030aeb94e032a42ba71baa1f355f09fc91fd5223b" {
-        return Err("unexpected reference trace".into());
+    // Small keeps its original pinned reference; larger sizes print the reference they consumed
+    // and the comparator checks its trace hash explicitly.
+    if small
+        && (report != "00f20a4a67127293d5d01d3c146e0e3cf3cc9a2aa1992570e36901599b886d0c"
+            || sha256(&data) != "fd815da45bc20fde58aa44e030aeb94e032a42ba71baa1f355f09fc91fd5223b")
+    {
+        return Err("unexpected reference report or trace".into());
     }
+    eprintln!("reference report {report}, trace {}", sha256(&data));
     let reference_tensors = SafeTensors::deserialize(&data)?;
     let input = reference_tensors.tensor("generator.prefix_ids")?;
     let supplied = reference_tensors.tensor("generator.forced_codes")?;

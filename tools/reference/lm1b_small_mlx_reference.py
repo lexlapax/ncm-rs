@@ -14,6 +14,12 @@ from phase3_mlx_generator import Generator
 
 
 MANIFEST_SHA = '58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76'
+# Pinned manifest (bytes, SHA-256) per size; model dimensions come from the checked config.
+MANIFESTS = {
+    'lm1b-small-inference-v1': (89_870, MANIFEST_SHA),
+    'lm1b-medium-inference-v1': (133_054, '2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c'),
+    'lm1b-large-inference-v1': (176_049, '86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a'),
+}
 ROTARY_SHA = '9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc'
 WORD_MASK = (1 << 64) - 1
 
@@ -67,7 +73,13 @@ class Lm1bGenerator(Generator):
     def __init__(self, artifact, rotary):
         if artifact.is_symlink() or not artifact.is_dir():
             raise ValueError('invalid LM1B artifact directory')
-        manifest = json.loads(verified_bytes(artifact / 'manifest.json', 89_870, MANIFEST_SHA))
+        size = (artifact / 'manifest.json').stat().st_size
+        pinned = [pin for pin in MANIFESTS.values() if pin[0] == size]
+        if len(pinned) != 1:
+            raise ValueError('unexpected LM1B manifest size')
+        manifest = json.loads(verified_bytes(artifact / 'manifest.json', *pinned[0]))
+        if MANIFESTS.get(manifest.get('profile')) != pinned[0]:
+            raise ValueError('LM1B manifest profile differs from its pin')
         tables = tensors(verified_bytes(rotary, 32_920, ROTARY_SHA))
 
         def payload(name):

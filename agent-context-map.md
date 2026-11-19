@@ -63,7 +63,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 2. **Mac (on hold until the user says it is ready):** build and test the RSS fix at `57e5ee6` and rerun the small
    Metal timing; copy `reports/phase4-lm1b-mlx-timing-v1/` to Linux. Then medium and large on Metal: teacher-forced
    decision/ID check, 80-seed campaign (`--rust-device metal --size`) and timing against Python MLX
-   (`run_lm1b_small_mlx_timing.py` and the MLX probes still assume small).
+   (`run_lm1b_small_mlx_timing.py --size`). The Metal teacher trace, MLX timing probe, Python MLX reference and
+   Metal timing runner now accept all three sizes, but are **not yet compiled or run on the Mac**.
 3. Audit Phase 4 against the plan and contract, update docs, and mark Phase 4 complete.
 
 ## Working rules carried forward

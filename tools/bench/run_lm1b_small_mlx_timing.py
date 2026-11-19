@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = ROOT / '.reference/mlx-venv/bin/python'
 RUST = ROOT / 'target/release/examples/lm1b_small_mlx_timing_probe'
-ARTIFACT = ROOT / 'artifacts/canonical/lm1b-small-inference-v1'
+SIZES = ('small', 'medium', 'large')
 PROBE = ROOT / 'tools/reference/lm1b_small_mlx_timing_probe.py'
 BATCHES = (1, 4, 16)
 RUNTIMES = ('python', 'rust')
@@ -103,6 +103,7 @@ def main():
                    help='measure only these batch sizes (default: 1, 4 and 16)')
     p.add_argument('--smoke', action='store_true', help='one warmup and three trials; not evidence')
     p.add_argument('--rust-sampler', choices=('host', 'device-fp32'), default='device-fp32')
+    p.add_argument('--size', choices=SIZES, default='small')
     args = p.parse_args()
     if sys.platform != 'darwin' or platform.machine() != 'arm64':
         raise RuntimeError('Metal timing requires Apple Silicon')
@@ -114,7 +115,7 @@ def main():
     if digest(args.rotary) != '9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc':
         raise ValueError('unexpected rotary tables')
     sources = [Path(__file__).resolve(), PROBE, ROOT / 'tools/reference/lm1b_small_mlx_reference.py',
-               RUST, ARTIFACT / 'manifest.json',
+               RUST, ROOT / f'artifacts/canonical/lm1b-{args.size}-inference-v1/manifest.json',
                ROOT / 'Cargo.lock', ROOT / 'crates/ncm-backend-mlx/examples/lm1b_small_mlx_timing_probe.rs',
                args.rotary.resolve()]
     for directory in ('crates/ncm-core/src', 'crates/ncm-model/src', 'crates/ncm-backend-mlx/src'):
@@ -122,7 +123,7 @@ def main():
     before = {str(path): digest(path) for path in sources}
     out.mkdir(parents=True)
     manifest = {
-        'scope': 'LM1B-small Metal latency and memory, Rust versus Python MLX adaptation',
+        'scope': f'LM1B-{args.size} Metal latency and memory, Rust versus Python MLX adaptation', 'size': args.size,
         'smoke': args.smoke, 'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         'sources_sha256': before, 'batches': batches, 'warmups': warmups, 'trials': trials, 'repetitions': 3,
         'order': 'alternating runtime per repetition, fresh process each',
@@ -142,10 +143,10 @@ def main():
                 for runtime in (RUNTIMES if rep % 2 == 0 else RUNTIMES[::-1]):
                     stem = f'{runtime}-b{batch}-r{rep}'
                     if runtime == 'rust':
-                        command = [str(RUST), str(ARTIFACT), str(args.rotary), str(batch), str(warmups), str(trials),
+                        command = [str(RUST), str(ROOT / f'artifacts/canonical/lm1b-{args.size}-inference-v1'), str(args.rotary), str(batch), str(warmups), str(trials),
                                    args.rust_sampler]
                     else:
-                        command = [str(PYTHON), str(PROBE), str(ARTIFACT), str(args.rotary), str(batch),
+                        command = [str(PYTHON), str(PROBE), str(ROOT / f'artifacts/canonical/lm1b-{args.size}-inference-v1'), str(args.rotary), str(batch),
                                    str(warmups), str(trials), str(out / f'{stem}.json')]
                     with (out / f'{stem}.log').open('x') as log:
                         process = subprocess.Popen(['/usr/bin/time', '-l', '-o', str(out / f'{stem}.time'), *command],

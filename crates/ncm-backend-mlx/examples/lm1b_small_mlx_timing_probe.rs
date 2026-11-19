@@ -9,8 +9,12 @@ use ncm_io::{Artifact, sha256};
 use ncm_model::{Lm1bSmallTeacher, lm1b_small_reference_rope};
 use std::{error::Error, fs, path::Path, time::Instant};
 
-const ARTIFACT_MANIFEST_SHA256: &str =
-    "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76";
+/// Pinned small, medium and large artifact manifests; the model reads its size from the profile.
+const ARTIFACT_MANIFESTS: [&str; 3] = [
+    "58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76",
+    "2fea4a252de0cecbe6ab12b2c4a0077cff66498e6344894694ba02876a38c30c",
+    "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+];
 const ROTARY_TABLES_SHA256: &str =
     "9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc";
 
@@ -33,7 +37,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("batch must be 1..=32 and trials positive".into());
     }
     let artifact_path = Path::new(artifact_path);
-    if sha256(&fs::read(artifact_path.join("manifest.json"))?) != ARTIFACT_MANIFEST_SHA256 {
+    if !ARTIFACT_MANIFESTS
+        .contains(&sha256(&fs::read(artifact_path.join("manifest.json"))?).as_str())
+    {
         return Err("unexpected artifact manifest".into());
     }
     let rope_bytes = fs::read(rope)?;
