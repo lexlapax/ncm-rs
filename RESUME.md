@@ -41,7 +41,9 @@ protocol, not an approved replacement gate.
 - LM1B-medium and large pass the lean bar on CUDA: teacher-forced parity on both
   backends, 80-seed quality and timing against Python
   ([quality](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#prospective-cuda-results-medium-and-large),
-  [timing](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)). Metal is pending.
+  [timing](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)), and on Metal
+  ([report](docs/results/2026-11-16-phase4-lm1b/medium-large-metal-v1.md)). LM1B-small Metal timing now passes
+  RSS as well ([memory fix](docs/results/2026-11-16-phase4-lm1b/small-metal-timing-v1.md#after-the-memory-fix-all-checks-pass)).
   OpenWebText has config-only and synthetic operator coverage
   ([coverage](docs/results/2026-11-19-phase4-owt/config-operator-coverage-v1.md)); checkpoint and
   quality work waits for released, validated weights.
@@ -108,13 +110,9 @@ Do not claim full performance qualification from this small screen.
 
 ## Next work, in order
 
-1. Done on CUDA: LM1B-small, medium and large quality and timing; OWT config-only coverage.
-   Done on Metal: LM1B-small 80-seed quality and latency.
-2. Mac (only once the user says macstudio is ready; recheck its state first): test the
-   LM1B-small Metal RSS fix at `57e5ee6` and rerun the small Metal timing, then run medium
-   and large on Metal to the same lean bar (teacher-forced check, 80-seed campaign with
-   `--rust-device metal --size`, timing against Python MLX).
-3. Audit Phase 4 against the plan, contract and accepted exceptions, then mark
+1. Done: LM1B small, medium and large qualified on CUDA and Metal under the user's
+   decisions; OWT config-only coverage.
+2. Audit Phase 4 against the plan, contract and accepted exceptions, then mark
    it complete.
 
 The ignored local `reports/` directories contain detailed captures, scripts and

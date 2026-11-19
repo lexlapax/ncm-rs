@@ -40,12 +40,36 @@ slower than Python. The sampler change and its checks are recorded in the contex
 | `result.json` (Mac `reports/phase4-lm1b-mlx-timing-v1/`) | `b574c7c663565a748f09e0414a229afe436801cb36e65ed5ad987b67373b619c` |
 | `manifest.json` | `456ad006ab41a7a457fcdb1347025f11d687cad39391c01ab33ea71a35c8fd9d` |
 
-The raw directory is still only on the Mac. It will be copied to Linux when the Mac is available again.
+The raw directory has since been copied to Linux as ignored `reports/phase4-lm1b-mlx-timing-v1/` (same `result.json` hash).
+
+## After the memory fix (all checks pass)
+
+Commit `57e5ee6` changed how host FP64 penalties read the decoder logits: they now visit two rows at a
+time (`visit_f32_rows`, `LM1B_PENALTY_ROWS = 2`), and on MLX each block is its own exact GPU copy, so the
+full logits buffer is never mapped to the CPU. Outputs are unchanged. The CLI at `0a3ce34` and at
+`30349ae` produced byte-identical JSON for development seed 11 at batches 1, 4 and 16, with both the
+default sampler and `--host-fp64` (ignored `reports/phase4-lm1b-rss-fix-identity-v1/`). The five real-Metal
+sampler tests, including the new row-visit test, pass, as does `tools/check.sh --mlx`.
+
+The same timing protocol, rerun at `30349ae` on 2026-11-19:
+
+| Batch | Python median / p95 (s) | Rust median / p95 (s) | Python RSS (MiB) | Rust RSS (MiB) | Result |
+| ---: | --- | --- | ---: | ---: | --- |
+| 1 | 0.1172 / 0.1176 | 0.1020 / 0.1024 | 1,681 | 1,674 | pass |
+| 4 | 0.2322 / 0.2338 | 0.1977 / 0.2006 | 1,682 | 1,675 | pass |
+| 16 | 0.6621 / 0.6646 | 0.4743 / 0.4769 | 1,682 | 1,672 | pass |
+
+Rust's RSS no longer grows with batch, which confirms the hypothesis above: the growth was the
+CPU-mapped decoder logits. The RSS margin is small (0.4–0.6%), because both processes' peaks are now
+set by model loading. Rust is 13%, 15% and 28% faster at the median. Batch 4 and 16 latency rose
+slightly from the first run (0.185 to 0.198 s and 0.431 to 0.474 s): reading the logits in blocks
+costs some speed in exchange for the memory saving. `result.json` SHA-256:
+`2b976e54b7f069034c1808c1ad098e2da0cc686dbc0acfef0afb1dd64a061926` (ignored `reports/phase4-lm1b-small-mlx-timing-v2/`).
 
 Reproduce on the Mac from the repository root after building the examples with
 `--features mlx,lm1b-experimental`:
 
 ```sh
 .reference/mlx-venv/bin/python tools/bench/run_lm1b_small_mlx_timing.py \
-  --rotary PATH/TO/reference-rope-tables.safetensors --output reports/NEW-DIRECTORY
+  --size small --rotary PATH/TO/reference-rope-tables.safetensors --output reports/NEW-DIRECTORY
 ```

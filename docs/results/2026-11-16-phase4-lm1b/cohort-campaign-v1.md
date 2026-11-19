@@ -190,3 +190,42 @@ LM1B-large CUDA quality under the approved protocol; Metal for these sizes is se
 
 Raw captures and per-seed scores are in ignored `reports/phase4-lm1b-campaign-prospective-{medium,large}-cuda-v1/`.
 The commands are those of the small run with `--size medium` or `--size large` on `init`.
+
+## Prospective Metal results: medium and large
+
+The approved gate **passes** on Metal for both sizes. Rust Metal generated the pre-registered
+`rust_metal` list (seeds 3000–3079, the same seed-list bytes as the small Metal run) on the Mac Studio
+with the default device FP32 sampler at commit `30349ae`. The captures ran from 14:22 to 14:54 UTC
+(medium) and 14:54 to 15:49 UTC (large) on 2026-11-19. Each comparison imports the size's published
+Python CUDA captures by receipt hash. Scoring on Linux rescored those Python seeds identically to the
+CUDA campaigns (all 80 records equal at each size), all 160 scores per size are `upstream_exact`, and a
+second `summary` invocation replayed each stored summary byte for byte.
+
+| Size | Runtime | Mean perplexity (seed SD) | Mean entropy, nats (seed SD) |
+| --- | --- | ---: | ---: |
+| medium | Python (pinned upstream, CUDA) | 88.7748 (1.8059) | 4.339916 (0.003322) |
+| medium | Rust Metal (device FP32 sampler) | 88.9431 (1.7587) | 4.340598 (0.003443) |
+| large | Python (pinned upstream, CUDA) | 81.1847 (1.6057) | 4.338293 (0.003821) |
+| large | Rust Metal (device FP32 sampler) | 81.2897 (1.6322) | 4.339164 (0.003801) |
+
+| Size | Check (Rust Metal minus Python) | Point | 95% interval | Limit | Result |
+| --- | --- | ---: | --- | --- | --- |
+| medium | Perplexity | +0.168205 | [-0.385331, 0.706374] | at most 5.46 | pass |
+| medium | Entropy | +0.000683 | [-0.000358, 0.001706] | within ±0.0046 | pass |
+| large | Perplexity | +0.104994 | [-0.388800, 0.602007] | at most 5.46 | pass |
+| large | Entropy | +0.000871 | [-0.000300, 0.002049] | within ±0.0046 | pass |
+
+| Item | SHA-256 |
+| --- | --- |
+| Medium manifest ([copy](raw/cohort-medium-metal-v1-manifest.json)) | `e53dbba6b1648fe24f7bd6b0446dc1e1f65bd046be772550b7af9037eb86fa1f` |
+| Medium summary ([copy](raw/cohort-medium-metal-v1-summary.json)) | `4780f52921fb0241891d098a2f8b4ff85b021b0bb3adb1ed3d301181c5613e16` |
+| Medium Python (imported) / Rust Metal / score receipts | `753c5b7c…`, `ec25a2f3…`, `00e02d6a…` |
+| Large manifest ([copy](raw/cohort-large-metal-v1-manifest.json)) | `6dd141b1b6b2569bf62353a3a366b36278b05638b552145ead929fd8e22ea08e` |
+| Large summary ([copy](raw/cohort-large-metal-v1-summary.json)) | `2adb0931af45b3b3ad17133253b3b73b57e781b1d2d91ba15f2c2fd7fc748eb0` |
+| Large Python (imported) / Rust Metal / score receipts | `1d59cdf8…`, `5572e391…`, `71cae1e8…` |
+| Metal runner binary | `4c4ebd76f8c53c60d8d9d321fc118c066d7a3c7e7afbfedd5f0a277161bc5e40` |
+
+Raw captures are in ignored `reports/phase4-lm1b-campaign-metal-capture-{medium,large}-v1/` (Mac and Linux) and
+`reports/phase4-lm1b-campaign-prospective-{medium,large}-metal-v1/` (Linux). The Metal `init` adds
+`--rust-device metal --size SIZE --metal-runner-sha256 HASH --python-from reports/phase4-lm1b-campaign-prospective-SIZE-cuda-v1/python --python-receipt-sha256 HASH`;
+the Rust capture stage takes `--import` with the Mac capture directory.

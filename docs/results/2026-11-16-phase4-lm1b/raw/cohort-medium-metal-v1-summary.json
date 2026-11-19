@@ -1,0 +1,1644 @@
+{
+  "comparison": {
+    "bootstrap": {
+      "method": "independent seed resampling",
+      "resamples": 10000,
+      "seed": 42
+    },
+    "checks": {
+      "entropy_interval": true,
+      "entropy_mean": true,
+      "ppl_interval": true,
+      "ppl_mean": true
+    },
+    "difference": {
+      "entropy": 0.0006826332304621374,
+      "ppl": 0.1682045454309815
+    },
+    "interval_95": {
+      "entropy": [
+        -0.00035817471798527123,
+        0.0017060354817663992
+      ],
+      "ppl": [
+        -0.3853313858942471,
+        0.7063737294071046
+      ]
+    },
+    "margins": {
+      "entropy": 0.0046,
+      "ppl": 5.46
+    },
+    "metrics_passed": true
+  },
+  "identities": {
+    "python:1000": {
+      "capture_sha256": "da7891a6929dac7783634ee8d4d342a76e32c3f50405ed5f74202c8c046ae556",
+      "score_sha256": "7c2befcecaa42e4a04fa092cc130f03084a7b30537a8183dcbf8af15428b188b"
+    },
+    "python:1001": {
+      "capture_sha256": "f62e528b1a40cb6565d7461744cea953e11ba5df07e1ac8b6832666219060a6d",
+      "score_sha256": "a132c595f489a8936dd5e867b8b3094ab355a4f58b725fd056038934d5c3f110"
+    },
+    "python:1002": {
+      "capture_sha256": "58fc511cd469881fa788e939de6f0296b28822918ee1965c86c5f3041ac7c386",
+      "score_sha256": "27cf18cc77d867ad6441d1deb339846834482540e88db9a91246bb3eb54211a1"
+    },
+    "python:1003": {
+      "capture_sha256": "4daa9f11228880fe2c93e16305b32456bf8d048e2452496f7c2e70f1902f8440",
+      "score_sha256": "540e79aebffb7cc04d8ba1718ba932f3070f964f81a0311fb44e20f17dc900a3"
+    },
+    "python:1004": {
+      "capture_sha256": "a2ca0568ed66309ee4744dca0d1849f7ab8e5c68f58fd346f6af4ba441a09206",
+      "score_sha256": "50b5d07a5eab99260b20d1600147379569854f7bc0e51c54aa705d6e7a8aecc5"
+    },
+    "python:1005": {
+      "capture_sha256": "7b053ab1647a2e081c3eaa68e8a66acec9cb4dc606813b1d795667ab0040fe35",
+      "score_sha256": "295c763705e443a3a42a3dec975279a5886f8a47ddabe57418c684dff01ab23e"
+    },
+    "python:1006": {
+      "capture_sha256": "61faa1d8b8289342798cf8ae6048a7c27b0e3334c1ed93670fa26867aac9e604",
+      "score_sha256": "ee640562c831860a8bca73da147d3c9a81c316f387f46b99a2b7183a350fda78"
+    },
+    "python:1007": {
+      "capture_sha256": "11626f4e2965a9c10202302296e94da081d4418b6adbd9f1c2932130557b2c36",
+      "score_sha256": "bf0f7291a6f81ff43c08841bc42c84f3f24dd5f654ab3c2c343b69d0a21dc842"
+    },
+    "python:1008": {
+      "capture_sha256": "042a1fe25362ec7b13e8b520984007c281ed6140df23546c7e7b0becb6ae7a50",
+      "score_sha256": "3e87e740e7cd3911e2e693d4e5f6714fb61e46f97447ecd82993299a5498cc59"
+    },
+    "python:1009": {
+      "capture_sha256": "9247f2a74ebe2509146afcac249669a736b5e9d3cb249d4eceb0e7d6ae9fbac4",
+      "score_sha256": "eb5fe8b5f9d013eb50507c83ab3a6b47689da28d900f2b86487b774b3c40671c"
+    },
+    "python:1010": {
+      "capture_sha256": "26598a8b3c811e93f96c8cf968d1999779ab12b02acfc869bb36c3d78a650495",
+      "score_sha256": "664d3ecf4d7a56281f7a361e92c010c6e56b083ddcd3031e8a1f0059bbc997a1"
+    },
+    "python:1011": {
+      "capture_sha256": "25dd3944a8ed97af07b2f546dc635d9bc2d3c8870c8cff968bda26dd21ee736f",
+      "score_sha256": "66bbc5ff75a5c431aa61adab009ec488d31158cc721be89605762cf1a72ff3a0"
+    },
+    "python:1012": {
+      "capture_sha256": "2b9f6664ff836dafa6886b8ab5fe8877b4364042342599fce326edb08a95fd4c",
+      "score_sha256": "f402ee3880ddc35095f8f2be8e27bbb30fb32dc4efeab34272fe8835df55994f"
+    },
+    "python:1013": {
+      "capture_sha256": "99ae2eb63e838b4fc8dc90f77c546f9b7176efca5d5c03f5edb999af866c2224",
+      "score_sha256": "c7cef2ceffc3f772d841dff2b5d12d87c995022d43ca8991d5dca1f9fab359db"
+    },
+    "python:1014": {
+      "capture_sha256": "f230fd858c8e5ff0b06e04d41e0dff934e3f0b662dc6f3f081c64f692427c86b",
+      "score_sha256": "f595757c0099471d928d50555c1b27a72c1632e330b028b78b7dec9eb5e599e1"
+    },
+    "python:1015": {
+      "capture_sha256": "f4fa425adeb1c83557261f6a72260a77a1b02ffaa9c5d9593ef3d3577ef96000",
+      "score_sha256": "0a1c21b6b02ffb12038a21b6387980fb52c2d2ec6440a374a4a6a3869381bbf3"
+    },
+    "python:1016": {
+      "capture_sha256": "5245eb7e6053b11777404a800b82516b6b5451ba2638032f1e3a327483bfcc70",
+      "score_sha256": "0659c0f2a1478c26d1e3d28e8983f4348227c4d848dea5c2ba8a9b597112ceff"
+    },
+    "python:1017": {
+      "capture_sha256": "28aa312711b5b8399c61c8752a6deb3a81d0a6cc76115453cdc887934e26a3be",
+      "score_sha256": "1f46027d3d607d857ccdaff68ca91f02cfc9daeaf53254db95c29c58bc892569"
+    },
+    "python:1018": {
+      "capture_sha256": "21c85ae037b1d7b5f59ee83df4e08ff7b850fa861fb1c7004f4cdca98b98e086",
+      "score_sha256": "0c248508001119f4ab9d0d962bf570e11c9cdf8edd425e8698725b1612821ac8"
+    },
+    "python:1019": {
+      "capture_sha256": "02c52b6a08d4beeaf9df5c640cbbc1a603b1ba5d5457a35b0abf73f82398285c",
+      "score_sha256": "6d83827d5c0261d374018335f14e4d4f092b406551e8869d6230b780d4572315"
+    },
+    "python:1020": {
+      "capture_sha256": "a570a641bf5dc254a565cbba760d14c457312a045870cebbcf3985608513b4c2",
+      "score_sha256": "8b6a9862280759b11f10564a792cb76644a3ec361c656d745202e3833a6bbc0c"
+    },
+    "python:1021": {
+      "capture_sha256": "871520eee1ce3b0278cf867282720dd58883e83f85f8edd56f85d844a33530d0",
+      "score_sha256": "0de9cb76ed600245f5abc993fbe23eac0b324009f327fc2107bc389a42c40f82"
+    },
+    "python:1022": {
+      "capture_sha256": "737d51f9ce4390ba7bd1b625fbea36cd6304c2cdb6a91e822a0c70fbdba3b58e",
+      "score_sha256": "3ef46272bd435a232104bb0e17575415e4afa9be394b0841aa4f33b4fc5481b6"
+    },
+    "python:1023": {
+      "capture_sha256": "089ab250ab252b3d427ebc2d719a4552044ebf732d9c71b2e532f6d54b19d534",
+      "score_sha256": "544bcfd50ec4f665ec1b20f2673dda493939d48f1b557aa36f88873865a44f55"
+    },
+    "python:1024": {
+      "capture_sha256": "49ea81ddb31c74e4fc7d50cd0573924dad2e69363614e3ee02b0ab8f80179825",
+      "score_sha256": "816827cd14121ddf6e8cc905572f627bdcf1aa8a0df5c031ecb1cfb4f1ca9eda"
+    },
+    "python:1025": {
+      "capture_sha256": "b474891fe9de1a62439eb641128599f485a891d6f040e54b7eb689d7ff24fb4a",
+      "score_sha256": "379de4046dd80ccff08035e18ea84b265074c4872f75701e3086306982567417"
+    },
+    "python:1026": {
+      "capture_sha256": "71058f1a222a4820149528c1dec89f62a4e67c64ecf0c73776f5ffd2294be34b",
+      "score_sha256": "ba1f270fb1cfa58cd582409b7869bc0083f7360f9bf62f2c7ea4eeca51cf797b"
+    },
+    "python:1027": {
+      "capture_sha256": "d968ee64949d221949b7a2ac2adbb07812ecc07dd528969bbc25061c1c794cb4",
+      "score_sha256": "1a86e349589ef17d37220c76a5ddcd803305e31beaf3e3e6d9da6f4ff871347d"
+    },
+    "python:1028": {
+      "capture_sha256": "301ccb02ab19e5ca57f78bf5659cac78567b9763fd43302f9badba3cbce0fa1c",
+      "score_sha256": "6496ab088d9bf23bed068079ef71ce406089bdcd79564e20836227a7232659a7"
+    },
+    "python:1029": {
+      "capture_sha256": "8c04ef5c5c41a1569299375603b65d2db9378b6068c6918d7bffffdb237d7cac",
+      "score_sha256": "7f65458b509c1b052a20347718030808b9b4b739ff792c03439f3abc43239d17"
+    },
+    "python:1030": {
+      "capture_sha256": "ffc6a9fe2e12c5788d3448094e0eaed1a1c9e860c45a0f181a3a91482ea5ad95",
+      "score_sha256": "24a911eac2169fb1a246e9b77e4f6662c9f4ffa9d624a95b18f85a7d347d0a0c"
+    },
+    "python:1031": {
+      "capture_sha256": "404f356cc9922742c64f894201429aa5f00ac82d5d303a6f2787550c8017d685",
+      "score_sha256": "f92ca12b1798654344363e676dbfaf2df52bbf8b4de6cdfe25c097e37c5a1ea1"
+    },
+    "python:1032": {
+      "capture_sha256": "9190768d907eb3b3614678e3c7038a9bdbbaaaaccbbbebbeef6675decb1a76ce",
+      "score_sha256": "601991899be7b5c852ae03714fae00485651a1c91c73209abd94885417f504da"
+    },
+    "python:1033": {
+      "capture_sha256": "321279f1d6b8d9635f6202884ba9350cecb06524bddfb1c2e2d6dc3d963e1341",
+      "score_sha256": "177f829799cc2bceb8e44c04dd6b59bb18ae6d16797947048475b287f3973e6f"
+    },
+    "python:1034": {
+      "capture_sha256": "61a71f6583b62162cf4bf9b581931c7f32f6b23217fdff5762b2a7c142f7f376",
+      "score_sha256": "aec36b7fc0fd57cd44119a5371bc3cb6c8d6bf81af6cda50b9ba9040f72718b1"
+    },
+    "python:1035": {
+      "capture_sha256": "3717d1f4fb6c46838ad3d99c29c3141b8af9e7902fa62b393de170ced51f558f",
+      "score_sha256": "cbbfa7ee5da83bcba27d930365a5d8d2e412c8c393632e7706855951b0ab895e"
+    },
+    "python:1036": {
+      "capture_sha256": "e066b9fef6ea29413925c2cb2fe9d7268d1c486a5e371f9b31ca128a6d1f89d9",
+      "score_sha256": "c920e9c1b12c9d079da8c46fa56590a354ac56bdda9ec025f278c3ebfe73d4bc"
+    },
+    "python:1037": {
+      "capture_sha256": "950287e734918c4e742961f379986e8bdf5d4e79312286ec12ebf4a92ebb13dd",
+      "score_sha256": "da6f99ce9fb5237161e1440a05daac6b15cd4fb98c5d6728ca7658ac3e8b0c42"
+    },
+    "python:1038": {
+      "capture_sha256": "74445bc4ce4de1779a30bc0e67a84a9cac8211801db86c7c42548918c45baebf",
+      "score_sha256": "ebc661811d44ee88d000d9e42a902fe099e0ff71b76219ebc98aeecb68f22ce8"
+    },
+    "python:1039": {
+      "capture_sha256": "e3c97163ef5648b0ce58a63ba35dfbaad2bb7e0960d49e7e4878775701e8a712",
+      "score_sha256": "6632457d559e6d61f2982c57d734bff8fc0ff3db3a38937b0a35ce59f8163081"
+    },
+    "python:1040": {
+      "capture_sha256": "595572e60a6eb3ffe4482cd83ca0d20cb2c8c280b546fd35b64ad50cf48bfec8",
+      "score_sha256": "7fbf019480638ab4b5a59c7672f21d6cdcf0cff821e3b9b6d0877b0741ef71b8"
+    },
+    "python:1041": {
+      "capture_sha256": "c63b9931fee88ed9035f6f662249ed1151e1d61f44df1275bd15e940071e7689",
+      "score_sha256": "e00e374a6395e5ef645038d0b912fc793e04bed63dcea13b7cbf257e55e4522c"
+    },
+    "python:1042": {
+      "capture_sha256": "eaf0b6d792495b3dfc8db3cb8822e2f318f0c476ec47875f1be52956b01bccc7",
+      "score_sha256": "85274c6b679344c7a97e29a0c0ba48c5e8ded564762e246d2e13b978e96af763"
+    },
+    "python:1043": {
+      "capture_sha256": "c198c6fad9b73c8ddfdba84a5a13af34dcab432a7ed04df89f6dc72442fca814",
+      "score_sha256": "460ae01c2e1fc666ef39d13c85a103feaed688b9170a6a07267e2cba212f1ec4"
+    },
+    "python:1044": {
+      "capture_sha256": "1724a7666b5591b8908131922cf42e293c1597f159f36a9ca6d0cdd1ef7fda47",
+      "score_sha256": "8c1a32f8403708404b43bbb34c790005ab5dc2a455ff7d90f7403cf315a4579a"
+    },
+    "python:1045": {
+      "capture_sha256": "bd4bd8e483ff1156f70bd88007d3fd9c9047cfe9b694621af98d5c4c7ff36e15",
+      "score_sha256": "3a77a8eea61593b5eeec86fa47e569cd152eeb3fa095ba82abb2fd7c21591f84"
+    },
+    "python:1046": {
+      "capture_sha256": "507f376c324d246ebba82b6f0c245cdf9fa29d8d1f61c09ca3ad37df0bdcedf4",
+      "score_sha256": "d7c4b7f9d1e788519ccf8c3bae9e41d9440ff10e8cb479f111bce6264a413952"
+    },
+    "python:1047": {
+      "capture_sha256": "402b7b182dc78c59eb224c5c3fff6da1b564cb2fd4b343b09c7fe4081d464932",
+      "score_sha256": "ba008f2301649fc21d8768e0c0d86ee37f91d2b8f2079706cf56b0a5d618492c"
+    },
+    "python:1048": {
+      "capture_sha256": "e872ccc1e0ed34a8fc2fa1d2c5f6df89d2e55c712f1d2806d4964f4249e3e02b",
+      "score_sha256": "8ecb67d93b9cf21e02c2e3a15d55a0ce6a6ccd263e3230d721634856c890a20f"
+    },
+    "python:1049": {
+      "capture_sha256": "2ea778f91038158452c92b88564c754b81c0fff8474be9f12196ca77260897f2",
+      "score_sha256": "3353ac666abbff5432b08970dac626d023fffde921b4868afdfb6abacc7292e2"
+    },
+    "python:1050": {
+      "capture_sha256": "f85bc8299494b5464acb9deb8ad46de4a1737dcee99ff4df9e8e68fd103292b1",
+      "score_sha256": "46fbd40803e0d21e0f59770cbe2a314a182e97a996ea7fa8b9bb3f4b2c44a4fc"
+    },
+    "python:1051": {
+      "capture_sha256": "e0e8ff890b11bbaa99424bc5245a1b460c1f31441a436765c27e4c6b3f3f1238",
+      "score_sha256": "0740a3848aa88e33e1527ff9e516097d899aa24aec8d96f4dd5bb783ecd275f4"
+    },
+    "python:1052": {
+      "capture_sha256": "575dc38a2e6293e7d0ee7f8b371cc845faae676e8587fc4ea149bea638d6f712",
+      "score_sha256": "44e3383317e84d287313764fae246974606a24e302f6f3071f1c405924e43001"
+    },
+    "python:1053": {
+      "capture_sha256": "c947dde6f7b87e8d3f72ff45496ee2ae7e4ada00c7c6a0427fa383b6cf8eaea3",
+      "score_sha256": "2c1ba3d5049e8cfc318a8198491aa2b04c7a7cf4c9452eb96fc3b7459183cbfa"
+    },
+    "python:1054": {
+      "capture_sha256": "6f7b0eb7f9b5092942a8d3ece2d891b2e7263a91504cd2f0ecb8a8f669dc24f2",
+      "score_sha256": "9d38306b8088a579eb4685dd6d19d6267b4b58a9cb398e1cf97cfac8a2ce5681"
+    },
+    "python:1055": {
+      "capture_sha256": "6059010e2bd9254989c41698539afa1f6a9787be57b9847aee7c0139e32c8f94",
+      "score_sha256": "7452d7f097f0f2e1fef6697780e1ec9b0bfeea71651a55262e4cbb3cf1e5db51"
+    },
+    "python:1056": {
+      "capture_sha256": "f632b1a874515ceb4e145a99863779aa77433ca0c5bf3184176ef6efc4a03921",
+      "score_sha256": "3108fbec9265721d52b4e493838e72adaf6c6279a4ec9de8fd8f6aa3b0e8ccf9"
+    },
+    "python:1057": {
+      "capture_sha256": "2b1696dd532c1b33e836990b4ed957e29102351f6e56428b1f7149d948d49ae2",
+      "score_sha256": "e9ecf264b3db07150788c86ab4ba0a55dfa4f05ff3af061d280137f2b6eb0fff"
+    },
+    "python:1058": {
+      "capture_sha256": "2af20710aa084c84fdcd9a389c930317b6b134119ab3f7c5e20fa3d1d8ecd155",
+      "score_sha256": "2958f2d559ab459ac7a5ac9952d6bfba1674cb2d44ef0565e806d796cb1e499e"
+    },
+    "python:1059": {
+      "capture_sha256": "4c9ecb2b9488ff621ff0d15f7f47807105d8ef67ddb4ad517acf383fc2aa5ce3",
+      "score_sha256": "bca38b62e283699b0cc8780c4f25ee365ce624c7ac3739d7c0a6fbc8d1ef93a6"
+    },
+    "python:1060": {
+      "capture_sha256": "d1dd46fb29916268505dc774b6d3608c5ce3480c5d5a200e27d00e67ee651958",
+      "score_sha256": "ba6f78e65dc8a1f29873fb4310b17c6b1be68ac97f8f415c135f054f224da4ec"
+    },
+    "python:1061": {
+      "capture_sha256": "40621ce59eac006e3b4f32e11e123adcb0b5211e4ead5f6f00f4bdc321c52296",
+      "score_sha256": "e4be532bdde14bca9657a8214b25d6717488f1a6e81ecc66649a04dd78e40724"
+    },
+    "python:1062": {
+      "capture_sha256": "7f3371ed1458861dccd0a35898f6d0264b2f6de32469ef6c6aef9fb65a0848f2",
+      "score_sha256": "f5b31995384ccadae55de81ef9a75c5bde3f1668fb72e29f1b98e4eb62e7407e"
+    },
+    "python:1063": {
+      "capture_sha256": "e58782ce96fe1176997bbc60040a91b9990ee461824a1499cc5a620714034a85",
+      "score_sha256": "50a6017d59f51ca752e41c24d623a7459752efa71ac3955ceb3fbf61c63b2be3"
+    },
+    "python:1064": {
+      "capture_sha256": "d20d26ed1c880e609d8f7f60bcbe1b18ee914fb5be93b43a80d60c3f25cae41a",
+      "score_sha256": "56e8e613fe0aca2b259219f7fd6522e636e839f6b8e1d2c422e041292c131b64"
+    },
+    "python:1065": {
+      "capture_sha256": "02d54db2304f1e4b42737da3c72d3ac8faac8a53c1b1503324e42a6666785539",
+      "score_sha256": "eee312fa75bc7017c6b018b845e1a6c0bf4f9df3311515e4c575346275e07e43"
+    },
+    "python:1066": {
+      "capture_sha256": "dabaf9d29c21e3a206b9844d29917f81d9e232556e32143f0ff938101a5dd936",
+      "score_sha256": "c07d6763d849ebedce9919e2e5da0ed6cfc79b415261ffbdc2ddebf305aa7afc"
+    },
+    "python:1067": {
+      "capture_sha256": "d62be3c367dc07ccf7a4b5cbe2b354985c74cc9cff0b68cbe4fc4795be286228",
+      "score_sha256": "9ef0b7d7c7d13e8c35958a07df82ce1733854aad82c109bb41b2b87249bfcbce"
+    },
+    "python:1068": {
+      "capture_sha256": "552145a3205e1a76f0e2715b5d5acf3c4f5befab34bb09df9bd819be47d8586d",
+      "score_sha256": "b8d360fc7ec03602b15d8f82fba10da4f5d0b15e0d3d5bbe3394db253b7ad568"
+    },
+    "python:1069": {
+      "capture_sha256": "86aa0a181160c41a398e21b1e07b096ed85de5db3420796350d32d516f1b9fe8",
+      "score_sha256": "7c8864dfbd1ed223c1daa1aae1dab0a4649ac88a45f2b29502e0078f5cdcebbc"
+    },
+    "python:1070": {
+      "capture_sha256": "00e72fbccca25c4fd586bca73913689c3bfb516a5fcb99000a108d22f67212d8",
+      "score_sha256": "0bbb37b8c0739f2835486e6a04fd6133a14d4c8489ac204466afd99c4516697b"
+    },
+    "python:1071": {
+      "capture_sha256": "675b4f48630efb79acab7fe5be863a9414e7be3546854f7d3c2869e5be3fdad7",
+      "score_sha256": "5365a594055c620edc20238baeb3f925c7bbf7a56fb1f6e48405dfcfb7344b86"
+    },
+    "python:1072": {
+      "capture_sha256": "8c4654479bf40a08962a4d2465d92fc577be9893b0f631a67473037ffff1a936",
+      "score_sha256": "841d74c183c60f4c69743f0368ea9d808b558ae711c7b7f6c0e37d35a16d653f"
+    },
+    "python:1073": {
+      "capture_sha256": "65351c1d20902eac6f4fad194d2544176b8e7852b45b4192d468267126820daf",
+      "score_sha256": "8ef11c57ec5ece113e75929f1bab5c5fec8a3b54b64872399eb44a6e2288ba1a"
+    },
+    "python:1074": {
+      "capture_sha256": "28bdddaccfcc0e30defc85f43c19aebeb813359163f21e53adcb996defe53a3e",
+      "score_sha256": "c02a6826a8a2c1f908206ffa818ec95f1775b14ce36ee90fa39952dc3e600751"
+    },
+    "python:1075": {
+      "capture_sha256": "fb43c33810b6fb04e0df603d62a59cf8b9f751e77b71f7d4fc0b9e5e28e8e175",
+      "score_sha256": "dc948469bb6f1a49f699dd25005e6f227ba791fd33b95c683883f9ec6fac00c4"
+    },
+    "python:1076": {
+      "capture_sha256": "8e8f5ea446f33b6c3ce21b31f60324c126222582457091c7cb60bd0406cbb29d",
+      "score_sha256": "2b62e60846b9d877df86df80cf688f8a22fde85d207f81d82bb503474b570d59"
+    },
+    "python:1077": {
+      "capture_sha256": "63e7b8a9f3511b3117b2d26c2de07c5a3127ecb0c8c3528356fe4d1431adff83",
+      "score_sha256": "70a73ebc770319c5bfdd609dad486f680cad972fd32cc3d5b74872f7410dffb8"
+    },
+    "python:1078": {
+      "capture_sha256": "65f3902005c86db7f1c212cb9bda46b431b883893f63bf4df52c08a1123bc56f",
+      "score_sha256": "2b1b510aeef4a04b8b7230b72e1822d60de34dda66e3fd3932a471de00453cc8"
+    },
+    "python:1079": {
+      "capture_sha256": "80b1ea939f7fe08cdb6728c04ec5928c7c834a2608306980101be9fcf3013ffe",
+      "score_sha256": "4de101a0b2f52d457cda3b4b0ba523237935dd09235a9a6687f447a7cbf55276"
+    },
+    "rust:3000": {
+      "capture_sha256": "6d8e6a5250aca8d948d7d060c1e3b45860b2870c19beb28267ab2677c5a6c11d",
+      "score_sha256": "d2372d8e964d55c989139330369ab13aa4c95e74fd9bb557bf68dd5fb059672b"
+    },
+    "rust:3001": {
+      "capture_sha256": "46da7a7d9addca43364d76bd164e095979ad7ec930dd613af1255ec8ed4b5276",
+      "score_sha256": "b6808d747d45152e671592232b25ce547463a24902f439fe81460973ad4cf694"
+    },
+    "rust:3002": {
+      "capture_sha256": "84fa2430c4d915d00894e63ccfa537afad4f5238b814b497e49ee1441fa03b89",
+      "score_sha256": "35a92b4c0c2fab7eb4d425c864ff8c075b3e6332f908504d9d929abac8502913"
+    },
+    "rust:3003": {
+      "capture_sha256": "d77b0ead36a1b577cc78d8655b2f5dda073e5ba7cfc19356f0106e00a167e6f0",
+      "score_sha256": "9fc996699698e300582b39456c02da1e12594ff13f0258ced513205779090fdf"
+    },
+    "rust:3004": {
+      "capture_sha256": "1045d6626b2ebcd220c46736741fb0ce26d9f4c1686e1122131c990b567ec852",
+      "score_sha256": "4fbfe959b75f5aadbe43ac79b90465d2aaab63d2ecc0bbd2ef5932797dc461c7"
+    },
+    "rust:3005": {
+      "capture_sha256": "24315dc07a8073b70aabea8ad894e37122bcc33635e3b0b1750a31b571868aab",
+      "score_sha256": "804d231a8f446d8bb2e0091a0aa555ccb88a55761fafb6824750f4bebdedda45"
+    },
+    "rust:3006": {
+      "capture_sha256": "1157f858e9c9702d06df9d10b70227996b8faf2df7daa5b233f14945a06d255a",
+      "score_sha256": "29a9b6b3822fbfc401bafe30732529b923cef679e3f01338162efd59e5aca18c"
+    },
+    "rust:3007": {
+      "capture_sha256": "40a1aba07375d3de885c0be88fc2910a57bfe84a7329ef8139291ee858b8cdec",
+      "score_sha256": "52b7f163144cbb987e882ed36d0ed1059da9e7b9089a2db37d7bffe13f546d92"
+    },
+    "rust:3008": {
+      "capture_sha256": "745bd07505564a10684ee5dd3b7d30f45669b8e8d73e8fe42a8e0e35aebaa663",
+      "score_sha256": "d606a9e2f01079fa282b769be256c82cf5777826f50fc6020b15324e89da6911"
+    },
+    "rust:3009": {
+      "capture_sha256": "11720c72de5875f1df57f63c65f8468c19a2305a380df847850e048d34d32f48",
+      "score_sha256": "883784cb194da6ed9a271181e792d8b40858c84164a421e49f2648ee85b8387a"
+    },
+    "rust:3010": {
+      "capture_sha256": "bf17122f0c1ed369c8b5df10208ed9dc528efcc0ad785250b75568f32ba73585",
+      "score_sha256": "c168d52ee6bd5bd595b33bc2d1c922d4c138994ef1d53b042c47d72e0bf2c7ac"
+    },
+    "rust:3011": {
+      "capture_sha256": "59a6c11c80ae49e9a77808d768a1af7f4d48b402a7769c104fbe721f9c1cb516",
+      "score_sha256": "393228ebd212736aeb52179aa1160175e4388b4acfa825a5f28d5f253c7916bc"
+    },
+    "rust:3012": {
+      "capture_sha256": "9c8426e8000a913b5788e9038f3c21b34fd99d3efb939756f71973aad616e378",
+      "score_sha256": "0489572883366ff1f8eee410f390fff98b1a27e668a56e9732b852b04728636e"
+    },
+    "rust:3013": {
+      "capture_sha256": "c96f3ec595bafce471200e7c3fc577e6ffd5349ec4016dc3abc604eb87e3192d",
+      "score_sha256": "4e4b27746dfd432360083ae51a387e06905dee878005b1e122c07bb275968d8e"
+    },
+    "rust:3014": {
+      "capture_sha256": "b75c18a57a22e4c4a8582f612290ad3ef1657823cae5297b1da82154f51ff382",
+      "score_sha256": "477b43d0b383aa5ebca58707e1c453df549266386b5e0582116c4f9db968c762"
+    },
+    "rust:3015": {
+      "capture_sha256": "dce9211e3d346efc19b01d0c89ce1a76124ec6e7d50d752bea2cc25edc0ce9a6",
+      "score_sha256": "2bad9a5e4c6dab2737d37ff172d5531981a954f77a43fa708338d23799a2b616"
+    },
+    "rust:3016": {
+      "capture_sha256": "45e7ece71a2c5308b0e1b9876668713d0034d3fe831c914e032691f6c0ec4d4f",
+      "score_sha256": "e5efd653eb44776ce4f09de22385b6999fd3f28c683da3c34bb1cf610064cdaa"
+    },
+    "rust:3017": {
+      "capture_sha256": "4e50a22ee9bb0e163238bbb5ee6f7329a6d8444527f492235a572cb188b6774e",
+      "score_sha256": "8bf010f6391a30209b00c043c01d7eee682843954c9f02c306e2e17f73f99705"
+    },
+    "rust:3018": {
+      "capture_sha256": "511a1d0d711de2354e143a7e76a3e16d19c0babdb2558552d6afae5f7f9f0262",
+      "score_sha256": "947ba6fccb39acdbf799c318c68c07067104b872f7a609c966fe0c81f80b1434"
+    },
+    "rust:3019": {
+      "capture_sha256": "f2d2974a4b76eb9195743ed63f45aee1a5f84368e4b4e06d03970f81fe2de003",
+      "score_sha256": "c56531bd9c50eb9b56ef799da7739b5bb304d585c098c8504c82c1a2491c06c8"
+    },
+    "rust:3020": {
+      "capture_sha256": "4137105f0e21a5b7c4301adf4d190690aa27aa1e4e27f3a0809f87075fbeefe0",
+      "score_sha256": "370017e8cf1c1ae3cbf88cac97b9c47688718ed81ed1369e99f4c45598d6ac59"
+    },
+    "rust:3021": {
+      "capture_sha256": "ac97eb1872978ad618423c605e2cda65a376b1a022358179d463611d80028446",
+      "score_sha256": "c0a0e08f97aa32ae52cfa465f0ff2c250289e5284a57851148cc05ea98e43ebf"
+    },
+    "rust:3022": {
+      "capture_sha256": "78b19d28f2eb11a46ec54caa2129972e414ae3686e8a5848e65a7093aae1d8b1",
+      "score_sha256": "2706498ab707b4e832782f216bff8cbc89743ceccb8b01eb7cab4e9616287795"
+    },
+    "rust:3023": {
+      "capture_sha256": "8ee34cf8bf41216493cd6921597a0a8157b69270b1c3b3a47d5d2d9763e8d6b4",
+      "score_sha256": "1f6e92908997edc574396a49551108bba1bca80644548dedd7d9e21839b5b8e4"
+    },
+    "rust:3024": {
+      "capture_sha256": "faccefa58bb977bdf747d1e641a250d424872129d26b6edc026d2692debabd2e",
+      "score_sha256": "833c4fbea47f4928927057a3e82e1cab37916bee04096cb64bbc33ac3cf56e24"
+    },
+    "rust:3025": {
+      "capture_sha256": "eb14b38da069ab9653ede7a27883c1b9594bac715d69330028eea6a31759bc00",
+      "score_sha256": "665fcc3c3e247b7cb501860d1d42419427d03c3080a61f5e18ddac28fbd983b7"
+    },
+    "rust:3026": {
+      "capture_sha256": "ae9510769609c7e7a80ce330dcbc1c10766e11e85a9e095e0f326c856f09ff73",
+      "score_sha256": "73d430a678095d03f40f060c9293375f3139f0d5088a42b3f8ff6fed049edf44"
+    },
+    "rust:3027": {
+      "capture_sha256": "21dc4c526ebb76d65dc5e12bd9bf5e2d9dc2ac578a9766773e3d39e28c9a4dfd",
+      "score_sha256": "556e3b7f3ae3103be07e10ef18a386d502720f5ca7124fca893317529b96ac39"
+    },
+    "rust:3028": {
+      "capture_sha256": "34d67c379faf4d81cc75dc3ac3650c170297516b5dcd2b5261f07b2529efc9ac",
+      "score_sha256": "a44a59129f67ac68ed0364ff55a419b040348c64c14553bcd758af27fc5e9411"
+    },
+    "rust:3029": {
+      "capture_sha256": "4fb6286315d6412cf2d07f57bac08d6dfc2dc36c1ac01b4155867845b5246b0f",
+      "score_sha256": "02b47c3b64c1c66dd4612f26ef6c83a1a7e8e8e57a417371405e87e32e0120ff"
+    },
+    "rust:3030": {
+      "capture_sha256": "dd0292196421516a141595107d15d70be34bc6f70051ed9fabc2e4736de88774",
+      "score_sha256": "15ca4ae61ae975e403053ba2d4a76de94dd68bbc225a8051cb1b8d130a6f7579"
+    },
+    "rust:3031": {
+      "capture_sha256": "db7f7f04a4f4492a4670ee7def1ba301a5598703331f901c67ada88bc20d7a94",
+      "score_sha256": "82d8ea8840d75f51b4fa2f700555f692677f2771ffac938b5ef568832643557e"
+    },
+    "rust:3032": {
+      "capture_sha256": "f47aa4bf5f2812d9ad8b1706c60ef3b52aca99d1ca66cfb0dcaf87a96b1e40bc",
+      "score_sha256": "c29f0afeed5fb9e2f99b39621560575b5271c751480e4f347366c596a575d28f"
+    },
+    "rust:3033": {
+      "capture_sha256": "3601be76c46d453adc5cd4481755af228e1d2239ccd758e2740a5cf5efbd8452",
+      "score_sha256": "4eeb5b86c78bcff8ceda6241b2497c177678a95e8f0c73ad99100220f1d4ed11"
+    },
+    "rust:3034": {
+      "capture_sha256": "4b66f1fd9c2d44b056a0e3b81d0ae4dd331b2c53f7e383f0dbf99a74e2d00181",
+      "score_sha256": "27cd28c22a0f0d56453a84dcbd72752269ef2266cd1714ce12b51bea522417d7"
+    },
+    "rust:3035": {
+      "capture_sha256": "91dc5eb23afaf0a1af004db7fa1f22c0d805c99629f53e46d823371b22aa0ad5",
+      "score_sha256": "4661e6b4fdae5f0cc249a947627f55e895ade0553a60bfbab4ef70c6708c79bf"
+    },
+    "rust:3036": {
+      "capture_sha256": "3353b2d04590c095c254da690ee4db50ec13d24d7f9276dd8b52367cdf037875",
+      "score_sha256": "b5ea1cb627ab02b9437e3da97e995dbee7ab90d5b0934b18bbe9b584f0c29431"
+    },
+    "rust:3037": {
+      "capture_sha256": "88977854fad28f95af829750e8efe39c1d17587c7e5bd8662422ef6c36c65d01",
+      "score_sha256": "bd30bb9b3046ecdc08917ac060fcc06cbcc94146000fa0ebf6a08d2e56578109"
+    },
+    "rust:3038": {
+      "capture_sha256": "16bf40be5b1da98f92f092c7a87e33f9e3f05a17eb854253200f5adf3252ca76",
+      "score_sha256": "88e0b2f472237580658b2ef192324b30aefa5156fee4cfa09fd09d0864a054ad"
+    },
+    "rust:3039": {
+      "capture_sha256": "40d60cd0b3185cee06f9536698d00799e9c312aa0aefab5a5a59f97e56ec49aa",
+      "score_sha256": "0a5debf4a2efedc4dec9bf01cfd2c7e3df7abb161fbbef7a05d3e50562b86c59"
+    },
+    "rust:3040": {
+      "capture_sha256": "b277e1105815f7a545f8a1de9cd66044476546b2a00d668e8132aebdb4e8c7c8",
+      "score_sha256": "88de8b7ffe2f632b1179cae14778c4c835f2f6ee98698ff8c26769a95d949b5f"
+    },
+    "rust:3041": {
+      "capture_sha256": "6b4e8dbbe26fa0be6855f9ad82a0de6a318b1bcce1c30d2d338918538a52035a",
+      "score_sha256": "c1204aff639bc80dd4482665270b4f56028715c498d6f1415e406b1004a4e231"
+    },
+    "rust:3042": {
+      "capture_sha256": "70016389336b1cba7a06f40511d3dcfd7123cdc56d335e2c397f780e47610994",
+      "score_sha256": "3e28a7341b02e845da734e551b1efd635f9a1cb150aa6dd4606ac05945b1a330"
+    },
+    "rust:3043": {
+      "capture_sha256": "5556d0f3423fe1da4828e9f9702d80bf3161428b1e8413f26a562a97ad2bbcfb",
+      "score_sha256": "d61b90a352defdcdd1755b65569d81e2c3047aff1f1e083a2fa8f55d125faf98"
+    },
+    "rust:3044": {
+      "capture_sha256": "32c9a22de4b22516759b14ddfd6c7015fc9004ad354fc32b74da401ed02c8584",
+      "score_sha256": "ed059e4d4bd8d0639df0564b5ba07cdbf1e5c80b40b9d2f0bf8a9aa3dd5b153b"
+    },
+    "rust:3045": {
+      "capture_sha256": "41f458eed1a89e17cc415cd276bd43158a6d95f1c4645eb8ce0bd18515f8dab5",
+      "score_sha256": "4e492149b623eb13f444c3beedc6f5a77d4ae3cfb954f89e38af8ae780be3483"
+    },
+    "rust:3046": {
+      "capture_sha256": "e570a806129f9a179bc640720ffd890e744c9b2f38a4e5b91019eb63d13568e6",
+      "score_sha256": "42c2bfd04e10166c44953ad680b6feaf802d9a1ded34058fceb22c8409ad73ba"
+    },
+    "rust:3047": {
+      "capture_sha256": "e9a7a47414a13259e585c0d46d40c228108a09121b1cee45bd144266b05ab651",
+      "score_sha256": "81c32eca9c832c5425279aff8731762b4bc43844aba5c4f7502fae9a3dbdfbdc"
+    },
+    "rust:3048": {
+      "capture_sha256": "2f430aab256159db6df88bc502ad061b3be2fa15525ab41656617a8167c7e079",
+      "score_sha256": "47c9f4129e586c74ffa62b396568c59bab8abd61debf5d890285711827107814"
+    },
+    "rust:3049": {
+      "capture_sha256": "3de6249a79eb5898847d5235a4b7a98eb2e5c5cb692e8eaa301cac05e1a085dd",
+      "score_sha256": "846382a9820639bc041bdadfa370d437e9f20764658420d7ea608c69134aaf1d"
+    },
+    "rust:3050": {
+      "capture_sha256": "d463e9029e9b54cebd53b036245738d0f2a31fe32e0cb2a38291c9580a5d55d4",
+      "score_sha256": "f538819ea7c431b72f9dae6144d7c7b979dcbbd1d2cd4cbcd2b17cafab1de6e1"
+    },
+    "rust:3051": {
+      "capture_sha256": "ddb3cf6ccad8859014f47705d9d857cb5b7a79ec240756f8449dab169e263236",
+      "score_sha256": "b597543e0d64ed109e02e9a814eddf1b3b989c792e2ca44866692db7d30abf9a"
+    },
+    "rust:3052": {
+      "capture_sha256": "c1024d4ec067b5d1e384b146e1f0e5894c2872b1bbd8481238bf06ac2a21ba42",
+      "score_sha256": "d02ab56ed2a5ad3295b6cd1add74e03b034f936ac3133442c4e24226eac62d4c"
+    },
+    "rust:3053": {
+      "capture_sha256": "56bd805c6e15dae0eb57f28c457113ade3ee440de7a8533a835ac0a2eccb221d",
+      "score_sha256": "d3ce13e90a0b96ed2f4ee23c78a1357e670ac4dfe1d3a509ea7d260f461d5935"
+    },
+    "rust:3054": {
+      "capture_sha256": "7dfa79b0c15f0d2fd19df9635ff0151872acc0534d463c70ccbdf32600ece98d",
+      "score_sha256": "15c6e7ce4d53714ca15de70abf7122ef56138669f78f604a105947ae38e18202"
+    },
+    "rust:3055": {
+      "capture_sha256": "271e3405f759882950bbd9503b1a36db49ed75d142b0de8d7620fa7cac83698b",
+      "score_sha256": "574ea14bb8e83a017814ed382aac8da63ae6cd070ac1f2f6f2f0cb150e82e145"
+    },
+    "rust:3056": {
+      "capture_sha256": "50684656bdcaad4386064db8722370721968ea009684bc3fb51d6d8f5690b176",
+      "score_sha256": "3569bbd71305daa3c81fda5f513d80307ca0d3ed7e92dedc4c0c70ce35c7f35b"
+    },
+    "rust:3057": {
+      "capture_sha256": "79fb45a6a5b86a3690026a08c76b8502032b49e336b31627253b3fe53bade2a3",
+      "score_sha256": "9786d3d9a518ca88f91483c4b6ea99e120179332ef0561f92c54ed484e2c1309"
+    },
+    "rust:3058": {
+      "capture_sha256": "286186eefe71e482741c5f9097465d7bfe0a7def1e70a11155b29c14f2a90026",
+      "score_sha256": "969957a3cf1393399ad9f872c1eddc1ac9fd7bace46d8c5c3dca6a1106e5be5f"
+    },
+    "rust:3059": {
+      "capture_sha256": "bb193d51f181c849cf5af63ce9368a191313652ea4382a3988902a67758f536c",
+      "score_sha256": "3af5dacb303ee24d8ab4252584593a24acd904e12b9556b725acab3079304021"
+    },
+    "rust:3060": {
+      "capture_sha256": "4809288fd6d96c7eada4279efe9fdaafa5424d57088ac9ac206ba1b3be2be4f1",
+      "score_sha256": "e93757eef70c5111d00cb17a43e4d761004c683b93a912c04c640ee696c7cd6d"
+    },
+    "rust:3061": {
+      "capture_sha256": "88bfdc0c0177d9fe66e7351984a64c7194afa7eda4fcd5c71ec3f64a8c8b8ab0",
+      "score_sha256": "4e9d46a952c7e14ebe4fc8140f254648e56dfcc1af480f3dfeee0a5b74672870"
+    },
+    "rust:3062": {
+      "capture_sha256": "ab8e1c8a858219c5b80959942178d1b28dac7977a88f2080bf156901eb0150a8",
+      "score_sha256": "c957e07bb4c2e2383a15570e1139c1054cdeb6524f3f98933f455fec85ae1ae9"
+    },
+    "rust:3063": {
+      "capture_sha256": "5dbbf0b5246142eaced292c8c0139c96e076cf081ae391dd94f65767ef149433",
+      "score_sha256": "ef37b7d16346ebefae87186ceaf04f56fcfb7ed07dc8b1ba332f334aa2f3ec0e"
+    },
+    "rust:3064": {
+      "capture_sha256": "bf69d9b6c68fe72475a044a63d8e4e0ccaddaa9125e1fd0b24b8ca2a4e08a5d0",
+      "score_sha256": "794d988b25b6413b12d09b31240e89f48d4e2623c5b9da4035b0a57eb4520446"
+    },
+    "rust:3065": {
+      "capture_sha256": "74fe7a952acc59059133fc8df44b315061d08204554200f3ae50c87ace58a320",
+      "score_sha256": "3d2a880e8627b95d3a5024af723252334498833c9e102bbedc7fb123cc4ee8c8"
+    },
+    "rust:3066": {
+      "capture_sha256": "a46dfc7c13de72b2af8b5eee6547dfed287ff83a2fb32e9d48bd48d68f79a2b7",
+      "score_sha256": "5b7981f9343815133369af14baa2755fe809f6d28dcf515ffcc6df8b3ee747d5"
+    },
+    "rust:3067": {
+      "capture_sha256": "df4be7e0705af56ab4f311a4a5dd882648123f03d10dbf2e3f0bdd1d90181ca6",
+      "score_sha256": "02309203afee6dd8b3705c1e45aa43d3423c7e860cd9587c369161facea78e3b"
+    },
+    "rust:3068": {
+      "capture_sha256": "561342ccf1d5be9def6e5d77f9ffff99daef1d4b147f4f022e1432db3d7be518",
+      "score_sha256": "5739aa2808525bba781c4d71ee25da3223ad26aa9adf2227129f649e5849bc07"
+    },
+    "rust:3069": {
+      "capture_sha256": "5031ca46fd60843164f3f180f766ec5733c2997b8cd4976718a2f21adff44410",
+      "score_sha256": "80945a0676d5a64dcba4d5adf4495118da6e228fbc5523428da5a48940622317"
+    },
+    "rust:3070": {
+      "capture_sha256": "2357c1cd944125295c043c724cadc3105bec301973ba164d004d347c18f1742a",
+      "score_sha256": "0134c8ce0f33606e6d4922e6bc6c3d5641e5bf89f2201aeed0d02ca0fe9e0a4e"
+    },
+    "rust:3071": {
+      "capture_sha256": "57cd2de87e990a952f1dac517e6b08b5577b29b7d3e67f18ec014eaa1a8d811a",
+      "score_sha256": "713b49b5c947c2ab8d00dda33d359e08eb7f33980739f6bfb5b544220e6db77e"
+    },
+    "rust:3072": {
+      "capture_sha256": "9a692db7bebea55d581255927eed5e1799bb603a43526559c5cbe217c189fe2c",
+      "score_sha256": "d0362ca254076820e99c6b6f60e1395c42d760c9caf11cfeb3e6aa0743f78340"
+    },
+    "rust:3073": {
+      "capture_sha256": "7a191284b6fa4b8861ed1401dd4515d3f5507cdb812ac3b1b35a01ed80ae1879",
+      "score_sha256": "0821162aa28d7fdb58f36c304473ee323ec7d293c8e09394fed19dd43ab3bb09"
+    },
+    "rust:3074": {
+      "capture_sha256": "3cdb669cc3476ce0a7ad872ecbca86fc3b9a9236d18966303787b320c261d78b",
+      "score_sha256": "20616d1f86df3493029a18cd246e3f222bef75f90397b562c2689f45ec5b8701"
+    },
+    "rust:3075": {
+      "capture_sha256": "b8185fa66c30da840b0479c038e299588442fdadb43c2b54e97dceeeac219ae1",
+      "score_sha256": "15b1db8cdf97fea76e3f157e8b87101c2f08db8d97e10eade78df9016df6607b"
+    },
+    "rust:3076": {
+      "capture_sha256": "b27e0506677c820e09f09cfc9c955318e219895c4a9caea3ce2811defb7ac83b",
+      "score_sha256": "bf1626d1810ba4a9f357bab9b833d166d9d31e8094061bbef0ad5228cec97111"
+    },
+    "rust:3077": {
+      "capture_sha256": "b66b396b99afcf4ac59d3555012626924f3a457126235b497a846458565e507b",
+      "score_sha256": "6ca73e07f7dc8fce34685e3db821f454803bec381410897c2faf4fd0b72a6469"
+    },
+    "rust:3078": {
+      "capture_sha256": "9cd0190671566d39574a16c0616187861e35081f8b08a18d12e1997a8b13e4f9",
+      "score_sha256": "1b39314dc90bf70ff9d71e450e35a05776b90ecbda6506b8ed1fdf5ded87c75a"
+    },
+    "rust:3079": {
+      "capture_sha256": "c703de0302696e9cd0913220e0d066a76798e7eb47184f79b42b6b25d664b22f",
+      "score_sha256": "b399279ee35d74988b47a39ec94334cd0fe20880f3b838c4d78500f656068bf7"
+    }
+  },
+  "manifest_sha256": "e53dbba6b1648fe24f7bd6b0446dc1e1f65bd046be772550b7af9037eb86fa1f",
+  "mode": "prospective",
+  "records": {
+    "python": [
+      {
+        "count": 256,
+        "entropy": 4.340756019577384,
+        "ppl": 90.29194949407692,
+        "seed": 1000
+      },
+      {
+        "count": 256,
+        "entropy": 4.334259297698736,
+        "ppl": 89.23673286618778,
+        "seed": 1001
+      },
+      {
+        "count": 256,
+        "entropy": 4.337883573025465,
+        "ppl": 89.43443825028056,
+        "seed": 1002
+      },
+      {
+        "count": 256,
+        "entropy": 4.334883643314242,
+        "ppl": 89.76746729090581,
+        "seed": 1003
+      },
+      {
+        "count": 256,
+        "entropy": 4.342813264578581,
+        "ppl": 87.89956160503267,
+        "seed": 1004
+      },
+      {
+        "count": 256,
+        "entropy": 4.335644342005253,
+        "ppl": 89.43872575328577,
+        "seed": 1005
+      },
+      {
+        "count": 256,
+        "entropy": 4.340484140440822,
+        "ppl": 90.92338099364181,
+        "seed": 1006
+      },
+      {
+        "count": 256,
+        "entropy": 4.335669474676251,
+        "ppl": 88.03299479524591,
+        "seed": 1007
+      },
+      {
+        "count": 256,
+        "entropy": 4.343496399000287,
+        "ppl": 91.53839261667348,
+        "seed": 1008
+      },
+      {
+        "count": 256,
+        "entropy": 4.342445047572255,
+        "ppl": 92.14484551318036,
+        "seed": 1009
+      },
+      {
+        "count": 256,
+        "entropy": 4.341611867770553,
+        "ppl": 86.92058851680252,
+        "seed": 1010
+      },
+      {
+        "count": 256,
+        "entropy": 4.339223064482212,
+        "ppl": 86.68983667448757,
+        "seed": 1011
+      },
+      {
+        "count": 256,
+        "entropy": 4.342331599444151,
+        "ppl": 91.93021579085428,
+        "seed": 1012
+      },
+      {
+        "count": 256,
+        "entropy": 4.332255624234676,
+        "ppl": 89.47179962360333,
+        "seed": 1013
+      },
+      {
+        "count": 256,
+        "entropy": 4.342305187135935,
+        "ppl": 87.83645617946655,
+        "seed": 1014
+      },
+      {
+        "count": 256,
+        "entropy": 4.343928983435035,
+        "ppl": 85.68810271579675,
+        "seed": 1015
+      },
+      {
+        "count": 256,
+        "entropy": 4.341085251420736,
+        "ppl": 89.8970985673015,
+        "seed": 1016
+      },
+      {
+        "count": 256,
+        "entropy": 4.332334479317069,
+        "ppl": 89.62071212152524,
+        "seed": 1017
+      },
+      {
+        "count": 256,
+        "entropy": 4.3424089048057795,
+        "ppl": 89.12108149437805,
+        "seed": 1018
+      },
+      {
+        "count": 256,
+        "entropy": 4.341260004788637,
+        "ppl": 87.27764106728281,
+        "seed": 1019
+      },
+      {
+        "count": 256,
+        "entropy": 4.339316202327609,
+        "ppl": 85.15850861761338,
+        "seed": 1020
+      },
+      {
+        "count": 256,
+        "entropy": 4.340342316776514,
+        "ppl": 88.33602215736556,
+        "seed": 1021
+      },
+      {
+        "count": 256,
+        "entropy": 4.341832539066672,
+        "ppl": 87.68009168825847,
+        "seed": 1022
+      },
+      {
+        "count": 256,
+        "entropy": 4.333160175010562,
+        "ppl": 87.33614498878204,
+        "seed": 1023
+      },
+      {
+        "count": 256,
+        "entropy": 4.338365897536278,
+        "ppl": 87.79081416445072,
+        "seed": 1024
+      },
+      {
+        "count": 256,
+        "entropy": 4.3379837814718485,
+        "ppl": 89.06289068548399,
+        "seed": 1025
+      },
+      {
+        "count": 256,
+        "entropy": 4.339448783546686,
+        "ppl": 88.71623763938673,
+        "seed": 1026
+      },
+      {
+        "count": 256,
+        "entropy": 4.334662260487676,
+        "ppl": 88.06990562640136,
+        "seed": 1027
+      },
+      {
+        "count": 256,
+        "entropy": 4.344689764082432,
+        "ppl": 88.64733484576264,
+        "seed": 1028
+      },
+      {
+        "count": 256,
+        "entropy": 4.342722315341234,
+        "ppl": 90.50996935245911,
+        "seed": 1029
+      },
+      {
+        "count": 256,
+        "entropy": 4.338471561670303,
+        "ppl": 91.53204140550977,
+        "seed": 1030
+      },
+      {
+        "count": 256,
+        "entropy": 4.338309857994318,
+        "ppl": 89.89141744623277,
+        "seed": 1031
+      },
+      {
+        "count": 256,
+        "entropy": 4.344977263361216,
+        "ppl": 89.97452881386735,
+        "seed": 1032
+      },
+      {
+        "count": 256,
+        "entropy": 4.335879150778055,
+        "ppl": 87.1037405188997,
+        "seed": 1033
+      },
+      {
+        "count": 256,
+        "entropy": 4.3392624240368605,
+        "ppl": 85.43441539771881,
+        "seed": 1034
+      },
+      {
+        "count": 256,
+        "entropy": 4.339768325909972,
+        "ppl": 90.22641645306165,
+        "seed": 1035
+      },
+      {
+        "count": 256,
+        "entropy": 4.338953536003828,
+        "ppl": 88.23765103115632,
+        "seed": 1036
+      },
+      {
+        "count": 256,
+        "entropy": 4.337737889960408,
+        "ppl": 89.29237660098909,
+        "seed": 1037
+      },
+      {
+        "count": 256,
+        "entropy": 4.338399080559611,
+        "ppl": 88.35648449255689,
+        "seed": 1038
+      },
+      {
+        "count": 256,
+        "entropy": 4.338022219017148,
+        "ppl": 88.93504201273144,
+        "seed": 1039
+      },
+      {
+        "count": 256,
+        "entropy": 4.337236383929849,
+        "ppl": 85.82557982145993,
+        "seed": 1040
+      },
+      {
+        "count": 256,
+        "entropy": 4.342606181278825,
+        "ppl": 92.19376746701994,
+        "seed": 1041
+      },
+      {
+        "count": 256,
+        "entropy": 4.33647071942687,
+        "ppl": 88.4177671518809,
+        "seed": 1042
+      },
+      {
+        "count": 256,
+        "entropy": 4.3384213745594025,
+        "ppl": 90.07843206919499,
+        "seed": 1043
+      },
+      {
+        "count": 256,
+        "entropy": 4.335203226655722,
+        "ppl": 89.53269137674408,
+        "seed": 1044
+      },
+      {
+        "count": 256,
+        "entropy": 4.3481895718723536,
+        "ppl": 89.13554611388476,
+        "seed": 1045
+      },
+      {
+        "count": 256,
+        "entropy": 4.338812356814742,
+        "ppl": 87.05373319215224,
+        "seed": 1046
+      },
+      {
+        "count": 256,
+        "entropy": 4.3360704611986876,
+        "ppl": 88.82298314616085,
+        "seed": 1047
+      },
+      {
+        "count": 256,
+        "entropy": 4.339264141395688,
+        "ppl": 88.41358967203585,
+        "seed": 1048
+      },
+      {
+        "count": 256,
+        "entropy": 4.3383948262780905,
+        "ppl": 88.7780018137525,
+        "seed": 1049
+      },
+      {
+        "count": 256,
+        "entropy": 4.340530980378389,
+        "ppl": 90.57848069850397,
+        "seed": 1050
+      },
+      {
+        "count": 256,
+        "entropy": 4.341237660497427,
+        "ppl": 90.30705171889858,
+        "seed": 1051
+      },
+      {
+        "count": 256,
+        "entropy": 4.340327892452478,
+        "ppl": 90.18687890665237,
+        "seed": 1052
+      },
+      {
+        "count": 256,
+        "entropy": 4.342585364356637,
+        "ppl": 86.07749922452345,
+        "seed": 1053
+      },
+      {
+        "count": 256,
+        "entropy": 4.346297148615122,
+        "ppl": 89.97336671898404,
+        "seed": 1054
+      },
+      {
+        "count": 256,
+        "entropy": 4.337990052998066,
+        "ppl": 86.80365755728816,
+        "seed": 1055
+      },
+      {
+        "count": 256,
+        "entropy": 4.341519607231021,
+        "ppl": 90.34898665108008,
+        "seed": 1056
+      },
+      {
+        "count": 256,
+        "entropy": 4.335766045376658,
+        "ppl": 88.32359740306454,
+        "seed": 1057
+      },
+      {
+        "count": 256,
+        "entropy": 4.343054490163922,
+        "ppl": 89.93715201589677,
+        "seed": 1058
+      },
+      {
+        "count": 256,
+        "entropy": 4.346886465325952,
+        "ppl": 89.28567434986839,
+        "seed": 1059
+      },
+      {
+        "count": 256,
+        "entropy": 4.342445747926831,
+        "ppl": 89.80871195484896,
+        "seed": 1060
+      },
+      {
+        "count": 256,
+        "entropy": 4.3406222984194756,
+        "ppl": 85.05393410277799,
+        "seed": 1061
+      },
+      {
+        "count": 256,
+        "entropy": 4.341659409925342,
+        "ppl": 83.92193871279656,
+        "seed": 1062
+      },
+      {
+        "count": 256,
+        "entropy": 4.337137104943395,
+        "ppl": 86.194153614513,
+        "seed": 1063
+      },
+      {
+        "count": 256,
+        "entropy": 4.344842059537768,
+        "ppl": 84.98548887653598,
+        "seed": 1064
+      },
+      {
+        "count": 256,
+        "entropy": 4.3426875323057175,
+        "ppl": 88.28741824019535,
+        "seed": 1065
+      },
+      {
+        "count": 256,
+        "entropy": 4.336628392338753,
+        "ppl": 90.44829340732652,
+        "seed": 1066
+      },
+      {
+        "count": 256,
+        "entropy": 4.338554149493575,
+        "ppl": 86.52183451373473,
+        "seed": 1067
+      },
+      {
+        "count": 256,
+        "entropy": 4.3425793293863535,
+        "ppl": 91.87345533381503,
+        "seed": 1068
+      },
+      {
+        "count": 256,
+        "entropy": 4.337999379262328,
+        "ppl": 88.67457843981421,
+        "seed": 1069
+      },
+      {
+        "count": 256,
+        "entropy": 4.341558624058962,
+        "ppl": 88.66503823479265,
+        "seed": 1070
+      },
+      {
+        "count": 256,
+        "entropy": 4.340136758983135,
+        "ppl": 87.72105444475005,
+        "seed": 1071
+      },
+      {
+        "count": 256,
+        "entropy": 4.343493903055787,
+        "ppl": 88.97470423464819,
+        "seed": 1072
+      },
+      {
+        "count": 256,
+        "entropy": 4.336706018075347,
+        "ppl": 88.01456897441571,
+        "seed": 1073
+      },
+      {
+        "count": 256,
+        "entropy": 4.3444309793412685,
+        "ppl": 90.0759049951951,
+        "seed": 1074
+      },
+      {
+        "count": 256,
+        "entropy": 4.337601052597165,
+        "ppl": 90.147772973205,
+        "seed": 1075
+      },
+      {
+        "count": 256,
+        "entropy": 4.343750301748514,
+        "ppl": 88.10251830343567,
+        "seed": 1076
+      },
+      {
+        "count": 256,
+        "entropy": 4.341328859329224,
+        "ppl": 90.46527496472207,
+        "seed": 1077
+      },
+      {
+        "count": 256,
+        "entropy": 4.34134560264647,
+        "ppl": 92.05050237889071,
+        "seed": 1078
+      },
+      {
+        "count": 256,
+        "entropy": 4.34150774218142,
+        "ppl": 88.47205515103062,
+        "seed": 1079
+      }
+    ],
+    "rust": [
+      {
+        "count": 256,
+        "entropy": 4.344380727037787,
+        "ppl": 92.17187658984346,
+        "seed": 3000
+      },
+      {
+        "count": 256,
+        "entropy": 4.338047770783305,
+        "ppl": 84.9096945050656,
+        "seed": 3001
+      },
+      {
+        "count": 256,
+        "entropy": 4.333406336605549,
+        "ppl": 90.59590304531793,
+        "seed": 3002
+      },
+      {
+        "count": 256,
+        "entropy": 4.342474011704326,
+        "ppl": 89.23408734810958,
+        "seed": 3003
+      },
+      {
+        "count": 256,
+        "entropy": 4.340952215716243,
+        "ppl": 88.59656373647162,
+        "seed": 3004
+      },
+      {
+        "count": 256,
+        "entropy": 4.341618180274963,
+        "ppl": 89.19140537332522,
+        "seed": 3005
+      },
+      {
+        "count": 256,
+        "entropy": 4.344528069719672,
+        "ppl": 89.64877456416154,
+        "seed": 3006
+      },
+      {
+        "count": 256,
+        "entropy": 4.344179376959801,
+        "ppl": 91.43008097836238,
+        "seed": 3007
+      },
+      {
+        "count": 256,
+        "entropy": 4.339582335203886,
+        "ppl": 87.01431568506906,
+        "seed": 3008
+      },
+      {
+        "count": 256,
+        "entropy": 4.340075699612498,
+        "ppl": 89.46459213755665,
+        "seed": 3009
+      },
+      {
+        "count": 256,
+        "entropy": 4.346364764496684,
+        "ppl": 88.8678644804181,
+        "seed": 3010
+      },
+      {
+        "count": 256,
+        "entropy": 4.3397797755897045,
+        "ppl": 91.06803478944835,
+        "seed": 3011
+      },
+      {
+        "count": 256,
+        "entropy": 4.344397997483611,
+        "ppl": 88.63324496364983,
+        "seed": 3012
+      },
+      {
+        "count": 256,
+        "entropy": 4.340416824445128,
+        "ppl": 92.24095879197031,
+        "seed": 3013
+      },
+      {
+        "count": 256,
+        "entropy": 4.342179907485843,
+        "ppl": 89.91921353537438,
+        "seed": 3014
+      },
+      {
+        "count": 256,
+        "entropy": 4.340721094980836,
+        "ppl": 87.27557530456784,
+        "seed": 3015
+      },
+      {
+        "count": 256,
+        "entropy": 4.342310931533575,
+        "ppl": 89.1425316281364,
+        "seed": 3016
+      },
+      {
+        "count": 256,
+        "entropy": 4.343422386795282,
+        "ppl": 90.07438986705006,
+        "seed": 3017
+      },
+      {
+        "count": 256,
+        "entropy": 4.342687489464879,
+        "ppl": 88.98718583436977,
+        "seed": 3018
+      },
+      {
+        "count": 256,
+        "entropy": 4.342685820534825,
+        "ppl": 89.08524195032096,
+        "seed": 3019
+      },
+      {
+        "count": 256,
+        "entropy": 4.343508340418339,
+        "ppl": 90.8814851975725,
+        "seed": 3020
+      },
+      {
+        "count": 256,
+        "entropy": 4.335331236943603,
+        "ppl": 87.9872955826926,
+        "seed": 3021
+      },
+      {
+        "count": 256,
+        "entropy": 4.338477781042457,
+        "ppl": 92.3082932949527,
+        "seed": 3022
+      },
+      {
+        "count": 256,
+        "entropy": 4.338507594540715,
+        "ppl": 87.26673082772705,
+        "seed": 3023
+      },
+      {
+        "count": 256,
+        "entropy": 4.341472283005714,
+        "ppl": 89.56116475089293,
+        "seed": 3024
+      },
+      {
+        "count": 256,
+        "entropy": 4.337014652788639,
+        "ppl": 88.11344040137986,
+        "seed": 3025
+      },
+      {
+        "count": 256,
+        "entropy": 4.341785753145814,
+        "ppl": 91.06471953370178,
+        "seed": 3026
+      },
+      {
+        "count": 256,
+        "entropy": 4.347665535286069,
+        "ppl": 87.61704381933279,
+        "seed": 3027
+      },
+      {
+        "count": 256,
+        "entropy": 4.342307161539793,
+        "ppl": 89.4258853495321,
+        "seed": 3028
+      },
+      {
+        "count": 256,
+        "entropy": 4.335388904437423,
+        "ppl": 89.17577186018747,
+        "seed": 3029
+      },
+      {
+        "count": 256,
+        "entropy": 4.34636403247714,
+        "ppl": 91.94008799211898,
+        "seed": 3030
+      },
+      {
+        "count": 256,
+        "entropy": 4.336622232571244,
+        "ppl": 90.67069691777213,
+        "seed": 3031
+      },
+      {
+        "count": 256,
+        "entropy": 4.341648161411285,
+        "ppl": 86.79984052432916,
+        "seed": 3032
+      },
+      {
+        "count": 256,
+        "entropy": 4.339615646749735,
+        "ppl": 88.12642058881447,
+        "seed": 3033
+      },
+      {
+        "count": 256,
+        "entropy": 4.34194702655077,
+        "ppl": 90.72942041843076,
+        "seed": 3034
+      },
+      {
+        "count": 256,
+        "entropy": 4.336592976003885,
+        "ppl": 88.7676105896536,
+        "seed": 3035
+      },
+      {
+        "count": 256,
+        "entropy": 4.340424751862884,
+        "ppl": 87.81957504861167,
+        "seed": 3036
+      },
+      {
+        "count": 256,
+        "entropy": 4.339559646323323,
+        "ppl": 87.92814418654105,
+        "seed": 3037
+      },
+      {
+        "count": 256,
+        "entropy": 4.338457053527236,
+        "ppl": 89.41670478536449,
+        "seed": 3038
+      },
+      {
+        "count": 256,
+        "entropy": 4.335447836667299,
+        "ppl": 86.41174693539354,
+        "seed": 3039
+      },
+      {
+        "count": 256,
+        "entropy": 4.343090157955885,
+        "ppl": 91.06087650461355,
+        "seed": 3040
+      },
+      {
+        "count": 256,
+        "entropy": 4.342054536566138,
+        "ppl": 87.92156282046534,
+        "seed": 3041
+      },
+      {
+        "count": 256,
+        "entropy": 4.340519446879625,
+        "ppl": 89.15873241680707,
+        "seed": 3042
+      },
+      {
+        "count": 256,
+        "entropy": 4.344296937808394,
+        "ppl": 89.56735768450088,
+        "seed": 3043
+      },
+      {
+        "count": 256,
+        "entropy": 4.337211741134524,
+        "ppl": 86.05058828682526,
+        "seed": 3044
+      },
+      {
+        "count": 256,
+        "entropy": 4.333578044548631,
+        "ppl": 88.01688223567007,
+        "seed": 3045
+      },
+      {
+        "count": 256,
+        "entropy": 4.343154396861792,
+        "ppl": 91.87911545129568,
+        "seed": 3046
+      },
+      {
+        "count": 256,
+        "entropy": 4.340865679085255,
+        "ppl": 89.39558071255846,
+        "seed": 3047
+      },
+      {
+        "count": 256,
+        "entropy": 4.3436268735677,
+        "ppl": 87.2328606309462,
+        "seed": 3048
+      },
+      {
+        "count": 256,
+        "entropy": 4.343088690191507,
+        "ppl": 87.46766410774283,
+        "seed": 3049
+      },
+      {
+        "count": 256,
+        "entropy": 4.342535961419344,
+        "ppl": 91.5446315297459,
+        "seed": 3050
+      },
+      {
+        "count": 256,
+        "entropy": 4.339325521141291,
+        "ppl": 87.11042812497284,
+        "seed": 3051
+      },
+      {
+        "count": 256,
+        "entropy": 4.340420883148909,
+        "ppl": 87.34212110388118,
+        "seed": 3052
+      },
+      {
+        "count": 256,
+        "entropy": 4.343587689101696,
+        "ppl": 87.80672445495992,
+        "seed": 3053
+      },
+      {
+        "count": 256,
+        "entropy": 4.336778117343783,
+        "ppl": 91.70036802919253,
+        "seed": 3054
+      },
+      {
+        "count": 256,
+        "entropy": 4.339168028905988,
+        "ppl": 91.45447398077424,
+        "seed": 3055
+      },
+      {
+        "count": 256,
+        "entropy": 4.335893025621772,
+        "ppl": 89.1481332868581,
+        "seed": 3056
+      },
+      {
+        "count": 256,
+        "entropy": 4.333876796066761,
+        "ppl": 89.49923476614607,
+        "seed": 3057
+      },
+      {
+        "count": 256,
+        "entropy": 4.343752607703209,
+        "ppl": 89.21533241851552,
+        "seed": 3058
+      },
+      {
+        "count": 256,
+        "entropy": 4.336506495252252,
+        "ppl": 89.83509549419016,
+        "seed": 3059
+      },
+      {
+        "count": 256,
+        "entropy": 4.34298231266439,
+        "ppl": 88.04604511579419,
+        "seed": 3060
+      },
+      {
+        "count": 256,
+        "entropy": 4.341052565723658,
+        "ppl": 90.37007542554284,
+        "seed": 3061
+      },
+      {
+        "count": 256,
+        "entropy": 4.345775321125984,
+        "ppl": 89.9227301787887,
+        "seed": 3062
+      },
+      {
+        "count": 256,
+        "entropy": 4.34810751862824,
+        "ppl": 86.60514451494119,
+        "seed": 3063
+      },
+      {
+        "count": 256,
+        "entropy": 4.34374769590795,
+        "ppl": 90.96936462387104,
+        "seed": 3064
+      },
+      {
+        "count": 256,
+        "entropy": 4.3405108358711,
+        "ppl": 89.179315680618,
+        "seed": 3065
+      },
+      {
+        "count": 256,
+        "entropy": 4.338327849283814,
+        "ppl": 87.75218839488825,
+        "seed": 3066
+      },
+      {
+        "count": 256,
+        "entropy": 4.336710205301642,
+        "ppl": 88.10131952222645,
+        "seed": 3067
+      },
+      {
+        "count": 256,
+        "entropy": 4.340598940849304,
+        "ppl": 86.01818224797032,
+        "seed": 3068
+      },
+      {
+        "count": 256,
+        "entropy": 4.344098627567291,
+        "ppl": 87.75405456912074,
+        "seed": 3069
+      },
+      {
+        "count": 256,
+        "entropy": 4.3420104663819075,
+        "ppl": 91.85969147152726,
+        "seed": 3070
+      },
+      {
+        "count": 256,
+        "entropy": 4.335977362468839,
+        "ppl": 87.52591945549747,
+        "seed": 3071
+      },
+      {
+        "count": 256,
+        "entropy": 4.338912595063448,
+        "ppl": 87.69592659601643,
+        "seed": 3072
+      },
+      {
+        "count": 256,
+        "entropy": 4.336791044101119,
+        "ppl": 88.13943445769955,
+        "seed": 3073
+      },
+      {
+        "count": 256,
+        "entropy": 4.345349960029125,
+        "ppl": 89.2828262466137,
+        "seed": 3074
+      },
+      {
+        "count": 256,
+        "entropy": 4.335053699091077,
+        "ppl": 86.8308483436082,
+        "seed": 3075
+      },
+      {
+        "count": 256,
+        "entropy": 4.334039790555835,
+        "ppl": 85.33816815174539,
+        "seed": 3076
+      },
+      {
+        "count": 256,
+        "entropy": 4.342370949685574,
+        "ppl": 89.30304921079076,
+        "seed": 3077
+      },
+      {
+        "count": 256,
+        "entropy": 4.3426553029567,
+        "ppl": 85.93684366450913,
+        "seed": 3078
+      },
+      {
+        "count": 256,
+        "entropy": 4.337121371179819,
+        "ppl": 86.8415527976455,
+        "seed": 3079
+      }
+    ]
+  }
+}
