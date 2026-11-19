@@ -469,8 +469,8 @@ fn wmt14_profile_has_exact_inventory_and_independent_bounds() {
     assert!(Artifact::load(dir.path()).is_err());
 }
 
-#[test]
-fn lm1b_small_profile_has_independent_inventory_and_bounds() {
+/// A valid LM1B-small inventory built from the shared fixture, saved to disk.
+fn lm1b_small_fixture() -> (tempfile::TempDir, Manifest) {
     let (dir, mut manifest) = fixture();
     manifest.profile = "lm1b-small-inference-v1".into();
     let training = fs::read(dir.path().join("training.safetensors")).unwrap();
@@ -507,6 +507,14 @@ fn lm1b_small_profile_has_independent_inventory_and_bounds() {
         );
     }
     save(dir.path(), &manifest);
+    (dir, manifest)
+}
+
+#[test]
+fn lm1b_small_profile_has_independent_inventory_and_bounds() {
+    let (dir, mut manifest) = lm1b_small_fixture();
+    let training = fs::read(dir.path().join("training.safetensors")).unwrap();
+    save(dir.path(), &manifest);
     let full = Artifact::load(dir.path()).unwrap();
     let inference = Artifact::load_inference(dir.path()).unwrap();
     assert_eq!(full.manifest().profile, "lm1b-small-inference-v1");
@@ -536,6 +544,53 @@ fn lm1b_small_profile_has_independent_inventory_and_bounds() {
     save(dir.path(), &manifest);
     assert!(Artifact::load(dir.path()).is_err());
     manifest.profile = "lm1b-medium-inference-v1".into();
+    save(dir.path(), &manifest);
+    assert!(Artifact::load(dir.path()).is_err());
+}
+
+#[test]
+fn lm1b_sizes_have_separate_budgets() {
+    // The same small payload is a valid medium or large inventory; each size keeps its own limits.
+    for (profile, max_file, max_total) in [
+        ("lm1b-small-inference-v1", 448_u64, 1024_u64),
+        ("lm1b-medium-inference-v1", 1280, 1920),
+        ("lm1b-large-inference-v1", 2944, 3584),
+    ] {
+        let (dir, mut manifest) = lm1b_small_fixture();
+        manifest.profile = profile.into();
+        save(dir.path(), &manifest);
+        assert_eq!(
+            Artifact::load_inference(dir.path())
+                .unwrap()
+                .manifest()
+                .profile,
+            profile
+        );
+        let original = manifest.files["generator.safetensors"].bytes;
+        manifest
+            .files
+            .get_mut("generator.safetensors")
+            .unwrap()
+            .bytes = max_file * 1024 * 1024 + 1;
+        save(dir.path(), &manifest);
+        assert!(
+            Artifact::load(dir.path()).is_err(),
+            "{profile} per-file limit"
+        );
+        let share = max_total * 1024 * 1024 / 3 + 1;
+        for name in [
+            "codec.safetensors",
+            "generator.safetensors",
+            "training.safetensors",
+        ] {
+            manifest.files.get_mut(name).unwrap().bytes = share;
+        }
+        save(dir.path(), &manifest);
+        assert!(Artifact::load(dir.path()).is_err(), "{profile} total limit");
+        assert!(original < max_file * 1024 * 1024);
+    }
+    let (dir, mut manifest) = lm1b_small_fixture();
+    manifest.profile = "lm1b-huge-inference-v1".into();
     save(dir.path(), &manifest);
     assert!(Artifact::load(dir.path()).is_err());
 }

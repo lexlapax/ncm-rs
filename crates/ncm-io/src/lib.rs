@@ -30,10 +30,16 @@ const XSUM_MAX_TOTAL: u64 = 640 * 1024 * 1024;
 // WMT14's larger vocabulary and generator have separate bounded budgets.
 const WMT14_MAX_FILE: u64 = 640 * 1024 * 1024;
 const WMT14_MAX_TOTAL: u64 = 1280 * 1024 * 1024;
-// LM1B-small has an independently bounded codec and generator; larger sizes
-// remain unsupported and cannot inherit these limits.
+// Each LM1B size has its own bounds, set 5-8% above the measured exports:
+// small's largest file is the 425 MiB codec; medium's and large's are the
+// 1,209 MiB and 2,766 MiB generators, with totals of 1,781 and 3,338 MiB.
+// Sizes never inherit another size's limits.
 const LM1B_SMALL_MAX_FILE: u64 = 448 * 1024 * 1024;
 const LM1B_SMALL_MAX_TOTAL: u64 = 1024 * 1024 * 1024;
+const LM1B_MEDIUM_MAX_FILE: u64 = 1280 * 1024 * 1024;
+const LM1B_MEDIUM_MAX_TOTAL: u64 = 1920 * 1024 * 1024;
+const LM1B_LARGE_MAX_FILE: u64 = 2944 * 1024 * 1024;
+const LM1B_LARGE_MAX_TOTAL: u64 = 3584 * 1024 * 1024;
 const FILES: [&str; 6] = [
     "codec.safetensors",
     "generator.safetensors",
@@ -420,6 +426,18 @@ impl Artifact {
                     &TINYSTORIES_BUNDLES,
                     LM1B_SMALL_MAX_FILE,
                     LM1B_SMALL_MAX_TOTAL,
+                ),
+                "lm1b-medium-inference-v1" => (
+                    &TINYSTORIES_FILES,
+                    &TINYSTORIES_BUNDLES,
+                    LM1B_MEDIUM_MAX_FILE,
+                    LM1B_MEDIUM_MAX_TOTAL,
+                ),
+                "lm1b-large-inference-v1" => (
+                    &TINYSTORIES_FILES,
+                    &TINYSTORIES_BUNDLES,
+                    LM1B_LARGE_MAX_FILE,
+                    LM1B_LARGE_MAX_TOTAL,
                 ),
                 _ => return Err(invalid("unsupported schema, profile or source pins")),
             };

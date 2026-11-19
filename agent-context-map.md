@@ -16,7 +16,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 | XSum | Advanced under the [Metal](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md) and [CUDA stochastic](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md) exceptions |
 | WMT14 | Scoped CUDA and Metal top-1 qualification ([evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)) |
 | LM1B-small | **Active.** 80-seed quality passes on CUDA and Metal; CUDA timing passes; Metal latency passes, Metal RSS fails at batches 4/16 (decision pending) |
-| LM1B-medium/large | Checkpoint inventories only; model code is still small-specific (`crates/ncm-model/src/lm1b_small.rs`) |
+| LM1B-medium/large | Step 1 done: inference artifacts exported and loadable through `ncm-io` ([artifacts](docs/results/2026-11-16-phase4-lm1b/medium-large-artifacts-v1.md)). Model code is still small-specific (`crates/ncm-model/src/lm1b_small.rs`, `Lm1bSmallTeacher` in `generator.rs`) |
 | OWT | Synthetic/config/operator coverage required; none found in `crates/`. Weights unreleased |
 
 - **LM1B-small evidence:** CUDA fixed-history traces, greedy and CLI checks pass. Repeated CUDA
@@ -73,6 +73,11 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
+- **LM1B medium/large step 1:** the exporter takes `--size`; medium and large artifacts (manifests `2fea4a25…`,
+  `86676fed…`) are deterministic across two exports, and `ncm-io` has separate per-size budgets plus a new test.
+  The generalized CPU probe loads all three sizes. `setpriv --inh-caps=-all ./tools/check.sh` passes.
+  Next: make the teacher read layers, heads and width from config; audit CUDA fused kernels for width
+  assumptions; extend the trace tools, campaign and CLI by size.
 - **Metal RSS fix attempt (user chose "try one targeted fix"; Metal untested, Mac on hold):** host FP64
   penalties now read decoder logits through `visit_f32_rows` in blocks of two rows
   (`LM1B_PENALTY_ROWS`). On MLX each block is a separate exact GPU copy (multiply by one), so the CPU

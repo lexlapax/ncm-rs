@@ -1,4 +1,4 @@
-"""Export the pinned LM1B-small inference artifact; no model support implied."""
+"""Export a pinned LM1B (small, medium or large) inference artifact; no model support implied."""
 import argparse
 import json
 import platform
@@ -15,8 +15,11 @@ from tinystories_artifact import ROOT, REVISION, TRAINING, UPSTREAM, digest_file
 from wmt14_export_preparation import save_checked
 
 
-def bundle_states(generator, tokenizer):
-    parts = checkpoint_parts(generator, tokenizer, 'small')
+SIZES = ('small', 'medium', 'large')
+
+
+def bundle_states(generator, tokenizer, size='small'):
+    parts = checkpoint_parts(generator, tokenizer, size)
     codec = parts['codec.safetensors']
     expected = {f'vq.{kind}_{i}' for kind in ('ema_cluster_size', 'ema_w', 'codebook_hit') for i in range(12)}
     training = {name: value for name, value in codec.items() if TRAINING.fullmatch(name)}
@@ -29,14 +32,17 @@ def bundle_states(generator, tokenizer):
             'training.safetensors': training, 'inference.safetensors': parts['inference.safetensors']}
 
 
-def export(source, tokenizer_asset, output):
+def export(source, tokenizer_asset, output, size='small'):
+    if size not in SIZES:
+        raise ValueError('unknown LM1B size')
+    profile = f'lm1b-{size}-inference-v1'
     out = output.resolve()
     if output.exists() or output.is_symlink() or not out.is_relative_to((ROOT / 'artifacts/canonical').resolve()):
         raise ValueError('new output under artifacts/canonical required')
-    paths = {'small/generator.pt': CHECKPOINTS['small/generator.pt'],
-             'tokenizer.pt': CHECKPOINTS['tokenizer.pt'], 'small/config.yaml': CONFIGS['small']}
-    for name, (size, sha) in paths.items():
-        verify_input(source / name, size, sha)
+    paths = {f'{size}/generator.pt': CHECKPOINTS[f'{size}/generator.pt'],
+             'tokenizer.pt': CHECKPOINTS['tokenizer.pt'], f'{size}/config.yaml': CONFIGS[size]}
+    for name, (length, sha) in paths.items():
+        verify_input(source / name, length, sha)
     lock_path = ROOT / 'tools/reference/tokenizers-v1.lock.json'
     lock = json.loads(lock_path.read_bytes())['profiles']['bert']
     manifest, payload, license_file = (tokenizer_asset / name for name in ('manifest.json', 'tokenizer.json', 'LICENSE'))
@@ -54,14 +60,14 @@ def export(source, tokenizer_asset, output):
     before = {p.name: digest_file(p) for p in watched}
     if len(before) != len(watched):
         raise ValueError('duplicate watched names')
-    config = yaml.safe_load((source / 'small/config.yaml').read_bytes())
-    if config['task'] != 'lm1b-small':
+    config = yaml.safe_load((source / f'{size}/config.yaml').read_bytes())
+    if config['task'] != f'lm1b-{size}':
         raise ValueError('unexpected task')
-    generator = torch.load(source / 'small/generator.pt', map_location='cpu', weights_only=True, mmap=True)
+    generator = torch.load(source / f'{size}/generator.pt', map_location='cpu', weights_only=True, mmap=True)
     tokenizer = torch.load(source / 'tokenizer.pt', map_location='cpu', weights_only=True, mmap=True)
-    bundles = bundle_states(generator, tokenizer)
+    bundles = bundle_states(generator, tokenizer, size)
     out.parent.mkdir(parents=True, exist_ok=True)
-    temporary = Path(tempfile.mkdtemp(prefix='.ncm-lm1b-small-inference-prep-', dir=out.parent))
+    temporary = Path(tempfile.mkdtemp(prefix=f'.ncm-lm1b-{size}-inference-prep-', dir=out.parent))
     try:
         inventory = {name: save_checked(temporary / name, state) for name, state in bundles.items()}
         json_file(temporary / 'config.json', config)
@@ -78,11 +84,11 @@ def export(source, tokenizer_asset, output):
             'serialization': 'safetensors; unchanged tensor layouts and dtypes', 'aliases': [],
         })
         files = {p.name: {'bytes': p.stat().st_size, 'sha256': digest_file(p)} for p in sorted(temporary.iterdir())}
-        json_file(temporary / 'manifest.json', {'schema_version': 1, 'profile': 'lm1b-small-inference-v1',
+        json_file(temporary / 'manifest.json', {'schema_version': 1, 'profile': profile,
                   'upstream_commit': UPSTREAM, 'checkpoint_repository': 'hazyresearch/ncm-checkpoints',
                   'checkpoint_revision': REVISION, 'files': files, 'tensors': inventory})
-        for name, (size, sha) in paths.items():
-            verify_input(source / name, size, sha)
+        for name, (length, sha) in paths.items():
+            verify_input(source / name, length, sha)
         if before != {p.name: digest_file(p) for p in watched}:
             raise ValueError('inputs changed during export')
         if output.exists() or output.is_symlink():
@@ -91,7 +97,7 @@ def export(source, tokenizer_asset, output):
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)
-    return {'profile': 'lm1b-small-inference-v1',
+    return {'profile': profile,
             'tensor_counts': {name: len(state) for name, state in bundles.items()},
             'manifest_sha256': digest_file(out / 'manifest.json'),
             'scope': 'artifact export only; model and GPU qualification pending'}
@@ -102,8 +108,9 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--tokenizer-asset', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--size', choices=SIZES, default='small')
     args = parser.parse_args()
-    print(json.dumps(export(args.source, args.tokenizer_asset, args.output), sort_keys=True))
+    print(json.dumps(export(args.source, args.tokenizer_asset, args.output, args.size), sort_keys=True))
 
 
 if __name__ == '__main__':
