@@ -96,54 +96,51 @@ The tokenizer fetch is separate from the much larger checkpoint downloads. The c
 verify source hashes and refuse existing output destinations. The checked sources and converters,
 including licenses, are described in the [tokenizer report](results/2026-11-10-phase2-tokenizers/README.md).
 
-## Checkpoint download layout
+## Checkpoint downloads
 
-The exporters validate exact file sizes and SHA-256 before opening checkpoints using
-`torch.load(weights_only=True)`; they do not retry unrestricted pickle. Download only the profiles
-you need, from the immutable checkpoint revision above. The following shell function **refuses
-existing destination files**, creates parent directories and downloads a named path. A failed
-or interrupted download may leave a partial file that must be inspected and removed before retry.
-It does not replace the exporters' mandatory hash checks.
+`tools/reference/fetch_checkpoints.py` imports the exporters' existing source sizes and SHA-256
+pins in the Linux reference environment. It fetches one explicit profile at the existing immutable
+revision, writes at most the pinned bytes per file (reading one extra byte to detect overflow),
+checks each size/hash and rejects non-HTTPS final redirects. A caller-provided total byte budget
+and free-space check are required. A plan prints files, hashes and total without creating a directory
+or using the network. Parent directories
+must be trusted and stable. Download failure leaves the new partial directory for inspection; the
+tool never overwrites an existing destination. Free space is not reserved and is not a bound on
+subsequent export, memory use or other concurrent work.
+
+For example, with the Linux reference environment installed and a fresh destination:
 
 ```sh
-revision=d342ce8aaea58830eef3b8ad473664673e41f692
-fetch_checkpoint() {
-  remote=$1 destination=$2
-  if test -e "$destination" || test -L "$destination"; then
-    printf 'Refusing existing destination: %s\n' "$destination" >&2; return 1
-  fi
-  mkdir -p "$(dirname "$destination")" || return 1
-  curl --fail --location --output "$destination" \
-    "https://huggingface.co/hazyresearch/ncm-checkpoints/resolve/$revision/$remote"
-}
-# Choose the desired difficulties/profiles; weights can require multiple GiB.
-for difficulty in easy medium hard; do
-  for file in config.yaml tokenizer.pt generator.pt; do
-    fetch_checkpoint "sudoku/$difficulty/$file" "artifacts/upstream/sudoku/$difficulty/$file" || exit 1
-  done
-done
-for profile in tinystories xsum wmt14; do
-  for file in config.yaml tokenizer.pt generator.pt; do
-    fetch_checkpoint "$profile/$file" "artifacts/upstream/$profile-phase4/$file" || exit 1
-  done
-done
-for file in bpe_vocab_8192.pickle bpe_merges_8192.pickle; do
-  fetch_checkpoint "tinystories/$file" "artifacts/upstream/tinystories-phase4/$file" || exit 1
-done
-fetch_checkpoint lm1b/tokenizer.pt artifacts/upstream/lm1b-phase4/tokenizer.pt || exit 1
-for size in small medium large; do
-  for file in config.yaml generator.pt; do
-    fetch_checkpoint "lm1b/$size/$file" "artifacts/upstream/lm1b-phase4/$size/$file" || exit 1
-  done
-done
+mkdir -p artifacts/upstream
+.reference/venv/bin/python tools/reference/fetch_checkpoints.py \
+  --profile sudoku-easy --output artifacts/upstream/sudoku-easy --plan
+.reference/venv/bin/python tools/reference/fetch_checkpoints.py \
+  --profile sudoku-easy --output artifacts/upstream/sudoku-easy --budget-bytes 162378392
+.reference/venv/bin/python tools/reference/fetch_checkpoints.py \
+  --profile sudoku-easy --output artifacts/upstream/sudoku-easy --verify
 ```
 
-The pinned file sizes and hashes live in `tools/reference/sudoku_artifact.py`,
-`tinystories_artifact.py`, `xsum_artifact.py`, `wmt14_inventory.py`, `lm1b_inventory.py` and
-`lm1b_export_preparation.py`. The complete commands above have **not** been exercised as a fresh
-download in this Phase 5 investigation. A limited URL screen fetched and hash-verified the nine small profile config files
-and two TinyStories BPE inputs; no checkpoint weights were downloaded in that screen. A bounded,
-verified download workflow and full source/disk-budget checks remain to be completed before release.
+Choose the desired profile and budget explicitly. `--plan` prints the per-file identities; the
+currently pinned total source sizes in bytes are:
+
+| Profile | Bytes |
+| --- | ---: |
+| `sudoku-easy` | 162,378,392 |
+| `sudoku-medium` | 162,378,394 |
+| `sudoku-hard` | 162,378,392 |
+| `tinystories` | 578,228,368 |
+| `xsum` | 653,983,635 |
+| `wmt14` | 1,126,375,067 |
+| `lm1b-small` | 987,981,523 |
+| `lm1b-medium` | 1,865,857,368 |
+| `lm1b-large` | 3,499,027,351 |
+
+Each LM1B size download includes a copy of the shared tokenizer checkpoint; plan disk space
+accordingly. The exporters recheck the source sizes and SHA-256 before opening checkpoints using
+`torch.load(weights_only=True)`; they never retry unrestricted pickle. The downloader was screened
+against the retained inputs for all profiles and with one real Sudoku-easy download. A complete
+fresh-clone download/export workflow on both machines remains unverified. The
+[download screen](results/2026-11-19-phase5-cli/checkpoint-download-screen-v1.md) records its exact scope.
 
 ## Export and manifest identities — incomplete
 
