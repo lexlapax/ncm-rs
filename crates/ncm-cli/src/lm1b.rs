@@ -2,7 +2,7 @@
 use super::Result;
 
 pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
-    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32]";
+    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32|--host-fp64]";
     let [
         _,
         _,
@@ -16,16 +16,17 @@ pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
     else {
         return Err(USAGE.into());
     };
-    let (mut decode, mut top_p) = (false, false);
+    let (mut decode, mut top_p, mut host_fp64) = (false, false, false);
     for flag in options {
         match flag.as_str() {
             "--decode" if !decode => decode = true,
-            "--top-p-fp32" if !top_p => top_p = true,
+            "--top-p-fp32" if !top_p && !host_fp64 => top_p = true,
+            "--host-fp64" if !top_p && !host_fp64 => host_fp64 = true,
             _ => return Err(USAGE.into()),
         }
     }
-    if top_p && device != "mlx" {
-        return Err("experimental FP32 top-p requires explicit mlx device".into());
+    if (top_p || host_fp64) && device != "mlx" {
+        return Err("--top-p-fp32 and --host-fp64 require explicit mlx device".into());
     }
     match device.as_str() {
         "cuda-cudnn" => {
@@ -53,6 +54,7 @@ pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
                     reference_rope,
                     decode,
                     top_p,
+                    host_fp64,
                 )
             }
             #[cfg(not(all(
@@ -61,7 +63,7 @@ pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
                 target_arch = "aarch64"
             )))]
             {
-                let _ = (artifact, input, seed, reference_rope, decode);
+                let _ = (artifact, input, seed, reference_rope, decode, host_fp64);
                 Err("experimental LM1B-small Metal is unavailable in this build".into())
             }
         }
@@ -107,6 +109,12 @@ mod backend {
             target_os = "macos",
             target_arch = "aarch64"
         ))]
+        DeviceFp32,
+        #[cfg(all(
+            feature = "lm1b-mlx-experimental",
+            target_os = "macos",
+            target_arch = "aarch64"
+        ))]
         HostTopP,
     }
 
@@ -141,6 +149,7 @@ mod backend {
         reference_rope: &str,
         decode: bool,
         top_p: bool,
+        host_fp64: bool,
     ) -> Result<serde_json::Value> {
         sample(
             ncm_backend_mlx::MlxBackend::gpu,
@@ -151,8 +160,10 @@ mod backend {
             decode,
             if top_p {
                 Sampling::HostTopP
-            } else {
+            } else if host_fp64 {
                 Sampling::HostFull
+            } else {
+                Sampling::DeviceFp32
             },
         )
     }
@@ -213,6 +224,12 @@ mod backend {
                 target_arch = "aarch64"
             ))]
             Sampling::HostTopP => model.sample_seeded_top_p_one(&prefixes, batch, seed)?,
+            #[cfg(all(
+                feature = "lm1b-mlx-experimental",
+                target_os = "macos",
+                target_arch = "aarch64"
+            ))]
+            Sampling::DeviceFp32 => model.sample_seeded_device_fp32(&prefixes, batch, seed)?,
         };
         let codes = backend.read_indices(&output.codes)?;
         if codes.len() != batch * 641
@@ -283,14 +300,19 @@ mod dispatch_tests {
 
     #[test]
     fn top_p_flag_requires_metal_and_rejects_duplicates() {
-        let mut cuda = args("cuda-cudnn");
-        cuda.push("--top-p-fp32".into());
-        assert!(
-            sample(&cuda)
-                .unwrap_err()
-                .to_string()
-                .contains("requires explicit mlx")
-        );
+        for flag in ["--top-p-fp32", "--host-fp64"] {
+            let mut cuda = args("cuda-cudnn");
+            cuda.push(flag.into());
+            assert!(
+                sample(&cuda)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("require explicit mlx")
+            );
+        }
+        let mut both = args("mlx");
+        both.extend(["--top-p-fp32".into(), "--host-fp64".into()]);
+        assert!(sample(&both).unwrap_err().to_string().contains("usage:"));
         let mut duplicate = args("mlx");
         duplicate.extend(["--top-p-fp32".into(), "--top-p-fp32".into()]);
         assert!(

@@ -1,6 +1,6 @@
 //! Capture an explicit LM1B-small seed list on Metal with one Rust model load.
 //!
-//! Uses the same model, pinned rotary tables and default host FP64 sampler as
+//! Uses the same model, pinned rotary tables and default device FP32 sampler as
 //! `ncm sample-lm1b-small ... mlx`. Request seeds follow the CUDA campaign runner.
 use ncm_backend_mlx::MlxBackend;
 use ncm_core::CodecBackend;
@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         for batch in 0..32_u64 {
             // Distinct deterministic request streams; do not claim PyTorch seed equivalence.
             let request_seed = (seed << 32) | batch;
-            let result = model.sample_seeded(&[101; 8], 8, request_seed)?;
+            let result = model.sample_seeded_device_fp32(&[101; 8], 8, request_seed)?;
             let values = backend.read_indices(&result.codes)?;
             if values.len() != 8 * 641
                 || result.ids.len() != 8 * 128
@@ -89,8 +89,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         let report = serde_json::json!({"scope": "LM1B-small cohort Rust Metal capture",
             "size": "small", "seed": seed, "count": 256, "batch_size": 8, "device": "metal",
-            "rng": "SplitMix64 request seed (heldout_seed << 32) | zero_based_batch; host FP64 inverse CDF",
-            "penalty": "host FP64", "convolution_math": "MLX Metal",
+            "rng": "SplitMix64 request seed (heldout_seed << 32) | zero_based_batch; host FP64 level zero, then 24-bit midpoint uniforms",
+            "sampler": "device FP32 inverse CDF", "penalty": "host FP64", "convolution_math": "MLX Metal",
             "artifact_manifest_sha256": ARTIFACT_MANIFEST_SHA256, "binary_sha256": binary_sha256,
             "seed_manifest_sha256": sha256(&seed_bytes),
             "diagnostic": {"rotary_tables_sha256": ROTARY_TABLES_SHA256},

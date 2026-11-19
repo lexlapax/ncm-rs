@@ -3314,6 +3314,20 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
     }
 }
 
+/// How generator levels above zero choose codes.
+#[cfg(feature = "lm1b-experimental")]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Lm1bDraw {
+    /// Host FP64 inverse CDF over full logits, or greedy when no RNG is supplied.
+    Host,
+    /// Backend FP64 inverse CDF (`categorical_8192`).
+    DeviceFp64,
+    /// Backend FP32 inverse CDF (`lm1b_categorical_8192_fp32`).
+    DeviceFp32,
+    /// Backend FP32 top-p=1 probabilities with host FP64 draws.
+    HostTopPOne,
+}
+
 #[cfg(feature = "lm1b-experimental")]
 impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
     pub fn run_traced(
@@ -3330,8 +3344,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             batch,
             trace,
             None,
-            false,
-            false,
+            Lm1bDraw::Host,
             false,
         )
         .map(|_| ())
@@ -3346,7 +3359,14 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
         self.run_impl(
-            prefix, None, initial, batch, trace, None, false, false, false,
+            prefix,
+            None,
+            initial,
+            batch,
+            trace,
+            None,
+            Lm1bDraw::Host,
+            false,
         )
         .map(|_| ())
     }
@@ -3360,7 +3380,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, trace, false, false, false)
+        self.sample_seeded_impl(prefix, batch, seed, trace, Lm1bDraw::Host, false)
     }
 
     /// Explicit experimental CUDA sampling; unsupported backends return an error.
@@ -3371,7 +3391,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, trace, true, false, false)
+        self.sample_seeded_impl(prefix, batch, seed, trace, Lm1bDraw::DeviceFp64, false)
     }
 
     /// Explicit device categorical sampling with host final penalties.
@@ -3391,7 +3411,14 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         seed: u64,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, &mut crate::NoTrace, true, true, false)
+        self.sample_seeded_impl(
+            prefix,
+            batch,
+            seed,
+            &mut crate::NoTrace,
+            Lm1bDraw::DeviceFp64,
+            true,
+        )
     }
 
     /// Explicit experimental FP32 top-p=1 probabilities with host FP64 draws.
@@ -3413,19 +3440,37 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, trace, false, false, true)
+        self.sample_seeded_impl(prefix, batch, seed, trace, Lm1bDraw::HostTopPOne, false)
     }
 
-    #[allow(clippy::too_many_arguments)]
+    /// Backend FP32 inverse-CDF sampling with host FP64 final penalties. Each draw uses the
+    /// top 24 bits of the request-local SplitMix64 stream as an exact FP32 midpoint uniform.
+    /// Unsupported backends return an error. Choices can differ from the FP64 samplers at
+    /// rounding boundaries; this does not reproduce PyTorch's random stream.
+    pub fn sample_seeded_device_fp32(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_impl(
+            prefix,
+            batch,
+            seed,
+            &mut crate::NoTrace,
+            Lm1bDraw::DeviceFp32,
+            false,
+        )
+    }
+
     fn sample_seeded_impl(
         &self,
         prefix: &[u32],
         batch: usize,
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
-        device: bool,
+        draw: Lm1bDraw,
         device_penalty: bool,
-        top_p_one: bool,
     ) -> Result<Lm1bSample<B>> {
         if !(1..=32).contains(&batch) {
             return Err(Error::Input("invalid LM1B sample batch".into()));
@@ -3446,9 +3491,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             batch,
             trace,
             Some(&mut random),
-            device,
+            draw,
             device_penalty,
-            top_p_one,
         )
     }
 
@@ -3466,9 +3510,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
         mut random: Option<&mut SplitMix64>,
-        device: bool,
+        draw: Lm1bDraw,
         device_penalty: bool,
-        top_p_one: bool,
     ) -> Result<Lm1bSample<B>> {
         validate_lm1b_request(prefix, codes, initial, batch)?;
         let b = &self.backend;
@@ -3489,6 +3532,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         let mut cumulative = None;
         let mut offset = 0;
         let mut selected_levels = Vec::with_capacity(12);
+        let mut invalid_rows = Vec::new();
         for (level, &length) in self.codec.config().levels().iter().enumerate() {
             let mut generated = None;
             if level > 0 {
@@ -3548,7 +3592,21 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                 let logits = b.add(&b.project(&hidden, &self.head)?, &self.head_bias[level])?;
                 trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
                 if codes.is_none() {
-                    generated = if device {
+                    generated = if draw == Lm1bDraw::DeviceFp32 {
+                        let rng = random
+                            .as_deref_mut()
+                            .ok_or_else(|| Error::Input("device sampling requires RNG".into()))?;
+                        let uniforms: Vec<f32> = (0..batch * length)
+                            .map(|_| ((rng.next() >> 40) as f32 + 0.5) / 16_777_216.0)
+                            .collect();
+                        let (selected, invalid) = b.lm1b_categorical_8192_fp32(
+                            &logits,
+                            &b.upload_f32(&uniforms, &[batch, length])?,
+                        )?;
+                        // Checked once after all levels, avoiding a device sync per level.
+                        invalid_rows.push(invalid);
+                        Some(selected)
+                    } else if draw == Lm1bDraw::DeviceFp64 {
                         let rng = random
                             .as_deref_mut()
                             .ok_or_else(|| Error::Input("device sampling requires RNG".into()))?;
@@ -3568,7 +3626,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                             ));
                         }
                         Some(selected)
-                    } else if top_p_one {
+                    } else if draw == Lm1bDraw::HostTopPOne {
                         let rng = random
                             .as_deref_mut()
                             .ok_or_else(|| Error::Input("top-p sampling requires RNG".into()))?;
@@ -3634,6 +3692,16 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
             cumulative = Some(sum);
         }
+        // One read evaluates every level together; per-level reads would serialize them.
+        if !invalid_rows.is_empty()
+            && b.read_indices(&b.concat_indices(&invalid_rows, 0)?)?
+                .iter()
+                .any(|&count| count != 0)
+        {
+            return Err(Error::Backend(
+                "invalid LM1B FP32 device categorical logits".into(),
+            ));
+        }
         let result_codes = b.concat_indices(&selected_levels, 1)?;
         if codes.is_none() {
             trace.indices("generator.generated_codes", &result_codes)?;
@@ -3651,7 +3719,9 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             }
             ids
         } else {
-            lm1b_penalized_parallel(&b.read_f32(&logits)?, &self.allowance, batch)?
+            b.visit_f32(&logits, |values| {
+                lm1b_penalized_parallel(values, &self.allowance, batch)
+            })??
         };
         trace.indices(
             "generator.penalized_ids",

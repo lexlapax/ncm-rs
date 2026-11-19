@@ -102,6 +102,7 @@ def main():
     p.add_argument('--batch', type=int, choices=BATCHES, action='append',
                    help='measure only these batch sizes (default: 1, 4 and 16)')
     p.add_argument('--smoke', action='store_true', help='one warmup and three trials; not evidence')
+    p.add_argument('--rust-sampler', choices=('host', 'device-fp32'), default='device-fp32')
     args = p.parse_args()
     if sys.platform != 'darwin' or platform.machine() != 'arm64':
         raise RuntimeError('Metal timing requires Apple Silicon')
@@ -126,7 +127,7 @@ def main():
         'sources_sha256': before, 'batches': batches, 'warmups': warmups, 'trials': trials, 'repetitions': 3,
         'order': 'alternating runtime per repetition, fresh process each',
         'python_sampler': 'mx.random.categorical on device; reference forward pass and FP64 penalties',
-        'rust_sampler': 'host FP64 inverse CDF (CLI default)',
+        'rust_sampler': args.rust_sampler,
         'host': {'machine': platform.machine(), 'mac_ver': platform.mac_ver()[0],
                  'loadavg_start': os.getloadavg()},
         'created_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
@@ -141,7 +142,8 @@ def main():
                 for runtime in (RUNTIMES if rep % 2 == 0 else RUNTIMES[::-1]):
                     stem = f'{runtime}-b{batch}-r{rep}'
                     if runtime == 'rust':
-                        command = [str(RUST), str(ARTIFACT), str(args.rotary), str(batch), str(warmups), str(trials)]
+                        command = [str(RUST), str(ARTIFACT), str(args.rotary), str(batch), str(warmups), str(trials),
+                                   args.rust_sampler]
                     else:
                         command = [str(PYTHON), str(PROBE), str(ARTIFACT), str(args.rotary), str(batch),
                                    str(warmups), str(trials), str(out / f'{stem}.json')]

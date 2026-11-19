@@ -133,6 +133,7 @@ def validate_capture(item, plan, runtime, seed, seed_sha):
         require(item['binary_sha256'] == plan['metal_runner_sha256'] and item['device'] == 'metal'
                 and item['artifact_manifest_sha256'] == MANIFEST_SHA
                 and item['convolution_math'] == 'MLX Metal'
+                and item['sampler'] == 'device FP32 inverse CDF'
                 and item['penalty'] == 'host FP64'
                 and item['diagnostic']['rotary_tables_sha256'] == ROPE_SHA,
                 'Rust Metal capture identity differs')

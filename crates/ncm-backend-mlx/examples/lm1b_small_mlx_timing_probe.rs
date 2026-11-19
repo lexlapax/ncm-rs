@@ -1,6 +1,6 @@
 //! Synchronized LM1B-small Metal sampling time and memory for one fixed batch.
 //!
-//! Times `sample_seeded` (the `ncm sample-lm1b-small ... mlx` default path) plus code readback;
+//! Times `sample_seeded` (host FP64 draws) or `sample_seeded_device_fp32` plus code readback;
 //! IDs are already on the host. Model load is reported separately.
 use mlx_rs::memory;
 use ncm_backend_mlx::MlxBackend;
@@ -16,10 +16,16 @@ const ROTARY_TABLES_SHA256: &str =
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
-    let [_, artifact_path, rope, batch, warmups, trials] = args.as_slice() else {
+    let [_, artifact_path, rope, batch, warmups, trials, sampler] = args.as_slice() else {
         return Err(
-            "usage: lm1b_small_mlx_timing_probe ARTIFACT ROTARY_TABLES BATCH WARMUPS TRIALS".into(),
+            "usage: lm1b_small_mlx_timing_probe ARTIFACT ROTARY_TABLES BATCH WARMUPS TRIALS host|device-fp32"
+                .into(),
         );
+    };
+    let device_fp32 = match sampler.as_str() {
+        "host" => false,
+        "device-fp32" => true,
+        _ => return Err("sampler must be host or device-fp32".into()),
     };
     let (batch, warmups, trials): (usize, usize, usize) =
         (batch.parse()?, warmups.parse()?, trials.parse()?);
@@ -49,7 +55,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         // Fixed per-trial request seeds; separate from the quality campaign streams.
         let seed = (11_u64 << 32) | trial as u64;
         let start = Instant::now();
-        let result = model.sample_seeded(&prefixes, batch, seed)?;
+        let result = if device_fp32 {
+            model.sample_seeded_device_fp32(&prefixes, batch, seed)?
+        } else {
+            model.sample_seeded(&prefixes, batch, seed)?
+        };
         let codes = backend.read_indices(&result.codes)?;
         let elapsed = start.elapsed().as_secs_f64();
         if codes.len() != batch * 641 || result.ids.len() != batch * 128 {
@@ -69,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_json::json!({
             "runtime": "rust", "batch": batch, "warmups": warmups, "trials": trials,
             "scope": "sample_seeded generation, decoding penalties and code readback; model load excluded",
-            "sampler": "host FP64 inverse CDF (CLI default)",
+            "sampler": if device_fp32 { "device FP32 inverse CDF" } else { "host FP64 inverse CDF" },
             "load_seconds": load_seconds, "seconds": seconds, "signatures": signatures,
             "mlx_memory": {"active": memory::active_memory()?, "peak": memory::peak_memory()?,
                            "cache": memory::cache_memory()?},

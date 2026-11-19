@@ -37,6 +37,11 @@ pub trait CodecBackend: WeightBackend {
     type Indices: Clone;
     fn upload_indices(&self, values: &[u32], shape: &[usize]) -> Result<Self::Indices>;
     fn read_f32(&self, x: &Self::Tensor) -> Result<Vec<f32>>;
+    /// Calls `f` with the tensor's FP32 values in row-major order. Backends whose evaluated
+    /// memory is host-visible may lend it without copying; the default copies via `read_f32`.
+    fn visit_f32<R>(&self, x: &Self::Tensor, f: impl FnOnce(&[f32]) -> R) -> Result<R> {
+        Ok(f(&self.read_f32(x)?))
+    }
     fn read_indices(&self, x: &Self::Indices) -> Result<Vec<u32>>;
     fn shape(&self, x: &Self::Tensor) -> Vec<usize>;
     fn indices_shape(&self, x: &Self::Indices) -> Vec<usize>;
@@ -201,6 +206,20 @@ pub trait GeneratorBackend: CodecBackend {
     ) -> Result<Self::Indices> {
         Err(Error::Backend(
             "8192-way categorical sampling is unsupported".into(),
+        ))
+    }
+    /// Experimental LM1B 8192-way FP32 inverse-CDF draw. `uniforms` holds one FP32 value
+    /// in (0, 1) per `[batch, length]` row of `[batch, length, 8192]` logits. Returns choices
+    /// that are always valid indices, plus a one-element count of rows with nonfinite logits.
+    /// Those rows' choices are meaningless; callers must reject any nonzero count before
+    /// using the request's outputs. The count lets callers defer that check.
+    fn lm1b_categorical_8192_fp32(
+        &self,
+        _logits: &Self::Tensor,
+        _uniforms: &Self::Tensor,
+    ) -> Result<(Self::Indices, Self::Indices)> {
+        Err(Error::Backend(
+            "LM1B FP32 categorical sampling is unsupported".into(),
         ))
     }
     /// Experimental 8192-way FP32 top-p=1 probability calculation.

@@ -407,6 +407,16 @@ impl CodecBackend for MlxBackend {
         })
         .map_err(error)
     }
+    fn visit_f32<R>(&self, x: &MlxTensor, f: impl FnOnce(&[f32]) -> R) -> Result<R> {
+        check(x, Dtype::Float32)?;
+        let flat = with_stream(&self.stream, || -> ops::Result<_> {
+            let flat = x.0.reshape(&[-1])?.contiguous()?;
+            flat.eval()?;
+            Ok(flat)
+        })
+        .map_err(error)?;
+        Ok(f(flat.try_as_slice::<f32>().map_err(error)?))
+    }
     fn read_indices(&self, x: &MlxTensor) -> Result<Vec<u32>> {
         check(x, Dtype::Uint32)?;
         with_stream(&self.stream, || -> ops::Result<_> {
@@ -879,6 +889,43 @@ impl ncm_core::GeneratorBackend for MlxBackend {
     #[cfg(feature = "lm1b-experimental")]
     fn lm1b_top_p_one_probabilities(&self, logits: &Self::Tensor) -> Result<Self::Tensor> {
         self.lm1b_top_p_one_probabilities_experimental(logits)
+    }
+
+    fn lm1b_categorical_8192_fp32(
+        &self,
+        logits: &MlxTensor,
+        uniforms: &MlxTensor,
+    ) -> Result<(MlxTensor, MlxTensor)> {
+        check(logits, Dtype::Float32)?;
+        check(uniforms, Dtype::Float32)?;
+        let &[batch, length, width] = logits.0.shape() else {
+            return Err(Error::Input("expected rank-three LM1B logits".into()));
+        };
+        if !(1..=32).contains(&batch)
+            || !(1..=128).contains(&length)
+            || width != 8192
+            || uniforms.0.shape() != [batch, length]
+        {
+            return Err(Error::Input("invalid LM1B categorical shapes".into()));
+        }
+        with_stream(&self.stream, || -> ops::Result<(Array, Array)> {
+            let probabilities = mlx_rs::ops::softmax_axis(&logits.0, -1, true)?;
+            let cumulative = probabilities.cumsum(-1, false, true)?;
+            let total = cumulative.try_index((.., .., 8191..8192))?;
+            let threshold = uniforms.0.expand_dims(-1)?.multiply(&total)?;
+            // First index whose cumulative probability exceeds the threshold.
+            let index = cumulative
+                .le(&threshold)?
+                .as_type::<u32>()?
+                .sum_axis(-1, false)?;
+            let index = mlx_rs::ops::minimum(&index, Array::from_slice(&[8191_u32], &[]))?;
+            let invalid = logits.0.is_finite()?.logical_not()?.any_axis(-1, false)?;
+            let choices = mlx_rs::ops::select(&invalid, Array::from_slice(&[0_u32], &[]), &index)?;
+            let count = invalid.as_type::<u32>()?.sum(false)?.reshape(&[1])?;
+            Ok((choices, count))
+        })
+        .map(|(choices, count)| (MlxTensor(choices), MlxTensor(count)))
+        .map_err(error)
     }
 
     fn xsum_reference_backend(&self) -> Result<Self> {

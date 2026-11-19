@@ -148,19 +148,26 @@ target/release/ncm sample-lm1b-small \
 On Apple Silicon, the explicitly experimental Metal command uses the same
 artifact, input and rotary export. Build with `cargo build --locked --release
 -p ncm-cli --features lm1b-mlx-experimental` and replace `cuda-cudnn` with
-`mlx` in the command above. The Metal path runs the controlled FP64 host
-sampler and decoding penalties; it does not silently fall back to CUDA. Its
-stochastic comparisons remain failed and this command is not a qualified
-LM1B Metal release.
+`mlx` in the command above. By default the Metal path samples on the GPU with
+an FP32 inverse CDF: each draw uses the top 24 bits of the request's SplitMix64
+stream as an exact FP32 midpoint uniform. Decoding penalties stay in host FP64.
+Rows with nonfinite logits are counted on the device and the request fails after
+all levels are queued; the count is read once to avoid a sync per level.
+`--host-fp64` selects the earlier host FP64 sampler, which reads every level's
+logits back to the host and is slower. Neither sampler falls back to CUDA.
+Draw-level differences from CUDA are covered by the
+[scoped Metal exception](results/2026-11-16-phase4-lm1b/user-decisions-v1.md#2-metal-stochastic-draw-differences-scoped-exception);
+Metal quality and performance are judged by the 80-seed protocol and the timing comparison.
 
 Each JSON input row supplies BERT start token `101`. A request accepts
 1 to 32 rows and an unsigned 64-bit request seed. The command returns a
 JSON object with a 641-code row and a 128-raw-ID row for each input.
-By default it uses a full-distribution FP64 inverse-CDF sampler and FP64
-decoding penalties. The pinned upstream sampler additionally applies FP32
+On CUDA it uses a full-distribution device FP64 inverse-CDF sampler and FP64
+decoding penalties; Metal defaults to the FP32 device sampler described above.
+The pinned upstream sampler additionally applies FP32
 sorting and cumulative top-p filtering even when top-p is one; rounding can
-make that filtering change a choice. On Metal, append `--top-p-fp32` to
-explicitly select an experimental MLX FP32 sort, softmax and filtering path
+make that filtering change a choice. On Metal, append `--top-p-fp32` (not
+combinable with `--host-fp64`) to explicitly select an experimental MLX FP32 sort, softmax and filtering path
 with FP64 host draws and penalties. Multirow filtering uses a CUDA-shaped
 FP32 prefix scan; single-row filtering uses the MLX scan. CUDA rejects this option. The MLX FP32
 operations differ numerically from upstream CUDA on selected boundary draws;

@@ -47,8 +47,7 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Next actions, in order
 
-1. Metal: add a Metal campaign runner (CLI default host-FP64 sampler), generate the `rust_metal`
-   list on the Mac and score it against the same Python CUDA captures from
+1. Metal: run `tools/check.sh --mlx`, then generate the `rust_metal` list (device FP32 sampler) on the Mac and score it against the same Python CUDA captures from
    `reports/phase4-lm1b-campaign-prospective-cuda-v1/`. Run a Metal batch 1/4/16 latency/memory
    comparison against the Python MLX reference. Then close LM1B-small.
    Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
@@ -65,6 +64,17 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
+- **Metal sampler change:** a short Metal screen of the old default (host FP64 draws) was 34–47%
+  slower than Python MLX, because every level's logits were read to the host and the GPU was
+  synced after each level. Metal now defaults to a device FP32 inverse CDF
+  (`sample_seeded_device_fp32`, trait hook `lm1b_categorical_8192_fp32`) with non-finite rows
+  counted on the device and checked in one read after all levels. `--host-fp64` keeps the old
+  sampler. Host FP64 penalties now borrow MLX logits (`visit_f32`). Screen, not evidence (2
+  warmups, 5 trials): Rust 0.101/0.185/0.432 s against Python 0.117/0.231/0.658 s at batches
+  1/4/16; RSS 1,658/1,705/1,881 MiB against Python ~1,681–1,763 MiB, so batch 16 memory may still fail.
+  Checks: four new real-Metal hook tests and the existing top-p tests pass, and Mac Clippy is clean.
+  The refactored host path reproduces pre-change Metal outputs exactly at batches 1/4/16, and the
+  CUDA rehearsal still reproduces the archive. `setpriv --inh-caps=-all ./tools/check.sh --cuda` passes.
 - Metal tooling added, Metal runs pending: the campaign gains a Metal mode that imports the
   published Python CUDA captures by receipt hash and Mac-made Rust captures by pinned binary hash.
   New MLX examples `lm1b_small_cohort_campaign` and `lm1b_small_mlx_timing_probe`, Python probe
