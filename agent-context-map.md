@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **CUDA overlength text:** one synthetic 1,101-token input per XSum/WMT14 was tested against its pinned Python-truncated IDs: baseline alias, candidate alias, unified IDs and unified text matched byte-for-byte; decoded ID/text paths matched and preserved IDs/codes. The [documented commands](docs/results/2026-11-19-phase5-cli/cuda-text-truncation-v1.md) were replayed with fresh outputs. Report shell blocks/links and `tools/check.sh` pass. This is not corpus generation, quality, performance or Metal evidence.
+
 - **Text truncation/padding boundaries:** seven synthetic inputs per profile, including overlength, empty, Unicode and special strings, matched the pinned Python XSum/WMT14 encoders in an artifact-bound Rust test ([evidence](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#synthetic-truncation-and-padding-boundaries)). Three references per profile were byte-identical; output preflight and `tools/check.sh` pass. This checks encoding only, not model acceptance, GPU generation or quality.
 
 - **Unified CLI rejection integration:** [ten synthetic-manifest cases](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md#cli-rejection-integration-checks) exercise actual CLI rejection diagnostics and no stdout for unsupported profile/option combinations and two LM1B device/flag cases. Default and `cuda-cudnn` test builds, CUDA CLI all-target Clippy and `tools/check.sh` pass. All cases stop before artifact loading or inference; this is not a complete device matrix or GPU validation.

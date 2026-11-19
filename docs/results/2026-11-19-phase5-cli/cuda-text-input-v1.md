@@ -28,7 +28,8 @@ whitespace, Unicode and special-token spellings. The pinned Python tokenizers pr
 lengths `0, 1, 1101, 1400, 10, 1, 7` (XSum) and `0, 1, 1101, 350, 6, 1, 1` (WMT14). The Rust
 CLI encoder matched every padded/truncated ID row, including overlength cases. Empty or special
 strings passing this encoder-only check are not necessarily accepted by the downstream model.
-No GPU generation or quality conclusion follows.
+No GPU generation or quality conclusion follows from this encoder-only test. A separate
+[CUDA overlength screen](cuda-text-truncation-v1.md) compares generation for one such input per profile.
 
 The reference generator verifies the pinned tokenizer manifest/source files and package versions,
 then rechecks source hashes after tokenization. Its SHA-256 is
