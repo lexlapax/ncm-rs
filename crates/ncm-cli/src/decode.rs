@@ -262,6 +262,41 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires pinned XSum/WMT14 artifacts and generated decode references"]
+    fn synthetic_decode_boundaries_match_pinned_python() {
+        for (artifact_var, reference_var, profile, digest) in [
+            (
+                "NCM_XSUM_ARTIFACT",
+                "NCM_XSUM_DECODE_REFERENCE",
+                "xsum",
+                "ce931c2380ee57da00aa84ed818b005ed27bd5c81e3265766b075f126cde377c",
+            ),
+            (
+                "NCM_WMT14_ARTIFACT",
+                "NCM_WMT14_DECODE_REFERENCE",
+                "wmt14",
+                "16bbc0f63d8fe2f28813b12554375e4a54d251cee420ac2602c450878bd0dc9c",
+            ),
+        ] {
+            let artifact =
+                ncm_io::Artifact::load_inference(std::env::var(artifact_var).unwrap()).unwrap();
+            let decoder = Decoder::from_artifact(&artifact).unwrap();
+            drop(artifact);
+            let raw = std::fs::read(std::env::var(reference_var).unwrap()).unwrap();
+            assert_eq!(ncm_io::sha256(&raw), digest);
+            let data: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+            assert_eq!(data["profile"], profile);
+            let ids: Vec<Vec<u32>> = serde_json::from_value(data["ids"].clone()).unwrap();
+            let texts: Vec<String> = serde_json::from_value(data["texts"].clone()).unwrap();
+            assert_eq!(ids.len(), 135);
+            assert_eq!(texts.len(), ids.len());
+            let mut result = serde_json::json!({"ids": ids});
+            decoder.add_texts(&mut result).unwrap();
+            assert_eq!(result["texts"], serde_json::json!(texts), "{profile}");
+        }
+    }
+
+    #[test]
     fn evaluator_stops_at_eos_and_discards_padding_and_model_only_ids() {
         let x = policy("xsum-inference-v2").unwrap();
         assert_eq!(

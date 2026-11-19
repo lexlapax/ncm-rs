@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Synthetic decoder boundaries:** artifact-bound XSum/WMT14 `Decoder::add_texts` matched pinned Python evaluator decoding for 135 synthetic rows per profile, including EOS, padding, model-only IDs and fixed-seed random IDs ([evidence](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#synthetic-xsum-and-wmt14-decode-boundaries)). Two reference captures per profile matched; output-preflight test, the ignored artifact-bound test and `tools/check.sh` pass. This is host-side synthetic coverage, not corpus, GPU inference or Metal validation.
+
 - **Updated equivalence runner CUDA rerun:** the hardened runner compared baseline, alias and unified stdout for all nine fixed requests; hashes and row counts match the previous screen ([evidence](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md#updated-runner-cuda-rerun)). Five runner tests and `tools/check.sh` pass. This repeats the existing fixture scope with the updated runner and newer candidate, not corpus, quality, performance or Metal validation.
 
 - **CUDA TinyStories cold-request screen:** extended the cold runner for a fixed seed-42 TinyStories request; 210 fresh baseline/candidate processes produced identical stdout, with measured medians 1103.932/1103.759 ms and median peak RSS 908.039/907.695 MiB ([report](docs/results/2026-11-19-phase5-cli/cuda-tinystories-cold-screen-v1.md)). Six runner tests, report syntax/links and `tools/check.sh` pass. This active-desktop screen includes startup/loading, not persistent-process inference, native device peaks, Python comparison, other profiles, Metal or the performance gate.
