@@ -31,4 +31,37 @@ The current TinyStories teacher accepts one prefix ID per row in `0..8192`, excl
 
 ## TinyStories text input
 
-`--text` now encodes using the artifact tokenizer and requires exactly one non-padding token per input string; it does not truncate multi-token input. The pinned upstream tokenizer encodes `a`, `hello` and `<|endoftext|>` as `[99]`, `[5663]` and `[0]`; Rust's artifact-bound tokenizer agrees. On CUDA with seed 42, the three-row text request produced byte-identical stdout to the equivalent IDs via the baseline, alias and unified commands (SHA-256 `5657f32f642395268128b19df66e283ab5644ae59bc4869a0e542c467b5d2f63`). With `--decode`, text and ID inputs also matched (SHA-256 `ba9da3f1183b3e7a025693af4d3218ee431d61fc0af9bc87e27b4cbe4d364cfd`), and the non-text fields match the baseline. Empty, `<|pad|>`, `hello world` and `😀` inputs were rejected explicitly. Candidate release binary SHA-256 `cbd3d8d1fa39cbd878c6ff5f41a4f32aafe726d7706ee7c0dc28e0fd4e3a9b67`. The first screening harness accidentally overwrote its own text input with an output; that failed run was discarded and the clean rerun used disjoint filenames. Raw captures are in ignored `reports/phase5-tiny-text-v2/`. Metal, broader inputs and performance checks are pending.
+`--text` now encodes using the artifact tokenizer and requires exactly one non-padding token per input string; it does not truncate multi-token input. The pinned upstream tokenizer encodes `a`, `hello` and `<|endoftext|>` as `[99]`, `[5663]` and `[0]`; Rust's artifact-bound tokenizer agrees. On CUDA with seed 42, the three-row text request produced byte-identical stdout to the equivalent IDs via the baseline, alias and unified commands (SHA-256 `5657f32f642395268128b19df66e283ab5644ae59bc4869a0e542c467b5d2f63`). With `--decode`, text and ID inputs also matched (SHA-256 `ba9da3f1183b3e7a025693af4d3218ee431d61fc0af9bc87e27b4cbe4d364cfd`), and the non-text fields match the baseline. Empty, `<|pad|>`, `hello world` and `😀` inputs were rejected explicitly. Candidate release binary SHA-256 `cbd3d8d1fa39cbd878c6ff5f41a4f32aafe726d7706ee7c0dc28e0fd4e3a9b67`. The first screening harness accidentally overwrote its own text input with an output; that failed run was discarded and the clean rerun used disjoint filenames. Raw captures are in ignored `reports/phase5-tiny-text-v2/`. Metal and performance checks are pending.
+
+### TinyStories vocabulary differential
+
+The pinned upstream TinyStories byte-BPE decoded each of its 8,192 vocabulary entries to text,
+then encoded that text; seven additional boundary strings were appended. Rust's actual
+artifact-bound text-input path matched upstream **admission and ID** for all 8,199 rows: 8,064
+single non-padding rows accepted with identical IDs, and 135 zero-token, padding or multi-token
+rows rejected. For rejected rows the test checks rejection, not equality of the full encoded
+sequence. Some decoded byte tokens contain Unicode replacement characters or re-encode to
+multiple IDs, so this is not a claim that every vocabulary ID round-trips as text. It is not a
+GPU generation or quality test.
+
+The reference generator checks pinned upstream source hashes, clean Git revision, tokenizer
+payload/manifest and locked dependency versions. Two captures were byte-identical, SHA-256
+`b693f72b52e4803b8604774f63f3edc5eaed1b609136d2d0218c76485068add3` (ignored locally);
+the generator SHA-256 is `22644477c89aa619ab096e2f8a57dba8b11c2d63717fc6867153a33f06f55be3`.
+Run with a fresh reference output:
+
+```sh
+setpriv --inh-caps=-all .reference/tokenizers-venv/bin/python tools/reference/phase5_tinystories_text_reference.py \
+  --upstream .reference/upstream-ncm --tokenizer-asset artifacts/canonical/tokenizers-qualified/tinystories \
+  --output reports/NEW-tinystories-text-reference.json
+setpriv --inh-caps=-all env NCM_TINYSTORIES_ARTIFACT="$PWD/artifacts/canonical/tinystories-phase4-v1" \
+  NCM_TINYSTORIES_TEXT_REFERENCE="$PWD/reports/NEW-tinystories-text-reference.json" \
+  cargo test --locked -p ncm-cli --bin ncm tinystories_text_matches_upstream_vocabulary_reference -- --ignored
+```
+
+The ignored Rust test verifies the reference hash and all rows. Two reference preflight negative
+controls and the CLI feature tests/Clippy pass. The first `tools/check.sh --cuda` failed an
+unrelated `test_default_budget_handoff_preserves_deadline_and_all_eighteen_real_observations`
+with `capture_error:ObservationMismatch` / unexpected live executable identity; a focused retry
+and two later full CUDA checks passed. The cause is not established; the failed log remains at
+`/tmp/ncm-phase5-tiny-vocab-cuda.log` for this session.

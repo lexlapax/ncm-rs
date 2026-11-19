@@ -161,6 +161,37 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires pinned TinyStories artifact and generated upstream text reference"]
+    fn tinystories_text_matches_upstream_vocabulary_reference() {
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_TINYSTORIES_ARTIFACT").unwrap())
+                .unwrap();
+        let decoder = Decoder::from_artifact(&artifact).unwrap();
+        drop(artifact);
+        let raw = std::fs::read(std::env::var("NCM_TINYSTORIES_TEXT_REFERENCE").unwrap()).unwrap();
+        assert_eq!(
+            ncm_io::sha256(&raw),
+            "b693f72b52e4803b8604774f63f3edc5eaed1b609136d2d0218c76485068add3"
+        );
+        let data: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+        let rows = data["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 8199);
+        let mut accepted = 0;
+        for (index, row) in rows.iter().enumerate() {
+            let text = row["text"].as_str().unwrap().to_owned();
+            let expected: Vec<u32> = serde_json::from_value(row["ids"].clone()).unwrap();
+            let actual = decoder.encode_texts(&[text]);
+            if matches!(expected.as_slice(), [id] if *id < 8192 && *id != 1) {
+                assert_eq!(actual.unwrap(), vec![expected], "row {index}");
+                accepted += 1;
+            } else {
+                assert!(actual.is_err(), "row {index}");
+            }
+        }
+        assert_eq!(accepted, 8064);
+    }
+
+    #[test]
     #[ignore = "requires pinned local artifacts and external reference corpora"]
     fn corpus_text_encoding_matches_every_reference_row() {
         for (artifact_var, reference_var, count) in [
