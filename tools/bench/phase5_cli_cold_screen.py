@@ -44,11 +44,18 @@ def summarize(records, condition):
 
 
 def execute(output, condition, binary, command, artifact, input_path, group, ordinal, warmup, expected,
-            profile='sudoku'):
+            profile='sudoku', rope=None):
     stem = f'{group}-{ordinal:02d}-{condition}'
     stdout, stderr, rss = (output / f'{stem}.{suffix}' for suffix in ('stdout', 'stderr', 'rss'))
-    device = 'cuda-cudnn' if profile in ('tinystories', 'xsum') else 'cuda'
-    options = (['42'] if command == 'sample-tinystories' else ['--seed', '42']) if profile == 'tinystories' else []
+    device = 'cuda-cudnn' if profile in ('tinystories', 'xsum', 'lm1b') else 'cuda'
+    if profile == 'tinystories':
+        options = ['42'] if command == 'sample-tinystories' else ['--seed', '42']
+    elif profile == 'lm1b':
+        if rope is None:
+            raise ValueError('LM1B requires a rotary table')
+        options = ['42', str(rope)] if command == 'sample-lm1b' else ['--seed', '42', '--reference-rope', str(rope)]
+    else:
+        options = []
     argv = ['/usr/bin/time', '-f', '%M', '-o', str(rss), str(binary), command,
             str(artifact), device, str(input_path), *options]
     before = time.perf_counter_ns()
@@ -93,12 +100,19 @@ def main():
         parser.add_argument('--' + name, required=True, type=Path)
     for name in ('baseline', 'candidate', 'manifest', 'input', 'expected-output'):
         parser.add_argument('--' + name + '-sha256', required=True)
-    parser.add_argument('--profile', choices=('sudoku', 'tinystories', 'xsum', 'wmt14'), default='sudoku')
+    parser.add_argument('--profile', choices=('sudoku', 'tinystories', 'xsum', 'wmt14', 'lm1b'), default='sudoku')
+    parser.add_argument('--rope', type=Path)
+    parser.add_argument('--rope-sha256')
     parser.add_argument('--watch-file', type=Path, action='append', default=[],
                         help='additional native library to hash before and after measurement')
     args = parser.parse_args()
     if args.output.exists() or args.output.is_symlink():
         raise ValueError('output already exists')
+    if (args.profile == 'lm1b') != (args.rope is not None and args.rope_sha256 is not None):
+        raise ValueError('LM1B requires both --rope and --rope-sha256, other profiles neither')
+    if args.profile != 'lm1b' and (args.rope is not None or args.rope_sha256 is not None):
+        raise ValueError('rotary options are only supported for LM1B')
+    rope = args.rope.resolve() if args.rope is not None else None
     baseline, candidate, artifact, input_path = (
         getattr(args, name).resolve() for name in ('baseline', 'candidate', 'artifact', 'input'))
     output = args.output.absolute()
@@ -112,12 +126,14 @@ def main():
         raise ValueError('nvidia-smi unavailable')
     watch_paths = [Path(__file__).resolve(), baseline, candidate, artifact / 'manifest.json',
                    input_path, Path('/usr/bin/time').resolve(), Path(monitor_path).resolve(),
-                   *(path.resolve() for path in args.watch_file)]
+                   *([rope] if rope is not None else []), *(path.resolve() for path in args.watch_file)]
     watched = {path: digest(path) for path in watch_paths}
     for path, expected in ((baseline, args.baseline_sha256), (candidate, args.candidate_sha256),
                            (artifact / 'manifest.json', args.manifest_sha256), (input_path, args.input_sha256)):
         if watched[path] != expected:
             raise ValueError(f'identity differs: {path}')
+    if rope is not None and watched[rope] != args.rope_sha256:
+        raise ValueError(f'identity differs: {rope}')
     output.mkdir(parents=True, exist_ok=False)
     records = []
     monitor_argv = [monitor_path, '--query-gpu=timestamp,temperature.gpu,clocks.sm,power.draw,utilization.gpu,memory.used',
@@ -129,14 +145,15 @@ def main():
             for group in range(1, ROUNDS + 1):
                 for ordinal in range(WARMUPS + TRIALS):
                     old_command = {'sudoku': 'generate', 'tinystories': 'sample-tinystories',
-                                   'xsum': 'sample-xsum', 'wmt14': 'sample-wmt14'}[args.profile]
+                                   'xsum': 'sample-xsum', 'wmt14': 'sample-wmt14',
+                                   'lm1b': 'sample-lm1b'}[args.profile]
                     order = [('baseline', baseline, old_command), ('candidate', candidate, 'sample')]
                     if (group + ordinal) % 2:
                         order.reverse()
                     for condition, binary, command in order:
                         record = execute(output, condition, binary, command, artifact, input_path,
                                          group, ordinal, ordinal < WARMUPS, args.expected_output_sha256,
-                                         args.profile)
+                                         args.profile, rope)
                         records.append(record)
                         if monitor.poll() is not None:
                             raise RuntimeError('GPU monitor exited during measurement')

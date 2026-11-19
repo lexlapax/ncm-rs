@@ -53,7 +53,8 @@ are not native CLI device peaks. No GPU reservation or absence of competing work
 
 ## Reproduce
 
-Runner SHA-256 is `782ff20af6e6a01db03c7131b89664dc0333eafb5c97149abb949bb81ffaca3e`. Ignored
+The runner used here had SHA-256 `782ff20af6e6a01db03c7131b89664dc0333eafb5c97149abb949bb81ffaca3e`;
+it was later extended for a separate [LM1B-small screen](cuda-lm1b-cold-screen-v1.md). Ignored
 result SHA-256s: XSum `c0d2e9f27a87e0de85c098c866d63329f09be307f42cd93971b315ad5a3ed3d1`,
 WMT14 `45d58ead0d1b988bbb4572f105d4cd186acb4889c44f09fbaf1ded2d19b0f713`. Sampled GPU CSV
 SHA-256s: XSum `4b756826ec3d663688a56d77a77db933c787c669d61fd2c9711a1e6d06201a48`, WMT14

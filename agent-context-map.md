@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **CUDA LM1B-small cold-request screen:** extended the cold runner with a hash-checked explicit rotary table; 210 baseline/candidate processes produced identical stdout. Measured medians were 1578.016/1578.826 ms and median peak RSS 1209.566/1206.109 MiB ([report](docs/results/2026-11-19-phase5-cli/cuda-lm1b-cold-screen-v1.md)). Nine runner tests, report syntax/links and `tools/check.sh` pass. This active-desktop, single-request cold screen is not persistent inference, native device peaks, Python comparison, quality, Metal or the release performance gate.
+
 - **CUDA XSum/WMT14 cold-request screens:** extended the runner for top-1 requests; each profile's 210 baseline/candidate processes produced identical stdout. Measured median ms were 1285.126/1283.963 (XSum) and 1837.986/1834.103 (WMT14), with no meaningful improvement established ([report](docs/results/2026-11-19-phase5-cli/cuda-xsum-wmt14-cold-screen-v1.md)). Seven runner tests, report syntax/links and `tools/check.sh` pass. Active-desktop cold-process timing is not persistent inference, native device peaks, Python comparison, quality, Metal or the release performance gate.
 
 - **Invalid-device CLI screen:** the CUDA-feature unified CLI rejected one deliberately invalid device for all nine qualified profile manifests, with exit 1, empty stdout and explicit errors ([evidence](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md#invalid-device-checks-with-qualified-artifacts)). Two runner negative controls, report syntax/links and `tools/check.sh` pass. This covers one invalid name on Linux, not all device/option combinations, inference or Metal.

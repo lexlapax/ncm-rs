@@ -71,6 +71,22 @@ class ColdScreenTests(unittest.TestCase):
         self.assertEqual(calls[0][5:], ['/old', 'sample-xsum', '/artifact', 'cuda-cudnn', '/input'])
         self.assertEqual(calls[1][5:], ['/old', 'sample-wmt14', '/artifact', 'cuda', '/input'])
 
+    def test_lm1b_uses_matching_seed_and_explicit_rotary_path(self):
+        raw = b'{}'
+        expected = hashlib.sha256(raw).hexdigest()
+        calls = []
+        def run(argv, **kwargs):
+            calls.append(argv)
+            Path(argv[4]).write_text('1234\n', encoding='utf-8')
+            kwargs['stdout'].write(raw)
+            return Mock(wait=Mock(return_value=0))
+        with tempfile.TemporaryDirectory() as directory, patch.object(tool.subprocess, 'Popen', side_effect=run):
+            for condition, binary, command in (('baseline', '/old', 'sample-lm1b'), ('candidate', '/new', 'sample')):
+                tool.execute(Path(directory), condition, Path(binary), command, Path('/artifact'),
+                             Path('/input'), 1, 0, True, expected, 'lm1b', Path('/rope'))
+        self.assertEqual(calls[0][5:], ['/old', 'sample-lm1b', '/artifact', 'cuda-cudnn', '/input', '42', '/rope'])
+        self.assertEqual(calls[1][5:], ['/new', 'sample', '/artifact', 'cuda-cudnn', '/input', '--seed', '42', '--reference-rope', '/rope'])
+
     def test_dangling_output_symlink_rejected_before_work(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -83,6 +99,18 @@ class ColdScreenTests(unittest.TestCase):
             with patch('sys.argv', argv), self.assertRaisesRegex(ValueError, 'output already exists'):
                 tool.main()
             self.assertFalse((root / 'missing').exists())
+
+    def test_lm1b_requires_both_rotary_arguments_before_reading_inputs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            argv = ['phase5_cli_cold_screen', '--baseline', 'old', '--candidate', 'new',
+                    '--artifact', 'artifact', '--input', 'input', '--output', str(Path(directory) / 'out'),
+                    '--baseline-sha256', 'a', '--candidate-sha256', 'b', '--manifest-sha256', 'c',
+                    '--input-sha256', 'd', '--expected-output-sha256', 'e', '--profile', 'lm1b']
+            for extra in ([], ['--rope', 'rope'], ['--rope-sha256', 'digest']):
+                with patch('sys.argv', argv + extra), patch.object(tool, 'digest') as digest:
+                    with self.assertRaisesRegex(ValueError, 'requires both'):
+                        tool.main()
+                    digest.assert_not_called()
 
     def test_execute_rejects_failure_and_mismatched_output(self):
         def run(argv, **kwargs):
