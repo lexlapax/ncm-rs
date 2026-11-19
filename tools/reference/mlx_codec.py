@@ -104,8 +104,7 @@ class Codec:
         # Unused upstream z_levels outputs are intentionally omitted from this adapted API.
         return codes,snapshots
 
-    def block(self,x,trace=None,label=""):
-        prefix="decoder.middle_block"
+    def block(self,x,trace=None,label="",*,prefix="decoder.middle_block"):
         save(trace,label+prefix+".input",x)
         norm=self.norm(prefix+".ln_1",x,trace,label)
         save(trace,label+prefix+".attn.input",norm)

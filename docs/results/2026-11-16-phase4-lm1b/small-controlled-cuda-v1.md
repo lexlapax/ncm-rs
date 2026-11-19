@@ -1497,3 +1497,99 @@ active. A serial rerun passed the full suite, including 533 report tests and 18
 CUDA operator cases. The failed and passing logs are retained as
 `reports/phase4-lm1b-metal-grouped-scan-observed-v1/linux-full-check.log` and
 `linux-full-check-rerun.log`. The failure's cause was not proven by the rerun.
+
+### Single-row CUDA scan and softmax replay
+
+The pinned PyTorch 2.15.0 CUDA 13.2 build on the RTX 3060 Ti dispatches the
+8,192-value single-row prefix sum through CUB. The observed grid has five
+blocks of 128 threads. A probe at 1,920 and 1,921 values confirmed the
+tile boundary. Ten repeats of every row reproduced the captured prefix sums.
+
+For the 133 retained rows and the synthetic cutoff fixture, a host FP32
+replay used 15 consecutive values per thread, warp-local prefix sums, and
+tile prefixes formed by reducing preceding tile totals in reverse order.
+This matched all 1,097,728 captured prefix values when supplied the CUDA
+sorted probabilities. A forward accumulation of the tile totals differed
+in the last two tiles. The match covers the measured device and input
+set. The CUDA tile lookback can use different addition orders depending
+on which predecessor totals are available.
+
+With CUDA's public elementwise exponential, the host's strided FP32
+softmax reduction, division, and scan reproduced both softmax stages and
+every final weight exactly. Replacing only the CUDA exponentials with
+host FP64 exponentials rounded to FP32 yielded 58 of 133 different
+targeted choices. A range-reduced host FP32 exponential still differed
+from captured CUDA in 302,010 of 1,097,728 values.
+
+With ordinary MLX probabilities, the CUDA-shaped scan reduced cutoff
+mask disagreements on the retained rows from 65 to 44. It increased
+targeted draw differences from 65 to 69 and left the synthetic cutoff
+failure in place. Separately, summing the union of intervals between
+corresponding inverse-CDF boundaries gives a maximum shared-uniform
+disagreement probability of 0.000156 with the native MLX scan and 0.000075
+with the replayed scan on these fixed rows. That calculation excludes
+differences in generated logits and the effects of later draws.
+Single-row and multirow runtime behavior remain as before.
+
+The CUDA stages, CPU and Metal replays, interval-union calculation and
+reports are in `reports/phase4-lm1b-single-row-scan-v1/`.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| CUDA capture | `798072cfb31ab2849a3637b02c483d1785b709d9bfdee8ccebca72a55c95fb7e` |
+| CPU scan replay | `5806c00db17d6ce7c1dc852c5fca9c2ec65e3b9873489667d73dbd3f5281d00c` |
+| Host softmax replay | `f54a31dc749bb18a25b41d62566ff8cdb12b6c039d36b66bc4ce0c0e8d2fa936` |
+| Metal comparison | `30edce2fa1926d22f27662d1c6d31b454f52068feb1072650d41f0e2035317ff` |
+| Shared-draw calculation | `424171d14940355d6ec21641c758f8f4192e91e2fe7daf7094d9b36276804efa` |
+
+### Metal development reference for complete requests
+
+On the retained two-row seed-11 input, the Python MLX adaptation used the
+pinned rotary tables and Metal's fused attention. Using either separate
+projection and bias addition or MLX `addmm` produced the same trace, with
+483 codes different from the pinned-rotary Rust Metal trace. Switching the
+generator Q/K normalization to MLX RMS normalization before multiplying by
+the learned weight yielded exact matches for all 47 shared tensors,
+including all 1,282 sampled codes. The resulting trace SHA-256 is
+`7f756ab6935990ba903c46d7fff429e14835e7321645ffa2ae6f11eb12093a27`.
+
+The repository's Python MLX reference now runs the full request, including
+the positional codec decoder and FP64 decoding penalties. On Mac Studio it
+matched all 8,333 codes and 1,664 final token IDs from the Rust CLI in four
+requests. The cases cover seed 11 at batch one, seeds 11 and 16 at batch two,
+and the first seed-42 request at batch eight. The existing Sudoku Python MLX reference
+also reproduced its archived batch-one codes and IDs after the shared
+adapter helpers were extended.
+
+Run the development reference with the existing pinned Python MLX
+environment and inputs:
+
+```sh
+.reference/mlx-venv/bin/python tools/reference/lm1b_small_mlx_reference.py \
+  artifacts/canonical/lm1b-small-inference-v1 \
+  reports/phase4-lm1b-metal-cli-rope-v1.safetensors \
+  2 11 reports/lm1b-small-mlx-reference-11.json
+```
+
+The command accepts batches one through eight of BERT start token 101 and
+outputs codes and token IDs after penalties. It checks the artifact and
+rotary identities and requires a new output file. The Rust comparison uses
+`sample-lm1b-small ... mlx ...` with the default FP64 sampler. The checked
+Rust CLI binary SHA-256 is
+`147a908646a1aa73bc61d9b1cb01e9c02f5144223a4100b05e552ae064e7e052`.
+These same-device checks cover development requests. Cross-device numerical
+and stochastic comparisons, the frozen quality gate and the performance
+qualification remain open.
+
+The Mac reports and raw captures use
+`reports/phase4-lm1b-metal-reference-alignment-v1/`. The Python JSON outputs for batches two and eight have SHA-256 values
+`fb0a0dfc090eced789910cb9cd2dad7a1489a227363df5f40c4697f9950e0ffb`,
+`833f7975ac3aa716e83c43aadca15659595003e7070bd139931b78ea1cbe3c8c` and
+`edec2feab4a58526bd0af5da3ce998052f35081d33507e6275966d8237f06984`.
+The batch-one output SHA-256 is
+`12055a76a5ae8e9216743957e007a6d50cf45c4e7962d8f1752fb9a2cffac55a`.
+
+The default Linux `tools/check.sh` suite passed, including all 533 report
+tests. The Mac tool rejected batch nine, a negative seed, a mismatched rotary
+file and an existing output. The corresponding logs are retained beside the
+request comparisons.

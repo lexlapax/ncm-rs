@@ -63,6 +63,9 @@ class Generator:
         y = execute({'kind': kind, 'epsilon': 1e-6}, {'x': x}) * self.w[name + '.weight']
         return y if rms else y + self.w[name + '.bias']
 
+    def attention(self, q, k, v, mask):
+        return execute({'kind': 'attention'}, {'q': q, 'k': k, 'v': v, 'mask': mask})
+
     def level(self, prefix, target, level):
         mask, cosine, sine = self.geometry[level]
         x = mx.concatenate([prefix, target], axis=1)
@@ -78,7 +81,7 @@ class Generator:
             k = self.norm(name + '.attn.k_norm', k, rms=True)
             q = execute({'kind': 'rope'}, {'x': q, 'cos': cosine, 'sin': sine})
             k = execute({'kind': 'rope'}, {'x': k, 'cos': cosine, 'sin': sine})
-            attn = execute({'kind': 'attention'}, {'q': q, 'k': k, 'v': v, 'mask': mask})
+            attn = self.attention(q, k, v, mask)
             attn = attn.transpose(0, 2, 1, 3).reshape(batch, seq, width)
             x = x + self.linear(name + '.attn.c_proj', attn)
             norm = self.norm(name + '.ln_2', x)

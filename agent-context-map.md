@@ -4,6 +4,10 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small Metal development reference:** native MLX Q/K RMS normalization aligns all 47 shared generator tensors on the retained two-row trace. The checked-in Python MLX tool matches 8,333 Rust CLI codes and 1,664 final IDs across four requests. Cross-device and quality gates remain open. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-development-reference-for-complete-requests)
+
+- **LM1B single-row scan isolation:** the FP32 tile and warp order reproduces every CUB prefix on the retained CUDA probabilities. It still disagrees when driven by MLX probabilities. CUDA exponentials with the host replay recover the full reference pipeline. No runtime behavior changed. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#single-row-cuda-scan-and-softmax-replay)
+
 - **LM1B multirow Metal scan:** the explicit experimental FP32 path follows the CUDA-shaped multirow scan, reducing selected same-logit boundary differences from 82 to 66 of 133. The observed-seed entropy interval still fails; the single-row CUDA scan and full parity remain unresolved. Metal and serial CUDA full regressions passed 18 device cases each; the first Linux run had an unrelated observer failure, retained in the evidence. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#multirow-cuda-shaped-scan-candidate)
 
 - **LM1B cutoff parity regression:** a deterministic single-row 8,192-logit fixture retains all probabilities in the pinned CUDA sampler but Metal removes 4,608 low-probability entries. A real-device ordering test passes; an explicit ignored CUDA-parity test fails when run. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#deterministic-cutoff-regression)

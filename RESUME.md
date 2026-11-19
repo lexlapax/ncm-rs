@@ -44,6 +44,16 @@ protocol, not an approved replacement gate.
 
 ## Latest LM1B-small Metal work
 
+The checked-in Python MLX development reference matches all 8,333 codes and
+1,664 final IDs on four Mac requests. Q/K RMS normalization
+aligned all 47 shared generator tensors on the two-row trace. Go to the
+[reference command and evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-development-reference-for-complete-requests).
+
+The single-row CUDA scan is reproducible on captured CUDA probabilities.
+The remaining same-logit differences involve softmax exponentials, and
+substituting the CUDA-shaped scan alone increases the targeted draw
+differences on MLX probabilities. See [the stage replay](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#single-row-cuda-scan-and-softmax-replay).
+
 `sample-lm1b-small ... mlx ... --top-p-fp32` is an explicit experimental
 sampler. It does not reproduce PyTorch RNG or establish CUDA parity; the default
 Metal and CUDA samplers remain unchanged. The multirow candidate now uses a
@@ -67,9 +77,9 @@ Do not claim full performance qualification from this small screen.
 ## Next work, in order
 
 1. Continue LM1B-small correctness: investigate the remaining Metal/CUDA
-   sampler and convolution differences, especially the separate single-row
-   CUDA scan. Use fixed-input, same-draw comparisons and qualify a same-device
-   reference before drawing wider conclusions. Keep unsupported paths explicit.
+   sampler and convolution differences. The single-row stage replay isolates
+   a softmax difference. Extend the same-device reference checks to more
+   shapes and retain the cross-device comparisons. Keep unsupported paths explicit.
 2. Resolve the frozen CUDA and Metal quality failures with valid evidence.
    If a different protocol or exception is needed, present the concrete
    proposal and existing failed results; do not silently change the gate.
