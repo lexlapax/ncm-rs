@@ -287,6 +287,44 @@ impl MlxBackend {
         backend.xsum_head_split_experimental = true;
         Ok(backend)
     }
+    /// Explicit FP32 top-p=1 probability diagnostic for finite LM1B logits.
+    ///
+    /// This follows the MLX sorting, softmax and cumulative-sum arithmetic;
+    /// it is not qualified as bit-identical to PyTorch CUDA. It does not draw
+    /// a sample or alter the existing full-distribution sampler.
+    #[cfg(feature = "lm1b-experimental")]
+    pub fn lm1b_top_p_one_probabilities_experimental(
+        &self,
+        logits: &MlxTensor,
+    ) -> Result<MlxTensor> {
+        let &[batch, length, width] = logits.0.shape() else {
+            return Err(Error::Input("expected rank-three LM1B logits".into()));
+        };
+        if !(1..=32).contains(&batch) || !(1..=128).contains(&length) || width != 8192 {
+            return Err(Error::Input("invalid LM1B top-p logits shape".into()));
+        }
+        if self
+            .read_f32(logits)?
+            .iter()
+            .any(|value| !value.is_finite())
+        {
+            return Err(Error::Input("nonfinite LM1B top-p logits".into()));
+        }
+        self.array_op(&[logits], || {
+            let order = mlx_rs::ops::argsort_axis(logits.0.negative()?, -1)?;
+            let sorted = logits.0.take_along_axis(&order, -1)?;
+            let probabilities = mlx_rs::ops::softmax_axis(&sorted, -1, true)?;
+            let cumulative = probabilities.cumsum(-1, false, true)?;
+            let remove = cumulative
+                .subtract(&probabilities)?
+                .gt(Array::from_f32(1.0))?;
+            let masked = mlx_rs::ops::select(&remove, Array::from_f32(f32::NEG_INFINITY), &sorted)?;
+            let inverse = mlx_rs::ops::argsort_axis(&order, -1)?;
+            let restored = masked.take_along_axis(&inverse, -1)?;
+            Ok(mlx_rs::ops::softmax_axis(&restored, -1, true)?)
+        })
+    }
+
     fn array_op(
         &self,
         inputs: &[&MlxTensor],
@@ -802,6 +840,11 @@ impl CodecBackend for MlxBackend {
 }
 
 impl ncm_core::GeneratorBackend for MlxBackend {
+    #[cfg(feature = "lm1b-experimental")]
+    fn lm1b_top_p_one_probabilities(&self, logits: &Self::Tensor) -> Result<Self::Tensor> {
+        self.lm1b_top_p_one_probabilities_experimental(logits)
+    }
+
     fn xsum_reference_backend(&self) -> Result<Self> {
         Ok(self.clone())
     }

@@ -3323,8 +3323,18 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, Some(codes), &[], batch, trace, None, false, false)
-            .map(|_| ())
+        self.run_impl(
+            prefix,
+            Some(codes),
+            &[],
+            batch,
+            trace,
+            None,
+            false,
+            false,
+            false,
+        )
+        .map(|_| ())
     }
 
     /// Uncached greedy continuation from an explicitly supplied initial code.
@@ -3335,8 +3345,10 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<()> {
-        self.run_impl(prefix, None, initial, batch, trace, None, false, false)
-            .map(|_| ())
+        self.run_impl(
+            prefix, None, initial, batch, trace, None, false, false, false,
+        )
+        .map(|_| ())
     }
 
     /// Controlled full-distribution sampling, with a request-local SplitMix64 stream.
@@ -3348,7 +3360,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, trace, false, false)
+        self.sample_seeded_impl(prefix, batch, seed, trace, false, false, false)
     }
 
     /// Explicit experimental CUDA sampling; unsupported backends return an error.
@@ -3359,7 +3371,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         seed: u64,
         trace: &mut impl crate::TraceSink<B>,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, trace, true, false)
+        self.sample_seeded_impl(prefix, batch, seed, trace, true, false, false)
     }
 
     /// Explicit device categorical sampling with host final penalties.
@@ -3379,7 +3391,29 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         seed: u64,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(prefix, batch, seed, &mut crate::NoTrace, true, true)
+        self.sample_seeded_impl(prefix, batch, seed, &mut crate::NoTrace, true, true, false)
+    }
+
+    /// Explicit experimental FP32 top-p=1 probabilities with host FP64 draws.
+    /// Unsupported backends return an error; results are backend-specific.
+    pub fn sample_seeded_top_p_one(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_top_p_one_traced(prefix, batch, seed, &mut crate::NoTrace)
+    }
+
+    /// Traced form of the explicitly selected FP32 top-p=1 probability path.
+    pub fn sample_seeded_top_p_one_traced(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_impl(prefix, batch, seed, trace, false, false, true)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -3391,6 +3425,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         trace: &mut impl crate::TraceSink<B>,
         device: bool,
         device_penalty: bool,
+        top_p_one: bool,
     ) -> Result<Lm1bSample<B>> {
         if !(1..=32).contains(&batch) {
             return Err(Error::Input("invalid LM1B sample batch".into()));
@@ -3413,6 +3448,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             Some(&mut random),
             device,
             device_penalty,
+            top_p_one,
         )
     }
 
@@ -3432,6 +3468,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         mut random: Option<&mut SplitMix64>,
         device: bool,
         device_penalty: bool,
+        top_p_one: bool,
     ) -> Result<Lm1bSample<B>> {
         validate_lm1b_request(prefix, codes, initial, batch)?;
         let b = &self.backend;
@@ -3531,6 +3568,27 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                             ));
                         }
                         Some(selected)
+                    } else if top_p_one {
+                        let rng = random
+                            .as_deref_mut()
+                            .ok_or_else(|| Error::Input("top-p sampling requires RNG".into()))?;
+                        let probabilities = b.lm1b_top_p_one_probabilities(&logits)?;
+                        let values = b.read_f32(&probabilities)?;
+                        if values.len() != batch * length * 8192
+                            || values.iter().any(|x| !x.is_finite() || *x < 0.0)
+                        {
+                            return Err(Error::Backend("invalid LM1B top-p probabilities".into()));
+                        }
+                        let selected: Vec<u32> = values
+                            .as_chunks::<8192>()
+                            .0
+                            .iter()
+                            .map(|row| {
+                                let weights: Vec<f64> = row.iter().map(|&x| f64::from(x)).collect();
+                                lm1b_choose(&weights, rng)
+                            })
+                            .collect::<Result<_>>()?;
+                        Some(b.upload_indices(&selected, &[batch, length])?)
                     } else {
                         let values = b.read_f32(&logits)?;
                         if values.len() != batch * length * 8192

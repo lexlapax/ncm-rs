@@ -1334,3 +1334,74 @@ The public-MLX exponential capture SHA-256 is
 Sources and outputs remain under
 `reports/phase4-lm1b-metal-top-p-fidelity-v1/`. The Mac checkout remained
 clean and its existing service remained running.
+
+### Explicit experimental Metal FP32 sampler
+
+The Metal CLI now accepts `--top-p-fp32` as an explicit experimental option.
+It computes MLX FP32 sort, softmax, cumulative top-p=1 filtering and final
+softmax before the existing host FP64 inverse-CDF draw and FP64 penalties.
+The default Metal and CUDA paths remain unchanged; requesting this option
+with CUDA fails explicitly. The backend checks shape, dtype and finite inputs,
+and unsupported backends return an error rather than falling back.
+
+On the 133 same-logit rows above, the Rust probability output is bit-identical
+to the adapted Python MLX output, including the five cutoff-tie rows. For a
+separate two-row seed-11 request with the pinned rotary table, the explicit
+CLI codes and IDs match the traced and untraced model paths. Independently
+replaying the model's captured logits through Python MLX and the same
+request-local RNG reproduces all 1,282 choices. The two-row trace happens to
+match the earlier full-distribution trace; that does not establish that the
+samplers are interchangeable.
+
+The Python MLX probability reference is not a qualified replacement for the
+pinned upstream CUDA oracle. On the deliberately selected boundary draws
+above, the same MLX probability formulation differs from upstream in 82 of
+133 choices. The new mode therefore remains experimental and does not pass
+controlled CUDA parity, the frozen quality gate or Phase 4. It does not claim
+to reproduce PyTorch's random stream. No previously failed result is waived.
+
+The same-device Rust probability trace SHA-256 is
+`06b584390051cf244fea0f9366a212c60b4102c6648b6547ee6bdd868dd0b784`.
+The two-row CLI output SHA-256 is
+`fb0a0dfc090eced789910cb9cd2dad7a1489a227363df5f40c4697f9950e0ffb`;
+the independent replay result is
+`615a9e63d7833dcd9fac6cf70f1485b122db9e1ae3e4c7bb9aa3541156bcc085`.
+The candidate patch, trace, replay source and reports are retained under
+`reports/phase4-lm1b-metal-fp32-probability-candidate-v1/`.
+
+#### Observed-seed quality and cold CLI timing
+
+On the Mac, the experimental mode was also run on the five previously observed
+seeds 42, 0, 1, 2 and 3, with 32 requests of eight rows per seed. The request
+seed remained `(seed << 32) | batch`; the artifact and rotary table were the
+same as the prior Metal retest. Against that retest, the new mode changed
+respectively 4, 11, 11, 18 and 6 of 256 code rows, and 3, 10, 11, 18 and 6
+of the decoded ID rows. Scores were computed with the pinned upstream evaluator
+and checked against its functions. The unchanged five-seed comparison reports
+an entropy-difference 95% interval of `[-0.0051251, 0.0034263]`, exceeding the
+`±0.0046` margin on the lower side. The other three metric checks pass. This
+observed-seed retest fails the quality comparison and is not fresh held-out
+qualification. The controlled comparison and complete runtime gates also remain
+open.
+
+As a limited timing screen, three alternating cold invocations per mode used
+`sample-lm1b-small` on the same two-row seed-11 input and rotary table, measured
+with `/usr/bin/time -p` on the Mac while its existing service remained active.
+Default elapsed times were 1.38, 1.38 and 1.39 seconds; FP32 top-p elapsed times
+were 1.37, 1.41 and 1.41 seconds. These include process startup and are neither
+a stable throughput benchmark nor a performance qualification.
+
+The candidate Mac binary SHA-256 was
+`35e6ee99af7bd457547b116da23c22c05cf673afbaf14cddbe440de876f42526`.
+The capture, scorer and comparison sources, per-seed outputs, scores and timing
+receipt are retained in `reports/phase4-lm1b-metal-fp32-observed-quality-v1/`.
+The capture and scorer are identity-adjusted copies of the prior observed-seed
+procedure; their SHA-256 values are respectively
+`2fbbca56786da10386e5350e62baffeb049ce189c9bb5db20099ebc6d3238b32` and
+`7d8466ba5333c50d64fc583e079660b2c8a7aef07e0488f5c1777641282fa8fa`.
+The comparison uses the same five seeds, evaluator and thresholds as before.
+
+Validation also included `tools/check.sh --cuda` and `tools/check.sh --mlx`
+(each passed 18 device operator cases), feature-specific tests and Clippy on
+both platforms, and exact default CUDA and default/experimental Metal CLI output
+comparisons. These checks do not establish model-quality or numerical parity.

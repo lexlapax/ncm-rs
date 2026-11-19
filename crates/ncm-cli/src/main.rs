@@ -472,7 +472,7 @@ fn main_impl() -> Result<()> {
         || (args[1] == "sample-tinystories" && args.len() != 6)
         || (args.len() == 7 && args[1] != "sample-xsum")
     {
-        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx|mlx-retry-padded INPUT_JSON [CFG_SCALE] | ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode]".into());
+        return Err("usage: ncm inspect ARTIFACT | ncm generate|reconstruct ARTIFACT cpu|cuda|mlx INPUT_JSON [BATCH_SIZE] | ncm sample-tinystories ARTIFACT cpu|cuda|cuda-cudnn|mlx INPUT_JSON SEED | ncm sample-xsum ARTIFACT cuda-cudnn|mlx INPUT_JSON [CFG_SCALE [EXPERIMENTAL_STOCHASTIC_SEED]] | ncm sample-wmt14 ARTIFACT cuda|mlx|mlx-retry-padded INPUT_JSON [CFG_SCALE] | ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32]".into());
     }
     let sample_seed = if args[1] == "sample-tinystories" {
         Some(args[5].parse::<u64>()?)

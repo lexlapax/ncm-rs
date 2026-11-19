@@ -2,7 +2,7 @@
 use super::Result;
 
 pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
-    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode]";
+    const USAGE: &str = "usage: ncm sample-lm1b-small ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32]";
     let [
         _,
         _,
@@ -16,11 +16,17 @@ pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
     else {
         return Err(USAGE.into());
     };
-    let decode = match options {
-        [] => false,
-        [flag] if flag == "--decode" => true,
-        _ => return Err(USAGE.into()),
-    };
+    let (mut decode, mut top_p) = (false, false);
+    for flag in options {
+        match flag.as_str() {
+            "--decode" if !decode => decode = true,
+            "--top-p-fp32" if !top_p => top_p = true,
+            _ => return Err(USAGE.into()),
+        }
+    }
+    if top_p && device != "mlx" {
+        return Err("experimental FP32 top-p requires explicit mlx device".into());
+    }
     match device.as_str() {
         "cuda-cudnn" => {
             #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
@@ -40,7 +46,14 @@ pub(super) fn sample(args: &[String]) -> Result<serde_json::Value> {
                 target_arch = "aarch64"
             ))]
             {
-                backend::sample_mlx(artifact, input, seed.parse()?, reference_rope, decode)
+                backend::sample_mlx(
+                    artifact,
+                    input,
+                    seed.parse()?,
+                    reference_rope,
+                    decode,
+                    top_p,
+                )
             }
             #[cfg(not(all(
                 feature = "lm1b-mlx-experimental",
@@ -80,6 +93,22 @@ mod backend {
     }
 
     const ROTARY_BYTES: u64 = 32_920;
+    enum Sampling {
+        #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
+        DeviceFull,
+        #[cfg(all(
+            feature = "lm1b-mlx-experimental",
+            target_os = "macos",
+            target_arch = "aarch64"
+        ))]
+        HostFull,
+        #[cfg(all(
+            feature = "lm1b-mlx-experimental",
+            target_os = "macos",
+            target_arch = "aarch64"
+        ))]
+        HostTopP,
+    }
 
     #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
     pub(super) fn sample_cuda(
@@ -96,7 +125,7 @@ mod backend {
             seed,
             reference_rope,
             decode,
-            true,
+            Sampling::DeviceFull,
         )
     }
 
@@ -111,6 +140,7 @@ mod backend {
         seed: u64,
         reference_rope: &str,
         decode: bool,
+        top_p: bool,
     ) -> Result<serde_json::Value> {
         sample(
             ncm_backend_mlx::MlxBackend::gpu,
@@ -119,7 +149,11 @@ mod backend {
             seed,
             reference_rope,
             decode,
-            false,
+            if top_p {
+                Sampling::HostTopP
+            } else {
+                Sampling::HostFull
+            },
         )
     }
 
@@ -130,7 +164,7 @@ mod backend {
         seed: u64,
         reference_rope: &str,
         decode: bool,
-        device_sampling: bool,
+        sampling: Sampling,
     ) -> Result<serde_json::Value> {
         let prefixes = prefixes(&crate::read_inputs(Path::new(input))?)?;
         if !fs::metadata(reference_rope)?.is_file() {
@@ -164,10 +198,21 @@ mod backend {
         drop(artifact);
 
         let batch = prefixes.len();
-        let output = if device_sampling {
-            model.sample_seeded_fully_device(&prefixes, batch, seed)?
-        } else {
-            model.sample_seeded(&prefixes, batch, seed)?
+        let output = match sampling {
+            #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
+            Sampling::DeviceFull => model.sample_seeded_fully_device(&prefixes, batch, seed)?,
+            #[cfg(all(
+                feature = "lm1b-mlx-experimental",
+                target_os = "macos",
+                target_arch = "aarch64"
+            ))]
+            Sampling::HostFull => model.sample_seeded(&prefixes, batch, seed)?,
+            #[cfg(all(
+                feature = "lm1b-mlx-experimental",
+                target_os = "macos",
+                target_arch = "aarch64"
+            ))]
+            Sampling::HostTopP => model.sample_seeded_top_p_one(&prefixes, batch, seed)?,
         };
         let codes = backend.read_indices(&output.codes)?;
         if codes.len() != batch * 641
@@ -237,6 +282,26 @@ mod dispatch_tests {
     }
 
     #[test]
+    fn top_p_flag_requires_metal_and_rejects_duplicates() {
+        let mut cuda = args("cuda-cudnn");
+        cuda.push("--top-p-fp32".into());
+        assert!(
+            sample(&cuda)
+                .unwrap_err()
+                .to_string()
+                .contains("requires explicit mlx")
+        );
+        let mut duplicate = args("mlx");
+        duplicate.extend(["--top-p-fp32".into(), "--top-p-fp32".into()]);
+        assert!(
+            sample(&duplicate)
+                .unwrap_err()
+                .to_string()
+                .contains("usage:")
+        );
+    }
+
+    #[test]
     fn unsupported_device_is_rejected_before_files_are_opened() {
         let err = sample(&args("cpu")).unwrap_err().to_string();
         assert!(err.contains("explicit cuda-cudnn or mlx"));
@@ -250,6 +315,10 @@ mod dispatch_tests {
     #[test]
     fn unavailable_metal_is_not_silently_replaced() {
         let err = sample(&args("mlx")).unwrap_err().to_string();
+        assert!(err.contains("Metal is unavailable"));
+        let mut top_p = args("mlx");
+        top_p.push("--top-p-fp32".into());
+        let err = sample(&top_p).unwrap_err().to_string();
         assert!(err.contains("Metal is unavailable"));
     }
 }

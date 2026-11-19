@@ -203,6 +203,13 @@ pub trait GeneratorBackend: CodecBackend {
             "8192-way categorical sampling is unsupported".into(),
         ))
     }
+    /// Experimental 8192-way FP32 top-p=1 probability calculation.
+    /// Unsupported backends fail explicitly; numerical details are backend-specific.
+    fn lm1b_top_p_one_probabilities(&self, _logits: &Self::Tensor) -> Result<Self::Tensor> {
+        Err(Error::Backend(
+            "LM1B FP32 top-p probabilities are unsupported".into(),
+        ))
+    }
     /// XSum-specific 4096-way categorical draw. Backends explicitly opt in;
     /// unsupported devices fail rather than silently selecting another path.
     fn xsum_categorical_4096(
