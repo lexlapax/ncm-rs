@@ -49,6 +49,26 @@ contained only the expected restored exporter; after inspecting its status and h
 removed. The output remains in ignored `artifacts/canonical/phase5-guide-tiny-replay/`.
 This did not exercise a fresh clone, fresh download, Mac, inference or model quality.
 
+## XSum guide command replay
+
+The [draft guide](../../USAGE.md#linux-xsum-development-replay) now gives the rotary reference,
+historical XSum exporter and qualified manifest checks. On Linux, the downloader's `--verify`
+checked all three retained files in `artifacts/upstream/xsum-phase4` (653,983,635 bytes). The
+guide's generation and export sequence was run using that retained source and fresh
+replay-specific output/report paths. The generated rotary payload matched SHA-256
+`5d205c1c42b467c00e10d03739e18b6433185bcc4c4f9b066d7c6be69ba8346a`; its manifest hash was
+`2fcdd99756cdf5a77e7b93ef48e03097366b87603d3297b2b6a1a70d03f90c5e`. The worktree initially
+contained the base commit's older tracked exporter; the first attempt's absent-file guard
+correctly stopped before replacing it. After checking its pristine hash and status, the replay
+substituted the recorded historical exporter. It reported bit-exact roundtrips and produced
+qualified manifest SHA-256 `8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4`.
+The ignored report `reports/phase5-guide-xsum-replay.json` hashes to
+`e9544b614c9a7b4a98f6b96d56cfce467c25182fab3285fe011043dc6d7df9fe`. The worktree contained
+only that expected tracked-file change and was removed after inspection. The output and rotary
+reference remain under ignored `artifacts/canonical/phase5-guide-xsum-replay/` and
+`reports/phase5-guide-xsum-rope/`. No fresh clone, fresh download, Mac, inference or quality
+validation is implied.
+
 ## Byte-level comparison of alternate exports
 
 `tools/reference/compare_artifact_provenance.py` independently verifies both requested manifest hashes and each declared file's size and SHA-256, compares every non-provenance file byte-for-byte, compares all other manifest fields including tensor inventories, and allows exactly the explicitly listed provenance keys to differ. It revalidates inputs after comparison. It assumes stable trusted directories and is not a substitute for `ncm-io` validation, GPU qualification or user approval. The tool SHA-256 is `4856913542f7c652974c28c11325cf5c5ea4fd4ce34e97d36d41a1652a11c729`; six tests including tampered and rehashed payload, tensor, JSON and symlink negative controls pass through `tools/check.sh`.
