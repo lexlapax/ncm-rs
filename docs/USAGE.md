@@ -95,6 +95,25 @@ python3 tools/reference/fetch_tokenizers.py artifacts/upstream/tokenizers-v2 \
 The tokenizer fetch is separate from the much larger checkpoint downloads. The current scripts
 verify source hashes and refuse existing output destinations. The checked sources and converters,
 including licenses, are described in the [tokenizer report](results/2026-11-10-phase2-tokenizers/README.md).
+A [Linux fresh-clone slice](results/2026-11-19-phase5-cli/linux-fresh-clone-tokenizers-v1.md)
+replayed this section and checked all four converted tokenizer identities; it is not a complete
+guide replay or a Metal gate. Check those identities against the tracked lock:
+
+```sh
+python3 - <<'PY'
+import hashlib,json
+from pathlib import Path
+lock=json.loads(Path('tools/reference/tokenizers-v1.lock.json').read_text())
+assert lock['schema_version']==1 and set(lock['profiles'])=={'bert','gpt2','qwen3','tinystories'}
+for profile,expected in sorted(lock['profiles'].items()):
+    for name,key in (('manifest.json','manifest_sha256'),('tokenizer.json','payload_sha256')):
+        path=Path('artifacts/canonical/tokenizers-qualified')/profile/name
+        actual=hashlib.sha256(path.read_bytes()).hexdigest()
+        if actual!=expected[key]:
+            raise ValueError(f'{path}: {actual} != {expected[key]}')
+        print(f'{actual}  {path}')
+PY
+```
 
 ## Checkpoint downloads
 
