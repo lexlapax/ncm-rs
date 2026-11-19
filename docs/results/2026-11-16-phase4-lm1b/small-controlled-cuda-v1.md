@@ -1137,3 +1137,13 @@ The Mac trace and log are retained under
 `reports/phase4-lm1b-small-controlled-metal-v1.log`. The unchanged
 comparison uses the earlier strict CUDA reference and remains a failed
 stochastic diagnostic. Fixed-history and greedy Metal traces pass separately.
+
+The first changed Metal code is row 0, level 5, position 20. The
+shared uniform is `0.4033909708959982`. The cumulative probability
+through code 3054 is `0.40339013162117493` on the pinned CUDA logits
+and `0.40339146448637764` on Metal. The CUDA reference selects 3055
+and Metal selects 3054. A replay using the captured Metal logits and
+the same stream reproduces all 1,282 Metal choices. This identifies
+the observed first divergence and leaves the full stochastic gate open.
+The audit and result are retained under
+`reports/phase4-lm1b-metal-first-choice-v1/`.
