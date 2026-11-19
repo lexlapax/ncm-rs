@@ -19,6 +19,23 @@ The original screen left text encoding, LM1B rotary setup, broader decode checks
 and performance evidence pending. Later work is recorded in the [current context map](../../../agent-context-map.md);
 no release gate is claimed by this screen.
 
+## TinyStories single-token vocabulary decode
+
+The artifact-bound CLI decoder was checked on all 8,192 single-token IDs against the pinned
+upstream TinyStories vocabulary reference generated for the [text-input differential](cuda-text-input-v1.md#tinystories-vocabulary-differential).
+For IDs 2–8191, decoded strings matched upstream; EOS 0 and padding 1 produced empty output under
+the evaluator policy. The ignored Rust test verifies the reference SHA-256 and checks every row.
+This covers single-token decoding, not arbitrary multi-token sequences, generated corpus output,
+GPU inference or Metal. It passed with the retained qualified artifact and reference. To reproduce,
+first generate a fresh reference as described in the linked screen, then run:
+
+```sh
+setpriv --inh-caps=-all env \
+  NCM_TINYSTORIES_ARTIFACT="$PWD/artifacts/canonical/tinystories-phase4-v1" \
+  NCM_TINYSTORIES_TEXT_REFERENCE="$PWD/reports/NEW-tinystories-text-reference.json" \
+  cargo test --locked -p ncm-cli --bin ncm tinystories_single_token_decode_matches_upstream_vocabulary -- --ignored
+```
+
 ## Synthetic XSum and WMT14 decode boundaries
 
 A separate Linux host-side test compared the CLI's actual artifact-bound decoder with pinned

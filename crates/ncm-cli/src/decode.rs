@@ -192,6 +192,37 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires pinned TinyStories artifact and generated upstream text reference"]
+    fn tinystories_single_token_decode_matches_upstream_vocabulary() {
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_TINYSTORIES_ARTIFACT").unwrap())
+                .unwrap();
+        let decoder = Decoder::from_artifact(&artifact).unwrap();
+        drop(artifact);
+        let raw = std::fs::read(std::env::var("NCM_TINYSTORIES_TEXT_REFERENCE").unwrap()).unwrap();
+        assert_eq!(
+            ncm_io::sha256(&raw),
+            "b693f72b52e4803b8604774f63f3edc5eaed1b609136d2d0218c76485068add3"
+        );
+        let data: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+        let rows = data["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 8199);
+        let ids: Vec<Vec<u32>> = (0..8192).map(|id| vec![id]).collect();
+        let mut result = serde_json::json!({"ids": ids});
+        decoder.add_texts(&mut result).unwrap();
+        let actual: Vec<String> = serde_json::from_value(result["texts"].clone()).unwrap();
+        assert_eq!(actual.len(), 8192);
+        for (id, text) in actual.iter().enumerate() {
+            let expected = if id < 2 {
+                "" // EOS stops generation; padding is removed.
+            } else {
+                rows[id]["text"].as_str().unwrap()
+            };
+            assert_eq!(text, expected, "token {id}");
+        }
+    }
+
+    #[test]
     #[ignore = "requires pinned local artifacts and external reference corpora"]
     fn corpus_text_encoding_matches_every_reference_row() {
         for (artifact_var, reference_var, count) in [
