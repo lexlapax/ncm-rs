@@ -1,6 +1,6 @@
 # Phase 4 handoff
 
-Last updated: 2026-11-19 UTC. The objective is to **complete Phase 4**, not just
+Last updated: 2026-11-18 UTC. The objective is to **complete Phase 4**, not just
 one diagnostic. Start with `AGENTS.md`, `agent-context-map.md`, `git status`,
 [the Phase 4 plan](docs/PLAN.md#phase-4--released-text-profile-compatibility)
 and [the text-profile contract](docs/PHASE4-TEXT.md). Current source and
@@ -66,12 +66,11 @@ replay matches 45 tensors bit for bit and every sampled choice. See the
 [large-batch results](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#large-batch-fixed-history-comparison)
 for commands, identities and matching histories.
 
-Phase 4 remains at LM1B-small. The next correctness target is the initial
-cross-device reconstruction, where differences appear before the
-transformer. The frozen quality interval still fails and the proposed
-80-seed protocol awaits a decision. Small's remaining correctness, quality
-and performance checks come before medium and large. The run outputs are
-in `reports/phase4-lm1b-metal-large-batch-v1/` on Mac and Linux.
+Phase 4 remains at LM1B-small. On 2026-11-18 the user stopped the
+cross-device draw investigation, approved the 80-seed quality protocol and set
+a lean bar for medium and large. See [the decisions](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md).
+The run outputs above are in `reports/phase4-lm1b-metal-large-batch-v1/` on
+Mac and Linux.
 
 The checked-in Python MLX development reference matches all 8,333 codes and
 1,664 final IDs on four Mac requests. Q/K RMS normalization
@@ -105,21 +104,17 @@ Do not claim full performance qualification from this small screen.
 
 ## Next work, in order
 
-1. Continue LM1B-small correctness: investigate the remaining Metal/CUDA
-   sampler and convolution differences. The single-row stage replay isolates
-   a softmax difference. Extend the same-device reference checks to more
-   shapes and retain the cross-device comparisons. Keep unsupported paths explicit.
-2. Resolve the frozen CUDA and Metal quality failures with valid evidence.
-   If a different protocol or exception is needed, present the concrete
-   proposal and existing failed results; do not silently change the gate.
-3. Complete LM1B-small end-to-end, quality and reproducible latency/memory
-   qualification on both devices, including preceding regressions.
-4. Implement and qualify LM1B-medium and then large with explicit memory
-   budgets, correctness traces, output/quality checks and performance reports
-   on CUDA and Metal. Keep unavailable or unqualified profiles explicit.
-5. Audit Phase 4 requirements and existing accepted exceptions against current
-   source and evidence, finish the required documentation review, and only then
-   mark Phase 4 complete.
+1. Promote the 80-seed campaign tooling into tracked tools. Run the prospective
+   CUDA campaign with the pre-registered seeds and publish the result, pass or fail.
+2. Run the Metal seed list against the same Python CUDA captures. Measure Metal
+   latency and memory at batches 1, 4 and 16 against the Python MLX reference.
+   Then close LM1B-small.
+3. Generalize the LM1B code to medium, then large, and qualify each size to the
+   [lean bar](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md#3-minimum-bar-for-lm1b-medium-and-lm1b-large),
+   CUDA first and then Metal.
+4. Add OWT synthetic/config/operator coverage.
+5. Audit Phase 4 against the plan, contract and accepted exceptions, then mark
+   it complete.
 
 The ignored local `reports/` directories contain detailed captures, scripts and
 logs; they are not portable Git artifacts. Use the linked tracked evidence for
