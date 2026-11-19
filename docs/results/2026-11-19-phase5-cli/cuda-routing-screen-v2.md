@@ -23,3 +23,15 @@ setpriv --inh-caps=-all env LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14
 ```
 
 Use a fresh output directory for a rerun. The runner uses explicit `--reference-rope`; the default-sidecar route was separately screened. Automated negative controls reject malformed output, byte differences, failed processes and identical baseline/candidate binaries. The earlier routing, text and decode screens retain their separate scopes and limitations. Mac execution, user decisions, fresh-clone setup and the release gate remain pending.
+
+## CLI rejection integration checks
+
+`crates/ncm-cli/tests/unified_rejections.rs` invokes the actual CLI with ten synthetic manifests
+and a nonexistent input. It checks exit status 1, empty stdout and the expected clear diagnostic
+for unsupported Sudoku/TinyStories/XSum/WMT14/LM1B options, OWT and an unknown profile,
+LM1B's unsupported CPU device, and the Metal-only LM1B top-p flag on CUDA. These cases all fail
+before full artifact loading or inference; they are not a complete profile/device matrix or GPU
+validation. The test passed with both default features and `cuda-cudnn`, and CLI all-target Clippy
+with `cuda-cudnn` and default `tools/check.sh` passed. For the CUDA-feature test and Clippy, the
+local cuDNN link/runtime paths and `NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86` were set as
+in the existing CUDA CLI screens.
