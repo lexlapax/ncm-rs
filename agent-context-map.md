@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Text truncation/padding boundaries:** seven synthetic inputs per profile, including overlength, empty, Unicode and special strings, matched the pinned Python XSum/WMT14 encoders in an artifact-bound Rust test ([evidence](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#synthetic-truncation-and-padding-boundaries)). Three references per profile were byte-identical; output preflight and `tools/check.sh` pass. This checks encoding only, not model acceptance, GPU generation or quality.
+
 - **Unified CLI rejection integration:** [ten synthetic-manifest cases](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md#cli-rejection-integration-checks) exercise actual CLI rejection diagnostics and no stdout for unsupported profile/option combinations and two LM1B device/flag cases. Default and `cuda-cudnn` test builds, CUDA CLI all-target Clippy and `tools/check.sh` pass. All cases stop before artifact loading or inference; this is not a complete device matrix or GPU validation.
 
 - **Integrated fresh-clone Linux guide replay:** the CUDA build/check, tokenizer setup, seven fresh downloads/qualified exports, both rotary references and synthetic Sudoku/text examples passed in one new clone; its inspected worktrees and clone were removed ([evidence](docs/results/2026-11-19-phase5-cli/linux-guide-integrated-replay-v1.md)). `tools/check.sh --cuda` reported 18 passing operator results; 15 guide shell blocks and links pass syntax/link checks. Sudoku medium/hard, full Mac guide, broader parity and quality/performance gates remain pending.

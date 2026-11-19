@@ -21,6 +21,36 @@ setpriv --inh-caps=-all env \
 
 This explicit ignored test passed on Linux. It checks both row counts and compares every encoded padded row, in batches of at most 128. The test reads the complete validated artifacts; it does not itself check the external reference hashes, so use the generator above.
 
+## Synthetic truncation and padding boundaries
+
+Seven synthetic strings per profile exercise empty input, a single token, long repeated text and
+whitespace, Unicode and special-token spellings. The pinned Python tokenizers produced untruncated
+lengths `0, 1, 1101, 1400, 10, 1, 7` (XSum) and `0, 1, 1101, 350, 6, 1, 1` (WMT14). The Rust
+CLI encoder matched every padded/truncated ID row, including overlength cases. Empty or special
+strings passing this encoder-only check are not necessarily accepted by the downstream model.
+No GPU generation or quality conclusion follows.
+
+The reference generator verifies the pinned tokenizer manifest/source files and package versions,
+then rechecks source hashes after tokenization. Its SHA-256 is
+`23e1bac178719fde166e7bd5d08f3607aaa21a3ad530a8fcd07411e0aa709bc1`. Three independent
+captures per profile matched byte-for-byte; final XSum SHA-256 is
+`2f7c8ed36cfd669a59ecf2fc5e13fe2fb584941c61c93e069a0825a7c5ff46f6` and WMT14 is
+`03886e0864b60f9fc7992311f83b3e20511b9ce73274fef5f51624d41d960fb6`. The pinned XSum tokenizer
+warned about the deliberately overlong 1,101-token input; no model was invoked by the generator.
+The offline output preflight test, the artifact-bound Rust test below, and `tools/check.sh` passed.
+Choose fresh output paths:
+
+```sh
+setpriv --inh-caps=-all .reference/tokenizers-venv/bin/python tools/reference/phase5_text_boundaries.py xsum reports/NEW-xsum-boundaries.json
+setpriv --inh-caps=-all .reference/tokenizers-venv/bin/python tools/reference/phase5_text_boundaries.py wmt14 reports/NEW-wmt14-boundaries.json
+setpriv --inh-caps=-all env \
+  NCM_XSUM_ARTIFACT="$PWD/artifacts/canonical/xsum-inference-rope-v2-final" \
+  NCM_WMT14_ARTIFACT="$PWD/artifacts/canonical/wmt14-inference-v1-final" \
+  NCM_XSUM_BOUNDARY_REFERENCE="$PWD/reports/NEW-xsum-boundaries.json" \
+  NCM_WMT14_BOUNDARY_REFERENCE="$PWD/reports/NEW-wmt14-boundaries.json" \
+  cargo test --locked -p ncm-cli --bin ncm synthetic_text_boundaries_match_pinned_python -- --ignored
+```
+
 ## End-to-end CUDA screen
 
 For the first corpus row of each profile, four fresh processes compared equivalent ID and `--text` input, both without and with `--decode`. Stdout matched byte-for-byte in each pair and matched the corresponding earlier retained baseline output. The common hashes are XSum `87be072a79210d62215efaa82f801c64612f6868cf545a3fb888ca14aee6cdca` (IDs) and `6db35c54fece2e27ea0e96e6f4e29cebba23a42bd20e899401218658cd2a0328` (decoded), WMT14 `17257d936f55b159c8cdc8ce9a465bf9d0498a446d544215c171eae82f2a604a` and `fd68c625bc98b4e7fccfde240db198c67ae8251e8607110b5319e8a617098d32`. The release binary built with `--features cuda-cudnn` had SHA-256 `9a80df0c2087d7f39e7b05971ae515799d69a6991971255a78299cd622b0d3df`. Build and runtime environment are as in [the earlier screen](cuda-routing-screen-v1.md). This proves the tested CUDA requests only; Metal and broader end-to-end cases are pending.

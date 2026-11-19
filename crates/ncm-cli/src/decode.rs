@@ -221,6 +221,47 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires pinned XSum/WMT14 artifacts and generated boundary references"]
+    fn synthetic_text_boundaries_match_pinned_python() {
+        for (artifact_var, reference_var, profile, digest, length) in [
+            (
+                "NCM_XSUM_ARTIFACT",
+                "NCM_XSUM_BOUNDARY_REFERENCE",
+                "xsum",
+                "2f7c8ed36cfd669a59ecf2fc5e13fe2fb584941c61c93e069a0825a7c5ff46f6",
+                512,
+            ),
+            (
+                "NCM_WMT14_ARTIFACT",
+                "NCM_WMT14_BOUNDARY_REFERENCE",
+                "wmt14",
+                "03886e0864b60f9fc7992311f83b3e20511b9ce73274fef5f51624d41d960fb6",
+                96,
+            ),
+        ] {
+            let artifact =
+                ncm_io::Artifact::load_inference(std::env::var(artifact_var).unwrap()).unwrap();
+            let decoder = Decoder::from_artifact(&artifact).unwrap();
+            drop(artifact);
+            let raw = std::fs::read(std::env::var(reference_var).unwrap()).unwrap();
+            assert_eq!(ncm_io::sha256(&raw), digest);
+            let data: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+            assert_eq!(data["profile"], profile);
+            let texts: Vec<String> = serde_json::from_value(data["texts"].clone()).unwrap();
+            let ids: Vec<Vec<u32>> = serde_json::from_value(data["ids"].clone()).unwrap();
+            let lengths: Vec<usize> =
+                serde_json::from_value(data["original_lengths"].clone()).unwrap();
+            assert_eq!(texts.len(), 7);
+            assert_eq!(ids.len(), texts.len());
+            assert_eq!(lengths.len(), texts.len());
+            assert!(lengths.iter().any(|&n| n > length));
+            assert!(lengths.iter().any(|&n| n < length));
+            assert!(ids.iter().all(|row| row.len() == length));
+            assert_eq!(decoder.encode_texts(&texts).unwrap(), ids, "{profile}");
+        }
+    }
+
+    #[test]
     fn evaluator_stops_at_eos_and_discards_padding_and_model_only_ids() {
         let x = policy("xsum-inference-v2").unwrap();
         assert_eq!(
