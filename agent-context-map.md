@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small same-request cross-device diagnosis:** all 1,280 observed CUDA and Metal output rows differ. In one reproduced batch, efficient CUDA and Metal initial reconstruction max difference is 0.046585; a strict-FP32 CUDA control reduces the Metal difference to 0.000145 and matches all 64 first-level choices, though later codes diverge. This points to the initial codec path without proving a single cause or quality pass. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#same-request-cuda-comparison-and-initial-reconstruction)
+
 - **LM1B-small Metal observed-seed quality:** the five 256-sample retests fail the unchanged entropy interval: lower endpoint -0.00502034 against -0.0046; perplexity and point checks pass. All scores match pinned upstream calculations, and the identity-bound summary repeats exactly. This is not fresh held-out evidence; the original CUDA failure and Metal stochastic gate remain open. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md)
 
 - **LM1B-small experimental Metal CLI:** explicit `mlx` selection now runs the existing host FP64 sampler and penalties. A two-row seed-11 request exactly matches the traced model codes and IDs, repeats byte-for-byte, and rejects invalid or unavailable devices. Focused Metal feature checks and the full 18-case Metal suite pass. A retained CUDA request matches exactly, and CUDA feature tests plus the full 18-case CUDA suite pass; stochastic qualification remains failed. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#experimental-metal-cli)

@@ -47,3 +47,49 @@ All captures, per-request identities, scores, sources, logs and repeated
 summary are retained under `reports/phase4-lm1b-metal-observed-quality-v1/`.
 The CLI binary SHA-256 was
 `fd09fa0ba4f5ede495fa7ab52b3c1d9ef83ce1990dbdeb82738fa1b1173072c2`.
+
+## Same-request CUDA comparison and initial reconstruction
+
+The five retained Metal captures were compared with the existing efficient
+CUDA captures using identical request seeds, batch shape, artifact and
+reference rotary table. The CUDA comparison used its already verified capture
+hashes; Metal used the hashes in the summary above. Across 1,280 rows, all
+initial codes match, but every final code row and every final ID row differs.
+There are 754,079 differing codes out of 820,480 and 154,818 differing IDs
+out of 163,840. These later differences are cascading continuations, not
+independent same-history decisions. The first differing code in each row is
+at level 1 for 337 rows, level 2 for 916, level 3 for 26 and level 4 for one.
+This comparison does not establish the cause of the quality interval failure.
+
+For seed 42's first batch, bounded diagnostic runs on both devices exactly
+reproduce the respective retained codes and penalty-adjusted IDs. Initial
+codes match. The efficient CUDA and Metal initial reconstructions differ by
+at most `0.0465850830` (RMS `0.0042393702`); level-one logits differ by at
+most `0.0101852417` (RMS `0.0021086611`). Three of the 64 level-one choices
+differ. The first changed choice in request draw order is row 3, position 2:
+the common uniform `0.5883136381` selects CUDA code 4737 and Metal code
+4738. Replaying the two captured logit rows with that draw reproduces both
+choices.
+
+A separate strict-FP32 cuDNN CUDA control on that same request has the same
+initial codes. Its initial reconstruction differs from Metal by at most
+`0.0001449585` (RMS `0.0000045145`), and all 64 level-one choices match
+Metal; 2,257 later codes still differ. Efficient and strict CUDA use
+different convolution and generator backends, and the captured initial
+reconstruction is produced before the transformer. This control localizes a
+large part of the early cross-device gap to the initial codec path and is
+consistent with the known convolution-precision difference; it does not
+isolate a single convolution or prove that precision alone caused all later
+choices. It does not change the evaluator settings or waive either gate.
+
+The five-seed comparison result SHA-256 is
+`0fd63d3428f456afe225c0132095ef8b59aa5b68dd4cef02d057d85dcbc2ef55`.
+The first-level replay analysis and precision-control result hashes are
+`48412144214c9ebbc8afeb81a9b89cc6947880937a3d715a5f1253099c4011da`
+and `8ec719ebedd6ec9594aa7ebab260c774b8608b00db63c314ebcceaaedc1fd986`.
+Sources, traces and results are retained under
+`reports/phase4-lm1b-metal-cuda-observed-comparison-v1/` and
+`reports/phase4-lm1b-firstlevel-cross-device-v1/`. The first strict-control
+launch was interrupted after detecting that its temporary source still selected
+the efficient backend; the corrected strict run produced the recorded result.
+Temporary example sources were removed and the Mac checkout restored.
