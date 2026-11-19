@@ -64,8 +64,8 @@ start-token rows and currently rejects `--text`.
   pinned Python LM1B-large baseline ran out of memory at batch 16; its timing sweep used batch 8,
   and Rust large batch 16 was not measured ([report](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)).
   CLI argument limits are not a guarantee that a batch fits.
-- A reproducible setup document and fresh-clone verification are pending. In particular, the
-  historical Sudoku medium/hard exporter identity is unresolved; see the
+- The [setup guide](docs/USAGE.md) is an incomplete draft; fresh-clone verification is pending. In
+  particular, the historical Sudoku medium/hard exporter identity is unresolved; see the
   [export investigation](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
 Release notes are a [draft](docs/RELEASE-NOTES-v0.1.0.md), not a published release. No model weights,
