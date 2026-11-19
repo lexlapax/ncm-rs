@@ -137,7 +137,7 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
   A rehearsal with the tracked tool on observed seeds 42/0 reproduces the archived records and comparison
   exactly. Feature Clippy and `setpriv --inh-caps=-all ./tools/check.sh` pass (533 report tests).
   [Evidence](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md).
-- The local `.claude/settings.json` permission allowlist is uncommitted and awaits the user's decision.
+- `.claude/settings.json` (25 read-only Claude Code permission rules) is committed at the user's request. JSON validated; no code changed.
 
 ## Task routing
 

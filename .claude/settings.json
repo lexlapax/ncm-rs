@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mls check)",
+      "Bash(mls check *)",
+      "Bash(hyprctl clients)",
+      "Bash(hyprctl clients *)",
+      "Bash(systemctl --failed *)",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "Bash(systemctl --user is-active *)",
+      "Bash(mls diff)",
+      "Bash(mls diff *)",
+      "Bash(ip -br addr)",
+      "Bash(ip route)",
+      "Bash(mls status)",
+      "Bash(mls status *)",
+      "Bash(hyprctl cursorpos)",
+      "mcp__claude-in-chrome__get_page_text",
+      "Bash(systemctl is-system-running)",
+      "Bash(mls pkg drift)",
+      "Bash(ip -br link)",
+      "Bash(hyprctl monitors)",
+      "Bash(hyprctl monitors *)",
+      "Bash(launchctl list *)",
+      "Bash(systemctl --user show *)",
+      "Bash(systemctl --user list-units *)",
+      "Bash(systemctl --user is-enabled *)",
+      "Bash(lsblk *)"
+    ]
+  }
+}
