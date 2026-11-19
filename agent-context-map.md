@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small Metal accumulation candidate:** correction: initial exploratory passes used the looser accumulated tolerance; the actual controlled-trace component band fails on the original and two independent fixtures (443, 78, 121 values). Full adapted generations still differ on all rows. No runtime change was accepted. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#accumulation-candidate-and-component-policy)
+
 - **LM1B-small Metal rounding control:** explicit halfway-away TF32-like rounding reproduces the public CUDA convolution exactly on the retained input, but tested Metal chunk accumulations leave at least 476 values outside tolerance. No production candidate passed. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#operand-rounding-and-chunked-accumulation-checks)
 
 - **LM1B-small Metal identical-input control:** the initial CUDA and Metal upsample is bit-identical for the observed batch, yet TF32-like rounding leaves 548 residual-convolution outputs outside tolerance. Alternate accumulation and FP64 controls also fail; the exact CUDA arithmetic remains unresolved. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#same-input-and-accumulation-controls)

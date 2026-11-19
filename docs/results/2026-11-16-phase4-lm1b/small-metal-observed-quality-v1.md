@@ -96,6 +96,13 @@ Temporary example sources were removed and the Mac checkout restored.
 
 ## Bounded Metal convolution precision experiment
 
+The initial exploratory counts in this section use the accumulated tolerance
+(`5e-4 + 2e-4 * abs(reference)`). The controlled-trace comparator classifies
+`reconstruction.level_*` as a component and uses the tighter `1e-4` absolute
+term. The accumulated-band counts below therefore do not establish a
+controlled-trace pass. The corrected candidate checks are recorded in
+[the component-policy follow-up](#accumulation-candidate-and-component-policy).
+
 Using the same seed-42 batch and authenticated artifact, an adapted Python
 MLX diagnostic reproduced the recorded Metal level-zero reconstruction
 bit-for-bit. Rounding both residual-convolution operands to a TF32-like
@@ -194,3 +201,41 @@ Sources and reports are retained under
 `reports/phase4-lm1b-tf32-rounding-identification-v1/`; the transferred
 Metal result matched its Mac original. The Mac checkout was clean and its
 service remained running.
+
+### Accumulation candidate and component policy
+
+An exploratory candidate rounds both operands halfway away to TF32-like
+precision, starts from the bias, adds eight-product FP32 partial sums and
+clears one low mantissa bit after each addition. This is a tested arithmetic
+formulation, not a claim about CUDA's internal implementation. It passed the
+looser accumulated band on the original eight-row initial reconstruction
+and two additional two-row evaluator fixtures. It does **not** pass the
+controlled-trace component policy: respectively 443, 78 and 121 values
+are outside `1e-4 + 2e-4 * abs(reference)`. The CPU full-tensor control
+also has 432 component-band failures. Earlier in this investigation the
+accumulated-band result was described as passing the initial reconstruction;
+that was incorrect for the actual controlled-trace policy.
+
+For the retained eight-row request, the adapted Python MLX candidate differs
+from CUDA in 2,756 of 5,128 codes when applied to codec refinements, and
+2,495 when also applied to generator convolutions. Every row differs after
+continuations diverge. The unmodified adapted Python baseline already differs
+from Rust Metal on one row, so these counts do not directly characterize a
+Rust implementation. A same-request early trace uses the repository's actual
+controlled comparator: six of 12 captured tensors fail, including 443, 428
+and 406 out-of-band values in reconstructions 0, 1 and 2. This candidate
+has not passed numerical, controlled-sampling or quality gates and was not
+added to the runtime.
+
+The independent seed-11 and seed-16 component-policy result SHA-256 values
+are `8db3b6f52877f2b9c001d6987b57606fa20f827724e746bb2720bdf2f1574c9e`
+and `a0d782dd9883fe97143eeb8dd60a44faae247e373636500bdc0c09b2eca7a923`.
+The early controlled-policy comparison SHA-256 is
+`550828738bb77e64f7496b566596d639f04e44d5f5577dcbbcc3f0b9f624183b`;
+the full-generation refinement-only and combined candidate result hashes are
+`02fceb6ef2ebf4c12874051908091eb83abc9dd8a6af2a00bf4951eea71fbdcf`
+and `894622c9fe1dccb3249a1a2ee3eb2d3286c4fe1720a1e28f05cad4194a5c94b3`.
+Sources, fixtures, traces and comparisons are retained under
+`reports/phase4-lm1b-metal-accumulator-generalization-v1/` and
+`reports/phase4-lm1b-tf32-rounding-identification-v1/`. The temporary CUDA
+probe was removed; the Mac checkout remained clean and its service running.
