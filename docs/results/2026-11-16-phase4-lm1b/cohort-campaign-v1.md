@@ -106,3 +106,35 @@ not qualify Metal, medium or large.
 | Runner binary | `8868ff94534cebe72e72ae874248a75d8bf1e44558d8add86982290244dfdedc` |
 
 The raw captures and per-seed scores are in ignored `reports/phase4-lm1b-campaign-prospective-cuda-v1/`.
+
+## Prospective Metal result
+
+The approved gate **passes** on Metal. Rust Metal generated the pre-registered `rust_metal` list
+(seeds 3000–3079) on the Mac Studio (M1 Ultra) with the default device FP32 sampler of
+`ncm sample-lm1b-small ... mlx` at commit `0a3ce34`. The capture ran from 07:01:52 to 07:15:44 UTC on
+2026-11-19. The comparison reuses the 80 published Python CUDA captures, imported by their receipt
+hash. Scoring on Linux rescored those Python seeds identically to the CUDA campaign (80 of 80
+records equal in perplexity, NLL, token count and every entropy value).
+
+| Runtime | Seeds | Mean perplexity (seed SD) | Mean entropy, nats (seed SD) |
+| --- | ---: | ---: | ---: |
+| Python (pinned upstream, CUDA) | 80 | 93.9160 (2.3354) | 4.312720 (0.003564) |
+| Rust Metal (device FP32 sampler) | 80 | 94.2083 (2.1679) | 4.313749 (0.003644) |
+
+| Check (Rust Metal minus Python) | Point | 95% interval | Limit | Result |
+| --- | ---: | --- | --- | --- |
+| Perplexity | +0.292270 | [-0.412189, 0.970908] | at most 5.46 | pass |
+| Entropy | +0.001029 | [-0.000070, 0.002125] | within ±0.0046 | pass |
+
+| Item | SHA-256 |
+| --- | --- |
+| Manifest ([copy](raw/cohort-metal-v1-manifest.json)) | `c7ded8ccedd4d46346d6df361b779fc3eb01936229db2a285bebfb272420f60f` |
+| Summary ([copy](raw/cohort-metal-v1-summary.json)) | `8beb69b4719e39f219306a3da768aabb76dc39213edbd4efbc99ea45b006c00f` |
+| Metal runner binary | `966c80133b3b6c12f9df3d7016f9c87b26ef4e76eddbf277151fd3350baacda3` |
+| Metal seed list bytes | `100c49c080217612cfce6d36fb7d6fbb47b936590c0a95ee7d54941216ad4f13` |
+| Python capture receipt (imported) | `84afd445d3a3f584f72187f131938d138d8c006d4ea3371c8e6d6fb67aca4606` |
+| Rust Metal capture receipt | `4635deff53a43b6c07c7bbaa2d073e0e98213f53154c617782830c48f72d06f5` |
+| Score receipt | `a407003225b638bf5c384b401e1d72ef48669a176c4e193b4c022d23faa26d43` |
+
+Raw captures are in ignored `reports/phase4-lm1b-campaign-metal-capture-v1/` (Mac and Linux) and
+`reports/phase4-lm1b-campaign-prospective-metal-v1/` (Linux).

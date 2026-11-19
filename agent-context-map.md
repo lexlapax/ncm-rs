@@ -15,7 +15,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 | TinyStories | Advanced under [user-accepted exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md) |
 | XSum | Advanced under the [Metal](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md) and [CUDA stochastic](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md) exceptions |
 | WMT14 | Scoped CUDA and Metal top-1 qualification ([evidence](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)) |
-| LM1B-small | **Active.** CUDA passes the 80-seed quality gate; Metal quality and performance open |
+| LM1B-small | **Active.** 80-seed quality passes on CUDA and Metal; CUDA timing passes; Metal latency passes, Metal RSS fails at batches 4/16 (decision pending) |
 | LM1B-medium/large | Checkpoint inventories only; model code is still small-specific (`crates/ncm-model/src/lm1b_small.rs`) |
 | OWT | Synthetic/config/operator coverage required; none found in `crates/`. Weights unreleased |
 
@@ -30,6 +30,14 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
   the exception below. Metal quality and Metal performance against Python MLX are not yet measured.
   The independent [Python MLX reference](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#metal-development-reference-for-complete-requests)
   is `tools/reference/lm1b_small_mlx_reference.py`.
+
+- **Mac on hold (2026-11-19):** the user is rebooting macstudio. Do not run anything there until the
+  user says it is ready; then recheck its state. Pending Mac step: copy `reports/phase4-lm1b-mlx-timing-v1/` to Linux.
+- **Metal results:** the 80-seed gate passes, with perplexity +0.29 [-0.41, 0.97] and entropy +0.00103
+  [-0.00007, 0.00213] ([result](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#prospective-metal-result)).
+  The full timing run is faster at batches 1/4/16 (13/20/35% at the median, also at p95). RSS passes at
+  batch 1 but fails at 4 (+1.4%) and 16 (+12%); Python RSS is flat at 1,681 MiB
+  ([timing](docs/results/2026-11-16-phase4-lm1b/small-metal-timing-v1.md)).
 
 ## User decisions (2026-11-18)
 
@@ -47,7 +55,8 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Next actions, in order
 
-1. Metal: run `tools/check.sh --mlx`, then generate the `rust_metal` list (device FP32 sampler) on the Mac and score it against the same Python CUDA captures from
+1. Done except one decision: Metal RSS at batches 4/16 (accept a scoped exception, or reduce host
+   logits residency). Earlier text in this step: generate the `rust_metal` list (device FP32 sampler) on the Mac and score it against the same Python CUDA captures from
    `reports/phase4-lm1b-campaign-prospective-cuda-v1/`. Run a Metal batch 1/4/16 latency/memory
    comparison against the Python MLX reference. Then close LM1B-small.
    Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable capability.
@@ -64,6 +73,8 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
+- Metal 80-seed campaign and full Metal timing ran at `0a3ce34`; `tools/check.sh --mlx` passed on the Mac
+  at `0a3ce34`. The Mac candidate worktree was removed after it was confirmed identical to the commit.
 - **Metal sampler change:** a short Metal screen of the old default (host FP64 draws) was 34–47%
   slower than Python MLX, because every level's logits were read to the host and the GPU was
   synced after each level. Metal now defaults to a device FP32 inverse CDF
