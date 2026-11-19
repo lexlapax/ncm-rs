@@ -441,7 +441,7 @@ fn dispatch(
         _ => Err("requested device is unavailable in this build; no fallback".into()),
     }
 }
-fn read_inputs(input_path: &Path) -> Result<Vec<Vec<u32>>> {
+fn read_input_bytes(input_path: &Path) -> Result<Vec<u8>> {
     let file = fs::File::open(input_path)?;
     if !file.metadata()?.is_file() {
         return Err("input must be a regular file".into());
@@ -451,13 +451,18 @@ fn read_inputs(input_path: &Path) -> Result<Vec<Vec<u32>>> {
     if bytes.len() > 1024 * 1024 {
         return Err("input exceeds 1 MiB".into());
     }
-    Ok(serde_json::from_slice(&bytes)?)
+    Ok(bytes)
+}
+
+fn read_inputs(input_path: &Path) -> Result<Vec<Vec<u32>>> {
+    Ok(serde_json::from_slice(&read_input_bytes(input_path)?)?)
 }
 
 fn main_impl() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
-    let decode = args.get(1).is_some_and(|arg| arg == "sample")
-        && args.iter().skip(5).any(|arg| arg == "--decode");
+    let unified = args.get(1).is_some_and(|arg| arg == "sample");
+    let decode = unified && args.iter().skip(5).any(|arg| arg == "--decode");
+    let text = unified && args.iter().skip(5).any(|arg| arg == "--text");
     if args.get(1).is_some_and(|arg| arg == "sample") {
         args = sample::translate(&args)?;
     }
@@ -503,12 +508,20 @@ fn main_impl() -> Result<()> {
     } else {
         Artifact::load(&args[2])?
     };
-    let decoder = if decode {
+    let decoder = if decode || text {
         Some(decode::Decoder::from_artifact(&artifact)?)
     } else {
         None
     };
-    let inputs = read_inputs(Path::new(&args[4]))?;
+    let inputs = if text {
+        let texts: Vec<String> = serde_json::from_slice(&read_input_bytes(Path::new(&args[4]))?)?;
+        decoder
+            .as_ref()
+            .ok_or("missing tokenizer")?
+            .encode_texts(&texts)?
+    } else {
+        read_inputs(Path::new(&args[4]))?
+    };
     let mut result = if args[1] == "sample-xsum" {
         let cfg_scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
         let seed = args.get(6).map(|s| s.parse::<u64>()).transpose()?;
@@ -522,8 +535,8 @@ fn main_impl() -> Result<()> {
         let batch_size = args.get(5).map_or(Ok(128), |s| s.parse::<usize>())?;
         dispatch(&args[3], &args[1], artifact, &inputs, batch_size)?
     };
-    if let Some(decoder) = decoder {
-        decoder.add_texts(&mut result)?;
+    if decode {
+        decoder.ok_or("missing tokenizer")?.add_texts(&mut result)?;
     }
     println!("{}", serde_json::to_string(&result)?);
     Ok(())

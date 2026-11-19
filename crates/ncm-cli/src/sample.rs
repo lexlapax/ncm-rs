@@ -2,7 +2,7 @@
 use super::Result;
 use std::{fs, io::Read, path::Path};
 
-const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--top-p-fp32|--host-fp64]";
+const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--top-p-fp32|--host-fp64]";
 
 /// Read only enough untrusted metadata to choose a path. The chosen path must
 /// subsequently load and validate the complete artifact before inference.
@@ -44,8 +44,8 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
         return Err(USAGE.into());
     }
     let (mut seed, mut cfg, mut rope) = (None, None, None);
-    let (mut decode, mut stochastic, mut positive_cfg, mut top_p, mut host_fp64) =
-        (false, false, false, false, false);
+    let (mut decode, mut text, mut stochastic, mut positive_cfg, mut top_p, mut host_fp64) =
+        (false, false, false, false, false, false);
     let mut options = args[5..].iter();
     while let Some(option) = options.next() {
         match option.as_str() {
@@ -61,6 +61,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             }
             "--reference-rope" if rope.is_none() => rope = Some(options.next().ok_or(USAGE)?),
             "--decode" if !decode => decode = true,
+            "--text" if !text => text = true,
             "--experimental-stochastic-xsum" if !stochastic => stochastic = true,
             "--experimental-positive-cfg-xsum" if !positive_cfg => positive_cfg = true,
             "--top-p-fp32" if !top_p && !host_fp64 => top_p = true,
@@ -83,6 +84,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
                 || cfg.is_some()
                 || rope.is_some()
                 || decode
+                || text
                 || stochastic
                 || positive_cfg
                 || top_p
@@ -93,7 +95,14 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             result[1] = "generate".into();
         }
         "tinystories-inference-v1" => {
-            if cfg.is_some() || rope.is_some() || stochastic || positive_cfg || top_p || host_fp64 {
+            if cfg.is_some()
+                || rope.is_some()
+                || text
+                || stochastic
+                || positive_cfg
+                || top_p
+                || host_fp64
+            {
                 return Err("unsupported option for TinyStories".into());
             }
             result[1] = "sample-tinystories".into();
@@ -121,7 +130,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             result.push(cfg.unwrap_or(0.0).to_string());
         }
         "lm1b-small-inference-v1" | "lm1b-medium-inference-v1" | "lm1b-large-inference-v1" => {
-            if cfg.is_some() || stochastic || positive_cfg {
+            if cfg.is_some() || text || stochastic || positive_cfg {
                 return Err("unsupported option for LM1B".into());
             }
             result[1] = "sample-lm1b".into();
@@ -213,6 +222,19 @@ mod tests {
             assert!(translate_profile(&args(&["--decode"]), profile).is_ok());
         }
         assert!(translate_profile(&args(&["--decode"]), "sudoku-easy-inspection-v1").is_err());
+        for profile in ["xsum-inference-v2", "wmt14-inference-v1"] {
+            assert!(translate_profile(&args(&["--text", "--decode"]), profile).is_ok());
+            assert!(translate_profile(&args(&["--text", "--text"]), profile).is_err());
+        }
+        assert!(translate_profile(&args(&["--text"]), "sudoku-easy-inspection-v1").is_err());
+        assert!(translate_profile(&args(&["--text"]), "tinystories-inference-v1").is_err());
+        assert!(
+            translate_profile(
+                &args(&["--text", "--reference-rope", "rope"]),
+                "lm1b-small-inference-v1"
+            )
+            .is_err()
+        );
         assert!(translate_profile(&args(&[]), "owt-inference-v1").is_err());
         assert!(translate_profile(&args(&[]), "lm1b-small-inference-v1").is_err());
         assert!(

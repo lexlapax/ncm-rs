@@ -8,6 +8,7 @@ struct Policy {
     eos: u32,
     pad: u32,
     model_vocab: u32,
+    input_length: Option<usize>,
 }
 
 fn policy(profile: &str) -> Result<Policy> {
@@ -17,18 +18,21 @@ fn policy(profile: &str) -> Result<Policy> {
             eos: 0,
             pad: 1,
             model_vocab: 8192,
+            input_length: None,
         }),
         "xsum-inference-v1" | "xsum-inference-v2" => Ok(Policy {
             tokenizer_profile: "gpt2",
             eos: 50256,
             pad: 50257,
             model_vocab: 50304,
+            input_length: Some(512),
         }),
         "wmt14-inference-v1" => Ok(Policy {
             tokenizer_profile: "qwen3",
             eos: 151645,
             pad: 151643,
             model_vocab: 151680,
+            input_length: Some(96),
         }),
         _ => Err("decoding is unsupported for this artifact profile".into()),
     }
@@ -76,6 +80,25 @@ impl Decoder {
         Ok(Self { tokenizer, policy })
     }
 
+    pub(super) fn encode_texts(&self, texts: &[String]) -> Result<Vec<Vec<u32>>> {
+        let length = self
+            .policy
+            .input_length
+            .ok_or("text input is not supported for this profile")?;
+        if texts.is_empty() || texts.len() > 128 {
+            return Err("text input must contain 1..=128 strings".into());
+        }
+        texts
+            .iter()
+            .map(|text| {
+                let mut ids = self.tokenizer.encode(text)?;
+                ids.truncate(length);
+                ids.resize(length, self.policy.pad);
+                Ok(ids)
+            })
+            .collect()
+    }
+
     pub(super) fn add_texts(&self, result: &mut serde_json::Value) -> Result<()> {
         let ids: Vec<Vec<u32>> =
             serde_json::from_value(result.get("ids").ok_or("missing generated IDs")?.clone())?;
@@ -97,7 +120,36 @@ impl Decoder {
 
 #[cfg(test)]
 mod tests {
-    use super::{evaluator_ids, policy};
+    use super::{Decoder, evaluator_ids, policy};
+    #[test]
+    #[ignore = "requires pinned local artifacts and external reference corpora"]
+    fn corpus_text_encoding_matches_every_reference_row() {
+        for (artifact_var, reference_var, count) in [
+            ("NCM_XSUM_ARTIFACT", "NCM_XSUM_TEXT_REFERENCE", 11334),
+            ("NCM_WMT14_ARTIFACT", "NCM_WMT14_TEXT_REFERENCE", 3003),
+        ] {
+            let artifact =
+                ncm_io::Artifact::load_inference(std::env::var(artifact_var).unwrap()).unwrap();
+            let decoder = Decoder::from_artifact(&artifact).unwrap();
+            drop(artifact);
+            let data: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(std::env::var(reference_var).unwrap()).unwrap(),
+            )
+            .unwrap();
+            let texts: Vec<String> = serde_json::from_value(data["texts"].clone()).unwrap();
+            let ids: Vec<Vec<u32>> = serde_json::from_value(data["ids"].clone()).unwrap();
+            assert_eq!(texts.len(), count);
+            assert_eq!(ids.len(), count);
+            for (i, (text_chunk, id_chunk)) in texts.chunks(128).zip(ids.chunks(128)).enumerate() {
+                assert_eq!(
+                    decoder.encode_texts(text_chunk).unwrap(),
+                    id_chunk,
+                    "mismatch in batch {i}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn evaluator_stops_at_eos_and_discards_padding_and_model_only_ids() {
         let x = policy("xsum-inference-v2").unwrap();
