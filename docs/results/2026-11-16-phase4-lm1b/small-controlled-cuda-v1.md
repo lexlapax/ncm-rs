@@ -1158,3 +1158,40 @@ comparison band. The raw per-boundary audit is retained under
 `c1165cfd8cfacc88e08b0aaf0f0ea4c9c80049ad19b36019f0b91fe243ccd26a`.
 The separately captured [codec fixtures](small-codec-cuda-rust-v1.md#metal-codec-comparison)
 show level-zero numerical differences on their own inputs.
+
+## Adapted Python Metal generator diagnostics
+
+A separate Python MLX adaptation used the authenticated LM1B artifact,
+existing MLX transformer operations and the bounded LM1B codec adaptation
+in the [codec record](small-codec-cuda-rust-v1.md#same-device-adapted-codec-comparison).
+On the pinned two-row fixed history, all 45 captured generator and
+reconstruction intermediate tensors pass the existing policy against Rust
+Metal, including all checked per-level logit argmaxes. This subset does not
+include decoder output or sampling. Its trace and comparison SHA-256 values
+are `a7965e1cd2d954227361d838d935760da4d5499fe7024a78fee4fbd1f122bb25`
+and `52ae6938bdd73e5c85a151de8841620c3c6cdfb45a9e63d94a45181a1f4926cd`.
+
+With the same controlled SplitMix64 draws, the adapted generator fails 30
+of 47 captured intermediate and code comparisons against Rust Metal, with
+686 of 1,282 sampled codes different after continuations diverge. The first
+different choice in draw order is level 4, row 1, position 17: Rust selects
+6513 and Python selects 6512 at shared uniform `0.7931153684621677`.
+The Python cumulative probability through 6512 is `0.7931153701605017`.
+Level-four logits remain inside the existing numerical band, with maximum
+absolute difference `0.00003814697265625` and no argmax differences. A
+host replay of each capture's own logits and the same draw stream reproduced
+all 1,282 of that capture's choices. This shows the observed divergence is
+sensitive to the captured logits, but does not independently qualify the
+adaptation or establish full stochastic or decoder parity.
+
+The controlled capture and comparison SHA-256 values are
+`970dc5bbeae791f25faaecac33562713e38d814764fe86bd91eb57ec048b392b`
+and `1b6160fd33be0a31d935cabe5cb47db6f09d770fc3a5882aa5e5c5835c0a02e5`.
+The source scripts have SHA-256
+`e3be190ede219323eec7f261bf4e4c656ec729e2ac4d636038e355ea48f69758`
+and `02aaf20e556f24aa61fb90c521e7f33300e08470e221c51cd57badac67d77cf4`.
+Scripts and results are retained respectively under
+`reports/phase4-lm1b-small-teacher-python-metal-v2/` and
+`reports/phase4-lm1b-small-controlled-python-metal-v1/`; the shared codec
+adaptation is retained with the codec evidence. These remain development
+checks, not quality or performance qualification.
