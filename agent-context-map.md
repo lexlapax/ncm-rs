@@ -65,6 +65,15 @@ Recorded in [user-decisions-v1.md](docs/results/2026-11-16-phase4-lm1b/user-deci
 
 ## Checks run for this update
 
+- Metal tooling added, Metal runs pending: the campaign gains a Metal mode that imports the
+  published Python CUDA captures by receipt hash and Mac-made Rust captures by pinned binary hash.
+  New MLX examples `lm1b_small_cohort_campaign` and `lm1b_small_mlx_timing_probe`, Python probe
+  `tools/reference/lm1b_small_mlx_timing_probe.py` (reference forward pass with on-device
+  `mx.random.categorical`, as the TinyStories baseline does; the exact reference sampler is a
+  pure-Python loop and not a fair speed baseline) and runner `tools/bench/run_lm1b_small_mlx_timing.py`.
+  On Linux: synthetic Metal-import self-test (accepts a valid import, rejects a wrong binary hash,
+  wrong receipt hash and Metal options in CUDA mode); CUDA-mode rehearsal still reproduces the
+  archive exactly; `setpriv --inh-caps=-all ./tools/check.sh` passes. The MLX code is not yet compiled on Apple.
 - Prospective 80-seed CUDA campaign passed; the summary replays byte for byte. No code changed.
 - The 80-seed campaign tooling is now tracked in `tools/reference/lm1b_campaign/` plus a CUDA example runner.
   A rehearsal with the tracked tool on observed seeds 42/0 reproduces the archived records and comparison

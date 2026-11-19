@@ -10,6 +10,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import statistics
 import subprocess
 import sys
@@ -21,6 +22,7 @@ from tinystories_artifact import ROOT, UPSTREAM, verify_input
 HERE = Path(__file__).resolve().parent
 RUNNER = ROOT / 'target/release/examples/lm1b_small_cohort_campaign'
 RUNNER_SOURCE = ROOT / 'crates/ncm-backend-cuda/examples/lm1b_small_cohort_campaign.rs'
+METAL_RUNNER_SOURCE = ROOT / 'crates/ncm-backend-mlx/examples/lm1b_small_cohort_campaign.rs'
 UPSTREAM_DIR = ROOT / '.reference/upstream-ncm'
 ARTIFACT = ROOT / 'artifacts/canonical/lm1b-small-inference-v1'
 PY_SOURCE = ROOT / 'artifacts/upstream/lm1b-phase4'
@@ -98,7 +100,7 @@ def pins():
     checkout_identity()
     fixed = {ARTIFACT / 'manifest.json': MANIFEST_SHA, ROPE: ROPE_SHA, SHARD: SHARD_SHA, EVALUATOR: EVAL_SHA}
     files = [Path(__file__).resolve(), RUNNER, HERE / 'python_capture.py',
-             RUNNER_SOURCE, HERE / 'compare.py',
+             RUNNER_SOURCE, METAL_RUNNER_SOURCE, HERE / 'compare.py',
              HERE / 'lm1b_shared_forward_score.py', BERT_MANIFEST, TOKENIZER_LOCK,
              ROOT / 'Cargo.lock', *(ROOT / 'tools/reference' / name for name in (
                  'lm1b_heldout_score.py', 'lm1b_quality_compare.py', 'tinystories_artifact.py',
@@ -127,6 +129,13 @@ def validate_capture(item, plan, runtime, seed, seed_sha):
                 and item['source_sha256'][str(HERE / 'python_capture.py')] ==
                 plan['pins'][str(HERE / 'python_capture.py')],
                 'Python capture identity differs')
+    elif plan.get('rust_device') == 'metal':
+        require(item['binary_sha256'] == plan['metal_runner_sha256'] and item['device'] == 'metal'
+                and item['artifact_manifest_sha256'] == MANIFEST_SHA
+                and item['convolution_math'] == 'MLX Metal'
+                and item['penalty'] == 'host FP64'
+                and item['diagnostic']['rotary_tables_sha256'] == ROPE_SHA,
+                'Rust Metal capture identity differs')
     else:
         require(item['binary_sha256'] == plan['pins'][str(RUNNER)]
                 and item['artifact_manifest_sha256'] == MANIFEST_SHA
@@ -163,7 +172,35 @@ def read_captures(plan, plan_sha, run, runtime):
         yield seed, sha, record
 
 
-def capture(plan, plan_sha, run, runtime):
+def import_python(plan, attempt):
+    """Copy the published Python captures, bound by their receipt hash, into a Metal campaign."""
+    source = plan['python_source']
+    directory = Path(source['directory'])
+    receipt, _ = json_file(directory / 'receipt.json', source['receipt_sha256'])
+    require(receipt['runtime'] == 'python', 'imported receipt is not a Python capture receipt')
+    source_seeds = directory / 'seeds.json'
+    require(source_seeds.read_bytes() == payload(plan['seeds']['python']), 'imported seed list differs')
+    paths = capture_paths(directory, 'python', plan['seeds']['python'])
+    require(set(receipt['captures']) == {str(seed) for seed in paths}, 'imported receipt is incomplete')
+    for seed, path in paths.items():
+        record, _ = json_file(path, receipt['captures'][str(seed)])
+        validate_capture(record, plan, 'python', seed, digest(source_seeds))
+        shutil.copyfile(path, attempt / path.name)
+
+
+def import_metal(plan, attempt, directory):
+    """Copy Rust Metal captures produced on Apple hardware; validation follows in capture()."""
+    require(directory is not None and directory.is_dir() and not directory.is_symlink(),
+            'Metal capture import directory required')
+    require((directory / 'seeds.json').read_bytes() == payload(plan['seeds']['rust']),
+            'Metal capture seed list differs')
+    for path in capture_paths(directory, 'rust', plan['seeds']['rust']).values():
+        shutil.copyfile(path, attempt / path.name)
+    if (directory / 'run.log').is_file():
+        shutil.copyfile(directory / 'run.log', attempt / 'source-run.log')
+
+
+def capture(plan, plan_sha, run, runtime, imported=None):
     target = run / runtime
     if target.exists():
         for _ in read_captures(plan, plan_sha, run, runtime):
@@ -176,15 +213,25 @@ def capture(plan, plan_sha, run, runtime):
     env = os.environ.copy()
     env.update(OMP_NUM_THREADS='1', TOKENIZERS_PARALLELISM='false', PYTHONDONTWRITEBYTECODE='1')
     env.pop('LD_LIBRARY_PATH', None)
-    if runtime == 'python':
+    metal = plan.get('rust_device') == 'metal'
+    require(imported is None or (metal and runtime == 'rust'), 'import applies only to Metal Rust captures')
+    if metal:
+        print(f'importing {runtime} into {attempt.name}', flush=True)
+        if runtime == 'python':
+            import_python(plan, attempt)
+        else:
+            import_metal(plan, attempt, imported)
+        command = None
+    elif runtime == 'python':
         command = [sys.executable, HERE / 'python_capture.py', '--upstream', UPSTREAM_DIR,
                    '--source', PY_SOURCE, '--size', 'small', '--seeds', seed_path, '--output', attempt]
     else:
         env.update(LD_LIBRARY_PATH=str(CUDNN), NCM_LM1B_REFERENCE_ROPE_DIAGNOSTIC=str(ROPE))
         command = [RUNNER, ARTIFACT, seed_path, attempt]
-    print(f'capturing {runtime} in {attempt.name}', flush=True)
-    with (attempt / 'run.log').open('x') as log:
-        subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
+    if command is not None:
+        print(f'capturing {runtime} in {attempt.name}', flush=True)
+        with (attempt / 'run.log').open('x') as log:
+            subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     results = {}
     seed_sha = digest(seed_path)
     require(seed_path.read_bytes() == payload(plan['seeds'][runtime]), 'runtime seed list changed')
@@ -305,12 +352,19 @@ def main():
     init.add_argument('run', type=Path)
     init.add_argument('--mode', choices=('rehearsal', 'prospective'), required=True)
     init.add_argument('--seeds', type=Path, required=True)
+    init.add_argument('--rust-device', choices=('cuda', 'metal'), default='cuda')
+    init.add_argument('--metal-runner-sha256', help='Metal mode: SHA-256 of the built Apple runner')
+    init.add_argument('--python-from', type=Path,
+                      help='Metal mode: published Python capture directory of the CUDA campaign')
+    init.add_argument('--python-receipt-sha256', help='Metal mode: SHA-256 of that receipt.json')
     for stage in ('capture', 'score', 'summary'):
         action = commands.add_parser(stage)
         action.add_argument('run', type=Path)
         action.add_argument('--manifest-sha256', required=True)
         if stage == 'capture':
             action.add_argument('--runtime', choices=RUNTIMES, required=True)
+            action.add_argument('--import', dest='imported', type=Path,
+                                help='Metal mode: directory of Rust captures made on Apple hardware')
     args = p.parse_args()
     require(Path.cwd() == ROOT, 'run from the repository root')
     require(not args.run.is_symlink(), 'campaign directory must be real')
@@ -329,17 +383,36 @@ def main():
             registered = [x for values in registry.values() for x in values]
             require(len(set(registered)) == len(registered),
                     'prospective seed registry lists must be disjoint')
-        seeds = seed_lists(args.mode, {runtime: registry[runtime] for runtime in RUNTIMES})
+        metal = args.rust_device == 'metal'
+        rust_key = 'rust_metal' if metal else 'rust'
+        require(rust_key in registry, f'seed registry lacks {rust_key}')
+        seeds = seed_lists(args.mode, {'python': registry['python'], 'rust': registry[rust_key]})
+        extra = {}
+        if metal:
+            require(args.mode == 'prospective' and args.python_from and args.python_receipt_sha256
+                    and args.metal_runner_sha256 and len(args.metal_runner_sha256) == 64,
+                    'Metal mode needs a prospective run, Python source and receipt hash, and runner hash')
+            source = args.python_from.resolve()
+            require(source.is_relative_to(ROOT / 'reports'), 'Python source must be under reports')
+            json_file(source / 'receipt.json', args.python_receipt_sha256)
+            extra = {'rust_device': 'metal', 'metal_runner_sha256': args.metal_runner_sha256,
+                     'python_source': {'directory': str(source), 'receipt_sha256': args.python_receipt_sha256}}
+        else:
+            require(not (args.python_from or args.python_receipt_sha256 or args.metal_runner_sha256),
+                    'Metal options require --rust-device metal')
         plan = {'schema_version': 1, 'params': PARAMS, 'mode': args.mode, 'seeds': seeds,
                 'seed_registry': {'path': str(args.seeds), 'sha256': registry_sha},
-                'pins': pins(), 'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+                **extra, 'pins': pins(), 'git_head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
         run.mkdir()
         atomic_publish(path, plan)
+        if metal:
+            # The exact seed-list bytes the Apple runner must read.
+            (run / 'metal-seeds.json').write_bytes(payload(seeds['rust']))
         print(digest(path))
         return
     plan = manifest(path, args.manifest_sha256)
     if args.stage == 'capture':
-        capture(plan, args.manifest_sha256, run, args.runtime)
+        capture(plan, args.manifest_sha256, run, args.runtime, args.imported)
     elif args.stage == 'score':
         score(plan, args.manifest_sha256, run)
         manifest(path, args.manifest_sha256)
