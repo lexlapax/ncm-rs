@@ -54,10 +54,24 @@ in Python eliminates the sampled-choice differences at batches 16 and 32.
 This isolates the kernel's numerical effect. The independent composed
 reference's differences remain.
 
-The original pinned Python CUDA and Rust Metal both completed batch-16 traces
-on the exact retained Rust history. Comparing those traces and the composed
-Python MLX trace is the current correctness task. Raw evidence is in
-`reports/phase4-lm1b-metal-large-batch-v1/` on the machines that ran it.
+The batch-16 trace comparison is complete. With the same Rust code history,
+pinned Python CUDA differs from Rust Metal in 465 values across 19 of 46
+floating tensors under the existing tolerance. The first failing tensor is
+the level-zero reconstruction. Generator and decoder argmaxes and all
+2,048 penalty-adjusted token IDs agree. Replaying the same draws against
+the recorded logits selects different codes at 30 of 10,240 positions
+after level zero. The independent Python MLX affine trace meets the float
+tolerance on all 46 tensors but retains its 13 draw differences. The RoPE
+replay matches 45 tensors bit for bit and every sampled choice. See the
+[large-batch results](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#large-batch-fixed-history-comparison)
+for commands, identities and matching histories.
+
+Phase 4 remains at LM1B-small. The next correctness target is the initial
+cross-device reconstruction, where differences appear before the
+transformer. The frozen quality interval still fails and the proposed
+80-seed protocol awaits a decision. Small's remaining correctness, quality
+and performance checks come before medium and large. The run outputs are
+in `reports/phase4-lm1b-metal-large-batch-v1/` on Mac and Linux.
 
 The checked-in Python MLX development reference matches all 8,333 codes and
 1,664 final IDs on four Mac requests. Q/K RMS normalization

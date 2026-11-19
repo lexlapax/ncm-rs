@@ -1593,3 +1593,81 @@ The default Linux `tools/check.sh` suite passed, including all 533 report
 tests. The Mac tool rejected batch nine, a negative seed, a mismatched rotary
 file and an existing output. The corresponding logs are retained beside the
 request comparisons.
+
+### Large-batch fixed-history comparison
+
+Mac Studio ran the experimental Rust Metal CLI with 101 as the
+only prefix token, retained development seed 11 and the pinned rotary
+table. The Rust executable SHA-256 is
+`147a908646a1aa73bc61d9b1cb01e9c02f5144223a4100b05e552ae064e7e052`.
+Python consumed the same draw sequence and was fed the Rust code at each
+position to prevent an earlier differing draw from changing later inputs.
+
+| Batch | Reference operation | Draw differences | Final ID differences on Rust history |
+| --- | --- | ---: | ---: |
+| 15 | Independent Python MLX composition | 0 / 9,615 | 0 / 1,920 |
+| 16 | Independent Python MLX composition | 18 / 10,256 | 0 / 2,048 |
+| 16 | Python MLX with native affine layer normalization | 13 / 10,256 | 0 / 2,048 |
+| 16 | Native affine normalization with Rust's fused Q/K RMS RoPE kernel replayed in Python | 0 / 10,256 | 0 / 2,048 |
+| 32 | Python MLX with native affine layer normalization | 20 / 20,512 | 0 / 4,096 |
+| 32 | Native affine normalization with Rust's fused Q/K RMS RoPE kernel replayed in Python | 0 / 20,512 | 0 / 4,096 |
+
+At batch 16, compiling GELU without the fused RoPE kernel leaves 13 draw
+differences. Composing the paired RMS reduction from public MLX operations
+leaves 14 differences, with and without graph compilation. An initial
+shapeless graph compilation failed because MLX could not infer the split
+shape. A shape-specific retry completed. Replaying the actual Metal kernel
+isolates the effect of its arithmetic on this fixture.
+
+The fixed batch-16 history was also run through pinned Python CUDA with
+TF32 disabled and math SDPA, Rust Metal with the pinned rotary bytes, and
+both affine Python MLX variants. The existing trace tolerance gives these
+results for the 46 shared floating tensors:
+
+| Comparison to Rust Metal | Tensors outside tolerance | Values outside tolerance | Bit-exact tensors |
+| --- | ---: | ---: | ---: |
+| Pinned Python CUDA | 19 | 465 | 0 |
+| Independent Python MLX with native affine layer normalization | 0 | 0 | 34 |
+| Python MLX with native affine normalization and Rust's Q/K RMS RoPE kernel | 0 | 0 | 45 |
+
+The first CUDA/Metal tolerance failure is level-zero reconstruction, with
+44 values outside the band. All 12 reconstruction traces and seven
+post-convolution input tensors have out-of-band values. Every generator
+argmax, every decoder argmax and all 2,048 penalty-adjusted token IDs agree on
+this fixed history. Replaying the Rust FP64 draws reproduces each recorded
+Rust choice and gives 30 CUDA/Metal differences across 10,240 positions after
+level zero. The first is row 8, position 6 at level 4. The common draw is
+`0.8980126463575289`, between Metal's `0.89801211596219` and CUDA's
+`0.8980130129995515` CDF boundary at code 7424.
+
+All captures and local probe sources are under
+`reports/phase4-lm1b-metal-large-batch-v1/` on their respective machines.
+To repeat a retained probe, use the original pinned artifacts, the stored
+batch-16 input and a new report directory:
+
+```sh
+# On Mac Studio, generate the CLI output and run the fixed-history choices.
+out=reports/phase4-lm1b-metal-large-batch-v1
+replay=$(mktemp -d "$out/replay.XXXXXX")
+target/release/ncm sample-lm1b-small artifacts/canonical/lm1b-small-inference-v1 \
+  mlx "$out/inputs-16.json" 11 reports/phase4-lm1b-metal-cli-rope-v1.safetensors \
+  > "$replay/rust-16.json"
+PYTHONPATH="$PWD/tools/reference" .reference/mlx-venv/bin/python \
+  "$out/fused-probe.py" 16 affine "$replay"
+```
+
+On Linux, `cuda-history.py` uses the original teacher trace entry point and
+the SHA-256 of the retained `rust-16.json`. It changes the admitted history
+and batch shape for this development comparison. The Metal Rust trace uses
+`fixed-history-probe.rs` built from a detached checkout of `a1dec6f`. The
+temporary worktree was removed. The same policy is read by
+`compare-fixed-history.py` on both platforms.
+
+| Output | SHA-256 |
+| --- | --- |
+| Batch-16 Rust CLI history | `6a838848235c334b02bbf492d222afe6b27c7d47980dbf59566083d380d43ea3` |
+| CUDA trace | `1825ee71e6735ff18ad02ac554189b4b68049e99145746bdcbe4e3000faa6901` |
+| CUDA versus Rust Metal comparison | `19d02dbf591add825a5887503e9a18bd4309370731bf67019737074d52cc380c` |
+| Python MLX affine versus Rust Metal comparison | `f2c7958f6d5d0dc97f9ca0a86082a4b7713fce0e4d362e5155017334ba8072c5` |
+| Q/K RMS RoPE kernel replay versus Rust Metal comparison | `e640ac6e19d9408bfee666c1d971d728054c90794bbb98b014f0b00f576fc54d` |
+| Same-draw CUDA/Metal replay | `962a43e22d8d04abe4751c8415f5627f7b2f8c21c39991894b4af2f4ef1dde05` |
