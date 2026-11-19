@@ -4,7 +4,9 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
-- **LM1B cutoff parity regression:** a deterministic 8,192-logit fixture retains all probabilities in the pinned CUDA sampler but Metal removes 4,608 low-probability entries. A real-device ordering test passes; an explicit ignored CUDA-parity test fails when run. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#deterministic-cutoff-regression)
+- **LM1B multirow Metal scan:** the explicit experimental FP32 path follows the CUDA-shaped multirow scan, reducing selected same-logit boundary differences from 82 to 66 of 133. The observed-seed entropy interval still fails; the single-row CUDA scan and full parity remain unresolved. Metal and serial CUDA full regressions passed 18 device cases each; the first Linux run had an unrelated observer failure, retained in the evidence. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#multirow-cuda-shaped-scan-candidate)
+
+- **LM1B cutoff parity regression:** a deterministic single-row 8,192-logit fixture retains all probabilities in the pinned CUDA sampler but Metal removes 4,608 low-probability entries. A real-device ordering test passes; an explicit ignored CUDA-parity test fails when run. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#deterministic-cutoff-regression)
 
 - **LM1B experimental Metal FP32 top-p:** explicit `--top-p-fp32` computes MLX filtering before host FP64 draws. Rust probabilities match Python MLX bit-for-bit on 133 rows; a same-logit replay matches all 1,282 choices. Upstream CUDA boundary differences remain; the five observed-seed quality retest also fails the frozen entropy interval. CUDA and Metal regression suites pass, but this is not qualified and the default sampler is unchanged. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#explicit-experimental-metal-fp32-sampler)
 

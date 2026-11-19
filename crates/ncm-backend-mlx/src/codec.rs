@@ -7,6 +7,41 @@ use mlx_rs::{
 };
 use ncm_core::{CodecBackend, Error, Result, WeightBackend};
 use std::{cell::RefCell, rc::Rc};
+// PyTorch uses an inner-dimension Sklansky scan for multiple rows. Its
+// single-row CUDA path uses CUB instead; retain MLX's scan for that case.
+#[cfg(feature = "lm1b-experimental")]
+fn lm1b_grouped_scan(probabilities: &Array, rows: usize) -> ops::Result<Array> {
+    if rows == 1 {
+        return Ok(probabilities.cumsum(-1, false, true)?);
+    }
+    let log_rows = usize::BITS - (rows - 1).leading_zeros();
+    let log_threads = ((22 - log_rows) / 2).clamp(4, 9);
+    let chunk = 2_i32 << log_threads;
+    let flat = probabilities.reshape(&[rows as i32, 8192])?;
+    let first = flat.try_index((.., 0..1))?;
+    let mut carry = mlx_rs::ops::zeros_like(&first)?;
+    let mut output = Vec::new();
+    for base in (0..8192).step_by(chunk as usize) {
+        let first = flat.try_index((.., base..base + 1))?.add(&carry)?;
+        let rest = flat.try_index((.., base + 1..base + chunk))?;
+        let mut values = mlx_rs::ops::concatenate(&[&first, &rest], 1)?;
+        let mut width = 1_i32;
+        while width < chunk {
+            let blocks = values.reshape(&[rows as i32, chunk / (2 * width), 2, width])?;
+            let left = blocks.try_index((.., .., 0, ..))?;
+            let right = blocks.try_index((.., .., 1, ..))?;
+            let end = left.try_index((.., .., width - 1..width))?;
+            let right = right.add(&end)?;
+            values =
+                mlx_rs::ops::concatenate(&[&left, &right], -1)?.reshape(&[rows as i32, chunk])?;
+            width *= 2;
+        }
+        carry = values.try_index((.., chunk - 1..chunk))?;
+        output.push(values);
+    }
+    Ok(mlx_rs::ops::concatenate(&output, 1)?.reshape(probabilities.shape())?)
+}
+
 type CompiledGelu =
     Box<dyn FnMut(&[Array]) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception>>;
 #[cfg(panic = "unwind")]
@@ -289,8 +324,9 @@ impl MlxBackend {
     }
     /// Explicit FP32 top-p=1 probability diagnostic for finite LM1B logits.
     ///
-    /// This follows the MLX sorting, softmax and cumulative-sum arithmetic;
-    /// it is not qualified as bit-identical to PyTorch CUDA. It does not draw
+    /// Multirow inputs use a CUDA-shaped scan over MLX FP32 probabilities;
+    /// single-row inputs use the MLX scan. Neither is qualified as bit-identical
+    /// to PyTorch CUDA. It does not draw
     /// a sample or alter the existing full-distribution sampler.
     #[cfg(feature = "lm1b-experimental")]
     pub fn lm1b_top_p_one_probabilities_experimental(
@@ -314,7 +350,7 @@ impl MlxBackend {
             let order = mlx_rs::ops::argsort_axis(logits.0.negative()?, -1)?;
             let sorted = logits.0.take_along_axis(&order, -1)?;
             let probabilities = mlx_rs::ops::softmax_axis(&sorted, -1, true)?;
-            let cumulative = probabilities.cumsum(-1, false, true)?;
+            let cumulative = lm1b_grouped_scan(&probabilities, batch as usize * length as usize)?;
             let remove = cumulative
                 .subtract(&probabilities)?
                 .gt(Array::from_f32(1.0))?;

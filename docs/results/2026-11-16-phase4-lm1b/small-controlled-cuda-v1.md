@@ -1337,15 +1337,15 @@ clean and its existing service remained running.
 
 ### Explicit experimental Metal FP32 sampler
 
-The Metal CLI now accepts `--top-p-fp32` as an explicit experimental option.
-It computes MLX FP32 sort, softmax, cumulative top-p=1 filtering and final
+The Metal CLI accepts `--top-p-fp32` as an explicit experimental option.
+The initial implementation computed MLX FP32 sort, softmax, cumulative top-p=1 filtering and final
 softmax before the existing host FP64 inverse-CDF draw and FP64 penalties.
 The default Metal and CUDA paths remain unchanged; requesting this option
 with CUDA fails explicitly. The backend checks shape, dtype and finite inputs,
 and unsupported backends return an error rather than falling back.
 
-On the 133 same-logit rows above, the Rust probability output is bit-identical
-to the adapted Python MLX output, including the five cutoff-tie rows. For a
+On the 133 same-logit rows above, that initial Rust probability output was
+bit-identical to the adapted Python MLX output, including the five cutoff-tie rows. For a
 separate two-row seed-11 request with the pinned rotary table, the explicit
 CLI codes and IDs match the traced and untraced model paths. Independently
 replaying the model's captured logits through Python MLX and the same
@@ -1429,3 +1429,71 @@ that parity test ignored. Adding `top_p_cutoff_matches_cuda_reference --
 test command omitted the `mlx` feature and ran zero tests; it is not counted as
 validation. The known cross-device sampler mismatch and Phase 4 gates remain
 open.
+
+#### Multirow CUDA-shaped scan candidate
+
+The explicit experimental Metal FP32 mode now uses a grouped FP32 prefix scan
+for multiple rows, following the pinned CUDA inner-dimension scan's grouping
+and row-dependent block size. For one row CUDA uses a separate CUB scan; Metal
+retains its previous native scan there. This improves a bounded comparison, not
+full CUDA arithmetic: MLX softmax and exponentials still differ, as do choices.
+
+On the same 133 deliberately selected boundary draws described above, the
+multirow scan differs from the upstream choices on 36 of 64 CUDA-logit rows,
+30 of 64 Metal-logit rows and zero of five tie rows, versus 39, 41 and two with
+the prior native MLX scan. Their cutoff masks differ from CUDA on 20, 26 and
+zero rows, respectively. These targeted values are not normal-use mismatch
+rates. The Rust candidate's probabilities match the independently expressed
+MLX grouped scan bit for bit on all rows. On the synthetic cutoff fixture,
+two-row upstream CUDA and candidate Metal each retain all probabilities.
+
+A separate CUDA capture ran each of those logits as a *single-row* request.
+Against those new references, the native and grouped Metal scans differed on
+respectively 34/45 CUDA-logit draws, 30/39 Metal-logit draws and 1/1 tie draws.
+This evidence supports preserving the native single-row path; it does not make
+that path equivalent to CUDA. The explicit ignored single-row parity regression
+continues to fail.
+
+A five-observed-seed candidate quality retest, using the existing identity-
+checked scorer and unchanged comparator, fails the entropy confidence interval:
+`[-0.00576046, 0.00316554]` against `±0.0046`; the entropy point and both
+perplexity checks pass. Candidate-minus-Python entropy and perplexity means are
+`-0.00148428` and `-2.30771705`. Compared with the previous Metal FP32
+sampler, respectively 12, 13, 10, 12 and 15 of 256 code rows changed for seeds
+42, 0, 1, 2 and 3. This is an observed-seed retest, not fresh held-out evidence.
+
+Three alternating cold two-row seed-11 CLI requests per sampler took 1.88,
+1.42 and 1.41 seconds for the previous native scan and 1.74, 1.44 and 1.45
+seconds for the candidate. They include startup, the existing Mac service was
+running, and no allocator or concurrent throughput measurements were made.
+This small screen is not performance qualification.
+
+The candidate executable SHA-256 was
+`2a78e5461d335b6000b9fd0ec1da9e7ee81d9d8dffcffa2bebc394dabdc659a1`;
+the previous binary was
+`35e6ee99af7bd457547b116da23c22c05cf673afbaf14cddbe440de876f42526`.
+The Rust probability capture SHA-256 is
+`80d7ba310fb59d4c0ad3b80ee50b1f7dcd3b063a774cf433bee3be33f4c441dc`;
+the multirow comparison result is
+`cdf139dedd7e673fdc1e6b6ad691da702e279423d4d97ea664a7b6d38ac763ab`.
+The single-row CUDA capture and comparison result are
+`7f388b1f04577ff64ae2825997b14b9c86e00d14be5bfc019d5413c66458da73` and
+`e60c9764218a60cccace075e877c07fc93c3133aca83d711c97f60057a1d301c`.
+The frozen quality summary SHA-256 is
+`733a82d557d9b19fc81bc968cf5ff489f43f5e9415d3e15e3e44945410ce7c57`.
+Sources, captures, scores and timing receipts are retained under
+`reports/phase4-lm1b-metal-grouped-scan-observed-v1/` and the Mac's
+`reports/phase4-lm1b-metal-native-grouped-scan-v3.*`. The initial v1 comparison
+used mismatched mask ordering; the reported results use the corrected v3.
+
+The feature-specific Metal test passes three cases with the single-row parity
+case ignored, and feature-specific Clippy passes. The complete runtime and
+Phase 4 gates remain open.
+
+The full Metal regression passed 18 operator cases. The first full Linux run
+failed an unrelated child-process observer test reporting an unexpected live
+executable identity; it ran while scoring and CUDA diagnostic work were also
+active. A serial rerun passed the full suite, including 533 report tests and 18
+CUDA operator cases. The failed and passing logs are retained as
+`reports/phase4-lm1b-metal-grouped-scan-observed-v1/linux-full-check.log` and
+`linux-full-check-rerun.log`. The failure's cause was not proven by the rerun.

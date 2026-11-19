@@ -155,13 +155,14 @@ LM1B Metal release.
 
 Each JSON input row supplies BERT start token `101`. A request accepts
 1 to 32 rows and an unsigned 64-bit request seed. The command returns a
-JSON object with a 641-code row and a 128-raw-ID row for each input. It
+JSON object with a 641-code row and a 128-raw-ID row for each input.
 By default it uses a full-distribution FP64 inverse-CDF sampler and FP64
 decoding penalties. The pinned upstream sampler additionally applies FP32
 sorting and cumulative top-p filtering even when top-p is one; rounding can
 make that filtering change a choice. On Metal, append `--top-p-fp32` to
 explicitly select an experimental MLX FP32 sort, softmax and filtering path
-with FP64 host draws and penalties. CUDA rejects this option. The MLX FP32
+with FP64 host draws and penalties. Multirow filtering uses a CUDA-shaped
+FP32 prefix scan; single-row filtering uses the MLX scan. CUDA rejects this option. The MLX FP32
 operations differ numerically from upstream CUDA on selected boundary draws;
 this option is not a qualified upstream-equivalent sampler. Neither mode
 reproduces PyTorch's random stream. Pass the same request seed and batch shape

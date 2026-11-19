@@ -98,6 +98,17 @@ fn top_p_filter_preserves_logit_order() {
     assert!((probabilities.iter().map(|&x| f64::from(x)).sum::<f64>() - 1.0).abs() < 1e-5);
 }
 
+#[test]
+fn multirow_cutoff_matches_cuda_reference_for_representable_tail() {
+    let backend = MlxBackend::gpu().unwrap();
+    let logits = cutoff_logits().repeat(2);
+    let input = backend.upload_f32(&logits, &[1, 2, 8192]).unwrap();
+    let result = backend
+        .lm1b_top_p_one_probabilities_experimental(&input)
+        .unwrap();
+    assert!(backend.read_f32(&result).unwrap().iter().all(|&x| x > 0.0));
+}
+
 // The pinned CUDA reference retains every positive probability for this input.
 // Enable this check when the Metal FP32 arithmetic matches that reference.
 #[test]

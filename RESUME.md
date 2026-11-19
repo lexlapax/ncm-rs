@@ -1,191 +1,88 @@
-# Phase 4 resume handoff
+# Phase 4 handoff
 
-Last updated: 2026-11-19 UTC. Start by reading `AGENTS.md` and
-`agent-context-map.md`, inspecting the current worktree, and checking the
-linked Phase 4 contracts and evidence. This handoff summarizes state; the
-source, recorded gates, and current machine state remain authoritative.
+Last updated: 2026-11-19 UTC. The objective is to **complete Phase 4**, not just
+one diagnostic. Start with `AGENTS.md`, `agent-context-map.md`, `git status`,
+[the Phase 4 plan](docs/PLAN.md#phase-4--released-text-profile-compatibility)
+and [the text-profile contract](docs/PHASE4-TEXT.md). Current source and
+recorded evidence take precedence over this summary.
 
-## Objective and constraints
+## User direction and working rules
 
-Finish Phase 4, preserving functionality and all approved numerical, quality,
-performance, and hardware gates. Follow the approved profile order and Linux
-before Metal for each profile. The user asked to optimize the work without
-weakening gates. Do not change pinned upstream, artifacts, schemas, oracle,
-thresholds, or held-out protocol silently. Preserve failed evidence and do not
-claim a phase or runtime gate from a bounded diagnostic. The user authorized
-pushes needed for Mac work via pulls and approved both Mac and Linux runs.
-Before every commit include an updated
-`agent-context-map.md`, run appropriate checks, and inspect the staged diff.
+Focus narrowly on Phase 4 feature correctness and completeness before
+optimization. The user directed the work to the Mac, authorized SSH and all
+Mac/Linux runs, and approved pushes needed for Mac testing. Do not reboot the
+Mac or interrupt its existing `dotsetup.rmlx` service. Inspect the clean remote
+checkout before a fast-forward pull; preserve unrelated work. The local
+untracked `.pi/` is unrelated and must be preserved. Before each commit update
+`agent-context-map.md`, run appropriate checks and review the staged diff.
 
-## State at handoff
+Keep pinned upstream, artifacts, oracle, numerical tolerances and the frozen
+quality protocol unchanged unless separately authorized. A previously observed
+seed is a retest, not fresh held-out evidence. Do not claim the phase is
+complete or hide failed results. The earlier 80-seed proposal is a proposed
+protocol, not an approved replacement gate.
 
-- The user approved [one-time XSum Metal advancement](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md)
-  with the nine intermediate codes and six post-EOS raw IDs listed in
-  the retained comparison. LM1B-small is now the active profile.
-- Preserve the unrelated untracked `.pi/`. Check `git status` for the
-  current Linux head. The pre-softmax baseline is `8ba381f`.
-- The XSum CUDA masked-softmax change passes `tools/check.sh --cuda`
-  (524 report and data tests, 18 device cases). All 11,334 top-1 rows
-  and all 1,280 previously observed seeded rows match retained CUDA codes
-  and raw IDs exactly. The repeated comparison against pinned Python
-  lowers median latency by approximately 19% and also lowers p95, RSS,
-  and sampled GPU memory at batches 1/4/32. Against the rebuilt previous
-  Rust binary on that same fixture the paired median reductions are
-  1.70%, 1.76% and 1.62%, with identical sampled GPU peaks. The completed
-  reports and reproduction commands are in
-  [the XSum CUDA results](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md).
-- XSum Metal's exact full-corpus top-1 gate fails. On retained batch 04928,
-  row 4937 differs by three codes and five raw IDs from pinned Python CUDA.
-  Three newly tested six-part-head combinations produced outputs byte-identical
-  to the earlier candidate on batches 04864 and 04928; they do not fix it.
-  Details, earlier interventions, hashes, and limitations are in
-  [the XSum diagnostic record](docs/results/2026-11-15-phase4-xsum/level1-cross-backend-diagnostic-plan-v1.md).
-  Smaller Metal batches resolve row 4883's single ID mismatch through size 8
-  but do not resolve row 4937. Split-scale attention, an ordered latent
-  reduction and a combined normalization/projection/attention probe also
-  did not resolve it. A pinned tokenizer and ROUGE replay matches Python CUDA
-  on all 11,334 retained Metal decoded texts and per-row scores. The pinned
-  perplexity tokenizer inputs and score masks match as well. An
-  [independent pinned GPT-2 scoring run](docs/results/2026-11-15-phase4-xsum/cuda-combined-numerics-v1.md#full-corpus-metal-text-and-rouge-replay)
-  on the retained Metal outputs matches all 277,595 scoreable tokens and
-  the exact retained Python perplexity of `82.62335629362389`. The nine
-  intermediate code differences and six post-EOS raw-ID differences
-  still fail the unchanged exact gate.
-  The [pinned Python batch-size control](docs/results/2026-11-15-phase4-xsum/mlx-full-top1-v1.md#pinned-python-free-generation-across-batch-sizes)
-  reproduced the retained rows at batch 32. Running the same Python model
-  at sizes 1–16 reproduces Metal row 4937 and sizes 1–2 also reproduce
-  Metal row 10015. Both batch-32 input projections restore row 4937 in
-  the CUDA batch-16 replay. The projection replay and the same-hidden
-  head replay on Metal retain the failure.
-  Combining the split head with captured CUDA hidden state restores the
-  exact 32-row Metal batch in the adapted model. Three captured CUDA block
-  outputs also work with that head, but other, later states retain the
-  mismatch. The [joint replays](docs/results/2026-11-15-phase4-xsum/mlx-full-top1-v1.md#joint-metal-head-and-transformer-replays)
-  depend on injected CUDA state for a known row.
-  Avoid repeating these variations without new evidence.
-- TinyStories advanced under [the user's scoped exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md).
-  Keep those exceptions visible and retain the preceding regressions.
-- WMT14 top-1 passes the scoped CUDA and Metal profile gates. The
-  [CUDA results](docs/results/2026-11-16-phase4-wmt14/cuda-fast-argmax-plan-v1.md)
-  cover the full pinned corpus and paired performance. The
-  [Metal qualification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification)
-  covers both full modes, all seven timing cells, the exact CLI controls,
-  and both final device suites. Metal row 632 retains 13 intermediate code
-  differences with all raw IDs matching. The bounded retry recovers one
-  batch in each mode. Guided batch four uses a final transformer checkpoint
-  after block three. Both real-device regressions pass 18 operator cases.
-- LM1B-small CUDA's frozen held-out quality comparison fails: the entropy
-  confidence interval lower endpoint is -0.007118 versus -0.0046. Its five
-  held-out seeds are observed; a rerun is a retest, not fresh held-out data.
-  The Python self-control also fails but does not waive the candidate failure.
-  See [results](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md)
+## Where Phase 4 stands
+
+- TinyStories advanced under the user's [scoped exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md).
+- XSum advanced under the user's [scoped Metal exception](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md); retain the documented nine intermediate-code and six post-EOS raw-ID discrepancies. The separate [CUDA stochastic exception](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md) also remains recorded.
+- WMT14 top-1 has scoped CUDA and Metal qualification, including documented
+  differences and retries; see [the Metal qualification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification).
+- LM1B-small is the active profile. CUDA's frozen five-seed held-out entropy
+  interval fails; a Python-versus-Python control also fails, which indicates
+  the test may be noisy but does not waive the candidate failure. See the
+  [CUDA quality evidence](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md)
   and [frozen protocol](docs/results/2026-11-16-phase4-lm1b/heldout-protocol-v1.md).
-  LM1B medium and large have [checkpoint inventories](docs/results/2026-11-16-phase4-lm1b/inventory-preparation-v1.md)
-  but no qualified GPU runtime. OWT remains limited to the synthetic and
-  configuration scope in the [Phase 4 contract](docs/PHASE4-TEXT.md),
-  which records the missing released checkpoint.
-- Linux validation scheduling was improved without removing tests: 524 report
-  tests and 18 CUDA device cases passed. The observed report suite time fell
-  from 167.35 to about 146.48 seconds in a single comparison. See
-  [validation evidence](docs/results/2026-11-17-phase4-check-scheduling.md).
-- The Linux `llama-server.service` was stopped with the user's approval for
-  CUDA testing and should remain stopped until the user asks to restart it.
-  Verify its current state before relying on this historical observation.
-- Mac `dotsetup.rmlx` was temporarily stopped for the last bounded Metal
-  screens with explicit approval and restored; launchd and its server process
-  were verified running afterward. An initial asynchronous shutdown made the
-  immediate restore fail; the service was recovered before a successful retry.
-  This approval covered that screen and restoration; recheck availability and
-  obtain any needed authorization before interrupting live services again.
-  The Mac checkout fast-forwarded to `0b89cd1` for the
-  [guidance CLI verification](docs/results/2026-11-15-phase4-xsum/mlx-cfg-probe-v1.md#cli-verification).
-  Full Metal checks passed. Experimental Metal top-1 guidance through
-  `sample-xsum` matched pinned outputs at scales 0/1/2 on retained
-  fixtures. The eight-row scale-one cold screen showed 9.6% lower Rust
-  peak RSS and a 3.4% higher median wall time than adapted Python MLX.
-  The service was left running.
-  The earlier six-part screens remain in the Mac's ignored
-  `reports/phase4-xsum-six-refined-screen-v1/`. Inspect the checkout
-  before any future fast-forward pull.
-- The prior thread's goal status was reported as blocked after waiting for the
-  Mac service decision; the user subsequently approved the bounded screen and
-  it was completed. Do not mistake that status for Phase 4 completion.
+- LM1B-small Metal has fixed-history and greedy evidence but does not pass the
+  controlled stochastic, numerical or quality gates. A separately qualified
+  same-device reference is still needed. The earlier five-observed-seed Metal
+  retests fail the entropy interval. See [Metal quality and convolution](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md)
+  and [sampler evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md).
+- LM1B-medium and large have checkpoint inventories but no qualified GPU
+  runtimes. OpenWebText currently requires synthetic/config/operator coverage;
+  checkpoint and quality work waits for released, validated weights.
 
-## Next actions
+## Latest LM1B-small Metal work
 
-1. Continue LM1B-small on Linux CUDA. The [experimental CLI](docs/PHASE4-TEXT.md#experimental-lm1b-small-commands)
-   reaches the current efficient FP64 path and passes retained-request
-   parity and the batch-32 repeat. Its [optional BERT decoder](docs/results/2026-11-16-phase4-lm1b/bert-decode-development-v1.md#rust-flm-decoder-and-cli-text-output)
-   matches the pinned evaluator, including the six padded model IDs.
-   The [cold startup comparison](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#cold-cli-weight-loading)
-   found a 371–375 MiB RSS saving with a reusable buffer at a cost of
-   0.45–0.47 seconds per cold invocation. The CLI uses the faster
-   borrowed path and the experimental patches are retained.
-   The [repeated performance run](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#repeated-cuda-timing-and-allocator-measurements)
-   favors Rust in median, p95 and process RSS at all three measured sizes.
-   Resolve the frozen entropy interval failure. The replay reproduced the
-   original result byte for byte, with an interval of
-   `[-0.007118, 0.002290]` against the frozen `±0.0046` margin.
-   The [fixed-code and precision audit](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#fixed-code-cuda-decode-replay)
-   isolates cross-decoder differences to Python's convolution TF32
-   setting. Both common-decoder intervals remain below the bound.
-   The original precision and scorer receipts remain the acceptance baseline.
-   The [Rust cuDNN experiment](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#rust-cudnn-default-math-experiment)
-   matches the original Python fixed-code outputs exactly. Its five
-   observed-seed retest passes perplexity and still misses the entropy
-   lower bound with `[-0.005636, 0.001367]`.
-   The [controlled precision comparison](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#controlled-generation-at-evaluator-convolution-precision)
-   moves the first differing code to level 5 and traces the first latent
-   difference to level-zero residual convolution. The
-   [graph and resampling replay](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#graph-convolution-and-interpolation-replay)
-   matches all 51 controlled tensors, both complete sampled rows and every
-   codec reconstruction. The [cached graph candidate](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#cached-cudnn-graph-candidate)
-   repeats that result and passes a second development history with math
-   attention. It is 14–28% faster at the median than pinned Python in the
-   paired screen. The [observed-seed retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#cached-cudnn-graph-observed-seed-retest)
-   again passes perplexity and misses the entropy interval at
-   `[-0.006796252, -0.000604899]`. The
-   [fused efficient attention and projection candidate](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#efficient-attention-and-bounded-projection-plans)
-   now matches both controlled histories under Torch's default efficient
-   dispatch. Shared-draw requests match at batches 1, 4 and 16. The
-   [paired timing](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-and-cached-graph-candidate)
-   favors Rust by 17–32% at the median, with lower p95 and RSS at all three
-   sizes. The [batch-eight comparison](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-at-the-quality-workload-batch-size)
-   also favors Rust in median, p95 and peak RSS at the quality workload size.
-   The [new observed-seed retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#efficient-attention-observed-seed-retest)
-   passes perplexity but its entropy interval is
-   `[-0.005745225, 0.000822536]`. An audit of all 160 batch-eight
-   requests reproduces every Rust code and token ID in Python under
-   shared draws. The [FP32 probability audit](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md#full-observed-sampler-probability-audit)
-   locates 46 changed choices with the same Rust uniforms. The native FP32
-   prototype reproduces all 1,280 observed FP32 replay rows exactly.
-   Its [observed-seed quality retest](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#native-fp32-top-p-observed-seed-retest)
-   passes perplexity and misses the entropy interval at
-   `[-0.006047359, 0.000833347]`. It has smaller margins over Python
-   than the FP64 sampler in the [paired timing screen](docs/results/2026-11-16-phase4-lm1b/small-cuda-capacity-screen-v1.md#efficient-attention-with-native-fp32-top-p).
-   The patch and executables remain in ignored reports. The faster FP64
-   sampler stays in source. The frozen quality failure remains open.
-2. The proposed fresh quality comparison keeps the scorer, margins and
-   independent seed bootstrap, and expands to 80 seeds per runtime.
-   The [workflow preflight](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#larger-cohort-workflow-preflight)
-   regenerates and scores four archived captures exactly with one load
-   per runtime, and reproduces the frozen verdicts through the draft
-   comparator. The [shared-forward scorer draft](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#sharing-one-gpt-2-forward-pass-per-scoring-batch)
-   reproduces all ten archived scores and cuts median scoring time by
-   44.4% in the paired CUDA screen, at comparable peak allocation.
-   The [manifest-bound rehearsal](docs/results/2026-11-16-phase4-lm1b/small-heldout-cuda-v1.md#manifest-bound-cuda-rehearsal)
-   exercises capture, scoring and comparison end to end on observed
-   seeds and preserves all intermediate receipts. The larger mode's
-   seed-list controls pass. The proposed protocol awaits approval before
-   generating fresh samples. Mac and Linux runs already have user approval.
-   Complete the Linux LM1B-small gate before Metal and both small gates
-   before medium and large.
-3. For each changed runtime, run the applicable full checks and reproducible
-   quality, performance, and memory comparisons on both real target devices.
-   Update the context map, commit, and use the existing push authorization.
+`sample-lm1b-small ... mlx ... --top-p-fp32` is an explicit experimental
+sampler. It does not reproduce PyTorch RNG or establish CUDA parity; the default
+Metal and CUDA samplers remain unchanged. The multirow candidate now uses a
+CUDA-shaped FP32 prefix reduction. On 133 retained, deliberately chosen
+boundary draws it differs from CUDA in 66 cases versus 82 for the prior MLX
+scan. This targeted result is not a normal-use error rate or a gate pass.
+The Rust probability output matches the independent MLX candidate bit for bit
+on those rows. A deterministic two-row cutoff fixture agrees with CUDA; a
+separate single-row test remains ignored because CUDA uses a different scan and
+Metal fails it. A single-row comparison on 133 retained rows found the proposed
+grouped scan worse than the existing MLX scan, so single-row behavior is not
+changed.
 
-Linux and Mac ignored `.reference/`, `artifacts/`, `reports/`, and build trees
-contain local inputs and raw evidence; they are not Git deliverables. Do not
-overwrite them or assume they exist on another machine. Never disassemble or
-use restricted vendor implementations; the existing record documents an
-earlier inadvertent inspection and its cleanup.
+The candidate's observed-seed quality retest still fails the entropy interval:
+`[-0.00576046, 0.00316554]` versus the frozen `±0.0046` margin. Perplexity and
+both point checks pass. This is an observed-seed retest, not a new held-out
+pass. The candidate's two-row cold CLI timing screen and the unchanged prior
+sampler are documented in the [controlled evidence](docs/results/2026-11-16-phase4-lm1b/small-controlled-cuda-v1.md).
+Do not claim full performance qualification from this small screen.
+
+## Next work, in order
+
+1. Continue LM1B-small correctness: investigate the remaining Metal/CUDA
+   sampler and convolution differences, especially the separate single-row
+   CUDA scan. Use fixed-input, same-draw comparisons and qualify a same-device
+   reference before drawing wider conclusions. Keep unsupported paths explicit.
+2. Resolve the frozen CUDA and Metal quality failures with valid evidence.
+   If a different protocol or exception is needed, present the concrete
+   proposal and existing failed results; do not silently change the gate.
+3. Complete LM1B-small end-to-end, quality and reproducible latency/memory
+   qualification on both devices, including preceding regressions.
+4. Implement and qualify LM1B-medium and then large with explicit memory
+   budgets, correctness traces, output/quality checks and performance reports
+   on CUDA and Metal. Keep unavailable or unqualified profiles explicit.
+5. Audit Phase 4 requirements and existing accepted exceptions against current
+   source and evidence, finish the required documentation review, and only then
+   mark Phase 4 complete.
+
+The ignored local `reports/` directories contain detailed captures, scripts and
+logs; they are not portable Git artifacts. Use the linked tracked evidence for
+identities and conclusions, verify local files before reuse, and reconstruct
+missing reports from recorded procedures rather than assuming they exist.
