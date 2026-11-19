@@ -110,3 +110,17 @@ and `a36a357ab2ec5bd5b67821782aa7a26013f17dc84fa3cfe87a6b13841c1fa6fd`.
 The patch and reports are retained under
 `reports/phase4-lm1b-metal-refinement-experiment-v1/`. The Mac
 checkout was verified clean after reversing the experiment.
+
+A separate Metal control materialized the convolution result and both
+scaled residual terms before their addition for LM1B. The complete
+362-tensor codec trace and the 51-tensor controlled stochastic trace
+were byte-identical to the existing Metal captures. The known failures
+therefore persist with these operation boundaries. This control does
+not establish equivalence for other shapes or devices.
+
+The patch SHA-256 is
+`a0dcba5e9420b977577ecde5945fbb07e775f443077310e457fe1a3d4e7796fd`.
+The corresponding Mac traces and logs use the
+`phase4-lm1b-small-codec-metal-barriers-v1` and
+`phase4-lm1b-small-controlled-metal-barriers-v1` names. The source
+patch was reversed and the Mac checkout verified clean.
