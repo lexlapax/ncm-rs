@@ -4,6 +4,8 @@ Last updated: 2026-11-19 UTC. Read first; load linked context lazily.
 
 ## Current state and user decisions
 
+- **LM1B-small Metal identical-input control:** the initial CUDA and Metal upsample is bit-identical for the observed batch, yet TF32-like rounding leaves 548 residual-convolution outputs outside tolerance. Alternate accumulation and FP64 controls also fail; the exact CUDA arithmetic remains unresolved. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#same-input-and-accumulation-controls)
+
 - **LM1B-small Metal precision experiment:** TF32-like halfway-away operand rounding reduced one initial reconstruction error but still left 548 values outside tolerance. Its adapted Python Metal full-generation test differed from CUDA on every row, and its baseline already differs from Rust on one row; no production candidate was accepted. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#bounded-metal-convolution-precision-experiment)
 
 - **LM1B-small same-request cross-device diagnosis:** all 1,280 observed CUDA and Metal output rows differ. In one reproduced batch, efficient CUDA and Metal initial reconstruction max difference is 0.046585; a strict-FP32 CUDA control reduces the Metal difference to 0.000145 and matches all 64 first-level choices, though later codes diverge. This points to the initial codec path without proving a single cause or quality pass. [Evidence](docs/results/2026-11-16-phase4-lm1b/small-metal-observed-quality-v1.md#same-request-cuda-comparison-and-initial-reconstruction)

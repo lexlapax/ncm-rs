@@ -129,3 +129,33 @@ Sources, authenticated inputs and results are retained under
 `reports/phase4-lm1b-metal-tf32-precision-v1/`; the Mac results match the
 transferred files. The Mac checkout stayed clean and its service remained
 running.
+
+### Same-input and accumulation controls
+
+For the same eight initial codes, public PyTorch CUDA with the evaluator's
+convolution settings reproduced the retained efficient-CUDA initial
+reconstruction bit-for-bit. Its captured upsample tensor is also bit-identical
+to the Metal upsample tensor, including after the tested halfway-away TF32-like
+rounding. Feeding that exact CUDA upsample into the adapted Metal residual
+convolution leaves the same 548 out-of-band values. Thus the remaining error
+in this fixture is not explained by different upsample values.
+
+On the same rounded operands, a single windowed matrix multiplication left
+497 values outside the accumulated tolerance; three separate matrix
+multiplications with tested addition orders left 504–505. An independent CUDA
+FP64 convolution of the same rounded operands, followed by FP32 blending,
+left 470 outside. These controls do not establish the precise CUDA convolution
+arithmetic or a passing Metal formulation. They also do not alter the failed
+full-generation or quality results.
+
+The public CUDA upsample capture SHA-256 is
+`a984ad228c25139b82f100f616631918f041cda3b8ed3dd4237f6e08f25a5b89`.
+The same-input, accumulation-order and FP64-control result hashes are
+`f433bee7ad27c4d662e49e564234b8121a518c42723ab16eb10de6b6493868b1`,
+`7dc730da7525d7acad3b24f60b8ba075292bf38fb3ac07c7e11c0f7a6d1ee0e6` and
+`35b98b3aa27a5a396b7e089417595ad08093ff30aa4352ebbba6dcd0c475e14a`.
+Sources, logs and captures are retained under
+`reports/phase4-lm1b-metal-tf32-input-v1/` and
+`reports/phase4-lm1b-metal-tf32-precision-v1/`. Transferred Mac inputs and
+results matched their local hashes; the Mac checkout remained clean and its
+service running.
