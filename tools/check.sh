@@ -41,6 +41,8 @@ fi
 
 root=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
+# Report-tool tests create temporary files here, including in a fresh checkout.
+mkdir -p reports
 for tool in cargo rustc python3; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         printf 'Missing required tool: %s\n' "$tool" >&2
