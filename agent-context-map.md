@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **XSum CUDA top-1 quality:** nonblind full/held-out retests passed the frozen quality rule on 11,334 rows; all IDs/text and metrics match Python, with the prior single row-2690 intermediate-code tie retained. The unified CLI matched every Rust capture row in the frozen 356 batches ([report](docs/results/2026-11-19-phase5-cli/cuda-xsum-quality-retest-v1.md)). `setpriv --inh-caps=-all ./tools/check.sh` passed. Raw evaluation-derived captures remain ignored locally; performance and Metal are pending.
+
 - **WMT14 CUDA base quality:** regenerated pinned Python and current optimized Rust captures on all 3,003 rows; codes/IDs matched exactly, and both independent scorers reproduced the passing full/held-out frozen receipts. The actual unified CLI also matched Python on all 751 frozen batches ([report](docs/results/2026-11-19-phase5-cli/cuda-wmt14-quality-retest-v1.md)). `setpriv --inh-caps=-all ./tools/check.sh` passed. Nonblind retest; prior CFG=1 failure remains, and performance and Metal remain pending.
 
 - **TinyStories CUDA five-seed quality:** regenerated and scored 256 samples per official seed per runtime against pinned Python; frozen PPL/entropy margins pass in a nonblind retest, and all Rust codes/IDs match pre-change and current CLI chunks ([report](docs/results/2026-11-19-phase5-cli/cuda-tinystories-quality-retest-v1.md)). The qualified streaming-scorer caveat and initial missing-`regex` failure are recorded; `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not performance or Metal evidence.
