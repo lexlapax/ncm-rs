@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [WMT14 CFG=1 CUDA nonblind quality retest](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg1-quality-retest-v1.md) regenerated the exact pinned Python capture, matched all 3,003 rows' 939,939 codes and 192,192 IDs with the fast backend, and reproduced passing full/held-out receipts in both scorer environments. Current CLI full-corpus CFG=1, performance and Metal remain pending; raw captures are local only. `setpriv --inh-caps=-all tools/check.sh` and report shell syntax passed; no runtime change.
+
 - 2026-11-20: user chose WMT14 CFG option 1: 0 and 1 unflagged; other positive scales require `--experimental-cfg-wmt14` on unified and legacy routes. Help/migration docs and host rejection tests updated. [CUDA fixed-request screen](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg-boundary-v1.md) matched the pre-change alias for scales 0/1/2 across both routes; unflagged 2 rejected. `setpriv --inh-caps=-all tools/check.sh` passed. Not full quality/performance or Metal qualification; Linux release gate remains open.
 
 - 2026-11-20: extended unified-CLI rejection coverage for malformed, missing-profile and over-4-MiB dispatch manifests. Focused `setpriv --inh-caps=-all cargo test -p ncm-cli --test unified_rejections --locked` and full `setpriv --inh-caps=-all tools/check.sh` passed. Test-only, no inference or GPU qualification; WMT14 CFG decision and release gates remain pending.
