@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [WMT14 CFG release-surface audit](docs/results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md) found arbitrary positive scales enter both CLI routes without an experimental flag, while qualification is scoped to tested CFG settings. Decision pending on keeping CFG=1 unflagged versus flagging all positive scales. No runtime change or GPU inference; `setpriv --inh-caps=-all tools/check.sh` passed.
+
 - 2026-11-20: [LM1B default-sidecar/empty-text CUDA cold screens](docs/results/2026-11-19-phase5-cli/cuda-lm1b-text-cold-performance-v1.md) compared old ID, new ID, empty text and text+decode, 90 measured processes/condition per size; all fixed output hashes matched. Median paired decode increments were 7.745/7.858/8.885 ms (small/medium/large); causes unisolated. Sanitized export replay, tests and `setpriv --inh-caps=-all tools/check.sh` passed. Shared GPU, one row, no Python/native CLI peak/Metal; release gate pending.
 
 - 2026-11-20: [host tokenizer-stage diagnostic](docs/results/2026-11-19-phase5-cli/linux-text-tokenizer-stage-v1.md) measured decoder construction medians 15.317 ms XSum / 61.856 ms WMT14 on already loaded artifacts; encode/decode of the tested rows was much smaller. This supports, but does not prove, the cause of the cold text delta. Six release-mode test processes, sanitized-series replay, negative tests and `setpriv --inh-caps=-all tools/check.sh` passed after fixing an initial test-only Clippy warning and recollecting. No production inference change; no Metal or release performance gate.
