@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **CUDA Sudoku CLI corpus regression:** pre-change `generate` and current `sample` matched byte-for-byte on all 6,000 boards across the three original artifacts; scores against retained dataset references matched Phase 3 ([report](docs/results/2026-11-19-phase5-cli/cuda-sudoku-baseline-corpus-v1.md)). Medium/hard current captures were reused from the preceding re-export screen; `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not a new direct Python comparison, performance or Metal evidence.
+
 - **LM1B empty text all sizes:** small, medium and large matched equivalent `[101]` input byte-for-byte, including decoded text, for one CUDA request each ([report](docs/results/2026-11-19-phase5-cli/cuda-lm1b-empty-text-v1.md#all-three-sizes)). `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not other batch sizes, quality, performance or Metal evidence.
 
 - **Sudoku re-export CUDA corpus:** original and alternate medium/hard artifacts produced byte-identical codes and IDs on all 2,000 boards per difficulty; scores against dataset references matched the prior Phase 3 metrics ([report](docs/results/2026-11-19-phase5-cli/cuda-sudoku-reexport-corpus-v1.md)). `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not a new direct Python comparison, performance or Metal qualification.
