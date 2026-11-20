@@ -19,6 +19,20 @@ The original screen left text encoding, LM1B rotary setup, broader decode checks
 and performance evidence pending. Later work is recorded in the [current context map](../../../agent-context-map.md);
 no release gate is claimed by this screen.
 
+## WMT14 retained CUDA corpus decode
+
+On 2026-11-20, the artifact-bound `Decoder::add_texts` used by `ncm sample --decode` matched the pinned evaluator's decoded hypotheses on all **3,003** retained WMT14 CFG=0 CUDA output rows from the [quality retest](cuda-wmt14-quality-retest-v1.md). The ignored regression test checks the hashes and linkage of the capture and evaluator output, every sequential row index, 64 IDs per row, and all decoded strings. The same IDs were independently matched to the unified CLI in the quality retest; this host-side test does not run the CLI or a GPU, test Metal, or cover other text profiles. No runtime code changed.
+
+The retained `rust.json` SHA-256 is `d26b8a3b16a4ad07565f52d3e61f22b30e2512ea10348e674a24e9ed52fecc79`; `rust-text.json` is `0daf73dd5844b1dd832a9b9192e231d149c1be815b40cb833f55f4e81235c624` and names the capture hash. Both are ignored local files under `reports/phase5-wmt14-fast-cuda-full-v1/`; their generation and pinned reference are documented in the linked retest. A modified reference was rejected by the hash check as a negative control. The test and `setpriv --inh-caps=-all tools/check.sh` passed.
+
+```sh
+setpriv --inh-caps=-all env \
+  NCM_WMT14_ARTIFACT="$PWD/artifacts/canonical/wmt14-inference-v1-final" \
+  NCM_WMT14_CAPTURE="$PWD/reports/phase5-wmt14-fast-cuda-full-v1/rust.json" \
+  NCM_WMT14_DECODED_CAPTURE="$PWD/reports/phase5-wmt14-fast-cuda-full-v1/rust-text.json" \
+  cargo test --locked -p ncm-cli --bin ncm wmt14_retained_corpus_decode_matches_pinned_evaluator -- --ignored --nocapture
+```
+
 ## TinyStories single-token vocabulary decode
 
 The artifact-bound CLI decoder was checked on all 8,192 single-token IDs against the pinned

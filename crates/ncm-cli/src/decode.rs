@@ -352,6 +352,47 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires retained WMT14 CUDA capture and pinned evaluator decoding"]
+    fn wmt14_retained_corpus_decode_matches_pinned_evaluator() {
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_WMT14_ARTIFACT").unwrap()).unwrap();
+        let decoder = Decoder::from_artifact(&artifact).unwrap();
+        drop(artifact);
+        let capture = std::fs::read(std::env::var("NCM_WMT14_CAPTURE").unwrap()).unwrap();
+        let reference = std::fs::read(std::env::var("NCM_WMT14_DECODED_CAPTURE").unwrap()).unwrap();
+        let capture_hash = "d26b8a3b16a4ad07565f52d3e61f22b30e2512ea10348e674a24e9ed52fecc79";
+        assert_eq!(ncm_io::sha256(&capture), capture_hash);
+        assert_eq!(
+            ncm_io::sha256(&reference),
+            "0daf73dd5844b1dd832a9b9192e231d149c1be815b40cb833f55f4e81235c624"
+        );
+        let capture: serde_json::Value = serde_json::from_slice(&capture).unwrap();
+        let reference: serde_json::Value = serde_json::from_slice(&reference).unwrap();
+        assert_eq!(reference["capture_sha256"], capture_hash);
+        assert_eq!(capture["count"], 3003);
+        assert_eq!(reference["count"], 3003);
+        let rows = capture["outputs"].as_array().unwrap();
+        let expected = reference["hypotheses"].as_array().unwrap();
+        assert_eq!(rows.len(), 3003);
+        assert_eq!(expected.len(), rows.len());
+        for (batch, (rows, texts)) in rows.chunks(128).zip(expected.chunks(128)).enumerate() {
+            let ids: Vec<Vec<u32>> = rows
+                .iter()
+                .enumerate()
+                .map(|(offset, row)| {
+                    assert_eq!(row["row"], batch * 128 + offset);
+                    let ids: Vec<u32> = serde_json::from_value(row["raw_ids"].clone()).unwrap();
+                    assert_eq!(ids.len(), 64);
+                    ids
+                })
+                .collect();
+            let mut result = serde_json::json!({"ids": ids});
+            decoder.add_texts(&mut result).unwrap();
+            assert_eq!(result["texts"], serde_json::json!(texts), "batch {batch}");
+        }
+    }
+
+    #[test]
     fn evaluator_stops_at_eos_and_discards_padding_and_model_only_ids() {
         let x = policy("xsum-inference-v2").unwrap();
         assert_eq!(
