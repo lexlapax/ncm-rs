@@ -1,0 +1,296 @@
+{
+  "activity_samples": 522,
+  "batches": {
+    "1": {
+      "python": {
+        "gpu_samples_per_process": [
+          5,
+          5,
+          5
+        ],
+        "median_of_process_medians_ms": 64.23555451328866,
+        "peak_allocated_bytes": [
+          1180859392,
+          1180859392,
+          1180859392
+        ],
+        "peak_reserved_bytes": [
+          1249902592,
+          1249902592,
+          1249902592
+        ],
+        "peak_rss_mib": [
+          2093.3203125,
+          2090.89453125,
+          2093.25390625
+        ],
+        "pooled_p95_ms": 64.582516963128,
+        "process_medians_ms": [
+          64.02861850801855,
+          64.30354999611154,
+          64.23555451328866
+        ],
+        "sampled_gpu_peak_mib": [
+          1360,
+          1360,
+          1360
+        ]
+      },
+      "rust": {
+        "gpu_samples_per_process": [
+          2,
+          3,
+          2
+        ],
+        "median_of_process_medians_ms": 57.7532625,
+        "peak_allocated_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_reserved_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_rss_mib": [
+          1794.08984375,
+          1794.19140625,
+          1794.26953125
+        ],
+        "pooled_p95_ms": 58.222784,
+        "process_medians_ms": [
+          57.612887,
+          57.7532625,
+          57.963905
+        ],
+        "sampled_gpu_peak_mib": [
+          1222,
+          1222,
+          1222
+        ]
+      }
+    },
+    "16": {
+      "python": {
+        "gpu_samples_per_process": [
+          26,
+          25,
+          25
+        ],
+        "median_of_process_medians_ms": 650.4542704788037,
+        "peak_allocated_bytes": [
+          1808042496,
+          1808042496,
+          1808042496
+        ],
+        "peak_reserved_bytes": [
+          2235564032,
+          2235564032,
+          2235564032
+        ],
+        "peak_rss_mib": [
+          2093.17578125,
+          2092.953125,
+          2093.0703125
+        ],
+        "pooled_p95_ms": 653.9227180182934,
+        "process_medians_ms": [
+          649.8114060086664,
+          650.4542704788037,
+          653.0020215141121
+        ],
+        "sampled_gpu_peak_mib": [
+          2300,
+          2300,
+          2300
+        ]
+      },
+      "rust": {
+        "gpu_samples_per_process": [
+          21,
+          22,
+          22
+        ],
+        "median_of_process_medians_ms": 617.5980934999999,
+        "peak_allocated_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_reserved_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_rss_mib": [
+          1784.16796875,
+          1784.296875,
+          1784.203125
+        ],
+        "pooled_p95_ms": 619.304455,
+        "process_medians_ms": [
+          611.7409094999999,
+          617.5980934999999,
+          617.965148
+        ],
+        "sampled_gpu_peak_mib": [
+          1414,
+          1574,
+          1734
+        ]
+      }
+    },
+    "32": {
+      "python": {
+        "gpu_samples_per_process": [
+          47,
+          47,
+          47
+        ],
+        "median_of_process_medians_ms": 1276.1032815324143,
+        "peak_allocated_bytes": [
+          2475093504,
+          2475093504,
+          2475093504
+        ],
+        "peak_reserved_bytes": [
+          3730833408,
+          3730833408,
+          3730833408
+        ],
+        "peak_rss_mib": [
+          2093.06640625,
+          2092.4921875,
+          2092.9140625
+        ],
+        "pooled_p95_ms": 1277.578686014749,
+        "process_medians_ms": [
+          1276.1032815324143,
+          1275.64664449892,
+          1276.4250824984629
+        ],
+        "sampled_gpu_peak_mib": [
+          3726,
+          3726,
+          3726
+        ]
+      },
+      "rust": {
+        "gpu_samples_per_process": [
+          42,
+          42,
+          42
+        ],
+        "median_of_process_medians_ms": 1205.8459985000002,
+        "peak_allocated_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_reserved_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_rss_mib": [
+          1818.95703125,
+          1819.14453125,
+          1819.22265625
+        ],
+        "pooled_p95_ms": 1207.330346,
+        "process_medians_ms": [
+          1205.2081245,
+          1205.8459985000002,
+          1206.511394
+        ],
+        "sampled_gpu_peak_mib": [
+          1640,
+          2792,
+          1608
+        ]
+      }
+    },
+    "4": {
+      "python": {
+        "gpu_samples_per_process": [
+          9,
+          10,
+          9
+        ],
+        "median_of_process_medians_ms": 177.94332452467643,
+        "peak_allocated_bytes": [
+          1305207296,
+          1305207296,
+          1305207296
+        ],
+        "peak_reserved_bytes": [
+          1388314624,
+          1388314624,
+          1388314624
+        ],
+        "peak_rss_mib": [
+          2093.16015625,
+          2092.41796875,
+          2093.1796875
+        ],
+        "pooled_p95_ms": 179.45536400657147,
+        "process_medians_ms": [
+          177.58734550443478,
+          177.94332452467643,
+          178.46666096011177
+        ],
+        "sampled_gpu_peak_mib": [
+          1492,
+          1492,
+          1492
+        ]
+      },
+      "rust": {
+        "gpu_samples_per_process": [
+          6,
+          6,
+          6
+        ],
+        "median_of_process_medians_ms": 165.590807,
+        "peak_allocated_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_reserved_bytes": [
+          null,
+          null,
+          null
+        ],
+        "peak_rss_mib": [
+          1789.2578125,
+          1789.05078125,
+          1788.9296875
+        ],
+        "pooled_p95_ms": 166.209939,
+        "process_medians_ms": [
+          164.341356,
+          165.6506955,
+          165.590807
+        ],
+        "sampled_gpu_peak_mib": [
+          1254,
+          1254,
+          1254
+        ]
+      }
+    }
+  },
+  "gpu_memory_scope": "approximately 1 Hz sampled driver process memory; brief peaks may be missed",
+  "input_sha256": {
+    "activity.jsonl": "c2594d94b4abb4714dc8cf1f87328605d69d5c27a720d70e467908cbbbf31980",
+    "manifest.json": "b581a18e6f5b0a29ff96210e76205a25d0e5570707f149be0e40c43810b3a8bf",
+    "measurements.json": "eb7d038d5049d5a06fab2ea69799fe55c92ae5bbbab88c5e171dd46217f6fdaa",
+    "process-events.jsonl": "e73e728a28aa2e2649869ff75ef9d08f22a2f50eedfa2f97c78b3c48a521fef0"
+  },
+  "other_process_count_range": [
+    4,
+    4
+  ]
+}
