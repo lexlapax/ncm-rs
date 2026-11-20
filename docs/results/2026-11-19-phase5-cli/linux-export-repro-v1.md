@@ -96,3 +96,15 @@ establish model quality or performance.
 For medium and hard, the tool passed using `--allow-provenance-key converter_sha256` and the qualified/alternate manifest hashes above. Raw result SHA-256s: medium `f42e02081005f5e0e072187009fd6e43736a494b2c271f461cafc7e4985a6e18`, hard `08ed1797ddcb6c6eb655b387feafb03f8174595f34a9efd78abaefd2c3546e5b`. The results establish those local files' equality outside provenance; by themselves they do not establish GPU qualification. To reproduce, pass the two paths, their manifest hashes and the allowed key to the tool with a fresh `--output` path.
 
 The user approved proceeding with the provenance-only re-exports and retaining both original and alternate manifest hashes. This decision does not itself establish GPU qualification or a reproducible fresh-clone recipe. Next: qualify the alternate artifacts and write and actually follow complete fresh-clone setup instructions on Linux before the Metal setup run. Exact matching here used retained local inputs and is not evidence that downloads, fresh clones, or Mac exports work.
+
+## Medium/hard draft guide replay with retained inputs
+
+2026-11-20. The [draft guide](../../USAGE.md#linux-sudoku-mediumhard-development-replay) now
+provides the approved provenance-only candidate path. Its offline worktree/export sequence was
+replayed using retained `artifacts/upstream/sudoku/{medium,hard}` and fresh replay-specific output
+and report paths instead of the guide's fresh-download paths. Both exports reported bit-exact
+roundtrips and reproduced the alternate manifest hashes above. The worktree was inspected: its
+only change was the intended tracked exporter replacement, with the documented hash; it was then
+removed. Outputs remain ignored under `artifacts/canonical/phase5-guide-sudoku-{medium,hard}-v1/`.
+This was not a fresh-clone or fresh-download replay and does not establish quality, performance,
+Metal or release qualification.

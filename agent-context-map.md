@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Sudoku medium/hard draft export recipe:** replayed its offline worktree/export sequence with retained pinned inputs; both alternate manifests matched the approved candidate hashes and exports reported bit-exact tensor roundtrips ([evidence](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md#mediumhard-draft-guide-replay-with-retained-inputs)). All 16 guide shell blocks pass `bash -n`; `setpriv --inh-caps=-all ./tools/check.sh` passed. Fresh downloads, full fresh-clone replay, quality/performance and Metal remain pending.
+
 - **Sudoku re-export CUDA screen:** retained original and alternate medium/hard artifacts matched byte-for-byte in CLI output for the existing two-row fixtures ([report](docs/results/2026-11-19-phase5-cli/cuda-sudoku-reexports-v1.md)). `setpriv --inh-caps=-all ./tools/check.sh` passed. The earlier provenance comparison and this screen do not establish full corpus, performance, fresh-clone or Metal qualification.
 
 - **LM1B empty-only text:** parser/unit, CUDA-feature CLI tests and CUDA-feature all-target Clippy pass; one CUDA small-model text/ID request including decode matched byte-for-byte and a nonempty prompt was rejected ([screen](docs/results/2026-11-19-phase5-cli/cuda-lm1b-empty-text-v1.md)). `tools/check.sh --cuda` passed (18 operator cases). An earlier default `tools/check.sh` failed lifecycle `capture_error:ObservationMismatch`; the subsequent CUDA check's full host suite passed, cause unknown. Initial CUDA CLI test could not find cuDNN; retry with its reference library path passed. No broader profile, performance, quality or Metal qualification is implied.

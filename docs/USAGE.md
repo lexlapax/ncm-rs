@@ -182,8 +182,10 @@ commits and Python patch versions; Sudoku medium/hard's historical exporter has 
 The exact identities, provenance-only differences and failed Python 3.14.9 `_ssl` installation are
 recorded in the [investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
-**Do not substitute a new manifest hash for a qualified one.** Complete, reviewed commands for
-all exporters, a portable reference environment and a full clean-clone replay are still required.
+**Do not silently substitute a new manifest hash for a qualified one.** The user approved the
+provenance-only medium/hard candidates below for further qualification; the original identities
+remain recorded. Complete review, a portable reference environment and a full clean-clone replay
+are still required.
 The limited Sudoku-easy Linux replay below does not close those requirements. Existing [Sudoku export](../tools/reference/README.md#sudoku-easy-checkpoint-and-oracle-checks),
 [XSum rotary export](results/2026-11-15-phase4-xsum/rotary-artifact-profile-v2.md),
 [WMT14 export](results/2026-11-16-phase4-wmt14/artifact-plan-v1.md) and
@@ -259,6 +261,54 @@ printf '%s  %s\n' ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d98
 The exporter worktree intentionally contains the historical source file restored from a later
 commit; its contents and hash are part of provenance. Inspect its status before removing it. The
 remaining setup guide does not yet specify all artifact exporters or how to reproduce their hashes.
+
+### Linux Sudoku medium/hard development replay
+
+The user approved the following provenance-only candidates for further qualification. The original
+medium/hard exporter is missing; the only provenance field changed is `converter_sha256`, and
+its file record consequently differs in the manifest. All other payload bytes and manifest fields
+matched the retained originals in the [investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
+Their CUDA two-row [screen](results/2026-11-19-phase5-cli/cuda-sudoku-reexports-v1.md) is not full
+qualification. The export sequence below was replayed with retained checkpoint inputs, not these
+fresh downloads; it has not yet been followed from a fresh clone or on macOS. It uses the same
+Python 3.14.9 build and reference environment prepared in the easy section above.
+
+```sh
+for entry in medium:162378394 hard:162378392; do
+  difficulty=${entry%:*}; budget=${entry#*:}
+  .reference/venv/bin/python tools/reference/fetch_checkpoints.py --profile "sudoku-$difficulty" \
+    --output "artifacts/upstream/sudoku-$difficulty" --budget-bytes "$budget" || exit 1
+done
+
+test ! -e reports/sudoku-reexport-worktree && test ! -L reports/sudoku-reexport-worktree || exit 1
+git worktree add --detach reports/sudoku-reexport-worktree e1ffb121a8094505173c03d27669b6486f9b9abd || exit 1
+test ! -L reports/sudoku-reexport-worktree/tools/reference/sudoku_artifact.py || exit 1
+printf '%s  %s\n' cfcae7d716fa7a9692c57019454bd28da5f8098c6d3bec32698795076dc0034e \
+  reports/sudoku-reexport-worktree/tools/reference/sudoku_artifact.py | sha256sum -c - || exit 1
+git show cb0162cea7cae00060bb8f06057800e8641cd90a:tools/reference/sudoku_artifact.py \
+  > reports/sudoku-reexport-worktree/tools/reference/sudoku_artifact.py || exit 1
+printf '%s  %s\n' e639675a452da41ad4f89c43db094b560a7d71250219ce44774559d19501aade \
+  reports/sudoku-reexport-worktree/tools/reference/sudoku_artifact.py | sha256sum -c - || exit 1
+root="$PWD"
+for difficulty in medium hard; do
+  (
+    cd reports/sudoku-reexport-worktree || exit 1
+    PYTHONPATH="$root/.reference/venv/lib/python3.14/site-packages" \
+      "$root/.reference/Python-3.14.9/python" tools/reference/sudoku_artifact.py \
+      --difficulty "$difficulty" --source "$root/artifacts/upstream/sudoku-$difficulty" \
+      --output "$root/artifacts/canonical/sudoku-$difficulty-reexport" \
+      --report "$root/reports/sudoku-$difficulty-reexport.json"
+  ) || exit 1
+done
+printf '%s  %s\n' 9bc8e30673e426d6b10ef14204e2b0a0162fdc6a38c92e453fe5c156fab375c4 \
+  artifacts/canonical/sudoku-medium-reexport/manifest.json | sha256sum -c - || exit 1
+printf '%s  %s\n' 25ec837745601d69435a41f7ef5131b70d5fe17e1ca908e7b660d15531031158 \
+  artifacts/canonical/sudoku-hard-reexport/manifest.json | sha256sum -c - || exit 1
+```
+
+The exporter worktree intentionally has one tracked file replaced with the pinned exporter; inspect
+its status and contents before removing it. The original qualified manifest hashes remain in the
+[investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
 ### Linux TinyStories development replay
 
