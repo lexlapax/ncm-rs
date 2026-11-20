@@ -39,6 +39,23 @@ validity, GPU isolation, quality or release qualification. Its source SHA-256 is
 `d1e5b1ff869bdd0f2312cd314df57a3efcfec5da60c9a414df7bfc6f4ff9c4aa`; four negative-control tests
 and `tools/check.sh` passed. See each report for commands, hashes, measurement scope and limitations.
 
+The [sanitized cold trial series](2026-11-19-phase5-cli/cuda-cold-trials-v1.json), SHA-256
+`067d3ed9021045a30d8d87348917fa7e82c28144035841e65a290eba546788d9`, preserves the 90 paired
+measured elapsed times and peak RSS values per condition/profile, grouped by original trial order.
+It excludes warmups, inputs, generated outputs, paths and raw GPU telemetry. An exporter audited all
+seven original capture bundles before extracting these values; its replay was byte-identical, and
+privacy/negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. The series allows
+independent recomputation of the published statistics without the local bundles:
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/verify_phase5_cold_trials.py \
+  --aggregate docs/results/2026-11-19-phase5-cli/cuda-cold-aggregates-v1.json \
+  --trials docs/results/2026-11-19-phase5-cli/cuda-cold-trials-v1.json
+```
+
+This sanitized series is not a replacement for the raw outputs or telemetry, does not independently
+prove their provenance, and does not turn the exploratory shared-GPU screen into a release gate.
+
 ## Historical phase evidence
 
 The [Phase 4 final audit](2026-11-19-phase4-audit/phase4-final-audit-v1.md) records the

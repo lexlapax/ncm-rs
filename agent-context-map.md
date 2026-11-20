@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: published [sanitized CUDA cold trial series](docs/results/2026-11-19-phase5-cli/cuda-cold-trials-v1.json): 90 paired measured time/RSS values per condition for seven profiles, no inputs, outputs or paths. Export audited retained captures; replay, independent aggregate verification, negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. Full raw outputs/telemetry remain local, and these shared-GPU screens do not qualify release performance.
+
 - 2026-11-20: [CPU lifecycle mismatch investigation](docs/results/2026-11-19-phase5-cli/linux-lifecycle-env-investigation-v1.md) reproduced a failed observation with the sampled child environment equal to a later collector read. A test-only post-exec marker separates the fake lifecycle composition test from startup: 30 consecutive fixture runs, focused observer/coordinator tests and `setpriv --inh-caps=-all tools/check.sh` passed. Production observer remains fail-closed and has no authenticated startup barrier; the race is unresolved. No runtime or machine policy change.
 
 - 2026-11-20: [LM1B CUDA/Python repeated model timing](docs/results/2026-11-19-phase5-cli/cuda-lm1b-performance-retest-v1.md) covers small/medium batches 1/4/16 and large 1/4/8 with 3 processes and 30 trials; Rust generation median/RSS was lower, model-load intervals longer. Aggregate replay, negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. Independent RNGs, shared GPU, noncomparable allocator scopes, local-only raw data and no changed-CLI/previous-Rust/Metal comparison leave release qualification pending.
