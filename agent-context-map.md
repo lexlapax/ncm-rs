@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [LM1B CUDA CLI cohort routing](docs/results/2026-11-19-phase5-cli/cuda-lm1b-cli-cohort-v1.md) matched old and unified stdout and retained seed-2000 codes/IDs for 256 rows per size. Independent replay, runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. This is one seed, not full CLI cohort or Metal; raw outputs remain local.
+
 - 2026-11-20: XSum corpus-runner lookup now accepts a relocated checkout without changing pinned summary/capture identities; [two-batch relocated-root CUDA smoke](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#full-corpus-cuda-textid-generation-retest), negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. This is not a fresh-clone or full-corpus rerun of the updated runner.
 
 - 2026-11-20: [full-corpus CUDA text generation](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#full-corpus-cuda-textid-generation-retest) matched retained equivalent ID captures on all 11,334 XSum and 3,003 WMT14 rows; independent replay, runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. [Selected batches](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#selected-multi-batch-cuda-textid-generations) also matched old alias and decoded text/ID paths. XSum source text is reconstructed from IDs; no performance or Metal claim, raw data remain local.
