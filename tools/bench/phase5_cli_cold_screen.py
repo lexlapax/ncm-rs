@@ -100,6 +100,9 @@ def main():
         parser.add_argument('--' + name, required=True, type=Path)
     for name in ('baseline', 'candidate', 'manifest', 'input', 'expected-output'):
         parser.add_argument('--' + name + '-sha256', required=True)
+    parser.add_argument('--baseline-artifact', type=Path,
+                        help='compare this original Sudoku artifact with --artifact using the same sample command')
+    parser.add_argument('--baseline-manifest-sha256')
     parser.add_argument('--profile', choices=('sudoku', 'tinystories', 'xsum', 'wmt14', 'lm1b'), default='sudoku')
     parser.add_argument('--rope', type=Path)
     parser.add_argument('--rope-sha256')
@@ -112,6 +115,10 @@ def main():
         raise ValueError('LM1B requires both --rope and --rope-sha256, other profiles neither')
     if args.profile != 'lm1b' and (args.rope is not None or args.rope_sha256 is not None):
         raise ValueError('rotary options are only supported for LM1B')
+    if (args.baseline_artifact is None) != (args.baseline_manifest_sha256 is None):
+        raise ValueError('baseline artifact and manifest hash must be supplied together')
+    if args.baseline_artifact is not None and args.profile != 'sudoku':
+        raise ValueError('artifact comparison is supported only for Sudoku')
     rope = args.rope.resolve() if args.rope is not None else None
     baseline, candidate, artifact, input_path = (
         getattr(args, name).resolve() for name in ('baseline', 'candidate', 'artifact', 'input'))
@@ -119,19 +126,27 @@ def main():
     for key in ('LD_PRELOAD', 'LD_AUDIT', 'CUDA_INJECTION64_PATH'):
         if os.environ.get(key):
             raise ValueError(f'unsupported environment variable: {key}')
-    if baseline == candidate or args.baseline_sha256 == args.candidate_sha256:
-        raise ValueError('baseline and candidate must differ')
+    old_artifact = args.baseline_artifact.resolve() if args.baseline_artifact is not None else artifact
+    if args.baseline_artifact is None:
+        if baseline == candidate or args.baseline_sha256 == args.candidate_sha256:
+            raise ValueError('baseline and candidate must differ')
+    elif (baseline != candidate or args.baseline_sha256 != args.candidate_sha256
+          or old_artifact == artifact or args.baseline_manifest_sha256 == args.manifest_sha256):
+        raise ValueError('artifact comparison requires the same binary and distinct artifact identities')
     monitor_path = shutil.which('nvidia-smi')
     if not monitor_path:
         raise ValueError('nvidia-smi unavailable')
     watch_paths = [Path(__file__).resolve(), baseline, candidate, artifact / 'manifest.json',
                    input_path, Path('/usr/bin/time').resolve(), Path(monitor_path).resolve(),
+                   *([old_artifact / 'manifest.json'] if args.baseline_artifact is not None else []),
                    *([rope] if rope is not None else []), *(path.resolve() for path in args.watch_file)]
     watched = {path: digest(path) for path in watch_paths}
     for path, expected in ((baseline, args.baseline_sha256), (candidate, args.candidate_sha256),
                            (artifact / 'manifest.json', args.manifest_sha256), (input_path, args.input_sha256)):
         if watched[path] != expected:
             raise ValueError(f'identity differs: {path}')
+    if args.baseline_artifact is not None and watched[old_artifact / 'manifest.json'] != args.baseline_manifest_sha256:
+        raise ValueError(f'identity differs: {old_artifact / "manifest.json"}')
     if rope is not None and watched[rope] != args.rope_sha256:
         raise ValueError(f'identity differs: {rope}')
     output.mkdir(parents=True, exist_ok=False)
@@ -147,11 +162,14 @@ def main():
                     old_command = {'sudoku': 'generate', 'tinystories': 'sample-tinystories',
                                    'xsum': 'sample-xsum', 'wmt14': 'sample-wmt14',
                                    'lm1b': 'sample-lm1b'}[args.profile]
-                    order = [('baseline', baseline, old_command), ('candidate', candidate, 'sample')]
+                    if args.baseline_artifact is not None:
+                        old_command = 'sample'
+                    order = [('baseline', baseline, old_command, old_artifact),
+                             ('candidate', candidate, 'sample', artifact)]
                     if (group + ordinal) % 2:
                         order.reverse()
-                    for condition, binary, command in order:
-                        record = execute(output, condition, binary, command, artifact, input_path,
+                    for condition, binary, command, current_artifact in order:
+                        record = execute(output, condition, binary, command, current_artifact, input_path,
                                          group, ordinal, ordinal < WARMUPS, args.expected_output_sha256,
                                          args.profile, rope)
                         records.append(record)
@@ -174,7 +192,8 @@ def main():
     result = {'scope': 'fresh CLI process including load, generation and stdout; no warm in-process timing',
               'quality_scope': 'one fixed-request output hash only; not full quality',
               'device_memory_scope': 'system-wide sampled GPU usage only; native allocation/reservation peaks not measured',
-              'platform': 'Linux CUDA', 'profile': args.profile, 'rounds': ROUNDS,
+              'platform': 'Linux CUDA', 'profile': args.profile,
+              'comparison': 'artifact' if args.baseline_artifact is not None else 'binary', 'rounds': ROUNDS,
               'warmups_per_group_per_condition': WARMUPS,
               'trials_per_group_per_condition': TRIALS, 'monitor_returncode': monitor.returncode,
               'gpu_csv_sha256': digest(output / 'gpu.csv'),

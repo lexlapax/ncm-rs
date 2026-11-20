@@ -100,6 +100,68 @@ class ColdScreenTests(unittest.TestCase):
                 tool.main()
             self.assertFalse((root / 'missing').exists())
 
+    def test_artifact_comparison_pairs_same_binary_and_distinct_manifests(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binary, inp = root / 'ncm', root / 'input'
+            binary.write_bytes(b'binary'); inp.write_bytes(b'input')
+            original, alternate = root / 'original', root / 'alternate'
+            original.mkdir(); alternate.mkdir()
+            (original / 'manifest.json').write_bytes(b'original')
+            (alternate / 'manifest.json').write_bytes(b'alternate')
+            sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+            argv = ['screen', '--baseline', str(binary), '--candidate', str(binary),
+                    '--baseline-sha256', sha(binary), '--candidate-sha256', sha(binary),
+                    '--baseline-artifact', str(original), '--baseline-manifest-sha256', sha(original / 'manifest.json'),
+                    '--artifact', str(alternate), '--manifest-sha256', sha(alternate / 'manifest.json'),
+                    '--input', str(inp), '--input-sha256', sha(inp), '--expected-output-sha256', 'unused',
+                    '--output', str(root / 'out')]
+            monitor = Mock(poll=Mock(return_value=None), wait=Mock(return_value=0), returncode=0)
+            def start_monitor(_argv, **kwargs):
+                kwargs['stdout'].write(b'telemetry\n'); kwargs['stdout'].flush()
+                return monitor
+            def execute(_output, condition, _binary, command, artifact, *_args):
+                calls.append((condition, command, artifact))
+                return {'condition': condition}
+            calls = []
+            with patch('sys.argv', argv), patch.object(tool.shutil, 'which', return_value='/usr/bin/true'), \
+                 patch.object(tool.subprocess, 'Popen', side_effect=start_monitor), \
+                 patch.object(tool, 'execute', side_effect=execute), patch.object(tool, 'summarize', return_value={}), \
+                 patch.object(tool, 'ROUNDS', 1), patch.object(tool, 'WARMUPS', 0), patch.object(tool, 'TRIALS', 1):
+                tool.main()
+            self.assertEqual(set(calls), {('baseline', 'sample', original), ('candidate', 'sample', alternate)})
+            self.assertIn('"comparison": "artifact"', (root / 'out' / 'result.json').read_text())
+
+    def test_artifact_comparison_rejects_partial_and_non_sudoku_options(self):
+        with tempfile.TemporaryDirectory() as directory:
+            argv = ['screen', '--baseline', 'old', '--candidate', 'new', '--artifact', 'artifact',
+                    '--input', 'input', '--output', str(Path(directory) / 'out'),
+                    '--baseline-sha256', 'a', '--candidate-sha256', 'b', '--manifest-sha256', 'c',
+                    '--input-sha256', 'd', '--expected-output-sha256', 'e', '--baseline-artifact', 'other']
+            with patch('sys.argv', argv), self.assertRaisesRegex(ValueError, 'supplied together'):
+                tool.main()
+            with patch('sys.argv', argv + ['--baseline-manifest-sha256', 'f', '--profile', 'xsum']), \
+                 self.assertRaisesRegex(ValueError, 'only for Sudoku'):
+                tool.main()
+
+    def test_artifact_comparison_rejects_same_identity_or_different_binary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base = ['screen', '--baseline', 'ncm', '--baseline-sha256', 'binary',
+                    '--candidate', 'ncm', '--candidate-sha256', 'binary', '--artifact', 'new',
+                    '--manifest-sha256', 'newhash', '--input', 'input', '--output', str(root / 'out'),
+                    '--input-sha256', 'input', '--expected-output-sha256', 'output']
+            for extra in (
+                ['--baseline-artifact', 'new', '--baseline-manifest-sha256', 'oldhash'],
+                ['--baseline-artifact', 'old', '--baseline-manifest-sha256', 'newhash'],
+                ['--baseline-artifact', 'old', '--baseline-manifest-sha256', 'oldhash', '--candidate', 'other'],
+                ['--baseline-artifact', 'old', '--baseline-manifest-sha256', 'oldhash', '--candidate-sha256', 'other'],
+            ):
+                with patch('sys.argv', base + extra), patch.object(tool, 'digest') as digest:
+                    with self.assertRaisesRegex(ValueError, 'same binary and distinct'):
+                        tool.main()
+                    digest.assert_not_called()
+
     def test_lm1b_requires_both_rotary_arguments_before_reading_inputs(self):
         with tempfile.TemporaryDirectory() as directory:
             argv = ['phase5_cli_cold_screen', '--baseline', 'old', '--candidate', 'new',
