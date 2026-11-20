@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [selected XSum/WMT14 CUDA text/ID generations](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#selected-multi-batch-cuda-textid-generations) matched the old ID alias and current decoded text/ID paths on 37 rows per profile at batches 1/4/32. Runner negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. This is not corpus-wide generation, performance or Metal; raw data remain local.
+
 - 2026-11-20: [WMT14 CUDA/Python model performance retest](docs/results/2026-11-19-phase5-cli/cuda-wmt14-performance-retest-v1.md) used three alternating processes and 30 trials at batches 1/4/16/32; measured outputs matched and Rust had lower observed median latency and RSS. Aggregate replay and tests passed. First full check hit the known lifecycle `ObservationMismatch`; focused and full retries passed, cause unknown. Shared desktop, sampled GPU peaks, local-only raw bundle and no CLI/previous-Rust/Metal evidence prevent release qualification.
 
 - 2026-11-20: [paired CUDA cold-request screens for original vs provenance-only Sudoku medium/hard re-exports](docs/results/2026-11-19-phase5-cli/cuda-sudoku-reexport-cold-v1.md) used the same binary and 90 measured processes per condition; fixed two-board outputs matched. Paired intervals include zero; shared desktop, sampled system GPU memory, small batches and no Python comparison prevent a release gate claim. Runner tests and `setpriv --inh-caps=-all tools/check.sh` passed; raw captures remain local.

@@ -56,6 +56,23 @@ setpriv --inh-caps=-all env \
 
 For the first corpus row of each profile, four fresh processes compared equivalent ID and `--text` input, both without and with `--decode`. Stdout matched byte-for-byte in each pair and matched the corresponding earlier retained baseline output. The common hashes are XSum `87be072a79210d62215efaa82f801c64612f6868cf545a3fb888ca14aee6cdca` (IDs) and `6db35c54fece2e27ea0e96e6f4e29cebba23a42bd20e899401218658cd2a0328` (decoded), WMT14 `17257d936f55b159c8cdc8ce9a465bf9d0498a446d544215c171eae82f2a604a` and `fd68c625bc98b4e7fccfde240db198c67ae8251e8607110b5319e8a617098d32`. The release binary built with `--features cuda-cudnn` had SHA-256 `9a80df0c2087d7f39e7b05971ae515799d69a6991971255a78299cd622b0d3df`. Build and runtime environment are as in [the earlier screen](cuda-routing-screen-v1.md). This proves the tested CUDA requests only; Metal and broader end-to-end cases are pending.
 
+## Selected multi-batch CUDA text/ID generations
+
+On 2026-11-20, the pinned old alias with IDs, current unified command with IDs and `--decode`, and current unified command with `--text --decode` were run for each of XSum and WMT14. The selected corpus indices were `0`, `1234..1237`, and the final 32 rows: `11302..11333` for XSum and `2971..3002` for WMT14. For all six batches, old and current codes/IDs were equal, and the two decoded current stdout streams were byte-identical. The `--text` strings and corresponding padded IDs come from the independently pinned corpus references above. XSum strings remain reconstructions from converted IDs, not unavailable original raw articles. This screen covers **37 rows per profile**, not corpus-wide generation, quality, performance or Metal.
+
+The baseline CLI SHA-256 was `f10abaaec672dd7c0c62034972fb4b15fc204f2b1f5693e4a09f5e9640767098`, candidate `6194111fe3860584492676c6d14f50124a77f8dcf18f316a959b8abd16a20278`; the runner checked both binaries, reference and artifact manifest hashes before and after. The runner SHA-256 was `742fd6e7c591c980c79fc8b5349f313d6e7379863da5c730332d713f6b7eca35`. The ignored result JSON SHA-256 is `cd92ea18ad917d5fe694e0cce8393b167d66e8dd2c0801d084600a3d0005984e`; raw inputs and outputs remain under `reports/phase5-text-selected-cuda-v1/`. The desktop GPU was shared. Offline negative controls and `setpriv --inh-caps=-all tools/check.sh` passed; no production code changed.
+
+Reproduce with the corpus references generated as above and the pinned artifacts and binaries:
+
+```sh
+setpriv --inh-caps=-all env OMP_NUM_THREADS=1 \
+  LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" \
+  python3 tools/bench/phase5_text_generation_screen.py \
+  --baseline reports/phase5-cli-equivalence/baseline-ncm --candidate target/release/ncm \
+  --references reports/phase5-text-corpus-v1 --artifacts artifacts/canonical \
+  --output reports/NEW-text-selected-cuda
+```
+
 ## TinyStories prefix correction
 
 The current TinyStories teacher accepts one prefix ID per row in `0..8192`, excluding pad ID 1; it is **not** restricted to start ID 0. On CUDA, seed 42 and prefix `[[2]]` produced byte-identical stdout through the pre-change binary, candidate alias and candidate unified command (SHA-256 `efe7256404004b6551c25868fabebb2c2d06f12841662cb907473db34d11d03c`). It differed from the prior `[[0]]` output at 639 of 641 codes. This is a two-input development screen, not a claim that arbitrary multi-token prefixes are supported or qualified.
