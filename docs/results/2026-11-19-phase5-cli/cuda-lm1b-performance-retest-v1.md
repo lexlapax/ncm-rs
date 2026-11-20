@@ -42,3 +42,15 @@ setpriv --inh-caps=-all python3 tools/bench/summarize_phase5_lm1b.py \
 ```
 
 These are model probes, not changed-CLI cold-load/end-to-end, previous-Rust-vs-candidate, isolated-GPU or Metal evidence. They do not complete the Phase 5 release performance gate.
+
+## Sanitized measured trials
+
+The [sanitized timing series](lm1b-cuda-perf-trials-v1.json), SHA-256 `1f3bab874b2c9624e3f801632f1b6f9659a3375bfb3987ef1d306ee9a489331d`, publishes 1,620 measured generation timings across nine size/batch cells, two runtimes and three processes. It contains no inputs, generated output signatures, paths or PIDs. Each of the five source `manifest.json` and `result.json` files matched the hashes already pinned in the published aggregate; the exporter checked them again after reading. An independent replay from the published series reproduced all process medians and pooled p95s; a second export was byte-identical. Negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. This publishes measured timing values, not warmups, per-trial memory, full telemetry or raw outputs. The shared-GPU and differing baseline/load scopes remain unchanged; no release qualification is implied.
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/export_phase5_lm1b_trials.py \
+  --summary docs/results/2026-11-19-phase5-cli/lm1b-cuda-perf-summary-v1.json \
+  --runs reports/phase5-lm1b-small-cuda-perf-v1 reports/phase5-lm1b-medium-cuda-perf-v1 \
+         reports/phase5-lm1b-large-b{1,4,8}-cuda-perf-v1 \
+  --output reports/NEW-lm1b-timing-trials.json
+```

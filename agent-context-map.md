@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: published [sanitized LM1B CUDA model timing trials](docs/results/2026-11-19-phase5-cli/lm1b-cuda-perf-trials-v1.json): 1,620 values across all nine measured cells, bound to five result/manifest hashes previously pinned in the aggregate, without inputs/outputs/paths/PIDs. Independent median/p95 and exporter replays, negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. Shared-GPU model-only evidence, not release or Metal qualification; raw bundles remain local.
+
 - 2026-11-20: published sanitized [XSum](docs/results/2026-11-19-phase5-cli/xsum-cuda-perf-trials-v1.json) (540) and [WMT14](docs/results/2026-11-19-phase5-cli/wmt14-cuda-perf-trials-v1.json) (720) shared-GPU model timings, no inputs/outputs/paths. Export replay and independent median/p95 checks passed; WMT14 values also match previously pinned measurements, while XSum raw per-file hashes were not precommitted. Negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. Not release or Metal qualification; raw bundles remain local.
 
 - 2026-11-20: published [sanitized TinyStories model timing trials](docs/results/2026-11-19-phase5-cli/tinystories-cuda-perf-trials-v1.json): 720 shared-GPU measured values without inputs/outputs/paths. [Report](docs/results/2026-11-19-phase5-cli/cuda-tinystories-performance-retest-v1.md#sanitized-per-trial-publication) discloses that original per-file timing hashes were not precommitted; published medians/p95 replay, exporter replay, negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. Not release qualification; raw bundles remain local.
