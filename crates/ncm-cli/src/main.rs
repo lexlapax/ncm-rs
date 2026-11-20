@@ -482,7 +482,7 @@ fn main_impl() -> Result<()> {
         .get(1)
         .is_some_and(|arg| arg == "sample-lm1b" || arg == "sample-lm1b-small")
     {
-        let result = lm1b::sample(&args)?;
+        let result = lm1b::sample(&args, text)?;
         println!("{}", serde_json::to_string(&result)?);
         return Ok(());
     }

@@ -165,7 +165,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             result.push(cfg.unwrap_or(0.0).to_string());
         }
         "lm1b-small-inference-v1" | "lm1b-medium-inference-v1" | "lm1b-large-inference-v1" => {
-            if cfg.is_some() || text || stochastic || positive_cfg {
+            if cfg.is_some() || stochastic || positive_cfg {
                 return Err("unsupported option for LM1B".into());
             }
             result[1] = "sample-lm1b".into();
@@ -319,7 +319,7 @@ mod tests {
                 &args(&["--text", "--reference-rope", "rope"]),
                 "lm1b-small-inference-v1"
             )
-            .is_err()
+            .is_ok()
         );
         assert!(translate_profile(&args(&[]), "owt-inference-v1").is_err());
         let default_rope = translate_profile(&args(&[]), "lm1b-small-inference-v1").unwrap();

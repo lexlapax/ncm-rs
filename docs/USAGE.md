@@ -2,8 +2,8 @@
 
 **Not a verified release recipe.** Phase 5 is still in progress. The commands below document
 current development inputs and builds; they have not been followed end-to-end from a fresh clone
-on Linux or macOS. In particular, qualified Sudoku medium/hard manifest reproduction and LM1B
-text-input behavior need decisions. Do not treat this document as the v0.1.0 setup gate.
+on Linux or macOS. In particular, the approved Sudoku medium/hard provenance-only re-exports
+and LM1B text-input behavior still need full qualification. Do not treat this document as the v0.1.0 setup gate.
 See the [current state](../agent-context-map.md) and [export investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
 Production inference is Rust plus native CUDA/cuDNN or MLX. Python and network access below are

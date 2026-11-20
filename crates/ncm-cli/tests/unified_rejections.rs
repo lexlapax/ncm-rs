@@ -78,9 +78,9 @@ fn unified_command_rejects_unsupported_profiles_options_and_devices() {
         (
             "lm1b-text",
             "lm1b-small-inference-v1",
-            "cuda-cudnn",
+            "cpu",
             &["--text"],
-            "unsupported option for LM1B",
+            "requires an explicit cuda-cudnn or mlx device",
         ),
         (
             "owt",

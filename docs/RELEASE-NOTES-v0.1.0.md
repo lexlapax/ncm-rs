@@ -13,8 +13,8 @@ below is not a measurement of every current CLI path.
   no device fallback. See the [profile matrix](../README.md#profile-and-evidence-matrix).
 - A unified `ncm sample` surface, retaining profile-specific commands. `--decode` uses each
   artifact's pinned tokenizer. XSum and WMT14 accept `--text`; TinyStories accepts text encoding
-  to exactly one non-padding token. LM1B text-input behavior remains unresolved; it accepts only
-  `[101]` ID rows and uses a separately generated hash-pinned rotary sidecar.
+  to exactly one non-padding token. LM1B accepts only empty text strings, mapped to `[101]` ID
+  rows; nonempty prompts are unsupported. It uses a separately generated hash-pinned rotary sidecar.
 - Source-only release: no checkpoints, evaluation data or prebuilt binaries. CUDA builds depend
   on local cuDNN and compute capability; MLX builds depend on matching native MLX libraries.
   Python remains an offline export/reference dependency, not a production inference dependency.
@@ -53,7 +53,7 @@ below is not a measurement of every current CLI path.
 - Complete and verify `docs/USAGE.md` from a fresh clone on Linux, then on Apple Silicon, including
   pinned downloads, exporters, manifest checks and examples. Sudoku medium/hard's original exporter
   identity remains unresolved ([investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md)).
-- Resolve LM1B `--text` behavior; finish command equivalence, text/decode and performance
+- Validate LM1B `--text`; finish command equivalence, text/decode and performance
   evidence on CUDA and then Metal. Record failures and do not infer a GPU pass from CPU tests.
 - Update these notes and the context map with actual gate evidence. Ask before tagging and pushing
   `v0.1.0` and publishing the source-only GitHub release.
