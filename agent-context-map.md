@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **TinyStories CUDA/Python repeated model timing:** three alternating processes × 5 warmups/30 trials at batches 1/4/32/128 favored Rust in measured median and RSS ([report](docs/results/2026-11-19-phase5-cli/cuda-tinystories-performance-retest-v1.md)). Desktop GPU activity was present; 1 Hz GPU samples are not native peaks. The tracked aggregate replayed byte-for-byte and `setpriv --inh-caps=-all ./tools/check.sh` passed. This is model-probe timing, not CLI cold load, previous-Rust comparison, an isolated GPU or the release performance gate.
+
 - **LM1B-large CUDA 80-seed retest:** nonblind frozen-registry campaign passed PPL/entropy mean and 95% interval margins; all 160 scores were upstream-exact and per-seed metrics reproduced the original prospective records ([report](docs/results/2026-11-19-phase5-cli/cuda-lm1b-large-quality-retest-v1.md)). Summary replay and `setpriv --inh-caps=-all ./tools/check.sh` passed. Performance and Metal remain pending; no full CLI cohort equivalence is implied.
 
 - **LM1B-medium CUDA 80-seed retest:** nonblind frozen-registry campaign passed PPL/entropy mean and 95% interval margins; all 160 scores were upstream-exact and per-seed metrics reproduced the original prospective records ([report](docs/results/2026-11-19-phase5-cli/cuda-lm1b-medium-quality-retest-v1.md)). Summary replay and `setpriv --inh-caps=-all ./tools/check.sh` passed. Large, performance and Metal remain pending; no full CLI cohort equivalence is implied.

@@ -1,0 +1,208 @@
+{
+  "batches": {
+    "1": {
+      "python": {
+        "median_peak_rss_mib": 2187.18359375,
+        "median_process_median_ms": 46.496920520439744,
+        "p95_pooled_ms": 47.021742968354374,
+        "peak_rss_mib": [
+          2186.9375,
+          2187.2890625,
+          2187.18359375
+        ],
+        "process_medians_ms": [
+          46.496920520439744,
+          46.334633021615446,
+          46.62961250869557
+        ],
+        "python_cleanup_medians_ms": [
+          49.17435901006684,
+          49.6437729743775,
+          49.17388048488647
+        ],
+        "sampled_gpu_peak_mib": [
+          844,
+          844,
+          844
+        ]
+      },
+      "rust": {
+        "median_peak_rss_mib": 969.62109375,
+        "median_process_median_ms": 40.949189999999994,
+        "p95_pooled_ms": 41.210285,
+        "peak_rss_mib": [
+          969.22265625,
+          970.82421875,
+          969.62109375
+        ],
+        "process_medians_ms": [
+          40.85467,
+          40.981007,
+          40.949189999999994
+        ],
+        "python_cleanup_medians_ms": [],
+        "sampled_gpu_peak_mib": [
+          678,
+          678,
+          678
+        ]
+      },
+      "rust_over_python_latency": 0.8806860656932968,
+      "rust_over_python_peak_rss": 0.44331948013909156
+    },
+    "128": {
+      "python": {
+        "median_peak_rss_mib": 2160.15625,
+        "median_process_median_ms": 2439.728961471701,
+        "p95_pooled_ms": 2442.106343980413,
+        "peak_rss_mib": [
+          2160.15625,
+          2160.1171875,
+          2160.5
+        ],
+        "process_medians_ms": [
+          2436.379124992527,
+          2439.9280810030177,
+          2439.728961471701
+        ],
+        "python_cleanup_medians_ms": [
+          49.82467251829803,
+          49.65655552223325,
+          50.104526977520436
+        ],
+        "sampled_gpu_peak_mib": [
+          6180,
+          5532,
+          6180
+        ]
+      },
+      "rust": {
+        "median_peak_rss_mib": 975.1640625,
+        "median_process_median_ms": 2346.814945,
+        "p95_pooled_ms": 2349.4347810000004,
+        "peak_rss_mib": [
+          971.23046875,
+          975.1640625,
+          978.46875
+        ],
+        "process_medians_ms": [
+          2346.2089315000003,
+          2347.3497365,
+          2346.814945
+        ],
+        "python_cleanup_medians_ms": [],
+        "sampled_gpu_peak_mib": [
+          2120,
+          2120,
+          2120
+        ]
+      },
+      "rust_over_python_latency": 0.9619162546582006,
+      "rust_over_python_peak_rss": 0.45143218806509944
+    },
+    "32": {
+      "python": {
+        "median_peak_rss_mib": 2203.30078125,
+        "median_process_median_ms": 625.7939584902488,
+        "p95_pooled_ms": 629.2329870047979,
+        "peak_rss_mib": [
+          2203.23046875,
+          2203.40234375,
+          2203.30078125
+        ],
+        "process_medians_ms": [
+          623.9930099982303,
+          625.7939584902488,
+          628.8924580148887
+        ],
+        "python_cleanup_medians_ms": [
+          49.978042021393776,
+          49.944566999329254,
+          49.870610499056056
+        ],
+        "sampled_gpu_peak_mib": [
+          2386,
+          2386,
+          2386
+        ]
+      },
+      "rust": {
+        "median_peak_rss_mib": 974.9609375,
+        "median_process_median_ms": 602.691456,
+        "p95_pooled_ms": 604.3043270000001,
+        "peak_rss_mib": [
+          972.984375,
+          974.9609375,
+          977.1875
+        ],
+        "process_medians_ms": [
+          596.0553755,
+          602.691456,
+          603.7497185000001
+        ],
+        "python_cleanup_medians_ms": [],
+        "sampled_gpu_peak_mib": [
+          1032,
+          1032,
+          1032
+        ]
+      },
+      "rust_over_python_latency": 0.9630828930563913,
+      "rust_over_python_peak_rss": 0.4425001551294666
+    },
+    "4": {
+      "python": {
+        "median_peak_rss_mib": 2173.5390625,
+        "median_process_median_ms": 100.76528647914529,
+        "p95_pooled_ms": 101.16996004944667,
+        "peak_rss_mib": [
+          2173.5078125,
+          2173.5390625,
+          2174.08984375
+        ],
+        "process_medians_ms": [
+          100.12289648875594,
+          100.85494097438641,
+          100.76528647914529
+        ],
+        "python_cleanup_medians_ms": [
+          49.56770347780548,
+          49.50453151832335,
+          49.52858851174824
+        ],
+        "sampled_gpu_peak_mib": [
+          928,
+          928,
+          928
+        ]
+      },
+      "rust": {
+        "median_peak_rss_mib": 975.17578125,
+        "median_process_median_ms": 96.41322650000001,
+        "p95_pooled_ms": 96.941888,
+        "peak_rss_mib": [
+          975.17578125,
+          979.46484375,
+          969.9453125
+        ],
+        "process_medians_ms": [
+          96.217567,
+          96.41322650000001,
+          96.793668
+        ],
+        "python_cleanup_medians_ms": [],
+        "sampled_gpu_peak_mib": [
+          712,
+          712,
+          712
+        ]
+      },
+      "rust_over_python_latency": 0.956809927989973,
+      "rust_over_python_peak_rss": 0.4486580425788874
+    }
+  },
+  "gpu_memory_caveat": "1 Hz process samples are lower bounds and may miss transient peaks",
+  "latency_scope": "eager generate and synchronized code/ID host readback; excludes load",
+  "python_cleanup": "gc.collect after each trial, outside generation timing; separately recorded",
+  "sampling": "Rust SplitMix64 inverse CDF; Python torch.multinomial; different random streams"
+}
