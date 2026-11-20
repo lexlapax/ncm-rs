@@ -386,6 +386,78 @@ mod dispatch_tests {
     }
 
     #[test]
+    #[ignore = "requires retained LM1B CUDA cohort and pinned evaluator decoding"]
+    fn retained_corpus_decode_matches_pinned_evaluator() {
+        let size = std::env::var("NCM_LM1B_SIZE").unwrap();
+        let (receipt_hash, reference_hash) = match size.as_str() {
+            "small" => (
+                "742d4f25e6c85b2037cfd621a86e48948b54bff137e639894330702feac99506",
+                "e54a4cbe7272fd6c5a92cb5d0b8e638155e1e2e4eedf2f31836b818b8f91efff",
+            ),
+            "medium" => (
+                "57f89148f93318ba7567bf32b7270d48867b8e719b8095855a24013bab1a20da",
+                "f4111039d11d7ab9142530f7e5543ff07378bce752265381197fcc2c2d5becaa",
+            ),
+            "large" => (
+                "166c8e49c3189595c84eb952fe99584e6515ef095e2dbfd720c3628924876a3f",
+                "dcbd89cdbdfac0d9fea13dd57db154655c12ec2ed13926989584ac25e186780e",
+            ),
+            _ => panic!("unsupported LM1B size"),
+        };
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_LM1B_ARTIFACT").unwrap()).unwrap();
+        assert_eq!(
+            artifact.manifest().profile,
+            format!("lm1b-{size}-inference-v1")
+        );
+        let tokenizer = ncm_tokenizers::TextTokenizer::from_asset_bytes(
+            artifact.file("tokenizer-manifest.json").unwrap(),
+            artifact.file("tokenizer.json").unwrap(),
+            artifact.file("tokenizer.LICENSE").unwrap(),
+        )
+        .unwrap();
+        drop(artifact);
+        let directory = std::path::PathBuf::from(std::env::var("NCM_LM1B_CAPTURES").unwrap());
+        let receipt = std::fs::read(directory.join("receipt.json")).unwrap();
+        assert_eq!(ncm_io::sha256(&receipt), receipt_hash);
+        let receipt: serde_json::Value = serde_json::from_slice(&receipt).unwrap();
+        assert_eq!(receipt["runtime"], "rust");
+        assert_eq!(receipt["captures"].as_object().unwrap().len(), 80);
+        let reference = std::fs::read(std::env::var("NCM_LM1B_DECODE_REFERENCE").unwrap()).unwrap();
+        assert_eq!(ncm_io::sha256(&reference), reference_hash);
+        let reference: serde_json::Value = serde_json::from_slice(&reference).unwrap();
+        assert_eq!(reference["size"], size);
+        assert_eq!(reference["receipt_sha256"], receipt_hash);
+        let seeds = reference["seeds"].as_array().unwrap();
+        let texts = reference["texts"].as_array().unwrap();
+        assert_eq!(seeds.len(), 80);
+        assert_eq!(texts.len(), 80);
+        for (i, seed) in (2000..2080).enumerate() {
+            assert_eq!(seeds[i], seed);
+            let capture = std::fs::read(directory.join(format!("rust-seed-{seed}.json"))).unwrap();
+            assert_eq!(
+                ncm_io::sha256(&capture),
+                receipt["captures"][seed.to_string()].as_str().unwrap()
+            );
+            let capture: serde_json::Value = serde_json::from_slice(&capture).unwrap();
+            assert_eq!(capture["size"], size);
+            assert_eq!(capture["seed"], seed);
+            let ids: Vec<Vec<u32>> = serde_json::from_value(capture["raw_ids"].clone()).unwrap();
+            let expected = texts[i].as_array().unwrap();
+            assert_eq!(ids.len(), 256);
+            assert_eq!(expected.len(), ids.len());
+            for (row, expected) in ids.iter().zip(expected) {
+                assert_eq!(row.len(), 128);
+                assert_eq!(
+                    tokenizer.decode_lm1b_flm(row).unwrap(),
+                    expected.as_str().unwrap(),
+                    "seed {seed}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn unsupported_device_is_rejected_before_files_are_opened() {
         let err = sample(&args("cpu"), false).unwrap_err().to_string();
         assert!(err.contains("explicit cuda-cudnn or mlx"));
