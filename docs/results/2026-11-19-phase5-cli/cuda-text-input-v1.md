@@ -56,6 +56,28 @@ setpriv --inh-caps=-all env \
 
 For the first corpus row of each profile, four fresh processes compared equivalent ID and `--text` input, both without and with `--decode`. Stdout matched byte-for-byte in each pair and matched the corresponding earlier retained baseline output. The common hashes are XSum `87be072a79210d62215efaa82f801c64612f6868cf545a3fb888ca14aee6cdca` (IDs) and `6db35c54fece2e27ea0e96e6f4e29cebba23a42bd20e899401218658cd2a0328` (decoded), WMT14 `17257d936f55b159c8cdc8ce9a465bf9d0498a446d544215c171eae82f2a604a` and `fd68c625bc98b4e7fccfde240db198c67ae8251e8607110b5319e8a617098d32`. The release binary built with `--features cuda-cudnn` had SHA-256 `9a80df0c2087d7f39e7b05971ae515799d69a6991971255a78299cd622b0d3df`. Build and runtime environment are as in [the earlier screen](cuda-routing-screen-v1.md). This proves the tested CUDA requests only; Metal and broader end-to-end cases are pending.
 
+## Full-corpus CUDA text/ID generation retest
+
+On 2026-11-20, `ncm sample --text` was run on **all 11,334 XSum** and **3,003 WMT14** retained corpus inputs with the candidate CUDA CLI. Its codes and IDs matched the previously retained equivalent ID-input CUDA captures for every row: 356 XSum batches (two interleaved shards, batch 32 and partial tails) and 751 WMT14 batches (batch four and a three-row tail). The [prior XSum CLI corpus comparison](cuda-xsum-quality-retest-v1.md) bound those XSum captures to the same candidate ID-input CLI; the [WMT14 comparison](cuda-wmt14-quality-retest-v1.md) separately bound all candidate CLI ID outputs to the same retained fast-backend capture. These are previously observed corpora, not new blind quality experiments. The known XSum intermediate-code tie and WMT14 CFG=1 failure remain disclosed in those reports.
+
+Text and padded ID references were hash-checked against the full-corpus encoder evidence above. XSum text is reconstructed from the converted IDs, not the unavailable original articles. The runner verified each XSum capture against the prior CLI summary's per-batch hashes and each WMT14 row against the pinned full capture; it checked binary, artifact manifests, references and retained captures before and after. An independent local replay re-read every saved text input and output, verified row coverage, output hashes and all codes/IDs against the retained captures. The CUDA run did not use `--decode`; retained-output decoder parity is [separately covered](cuda-decode-screen-v1.md). It does not establish Metal validation, performance or a complete release gate. The desktop GPU was shared.
+
+The candidate binary SHA-256 was `6194111fe3860584492676c6d14f50124a77f8dcf18f316a959b8abd16a20278`; runner SHA-256 `de150b7ebc4dff13cb9b6300c35c9666dbf83d90865a284ff65ee48f0b2dd025`. Ignored summary SHA-256s are XSum `02d5a159eacf50fc175c7df3f05c748b69da65f4d018cbb1c4c1bb28960b6a32` and WMT14 `07c2f5f13da157b6153b03d2eb10cd23e879eda5af9a343a40f54d2a3625601d`; raw input/output batches and summaries remain locally under `reports/phase5-{xsum,wmt14}-text-corpus-cuda-v1/`, not durably published. Smoke runs, batch-plan/negative-control unit tests and `setpriv --inh-caps=-all tools/check.sh` passed. No production code changed.
+
+The retained XSum summary keys its batch hashes by absolute path; this runner currently requires the
+same checkout path (`/home/lexlapax/projects/lexlapax/ncm-rs`) and the retained inputs and captures.
+This limits portability until that identity lookup is generalized.
+
+```sh
+for profile in xsum wmt14; do
+  setpriv --inh-caps=-all env OMP_NUM_THREADS=1 \
+    LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" \
+    python3 tools/bench/phase5_text_corpus_generation.py --profile "$profile" \
+    --candidate target/release/ncm --reference "reports/phase5-text-corpus-v1/$profile.json" \
+    --artifacts artifacts/canonical --output "reports/NEW-$profile-text-corpus"
+done
+```
+
 ## Selected multi-batch CUDA text/ID generations
 
 On 2026-11-20, the pinned old alias with IDs, current unified command with IDs and `--decode`, and current unified command with `--text --decode` were run for each of XSum and WMT14. The selected corpus indices were `0`, `1234..1237`, and the final 32 rows: `11302..11333` for XSum and `2971..3002` for WMT14. For all six batches, old and current codes/IDs were equal, and the two decoded current stdout streams were byte-identical. The `--text` strings and corresponding padded IDs come from the independently pinned corpus references above. XSum strings remain reconstructions from converted IDs, not unavailable original raw articles. This screen covers **37 rows per profile**, not corpus-wide generation, quality, performance or Metal.
