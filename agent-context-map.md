@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: on `06b6721`, `setpriv --inh-caps=-all tools/check.sh --cuda` passed, including 18 real-device operator cases; `reports/local-check-20261120T172804Z-4158547/cuda.json` is local/ignored. This is a CUDA smoke check, not a model-quality, performance or Metal gate. GPU was shared at inspection; release-quality exclusive-device measurement remains pending.
+
 - 2026-11-20: [WMT14 CFG=1 unified CUDA CLI corpus](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg1-quality-retest-v1.md#unified-cuda-cli-corpus-equivalence) matched the frozen Python capture on all 3,003 rows and 751 batches; independent replay, runner negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. Nonblind ID-input retest on shared GPU, not legacy full-corpus, performance or Metal; raw captures local.
 
 - 2026-11-20: [WMT14 CFG=1 CUDA nonblind quality retest](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg1-quality-retest-v1.md) regenerated the exact pinned Python capture, matched all 3,003 rows' 939,939 codes and 192,192 IDs with the fast backend, and reproduced passing full/held-out receipts in both scorer environments. The subsequent unified-CLI corpus comparison is recorded above; performance and Metal remain pending, and raw captures are local only. `setpriv --inh-caps=-all tools/check.sh` and report shell syntax passed; no runtime change.
