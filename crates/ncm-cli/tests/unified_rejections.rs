@@ -144,4 +144,32 @@ fn unified_command_rejects_unsupported_profiles_options_and_devices() {
         let stderr = String::from_utf8(output.stderr).unwrap();
         assert!(stderr.contains(message), "{name}: {stderr}");
     }
+
+    // Dispatch reads untrusted metadata before the full artifact loader runs.
+    // Refuse malformed and oversized manifests without reaching inference.
+    for (name, contents, message) in [
+        (
+            "missing-profile",
+            b"{}".to_vec(),
+            "artifact manifest lacks a profile",
+        ),
+        ("malformed", b"{".to_vec(), "EOF while parsing"),
+        (
+            "oversized",
+            vec![b' '; 4 * 1024 * 1024 + 1],
+            "artifact manifest must be a bounded regular file",
+        ),
+    ] {
+        let root = scratch.0.join(name);
+        fs::create_dir(&root).unwrap();
+        fs::write(root.join("manifest.json"), contents).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_ncm"))
+            .args(["sample", root.to_str().unwrap(), "cuda", "missing-input"])
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1), "{name}");
+        assert!(output.stdout.is_empty(), "{name}: unexpected stdout");
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains(message), "{name}: {stderr}");
+    }
 }
