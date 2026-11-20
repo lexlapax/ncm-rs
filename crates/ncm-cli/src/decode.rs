@@ -352,6 +352,82 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "diagnostic timing requires pinned XSum/WMT14 artifacts and retained references"]
+    fn text_tokenizer_stage_diagnostic() {
+        let name = std::env::var("NCM_TEXT_TIMING_PROFILE").unwrap();
+        let (manifest_sha, reference_sha, output_sha) = match name.as_str() {
+            "xsum" => (
+                "8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4",
+                "f51a1232bcd47169cd970edd61b597b5aebef12f0f202e6d51f41be6642faa2f",
+                "6db35c54fece2e27ea0e96e6f4e29cebba23a42bd20e899401218658cd2a0328",
+            ),
+            "wmt14" => (
+                "01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81",
+                "4c1d6b68e89b46800219e9099116b1a50d51b2c96a51bdc8abe6dec6a98add9e",
+                "fd68c625bc98b4e7fccfde240db198c67ae8251e8607110b5319e8a617098d32",
+            ),
+            _ => panic!("unsupported diagnostic profile"),
+        };
+        let artifact_path =
+            std::path::PathBuf::from(std::env::var("NCM_TEXT_TIMING_ARTIFACT").unwrap());
+        let reference_path =
+            std::path::PathBuf::from(std::env::var("NCM_TEXT_TIMING_REFERENCE").unwrap());
+        let output_path =
+            std::path::PathBuf::from(std::env::var("NCM_TEXT_TIMING_OUTPUT").unwrap());
+        let manifest = std::fs::read(artifact_path.join("manifest.json")).unwrap();
+        let reference = std::fs::read(&reference_path).unwrap();
+        let output = std::fs::read(&output_path).unwrap();
+        assert_eq!(ncm_io::sha256(&manifest), manifest_sha);
+        assert_eq!(ncm_io::sha256(&reference), reference_sha);
+        assert_eq!(ncm_io::sha256(&output), output_sha);
+        let reference: serde_json::Value = serde_json::from_slice(&reference).unwrap();
+        let output: serde_json::Value = serde_json::from_slice(&output).unwrap();
+        let text = reference["texts"][0].as_str().unwrap().to_owned();
+        let expected_ids: Vec<u32> = serde_json::from_value(reference["ids"][0].clone()).unwrap();
+        let expected_texts = output["texts"].clone();
+        let artifact = ncm_io::Artifact::load_inference(&artifact_path).unwrap();
+        let mut construct = Vec::new();
+        let mut encode = Vec::new();
+        let mut decode = Vec::new();
+        for round in 0..35 {
+            let start = std::time::Instant::now();
+            let decoder = Decoder::from_artifact(&artifact).unwrap();
+            let construct_elapsed = start.elapsed().as_secs_f64();
+            let start = std::time::Instant::now();
+            let ids = decoder.encode_texts(std::slice::from_ref(&text)).unwrap();
+            let encode_elapsed = start.elapsed().as_secs_f64();
+            assert_eq!(ids.as_slice(), std::slice::from_ref(&expected_ids));
+            let mut generated = serde_json::json!({"ids": output["ids"]});
+            let start = std::time::Instant::now();
+            decoder.add_texts(&mut generated).unwrap();
+            let decode_elapsed = start.elapsed().as_secs_f64();
+            assert_eq!(generated["texts"], expected_texts);
+            if round >= 5 {
+                construct.push(construct_elapsed);
+                encode.push(encode_elapsed);
+                decode.push(decode_elapsed);
+            }
+        }
+        assert_eq!(
+            ncm_io::sha256(&std::fs::read(artifact_path.join("manifest.json")).unwrap()),
+            manifest_sha
+        );
+        assert_eq!(
+            ncm_io::sha256(&std::fs::read(reference_path).unwrap()),
+            reference_sha
+        );
+        assert_eq!(
+            ncm_io::sha256(&std::fs::read(output_path).unwrap()),
+            output_sha
+        );
+        println!(
+            "TEXT_STAGE_TIMINGS {}",
+            serde_json::json!({"profile": name, "construct_seconds": construct,
+            "encode_seconds": encode, "decode_seconds": decode, "warmups": 5, "trials": 30})
+        );
+    }
+
+    #[test]
     #[ignore = "requires retained TinyStories CUDA captures and pinned artifact"]
     fn tinystories_retained_corpus_decode_matches_pinned_evaluator() {
         let artifact =

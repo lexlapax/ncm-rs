@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [host tokenizer-stage diagnostic](docs/results/2026-11-19-phase5-cli/linux-text-tokenizer-stage-v1.md) measured decoder construction medians 15.317 ms XSum / 61.856 ms WMT14 on already loaded artifacts; encode/decode of the tested rows was much smaller. This supports, but does not prove, the cause of the cold text delta. Six release-mode test processes, sanitized-series replay, negative tests and `setpriv --inh-caps=-all tools/check.sh` passed after fixing an initial test-only Clippy warning and recollecting. No production inference change; no Metal or release performance gate.
+
 - 2026-11-20: [XSum/WMT14 CUDA CLI text/decode cold screens](docs/results/2026-11-19-phase5-cli/cuda-text-cold-performance-v1.md) compare old ID, unified ID, text and text+decode across 90 paired fresh processes per condition; expected outputs matched. Median paired text−ID increases were 14.766 ms XSum and 74.469 ms WMT14 on one row; causes unisolated. Sanitized trial export replayed, offline tests and `setpriv --inh-caps=-all tools/check.sh` passed. Shared GPU, no native device peaks/Python/warm model/Metal; not release qualification.
 
 - 2026-11-20: published [sanitized CUDA cold trial series](docs/results/2026-11-19-phase5-cli/cuda-cold-trials-v1.json): 90 paired measured time/RSS values per condition for seven profiles, no inputs, outputs or paths. Export audited retained captures; replay, independent aggregate verification, negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. Full raw outputs/telemetry remain local, and these shared-GPU screens do not qualify release performance.
