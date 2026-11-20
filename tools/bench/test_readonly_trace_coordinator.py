@@ -20,10 +20,24 @@ from test_readonly_trace_telemetry import ENV, UUID, SOURCE, fixture_commands
 HERE = Path(__file__).resolve().parent
 
 
+class FixtureReadyObservation:
+    """Gate only the trusted test child; not a production startup barrier."""
+    def __init__(self, marker, observer):
+        self.marker = marker
+        self.observer = observer
+
+    def observe(self, pid):
+        if self.marker.is_file():
+            self.observer.observe(pid)
+
+    def finish(self, receipt, output):
+        return self.observer.finish(receipt, output)
+
+
 def observer_driver(directory, mode):
     directory = Path(directory)
     telemetry.OBSERVER_CPU = min(os.sched_getaffinity(0))
-    telemetry.SECONDS = 5 if mode == 'lifecycle' else 1
+    telemetry.SECONDS = 5 if mode in ('lifecycle', 'lifecycle-unbarriered') else 1
     telemetry.STARTUP_SECONDS = 2
     telemetry.CPU_TIMEOUT_SECONDS = 15
     if mode == 'overflow':
@@ -51,7 +65,7 @@ def collection_driver(root, mode):
     root = Path(root)
     affinity = os.sched_getaffinity(0)
     coordinator.OBSERVER_CPU = telemetry.OBSERVER_CPU = min(affinity)
-    telemetry.SECONDS = 5 if mode == 'lifecycle' else 1
+    telemetry.SECONDS = 5 if mode in ('lifecycle', 'lifecycle-unbarriered') else 1
     coordinator.STARTUP_SECONDS = .25 if mode == 'no_ready' else 3
     coordinator.OBSERVER_SECONDS = .35 if mode == 'deadline' else 10
     if mode in ('validation_expired', 'clock_expired'):
@@ -72,13 +86,18 @@ def collection_driver(root, mode):
     telemetry_dir = directory / 'telemetry'
     argv = [sys.executable, '-c', 'from test_readonly_trace_coordinator import observer_driver; '
             f'observer_driver({str(telemetry_dir)!r},{mode!r})', str(telemetry_dir)]
-    code = ('from pathlib import Path; import time; '
-            f'Path({str(directory / "sequence_started")!r}).write_text("started"); '
-            f'time.sleep({10 if mode in ("observer_failure", "early_observer", "interrupt", "crash", "deadline") else .12 if mode == "lifecycle" else 0}); '
-            f'raise SystemExit({2 if mode == "job_failure" else 0})')
-    jobs = [dict(condition=c, argv=[sys.executable, '-c', code], cwd=str(root), env=dict(ENV)) for c in ORDER]
+    jobs = []
+    for ordinal, condition in enumerate(ORDER, 1):
+        marker = directory / f'fixture-ready-{ordinal:02}'
+        ready = f'Path({str(marker)!r}).write_text("ready"); ' if mode == 'lifecycle' else ''
+        code = ('from pathlib import Path; import time; '
+                f'Path({str(directory / "sequence_started")!r}).write_text("started"); '
+                f'{ready}'
+                f'time.sleep({10 if mode in ("observer_failure", "early_observer", "interrupt", "crash", "deadline") else .12 if mode in ("lifecycle", "lifecycle-unbarriered") else 0}); '
+                f'raise SystemExit({2 if mode == "job_failure" else 0})')
+        jobs.append(dict(condition=condition, argv=[sys.executable, '-c', code], cwd=str(root), env=dict(ENV)))
     factory = None
-    if mode == 'lifecycle':
+    if mode in ('lifecycle', 'lifecycle-unbarriered'):
         from observe_readonly_process import ProcessObservation
         from readonly_trace_preflight import file_identity
         image = file_identity(Path(sys.executable).resolve())
@@ -87,9 +106,12 @@ def collection_driver(root, mode):
             job['env'].update(LANG='C', LC_ALL='C')
         # All fake children are plain Python, including T-labelled slots. This
         # tests clocks, not injection conditions, CPU2 placement or codec output.
-        def factory(_ordinal, job):
-            return ProcessObservation(workload=image, workload_argv=job['argv'], expected_env=job['env'],
-                                      cpu=coordinator.OBSERVER_CPU, injection=injection, traced=False)
+        def factory(ordinal, job):
+            observer = ProcessObservation(workload=image, workload_argv=job['argv'], expected_env=job['env'],
+                                          cpu=coordinator.OBSERVER_CPU, injection=injection, traced=False)
+            # Only the deliberately fake child writes this per-job marker after
+            # exec. It is not authenticated or used in production collection.
+            return FixtureReadyObservation(directory / f'fixture-ready-{ordinal:02}', observer) if mode == 'lifecycle' else observer
     if mode == 'sequence_exception':
         # Setup failure after ready must clean observers, not leave them running.
         sequence_patch = patch.object(coordinator, 'run_sequence', side_effect=OSError('fake disk failure'))
@@ -113,6 +135,23 @@ def supervised_driver(root, mode):
                        timeout_seconds=15, parent_pid=os.getppid())
     assert not Path(f'/proc/self/task/{os.getpid()}/children').read_text().strip()
     print(json.dumps(result))
+
+
+class FixtureReadyObservationTests(unittest.TestCase):
+    def test_test_only_marker_gates_observation_but_not_failures_or_finish(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / 'ready'
+            actual = Mock()
+            actual.observe.side_effect = ValueError('mismatch')
+            wrapped = FixtureReadyObservation(marker, actual)
+            wrapped.observe(123)
+            actual.observe.assert_not_called()
+            wrapped.finish('receipt', 'output')
+            actual.finish.assert_called_once_with('receipt', 'output')
+            marker.write_text('ready')
+            with self.assertRaisesRegex(ValueError, 'mismatch'):
+                wrapped.observe(123)
+            actual.observe.assert_called_once_with(123)
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'Linux collection supervision')

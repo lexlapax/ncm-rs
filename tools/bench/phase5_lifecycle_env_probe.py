@@ -61,7 +61,7 @@ def main():
         code = ('from phase5_lifecycle_env_probe import install; '
                 f'install({str(diag)!r}); '
                 'from test_readonly_trace_coordinator import collection_driver; '
-                f'collection_driver({str(attempt)!r}, "lifecycle")')
+                f'collection_driver({str(attempt)!r}, "lifecycle-unbarriered")')
         outer = ('import os,json; from pathlib import Path; from supervised_worker import supervise; '
                  f'argv=[{sys.executable!r},"-c",{code!r}]; '
                  f'result=supervise(argv,cwd=Path({str(HERE)!r}),env={{"PATH":os.defpath,"PYTHONNOUSERSITE":"1"}},'
