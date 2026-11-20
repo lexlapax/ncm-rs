@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **Sudoku medium/hard guide fresh-download slice:** extracted the draft guide block and ran it in the existing Linux checkout; fresh pinned downloads and both alternate manifest checks passed, as did separate download verification ([evidence](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md#mediumhard-draft-guide-replay-with-fresh-downloads)). The inspected exporter worktree was removed and `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not a fresh-clone, model-quality, performance or Metal gate.
+
 - **Current CUDA routing:** the tracked runner matched pre-change, alias and unified output for nine fixed profiles; three additional XSum cases matched for positive CFG, stochastic sampling and both ([report](docs/results/2026-11-19-phase5-cli/cuda-current-routing-v1.md)). A first run rejected an unexpected candidate binary hash before writing output; rebuilding the CUDA-feature binary restored its identity. `setpriv --inh-caps=-all ./tools/check.sh` passed. These are fixed-input screens, not corpus, quality, performance or Metal qualification.
 
 - **Sudoku medium/hard draft export recipe:** replayed its offline worktree/export sequence with retained pinned inputs; both alternate manifests matched the approved candidate hashes and exports reported bit-exact tensor roundtrips ([evidence](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md#mediumhard-draft-guide-replay-with-retained-inputs)). All 16 guide shell blocks pass `bash -n`; `setpriv --inh-caps=-all ./tools/check.sh` passed. Fresh downloads, full fresh-clone replay, quality/performance and Metal remain pending.

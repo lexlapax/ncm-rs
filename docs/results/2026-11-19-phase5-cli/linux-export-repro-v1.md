@@ -108,3 +108,17 @@ only change was the intended tracked exporter replacement, with the documented h
 removed. Outputs remain ignored under `artifacts/canonical/phase5-guide-sudoku-{medium,hard}-v1/`.
 This was not a fresh-clone or fresh-download replay and does not establish quality, performance,
 Metal or release qualification.
+
+## Medium/hard draft guide replay with fresh downloads
+
+2026-11-20. Extracted the complete medium/hard shell block from `docs/USAGE.md` at commit
+`81e768e` and ran it through `setpriv --inh-caps=-all bash -e` in the existing checkout. Fresh
+pinned downloads verified all three files per profile (162,378,394 bytes medium; 162,378,392 hard).
+Both exports reported bit-exact tensor roundtrips and matched the alternate manifest hashes above;
+the manifests also matched the preceding retained-input replays byte-for-byte. Independent
+`fetch_checkpoints.py --verify` calls passed for both newly downloaded directories. Export report
+SHA-256 values: medium `792a4831249a6c21087d5a0e6efd7d9b48fe93bc131f50660235c2bf8417b941`,
+hard `204a72064dfe4679881fb8d6fe4ede3537f3f91e46d8e708799b78a4560be315`. The temporary worktree
+was inspected and contained only the documented exporter replacement before removal. Fresh inputs,
+exports and reports remain ignored at the guide paths. This slice used the existing Python build
+and reference environment; it is not a fresh-clone, inference, quality, performance or Metal gate.

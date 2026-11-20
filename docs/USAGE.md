@@ -269,9 +269,10 @@ medium/hard exporter is missing; the only provenance field changed is `converter
 its file record consequently differs in the manifest. All other payload bytes and manifest fields
 matched the retained originals in the [investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 Their CUDA two-row [screen](results/2026-11-19-phase5-cli/cuda-sudoku-reexports-v1.md) is not full
-qualification. The export sequence below was replayed with retained checkpoint inputs, not these
-fresh downloads; it has not yet been followed from a fresh clone or on macOS. It uses the same
-Python 3.14.9 build and reference environment prepared in the easy section above.
+qualification. The block below passed with fresh checkpoint downloads in the existing Linux checkout
+([evidence](results/2026-11-19-phase5-cli/linux-export-repro-v1.md#mediumhard-draft-guide-replay-with-fresh-downloads));
+it has not yet been followed from a fresh clone or on macOS. It uses the same Python 3.14.9 build
+and reference environment prepared in the easy section above.
 
 ```sh
 for entry in medium:162378394 hard:162378392; do
