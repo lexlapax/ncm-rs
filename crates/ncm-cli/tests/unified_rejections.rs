@@ -111,6 +111,24 @@ fn unified_command_rejects_unsupported_profiles_options_and_devices() {
             "require explicit mlx device",
         ),
     ];
+    for (options, message) in [
+        (&["1"][..], "positive XSum CFG requires"),
+        (&["0", "7"][..], "stochastic sampling requires"),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_ncm"))
+            .args([
+                "sample-xsum",
+                "missing-artifact",
+                "cuda-cudnn",
+                "missing-input",
+            ])
+            .args(options)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8(output.stderr).unwrap().contains(message));
+    }
     for (name, profile, device, options, message) in cases {
         let artifact = scratch.artifact(name, profile);
         let output = Command::new(env!("CARGO_BIN_EXE_ncm"))

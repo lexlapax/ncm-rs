@@ -10,7 +10,8 @@ Usage:
   ncm sample-tinystories|sample-xsum|sample-wmt14|sample-lm1b ...
 
 Run `ncm sample --help` for profiles, options and experimental paths.
-The profile-specific sample commands remain available with their original arguments.
+Profile-specific sample commands remain available. The XSum alias requires explicit
+experimental flags for positive CFG and stochastic sampling.
 ";
 
 pub(super) const SAMPLE: &str = "\
@@ -36,6 +37,7 @@ Options:
 
 Devices are explicit; availability depends on the build and profile. WMT14's
 mlx-retry-padded device is experimental. OWT inference is unsupported.
+Legacy sample-xsum positional CFG/seed also require the corresponding experimental flags.
 No device or sampling fallback is performed.
 ";
 

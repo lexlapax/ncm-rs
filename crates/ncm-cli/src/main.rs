@@ -468,8 +468,10 @@ fn main_impl() -> Result<()> {
     let unified = args.get(1).is_some_and(|arg| arg == "sample");
     let decode = unified && args.iter().skip(5).any(|arg| arg == "--decode");
     let text = unified && args.iter().skip(5).any(|arg| arg == "--text");
-    if args.get(1).is_some_and(|arg| arg == "sample") {
+    if unified {
         args = sample::translate(&args)?;
+    } else if args.get(1).is_some_and(|arg| arg == "sample-xsum") {
+        sample::validate_xsum_alias(&mut args)?;
     }
     if args.len() == 3 && args[1] == "inspect" {
         let artifact = Artifact::load(&args[2])?;

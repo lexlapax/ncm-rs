@@ -30,7 +30,10 @@ below is not a measurement of every current CLI path.
 - XSum Metal's 15 enumerated code/raw-ID differences, with identical decoded texts and quality
   scores, remain an [accepted exception](results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md).
   CUDA stochastic sampling has separate [accepted evidence and limitations](results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md).
-  Positive-CFG and stochastic XSum are experimental, not a general quality claim.
+  Positive-CFG and stochastic XSum are experimental, not a general quality claim. The legacy
+  `sample-xsum` alias now requires `--experimental-positive-cfg-xsum` for positive positional CFG
+  and `--experimental-stochastic-xsum` for a positional seed; old unflagged experimental calls
+  must add the corresponding flags. Qualified top-1 calls retain their positional syntax.
 - WMT14's scoped top-1 qualification retains Metal intermediate differences and explicit
   bounded-retry behavior ([report](results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification));
   `mlx-retry-padded` is experimental.

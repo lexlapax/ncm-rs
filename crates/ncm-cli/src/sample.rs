@@ -32,6 +32,48 @@ fn profile(root: &str) -> Result<String> {
         .ok_or_else(|| "artifact manifest lacks a profile".into())
 }
 
+/// Preserve qualified positional alias syntax while requiring opt-in for experimental modes.
+pub(super) fn validate_xsum_alias(args: &mut Vec<String>) -> Result<()> {
+    if args.len() < 5 {
+        return Err("invalid sample-xsum arguments".into());
+    }
+    let mut positional = Vec::new();
+    let (mut stochastic, mut positive_cfg) = (false, false);
+    for arg in &args[5..] {
+        match arg.as_str() {
+            "--experimental-stochastic-xsum" if !stochastic => stochastic = true,
+            "--experimental-positive-cfg-xsum" if !positive_cfg => positive_cfg = true,
+            value if !value.starts_with("--") => positional.push(value.to_owned()),
+            _ => return Err("invalid sample-xsum arguments".into()),
+        }
+    }
+    if positional.len() > 2 {
+        return Err("invalid sample-xsum arguments".into());
+    }
+    let cfg = positional
+        .first()
+        .map(|s| s.parse::<f64>())
+        .transpose()?
+        .unwrap_or(0.0);
+    if !cfg.is_finite() || cfg < 0.0 {
+        return Err("CFG scale must be finite and nonnegative".into());
+    }
+    if (cfg > 0.0) != positive_cfg {
+        return Err("positive XSum CFG requires --experimental-positive-cfg-xsum".into());
+    }
+    if (positional.len() == 2) != stochastic {
+        return Err(
+            "XSum stochastic sampling requires a seed and --experimental-stochastic-xsum".into(),
+        );
+    }
+    if let Some(seed) = positional.get(1) {
+        seed.parse::<u64>()?;
+    }
+    args.truncate(5);
+    args.extend(positional);
+    Ok(())
+}
+
 pub(super) fn translate(args: &[String]) -> Result<Vec<String>> {
     if args.len() < 5 {
         return Err(USAGE.into());
@@ -155,7 +197,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
 
 #[cfg(test)]
 mod tests {
-    use super::translate_profile;
+    use super::{translate_profile, validate_xsum_alias};
 
     fn args(options: &[&str]) -> Vec<String> {
         ["ncm", "sample", "artifact", "cuda-cudnn", "input"]
@@ -163,6 +205,48 @@ mod tests {
             .chain(options.iter().copied())
             .map(str::to_owned)
             .collect()
+    }
+
+    #[test]
+    fn xsum_alias_requires_explicit_experimental_opt_in() {
+        let alias = |tail: &[&str]| {
+            ["ncm", "sample-xsum", "artifact", "cuda-cudnn", "input"]
+                .into_iter()
+                .chain(tail.iter().copied())
+                .map(str::to_owned)
+                .collect::<Vec<_>>()
+        };
+        for tail in [
+            &["1"][..],
+            &["0", "7"],
+            &["1", "--experimental-stochastic-xsum"],
+            &["0", "--experimental-positive-cfg-xsum"],
+            &["NaN"],
+            &[
+                "0",
+                "7",
+                "--experimental-stochastic-xsum",
+                "--experimental-stochastic-xsum",
+            ],
+        ] {
+            assert!(validate_xsum_alias(&mut alias(tail)).is_err(), "{tail:?}");
+        }
+        for tail in [
+            &[][..],
+            &["0"],
+            &["1", "--experimental-positive-cfg-xsum"],
+            &["0", "7", "--experimental-stochastic-xsum"],
+            &[
+                "1",
+                "7",
+                "--experimental-stochastic-xsum",
+                "--experimental-positive-cfg-xsum",
+            ],
+        ] {
+            let mut args = alias(tail);
+            validate_xsum_alias(&mut args).unwrap();
+            assert!(args[5..].iter().all(|arg| !arg.starts_with("--")));
+        }
     }
 
     #[test]
