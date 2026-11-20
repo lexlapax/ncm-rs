@@ -50,3 +50,16 @@ activity captures remain ignored under `reports/phase5-tinystories-cuda-perf-v1/
 published. The probe does **not** invoke the changed CLI, measure cold load, report all required
 native peaks, establish an isolated GPU or provide previous-Rust-vs-candidate evidence. This is a
 partial current Python/Rust model comparison, not the Phase 5 performance gate or Metal evidence.
+
+## Sanitized per-trial publication
+
+The [sanitized trial series](tinystories-cuda-perf-trials-v1.json) publishes all 720 measured generation timings (four batches, two runtimes, three processes, 30 trials), with per-source-file hashes but no inputs, generated outputs, local paths or GPU-process telemetry. SHA-256 `5f02b50af7ed8114cefa77e581cc0ea3e97d576946c5daf4894349edbab37a6c`. The exporter checked the original manifest and published aggregate hashes, checked each process median against that aggregate, and rechecked input files after export. An independent replay of the published series reproduced all process medians and pooled p95s; a second export was byte-identical. Two negative-control tests and `setpriv --inh-caps=-all tools/check.sh` passed.
+
+The original manifest does not pin individual timing-result files: matching aggregate medians and p95s is a consistency check, not independent authentication of every trial. Source hashes identify the files read during this export, not a precommitted record of them. The series does not include warmups, process RSS, device peaks, output identities or full telemetry; raw bundles remain local. Shared-GPU and scope limitations above are unchanged; no release gate is implied.
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/export_phase5_tinystories_trials.py \
+  --run reports/phase5-tinystories-cuda-perf-v1 \
+  --summary docs/results/2026-11-19-phase5-cli/tinystories-cuda-perf-summary-v1.json \
+  --output reports/NEW-tinystories-trials.json
+```
