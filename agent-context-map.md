@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [updated step 1 progress audit](docs/results/2026-11-19-phase5-cli/step1-progress-audit-v2.md) maps current scoped evidence and remaining CUDA, Metal, release, profiling and optimization gates; not a completion audit. Thirty relative file links and `setpriv --inh-caps=-all tools/check.sh` passed; no runtime change.
+
 - 2026-11-20: [WMT14 CFG=1 CUDA alias corpus comparison](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg1-quality-retest-v1.md#legacy-and-pre-change-aliases) matched the frozen Python capture on 3,003 rows; independent replay found byte-identical input/stdout across pre-change alias, current alias and prior unified CLI for all 751 batches. Extended runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. Nonblind shared-GPU correctness evidence, not performance/Metal; raw captures local.
 
 - 2026-11-20: on `06b6721`, `setpriv --inh-caps=-all tools/check.sh --cuda` passed, including 18 real-device operator cases; `reports/local-check-20261120T172804Z-4158547/cuda.json` is local/ignored. This is a CUDA smoke check, not a model-quality, performance or Metal gate. GPU was shared at inspection; release-quality exclusive-device measurement remains pending.
@@ -16,9 +18,9 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 - 2026-11-20: user chose WMT14 CFG option 1: 0 and 1 unflagged; other positive scales require `--experimental-cfg-wmt14` on unified and legacy routes. Help/migration docs and host rejection tests updated. [CUDA fixed-request screen](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg-boundary-v1.md) matched the pre-change alias for scales 0/1/2 across both routes; unflagged 2 rejected. `setpriv --inh-caps=-all tools/check.sh` passed. Not full quality/performance or Metal qualification; Linux release gate remains open.
 
-- 2026-11-20: extended unified-CLI rejection coverage for malformed, missing-profile and over-4-MiB dispatch manifests. Focused `setpriv --inh-caps=-all cargo test -p ncm-cli --test unified_rejections --locked` and full `setpriv --inh-caps=-all tools/check.sh` passed. Test-only, no inference or GPU qualification; WMT14 CFG decision and release gates remain pending.
+- 2026-11-20: extended unified-CLI rejection coverage for malformed, missing-profile and over-4-MiB dispatch manifests. Focused `setpriv --inh-caps=-all cargo test -p ncm-cli --test unified_rejections --locked` and full `setpriv --inh-caps=-all tools/check.sh` passed. Test-only, no inference or GPU qualification; the subsequent WMT14 CFG decision is recorded above, and release gates remain pending.
 
-- 2026-11-20: refreshed `README.md`, `docs/USAGE.md` and draft release notes to reflect implemented empty-only LM1B text, the `c63b205` Linux guide replay and the pending WMT14 CFG decision/Mac gate. Relative file links (80), shell-block syntax and `setpriv --inh-caps=-all tools/check.sh` passed. No local or remote `v0.1.0` tag was observed; GitHub release lookup returned not found. Documentation only; no runtime or GPU validation.
+- 2026-11-20: refreshed `README.md`, `docs/USAGE.md` and draft release notes to reflect implemented empty-only LM1B text, the `c63b205` Linux guide replay and the then-pending WMT14 CFG decision/Mac gate. Relative file links (80), shell-block syntax and `setpriv --inh-caps=-all tools/check.sh` passed. No local or remote `v0.1.0` tag was observed; GitHub release lookup returned not found. Documentation only; no runtime or GPU validation.
 
 - 2026-11-20: [WMT14 CFG release-surface audit](docs/results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md) found arbitrary positive scales enter both CLI routes without an experimental flag, while qualification is scoped to tested CFG settings. The subsequent decision and implementation are recorded above. This audit itself made no runtime change or GPU inference; `setpriv --inh-caps=-all tools/check.sh` passed.
 
