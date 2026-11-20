@@ -74,6 +74,14 @@ For a rehearsal, use `--mode rehearsal` with an observed-seed file such as
 `reports/phase4-lm1b-cohort-campaign-v1/observed-seeds.json`. The summary stage exits 1 when a
 prospective comparison fails.
 
+For later CUDA repeats of the already observed approved 80-seed cohort, use `--mode retest` with
+`docs/results/2026-11-16-phase4-lm1b/cohort-seeds-v1.json`. This mode is explicitly **nonblind**,
+requires the original registry SHA-256 and exact ordered CUDA seed lists, preserves the scorer,
+margins and bootstrap, and exits 1 if the comparison fails. It does not relabel the repeat as
+prospective or authorize new cohorts. Retest mode currently rejects Metal rather than implying
+that its import path has been requalified. The new mode extends the manifest's `mode` value; it
+does not change earlier manifests or their recorded identities.
+
 ## Prospective CUDA result
 
 The approved gate **passes** on CUDA. The campaign ran on 2026-11-19 from 05:31 to 06:15 UTC at

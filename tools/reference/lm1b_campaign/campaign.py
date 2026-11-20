@@ -1,4 +1,4 @@
-"""Manifest-bound LM1B-small quality campaign (observed-seed rehearsal or 80-seed prospective run).
+"""Manifest-bound LM1B quality campaign: rehearsal, prospective or nonblind frozen-seed retest.
 
 Build the Rust runner first with
 `cargo build --locked --release -p ncm-backend-cuda --features lm1b-experimental,cuda-cudnn
@@ -37,6 +37,7 @@ ROPE_SHA = '9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc'
 SHARD_SHA = 'e1eb550123ec76601d1af9c59c2bb7a81d5ca683a662948fcb4d8164dd510c4a'
 EVAL_SHA = '6452cb5cc06a2355ab7cd16b9809b7144a557418e9041e4617f3c50aef5655fc'
 TOKENIZER_SHA = 'd88aa17b66d730f2cb1fb31c5dbe63888a10da47ed8bea29dcb1f89423c3059c'
+RETEST_REGISTRY_SHA = 'c9800090de18f18d6719993f1ac36057b6cea479a26cc2e4b3115de6e4beeab1'
 # Per size: exported artifact manifest, and pinned upstream generator and config hashes.
 SIZES = {
     'small': ('58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76',
@@ -97,7 +98,7 @@ def json_file(path, sha=None):
 
 
 def seed_lists(mode, seeds):
-    require(mode in ('rehearsal', 'prospective'), 'unknown campaign mode')
+    require(mode in ('rehearsal', 'prospective', 'retest'), 'unknown campaign mode')
     require(isinstance(seeds, dict) and set(seeds) == set(RUNTIMES), 'two runtime seed lists required')
     expected = 2 if mode == 'rehearsal' else 80
     for runtime, values in seeds.items():
@@ -109,7 +110,10 @@ def seed_lists(mode, seeds):
     else:
         a, b = set(seeds['python']), set(seeds['rust'])
         require(a.isdisjoint(b) and not (a | b) & (set(range(17)) | {42}),
-                'prospective cohort requires disjoint lists outside the observed seed range')
+                '80-seed cohort requires disjoint lists outside the original five-seed range')
+        if mode == 'retest':
+            require(seeds == {'python': list(range(1000, 1080)), 'rust': list(range(2000, 2080))},
+                    'CUDA retest requires the original frozen seed lists')
     return seeds
 
 
@@ -141,6 +145,9 @@ def manifest(path, sha):
     plan, _ = json_file(path, sha)
     require(plan['schema_version'] == 1 and plan['params'] == PARAMS, 'unknown campaign parameters')
     seed_lists(plan['mode'], plan['seeds'])
+    if plan['mode'] == 'retest':
+        require(plan.get('seed_registry', {}).get('sha256') == RETEST_REGISTRY_SHA,
+                'retest seed registry identity differs')
     require(plan['pins'] == pins(plan_size(plan)), 'campaign input identity changed')
     return plan
 
@@ -367,7 +374,7 @@ def summary(plan, plan_sha, run):
     else:
         atomic_publish(path, result)
     print(digest(path))
-    return int(plan['mode'] == 'prospective' and not comparison['metrics_passed'])
+    return int(plan['mode'] in ('prospective', 'retest') and not comparison['metrics_passed'])
 
 
 def main():
@@ -375,7 +382,8 @@ def main():
     commands = p.add_subparsers(dest='stage', required=True)
     init = commands.add_parser('init')
     init.add_argument('run', type=Path)
-    init.add_argument('--mode', choices=('rehearsal', 'prospective'), required=True)
+    init.add_argument('--mode', choices=('rehearsal', 'prospective', 'retest'), required=True,
+                      help='retest is nonblind and reuses the frozen CUDA 80-seed registry')
     init.add_argument('--seeds', type=Path, required=True)
     init.add_argument('--rust-device', choices=('cuda', 'metal'), default='cuda')
     init.add_argument('--size', choices=tuple(SIZES), default='small')
@@ -402,7 +410,10 @@ def main():
         registry, registry_sha = json_file(args.seeds)
         require(isinstance(registry, dict) and set(RUNTIMES) <= set(registry),
                 'seed registry must list every runtime')
-        if args.mode == 'prospective':
+        if args.mode == 'retest':
+            require(registry_sha == RETEST_REGISTRY_SHA and args.rust_device == 'cuda',
+                    'retest requires the frozen registry and CUDA')
+        if args.mode in ('prospective', 'retest'):
             # Every pre-registered list, including ones for later runtimes, must be disjoint.
             require(all(isinstance(values, list) for values in registry.values()),
                     'seed registry lists required')
