@@ -42,4 +42,22 @@ done
 cmp "$out/wmt14-scorer-venv.json" "$out/wmt14-scorer-replay-venv.json"
 ```
 
-The captures, logs and receipts remain locally under ignored `reports/phase5-wmt14-cfg1-cuda-retest-v1/`; they are not durably published. This shared-GPU run is not a performance measurement. Full current-CLI CFG=1 corpus equivalence, release performance, Metal and the overall Phase 5 gates remain pending.
+The captures, logs and receipts remain locally under ignored `reports/phase5-wmt14-cfg1-cuda-retest-v1/`; they are not durably published. This shared-GPU run is not a performance measurement. Release performance, Metal and the overall Phase 5 gates remain pending.
+
+## Unified CUDA CLI corpus equivalence
+
+The release-mode current unified CLI, built from `d5b2931` (the new runner and its tests were untracked during the build; tracked sources were clean), matched the frozen Python CFG=1 capture above on all 3,003 rows in the same 751 batches (750 of four and a three-row tail). This covers 939,939 codes and 192,192 IDs; it binds the scored corpus to the unified ID-input route. Candidate binary SHA-256 `83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce`; runner SHA-256 `4a1f620b3dd1e9f386de842f6f5edb6bce45c524bda6961e4ae930517d7e5826`; ignored summary SHA-256 `ac756e22aa0a49b11917452ab768b191487c68acd4db23b97bd135ac7f761fa5`. The runner checked binary, input, reference and manifest hashes before and after and checked every output; an independent replay checked all stored inputs, output hashes, codes, IDs and empty stderr against the reference. Runner unit/negative tests and `setpriv --inh-caps=-all tools/check.sh` passed.
+
+```sh
+export LIBRARY_PATH="$PWD/.reference/phase4-cudnn-probe-lib"
+export LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib"
+export NVCC_CCBIN=/usr/bin/g++-15 CUDA_COMPUTE_CAP=86 CARGO_BUILD_JOBS=4 OMP_NUM_THREADS=1
+setpriv --inh-caps=-all cargo build -p ncm-cli --features cuda-cudnn --release --locked
+setpriv --inh-caps=-all python3 tools/bench/phase5_wmt14_cfg1_cli.py \
+  --binary target/release/ncm --binary-sha256 83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce \
+  --prefixes reports/phase4-wmt14-tokenizer-reference-v1.json \
+  --reference reports/phase5-wmt14-cfg1-cuda-retest-v1/python.json \
+  --artifact artifacts/canonical/wmt14-inference-v1-final --output reports/NEW-wmt14-cfg1-cli
+```
+
+Raw inputs, outputs, errors and summary remain under ignored `reports/phase5-wmt14-cfg1-cli-corpus-v1/`. This is a nonblind shared-GPU output retest, not a performance or Metal gate. It does not establish full legacy-alias corpus coverage or a release performance gate.
