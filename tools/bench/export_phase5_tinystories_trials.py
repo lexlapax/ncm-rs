@@ -22,7 +22,8 @@ def sha(raw):
 
 def validate_trials(doc, batch):
     values = doc.get('trials_seconds')
-    if (doc.get('batch') != batch or doc.get('warmups') != 5 or not isinstance(values, list) or len(values) != 30
+    if (type(doc.get('batch')) is not int or doc['batch'] != batch
+            or type(doc.get('warmups')) is not int or doc['warmups'] != 5 or not isinstance(values, list) or len(values) != 30
             or any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in values)):
         raise ValueError('invalid timing record')
     return values

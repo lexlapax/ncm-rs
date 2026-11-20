@@ -29,3 +29,13 @@ setpriv --inh-caps=-all python3 tools/bench/summarize_wmt14_phase5.py reports/NE
 ```
 
 This probe does not invoke the changed CLI, measure cold load, compare previous Rust with candidate, prove GPU isolation or provide Metal evidence. It is a partial current Rust/Python model comparison, not the Phase 5 release performance gate.
+
+## Sanitized timing trials
+
+The [sanitized trial series](wmt14-cuda-perf-trials-v1.json), SHA-256 `548594b1526d5083c07a96b79907272b23c81105394372fde08683d78998d19f`, publishes 720 measured timings (four batches, two runtimes, three processes, 30 trials) without source prefixes, generated IDs, local paths or telemetry. Exporter replay was byte-identical; independent published-only replay reproduced every process median and pooled p95. All 720 values also matched the earlier `measurements.json`, whose SHA-256 `eb7d038d5049d5a06fab2ea69799fe55c92ae5bbbab88c5e171dd46217f6fdaa` is pinned in the existing aggregate. Source hashes of individual result files were recorded at export, not precommitted. Negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. Raw data remain local; shared GPU, omitted device/host memory and release-gate limitations remain unchanged.
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/export_phase5_text_model_trials.py --profile wmt14 \
+  --run reports/phase5-wmt14-cuda-perf-v1 --summary docs/results/2026-11-19-phase5-cli/wmt14-cuda-perf-summary-v1.json \
+  --output reports/NEW-wmt14-timing-trials.json
+```

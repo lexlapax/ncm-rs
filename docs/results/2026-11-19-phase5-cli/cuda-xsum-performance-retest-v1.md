@@ -29,3 +29,13 @@ setpriv --inh-caps=-all python3 tools/bench/summarize_xsum_gpu_activity.py --dir
 ```
 
 This model probe does not invoke the changed CLI, measure cold load, prove GPU isolation or compare previous Rust with candidate. It does not satisfy the Phase 5 release performance gate or provide Metal evidence.
+
+## Sanitized timing trials
+
+The [sanitized trial series](xsum-cuda-perf-trials-v1.json), SHA-256 `049da4c0f9da2b05468b05a3823b9275dbdd0e2683e0def12853d703d84293c1`, publishes 540 measured timings (three batches, two runtimes, three processes, 30 trials) without source prefixes, generated IDs, local paths or telemetry. Exporter replay was byte-identical; independent published-only replay reproduced per-process medians and pooled p95s. The manifest and summary identities are pinned, but individual raw timing files were not precommitted: aggregate agreement is a consistency check, not authentication of every trial. Source file hashes were recorded at export time. Negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. Raw data remain local; shared GPU, omitted device/host memory and release-gate limitations remain unchanged.
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/export_phase5_text_model_trials.py --profile xsum \
+  --run reports/phase5-xsum-cuda-perf-v1 --summary docs/results/2026-11-19-phase5-cli/xsum-cuda-perf-summary-v1.json \
+  --output reports/NEW-xsum-timing-trials.json
+```
