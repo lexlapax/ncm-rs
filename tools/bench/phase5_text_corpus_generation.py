@@ -6,8 +6,9 @@ performance benchmark. All inputs and the output parent must be trusted and stab
 import argparse
 import hashlib
 import json
+import re
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[2]
 BINARY_SHA = '6194111fe3860584492676c6d14f50124a77f8dcf18f316a959b8abd16a20278'
@@ -43,6 +44,34 @@ def batches(name):
     if name == 'wmt14':
         return [(0, start // 4, list(range(start, min(start + 4, 3003)))) for start in range(0, 3003, 4)]
     raise ValueError('unsupported profile')
+
+
+def xsum_capture_hashes(entries):
+    """Index exact shard/ordinal identities without trusting the recorded checkout prefix."""
+    if not isinstance(entries, dict):
+        raise ValueError('invalid XSum hash map')
+    result = {}
+    for recorded_path, sha in entries.items():
+        if not isinstance(recorded_path, str):
+            raise ValueError('invalid XSum recorded path')
+        path = PurePosixPath(recorded_path)
+        parts = path.parts
+        if '..' in parts:
+            raise ValueError('invalid XSum recorded path')
+        if len(parts) < 3 or parts[-3] != 'reports':
+            continue
+        shard = re.fullmatch(r'phase5-xsum-rust-quality-v1-s([01])', parts[-2])
+        batch = re.fullmatch(r'batch-(\d{5})\.json', parts[-1])
+        if not shard or not batch:
+            continue
+        key = (int(shard.group(1)), int(batch.group(1)))
+        if key in result or not isinstance(sha, str) or not re.fullmatch(r'[0-9a-f]{64}', sha):
+            raise ValueError('duplicate or invalid XSum capture hash')
+        result[key] = sha
+    required = {(shard, ordinal) for shard in (0, 1) for ordinal in range(178)}
+    if set(result) != required:
+        raise ValueError('incomplete XSum capture hash map')
+    return result
 
 
 def validate_reference(reference, profile):
@@ -100,9 +129,10 @@ def main():
         if not summary['codes_and_ids_match'] or summary['rows'] != profile['rows'] or summary['identities']['binary'] != BINARY_SHA:
             raise ValueError('invalid prior CLI comparison')
         watched[summary_path] = XSUM_SUMMARY_SHA
+        capture_hashes = xsum_capture_hashes(summary['shard_file_sha256'])
         for shard, ordinal, indices in plan[args.start:stop]:
             path = ROOT / f'reports/phase5-xsum-rust-quality-v1-s{shard}/batch-{ordinal:05}.json'
-            sha = summary['shard_file_sha256'][str(path)]
+            sha = capture_hashes[(shard, ordinal)]
             envelope = json.loads(read_checked(path, sha))
             record = envelope['record']
             if record['ordinal'] != ordinal or record['indices'] != indices:

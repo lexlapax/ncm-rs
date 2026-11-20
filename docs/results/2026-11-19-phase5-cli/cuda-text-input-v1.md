@@ -64,9 +64,17 @@ Text and padded ID references were hash-checked against the full-corpus encoder 
 
 The candidate binary SHA-256 was `6194111fe3860584492676c6d14f50124a77f8dcf18f316a959b8abd16a20278`; runner SHA-256 `de150b7ebc4dff13cb9b6300c35c9666dbf83d90865a284ff65ee48f0b2dd025`. Ignored summary SHA-256s are XSum `02d5a159eacf50fc175c7df3f05c748b69da65f4d018cbb1c4c1bb28960b6a32` and WMT14 `07c2f5f13da157b6153b03d2eb10cd23e879eda5af9a343a40f54d2a3625601d`; raw input/output batches and summaries remain locally under `reports/phase5-{xsum,wmt14}-text-corpus-cuda-v1/`, not durably published. Smoke runs, batch-plan/negative-control unit tests and `setpriv --inh-caps=-all tools/check.sh` passed. No production code changed.
 
-The retained XSum summary keys its batch hashes by absolute path; this runner currently requires the
-same checkout path (`/home/lexlapax/projects/lexlapax/ncm-rs`) and the retained inputs and captures.
-This limits portability until that identity lookup is generalized.
+The full run used the original runner and checkout path. The retained XSum summary keys batch hashes
+by absolute path; the runner was subsequently generalized to index unique shard/ordinal suffixes
+without trusting that prefix. It requires all 356 identities, rejects duplicate, missing, malformed
+or traversal entries, and still verifies the original summary and every capture hash. Offline
+negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. A two-batch CUDA smoke with
+`ROOT` redirected to a separate local directory containing symlinks to the retained capture
+directories produced outputs byte-identical to the first two full-run batches. This is a relocated
+lookup smoke, not a fresh clone or a repeat of the full corpus. The updated runner SHA-256 is
+`0a7b4ecbf49f21d0547df15f5556e35657565840f7446763b6a6c4ca5aacda41`; the ignored smoke summary
+SHA-256 is `76cd1d96898edbdcb829adc3b5644f8c37b7ec9641651ccff7cf20362352b33a`.
+The command below uses the updated runner and still requires the retained inputs and captures.
 
 ```sh
 for profile in xsum wmt14; do

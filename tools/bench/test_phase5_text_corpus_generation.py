@@ -19,6 +19,30 @@ class CorpusGenerationTests(unittest.TestCase):
         self.assertEqual(tool.batches('xsum')[178][2][:4], [1, 3, 5, 7])
         self.assertEqual(tool.batches('wmt14')[-1][2], [3000, 3001, 3002])
 
+    def test_xsum_capture_hashes_ignore_checkout_prefix_but_reject_ambiguity(self):
+        def entries(prefix):
+            return {f'{prefix}/reports/phase5-xsum-rust-quality-v1-s{shard}/batch-{ordinal:05}.json': 'a' * 64
+                    for shard in (0, 1) for ordinal in range(178)}
+        original = entries('/original/checkout')
+        relocated = entries('/different/checkout')
+        self.assertEqual(tool.xsum_capture_hashes(original), tool.xsum_capture_hashes(relocated))
+        bad = original.copy()
+        bad.pop(next(iter(bad)))
+        with self.assertRaisesRegex(ValueError, 'incomplete'):
+            tool.xsum_capture_hashes(bad)
+        bad = original.copy()
+        bad['/different/checkout/reports/phase5-xsum-rust-quality-v1-s0/batch-00000.json'] = 'a' * 64
+        with self.assertRaisesRegex(ValueError, 'duplicate'):
+            tool.xsum_capture_hashes(bad)
+        bad = original.copy()
+        bad[next(iter(bad))] = 'not-a-digest'
+        with self.assertRaisesRegex(ValueError, 'invalid'):
+            tool.xsum_capture_hashes(bad)
+        bad = original.copy()
+        bad['/other/../reports/phase5-xsum-rust-quality-v1-s0/batch-00000.json'] = 'a' * 64
+        with self.assertRaisesRegex(ValueError, 'path'):
+            tool.xsum_capture_hashes(bad)
+
     def test_reference_and_output_validation_fail_closed(self):
         profile = {'rows': 2, 'width': 2, 'code_width': 2, 'id_width': 1}
         ref = {'texts': ['a', 'b'], 'ids': [[1, 2], [3, 4]]}
