@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **LM1B-medium CUDA 80-seed retest:** nonblind frozen-registry campaign passed PPL/entropy mean and 95% interval margins; all 160 scores were upstream-exact and per-seed metrics reproduced the original prospective records ([report](docs/results/2026-11-19-phase5-cli/cuda-lm1b-medium-quality-retest-v1.md)). Summary replay and `setpriv --inh-caps=-all ./tools/check.sh` passed. Large, performance and Metal remain pending; no full CLI cohort equivalence is implied.
+
 - **LM1B-small CUDA 80-seed retest:** nonblind frozen-registry campaign passed both PPL/entropy mean and 95% interval margins; all 160 score records are upstream-exact, and compact per-seed metrics plus comparison reproduce the original prospective records ([report](docs/results/2026-11-19-phase5-cli/cuda-lm1b-small-quality-retest-v1.md)). Summary replay and `setpriv --inh-caps=-all ./tools/check.sh` passed. Medium/large, performance and Metal remain pending; no full CLI cohort equivalence is implied.
 
 - **LM1B nonblind retest mode:** campaign tooling now explicitly labels CUDA repeats of the original frozen 80-seed registry as `retest`, pins the registry and ordered cohorts, and fails on quality-margin failures without changing scorer, margins, bootstrap or earlier records ([contract](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md#reproduce)). Three offline negative controls and `setpriv --inh-caps=-all ./tools/check.sh` pass. No new GPU quality or performance evidence yet; run CUDA retests before Metal.
