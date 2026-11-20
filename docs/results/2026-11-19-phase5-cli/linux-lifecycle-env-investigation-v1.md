@@ -20,3 +20,16 @@ Reproduce the unbarriered probe with a fresh output path (the failure is intermi
 setpriv --inh-caps=-all python3 tools/bench/phase5_lifecycle_env_probe.py \
   --output reports/NEW-lifecycle-env-probe --attempts 30
 ```
+
+## Handoff executable-identity investigation
+
+A later `tools/check.sh` failed a different CPU-only handoff fixture at job 8 with `unexpected live executable identity`; the process observer failed closed. The focused and full retries passed ([record](cuda-wmt14-pool-diagnostic-v1.md#collector-integration-smoke)). Its cause is not established; it must not be assumed to be the previous environment mismatch.
+
+A test-only probe wraps the fake fixture worker's `ProcessObservation.observe` and, only when that exact mismatch is raised, records whether each already-sampled `/proc/<pid>/exe` inode matches the collector, expected workload or launcher. It records booleans only, never unexpected paths, argv, or inode values; it restores `os.stat` and re-raises the original exception. This wrapper may perturb timing, and matching an identity would not itself prove a trustworthy startup barrier. It does not change production observer acceptance, launch, privileges or machine policy.
+
+Fifty instrumented full fake handoffs (18 jobs each, with skipped tests treated as failure) completed without reproducing the mismatch; no identity categories were observed. An earlier 50-run version also completed without a failure, and its logs were checked to confirm tests ran rather than skipped. The first one-attempt smoke had a test-probe quoting `SyntaxError` before the fixture ran; the corrected smoke passed. These negative results neither establish cause nor resolve the race. Final probe SHA-256 `73feeccd3aa27529e98e691669f2381615bec191b2e2db0b7f8d6641f2bb7332`; ignored 50-run summary SHA-256 `7186355d348714d0d4428e05a07f1e6befe92c4b1587907e66cb9e583c8d7df4`. Three probe tests, including mismatch preservation and output privacy, and `setpriv --inh-caps=-all tools/check.sh` passed. Raw fixture logs remain local under ignored `reports/phase5-handoff-image-probe-v2/`.
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/phase5_handoff_image_probe.py \
+  --output reports/NEW-handoff-image-probe --attempts 50
+```
