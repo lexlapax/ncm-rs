@@ -1,6 +1,6 @@
 import unittest
 
-from phase5_wmt14_cfg1_cli import check_output, command_for, expected_batch
+from phase5_wmt14_cfg1_cli import check_output, command_for, expected_batch, validate_text_reference
 
 
 class WmtCfgCliTests(unittest.TestCase):
@@ -15,8 +15,18 @@ class WmtCfgCliTests(unittest.TestCase):
                          ['bin', 'sample', 'art', 'cuda', 'input', '--cfg', '1'])
         self.assertEqual(command_for('alias', 'bin', 'art', 'input'),
                          ['bin', 'sample-wmt14', 'art', 'cuda', 'input', '1'])
-        with self.assertRaises(ValueError):
-            command_for('other', 'bin', 'art', 'input')
+        self.assertEqual(command_for('unified', 'bin', 'art', 'input', text=True)[-3:], ['--cfg', '1', '--text'])
+        for route, text in [('other', False), ('alias', True)]:
+            with self.assertRaises(ValueError):
+                command_for(route, 'bin', 'art', 'input', text=text)
+
+    def test_text_reference_requires_exact_prefixes_and_strings(self):
+        ref = {'ids': self.prefixes, 'texts': [''] * 3003}
+        self.assertEqual(len(validate_text_reference(ref, self.prefixes)), 3003)
+        for invalid in ({**ref, 'texts': [''] * 3002}, {**ref, 'ids': []}, {**ref, 'extra': 1},
+                        {**ref, 'texts': [True] * 3003}):
+            with self.assertRaises(ValueError):
+                validate_text_reference(invalid, self.prefixes)
 
     def test_full_and_tail_batch(self):
         self.assertEqual(len(expected_batch(self.prefixes, self.reference, 0)[0]), 4)

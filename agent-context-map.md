@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [WMT14 CFG=1 CUDA text corpus](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#wmt14-cfg1-full-corpus-text-generation) matched the prior ID-input stdout on all 3,003 rows in 751 batches; pinned text IDs equaled frozen prefixes. Independent replay, five runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. Nonblind shared-GPU correctness only, no decode/Metal/performance claim; raw texts and outputs local.
+
 - 2026-11-20: [CPU handoff executable-identity investigation](docs/results/2026-11-19-phase5-cli/linux-lifecycle-env-investigation-v1.md#handoff-executable-identity-investigation) instrumented only fake workers, preserving fail-closed errors and recording fixed-identity booleans. Fifty handoffs did not reproduce the intermittent failure; cause remains unproven. Probe tests and `setpriv --inh-caps=-all tools/check.sh` passed. No production observer change; exclusive CUDA window requested from user.
 
 - 2026-11-20: published [sanitized LM1B CUDA model timing trials](docs/results/2026-11-19-phase5-cli/lm1b-cuda-perf-trials-v1.json): 1,620 values across all nine measured cells, bound to five result/manifest hashes previously pinned in the aggregate, without inputs/outputs/paths/PIDs. Independent median/p95 and exporter replays, negative tests and `setpriv --inh-caps=-all tools/check.sh` passed. Shared-GPU model-only evidence, not release or Metal qualification; raw bundles remain local.

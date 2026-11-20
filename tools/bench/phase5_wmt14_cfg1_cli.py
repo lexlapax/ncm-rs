@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PREFIX_SHA = '22c76d597ae51dffadf61661d6b7c4d4290fd14b8809bfa6f1959b5c668df93f'
 REFERENCE_SHA = '78f24bba0fecc8ce7c06abf22508516142a5331cc6df5572efd533f9211e9256'
 MANIFEST_SHA = '01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81'
+TEXT_SHA = '4c1d6b68e89b46800219e9099116b1a50d51b2c96a51bdc8abe6dec6a98add9e'
 
 
 def digest(path):
@@ -55,10 +56,18 @@ def check_output(raw, expected):
         raise ValueError('CLI output differs from frozen reference')
 
 
-def command_for(route, binary, artifact, input_path):
+def validate_text_reference(reference, prefixes):
+    if (not isinstance(reference, dict) or set(reference) != {'texts', 'ids'}
+            or reference['ids'] != prefixes or not isinstance(reference['texts'], list)
+            or len(reference['texts']) != 3003 or any(not isinstance(s, str) for s in reference['texts'])):
+        raise ValueError('text reference differs from frozen prefixes')
+    return reference['texts']
+
+
+def command_for(route, binary, artifact, input_path, *, text=False):
     if route == 'unified':
-        return [str(binary), 'sample', str(artifact), 'cuda', str(input_path), '--cfg', '1']
-    if route == 'alias':
+        return [str(binary), 'sample', str(artifact), 'cuda', str(input_path), '--cfg', '1', *(['--text'] if text else [])]
+    if route == 'alias' and not text:
         return [str(binary), 'sample-wmt14', str(artifact), 'cuda', str(input_path), '1']
     raise ValueError('unsupported route')
 
@@ -70,9 +79,12 @@ def main():
     parser.add_argument('--binary-sha256', required=True)
     parser.add_argument('--prefixes', type=Path, required=True)
     parser.add_argument('--reference', type=Path, required=True)
+    parser.add_argument('--text-reference', type=Path, help='pinned WMT14 text/ID corpus, unified route only')
     parser.add_argument('--artifact', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
+    if args.text_reference and args.route != 'unified':
+        raise ValueError('text input requires the unified route')
     if not re.fullmatch(r'[0-9a-f]{64}', args.binary_sha256):
         raise ValueError('invalid binary hash')
     output = args.output.absolute()
@@ -85,6 +97,13 @@ def main():
         if digest(path) != sha:
             raise ValueError(f'input identity differs: {path}')
     prefix_data = json.loads(prefixes.read_bytes())['prefixes']
+    text_data = None
+    if args.text_reference:
+        text_reference = args.text_reference.resolve()
+        watched[text_reference] = TEXT_SHA
+        if digest(text_reference) != TEXT_SHA:
+            raise ValueError('text reference identity differs')
+        text_data = validate_text_reference(json.loads(text_reference.read_bytes()), prefix_data)
     reference_data = json.loads(reference.read_bytes())
     # Validate all batches before starting the GPU workload.
     plan = [(start, *expected_batch(prefix_data, reference_data, start)) for start in range(0, 3003, 4)]
@@ -93,9 +112,10 @@ def main():
     for start, inputs, expected in plan:
         input_path = output / f'input-{start:04}.json'
         with input_path.open('x') as stream:
-            json.dump(inputs, stream, separators=(',', ':'))
+            json.dump(text_data[start:start + len(inputs)] if text_data is not None else inputs,
+                      stream, ensure_ascii=True, separators=(',', ':'))
             stream.write('\n')
-        command = command_for(args.route, binary, artifact, input_path)
+        command = command_for(args.route, binary, artifact, input_path, text=text_data is not None)
         result = subprocess.run(command, capture_output=True, timeout=900, check=False)
         (output / f'output-{start:04}.json').write_bytes(result.stdout)
         (output / f'error-{start:04}.txt').write_bytes(result.stderr)
@@ -110,7 +130,8 @@ def main():
             raise ValueError(f'input changed during capture: {path}')
     with (output / 'summary.json').open('x') as stream:
         json.dump({'scope': 'nonblind CUDA CFG=1 CLI output equivalence, not performance',
-                   'route': args.route, 'rows': sum(record['rows'] for record in records), 'batches': records,
+                   'route': args.route, 'input_mode': 'text' if text_data is not None else 'ids',
+                   'rows': sum(record['rows'] for record in records), 'batches': records,
                    'watched_sha256': {str(path): sha for path, sha in watched.items()}}, stream, indent=2, sort_keys=True)
         stream.write('\n')
 

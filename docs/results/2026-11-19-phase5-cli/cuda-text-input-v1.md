@@ -21,6 +21,22 @@ setpriv --inh-caps=-all env \
 
 This explicit ignored test passed on Linux. It checks both row counts and compares every encoded padded row, in batches of at most 128. The test reads the complete validated artifacts; it does not itself check the external reference hashes, so use the generator above.
 
+## WMT14 CFG=1 full-corpus text generation
+
+On 2026-11-20, the post-boundary unified CUDA CLI processed all 3,003 pinned WMT14 source texts in the frozen 751 CFG=1 batches. The pinned text reference's padded IDs exactly equal the frozen ID-prefix capture; for every batch the resulting stdout was byte-identical to the earlier [CFG=1 ID-input CLI corpus](cuda-wmt14-cfg1-quality-retest-v1.md#unified-cuda-cli-corpus-equivalence). An independent replay checked all saved text rows, output bytes and hashes, and empty stderr. The runner hash-checked binary, artifact, text/ID references and Python capture before and after. This is a nonblind correctness retest on a shared GPU, not a performance or Metal result; no `--decode` was used.
+
+The candidate binary SHA-256 was `83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce`; extended runner SHA-256 `5ad92e7e06fe45d26d651f73b114d52663de2dbb99b87fe4dbf02537d6d666f6`; ignored summary SHA-256 `fe469159a76e671db2095d82801ee95cb6711c78c956b2e72d0036f2cc297940`. Five focused runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. The runner is the later version of the CFG=1 ID/alias runner; prior report hashes identify the earlier versions. Raw texts and outputs remain local in ignored `reports/phase5-wmt14-cfg1-text-corpus-v1/`.
+
+```sh
+setpriv --inh-caps=-all env LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" OMP_NUM_THREADS=1 \
+  python3 tools/bench/phase5_wmt14_cfg1_cli.py --binary target/release/ncm \
+  --binary-sha256 83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce \
+  --prefixes reports/phase4-wmt14-tokenizer-reference-v1.json \
+  --reference reports/phase5-wmt14-cfg1-cuda-retest-v1/python.json \
+  --text-reference reports/phase5-text-corpus-v1/wmt14.json \
+  --artifact artifacts/canonical/wmt14-inference-v1-final --output reports/NEW-wmt14-cfg1-text
+```
+
 ## Synthetic truncation and padding boundaries
 
 Seven synthetic strings per profile exercise empty input, a single token, long repeated text and
