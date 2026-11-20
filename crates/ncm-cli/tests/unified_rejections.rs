@@ -76,6 +76,13 @@ fn unified_command_rejects_unsupported_profiles_options_and_devices() {
             "unsupported option for WMT14",
         ),
         (
+            "wmt-unflagged-cfg",
+            "wmt14-inference-v1",
+            "cuda",
+            &["--cfg", "2"],
+            "requires --experimental-cfg-wmt14",
+        ),
+        (
             "lm1b-text",
             "lm1b-small-inference-v1",
             "cpu",
@@ -129,6 +136,23 @@ fn unified_command_rejects_unsupported_profiles_options_and_devices() {
         assert!(output.stdout.is_empty());
         assert!(String::from_utf8(output.stderr).unwrap().contains(message));
     }
+    let output = Command::new(env!("CARGO_BIN_EXE_ncm"))
+        .args([
+            "sample-wmt14",
+            "missing-artifact",
+            "cuda",
+            "missing-input",
+            "2",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stdout.is_empty());
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("requires --experimental-cfg-wmt14")
+    );
     for (name, profile, device, options, message) in cases {
         let artifact = scratch.artifact(name, profile);
         let output = Command::new(env!("CARGO_BIN_EXE_ncm"))

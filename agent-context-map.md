@@ -6,11 +6,13 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: user chose WMT14 CFG option 1: 0 and 1 unflagged; other positive scales require `--experimental-cfg-wmt14` on unified and legacy routes. Help/migration docs and host rejection tests updated. [CUDA fixed-request screen](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg-boundary-v1.md) matched the pre-change alias for scales 0/1/2 across both routes; unflagged 2 rejected. `setpriv --inh-caps=-all tools/check.sh` passed. Not full quality/performance or Metal qualification; Linux release gate remains open.
+
 - 2026-11-20: extended unified-CLI rejection coverage for malformed, missing-profile and over-4-MiB dispatch manifests. Focused `setpriv --inh-caps=-all cargo test -p ncm-cli --test unified_rejections --locked` and full `setpriv --inh-caps=-all tools/check.sh` passed. Test-only, no inference or GPU qualification; WMT14 CFG decision and release gates remain pending.
 
 - 2026-11-20: refreshed `README.md`, `docs/USAGE.md` and draft release notes to reflect implemented empty-only LM1B text, the `c63b205` Linux guide replay and the pending WMT14 CFG decision/Mac gate. Relative file links (80), shell-block syntax and `setpriv --inh-caps=-all tools/check.sh` passed. No local or remote `v0.1.0` tag was observed; GitHub release lookup returned not found. Documentation only; no runtime or GPU validation.
 
-- 2026-11-20: [WMT14 CFG release-surface audit](docs/results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md) found arbitrary positive scales enter both CLI routes without an experimental flag, while qualification is scoped to tested CFG settings. Decision pending on keeping CFG=1 unflagged versus flagging all positive scales. No runtime change or GPU inference; `setpriv --inh-caps=-all tools/check.sh` passed.
+- 2026-11-20: [WMT14 CFG release-surface audit](docs/results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md) found arbitrary positive scales enter both CLI routes without an experimental flag, while qualification is scoped to tested CFG settings. The subsequent decision and implementation are recorded above. This audit itself made no runtime change or GPU inference; `setpriv --inh-caps=-all tools/check.sh` passed.
 
 - 2026-11-20: [LM1B default-sidecar/empty-text CUDA cold screens](docs/results/2026-11-19-phase5-cli/cuda-lm1b-text-cold-performance-v1.md) compared old ID, new ID, empty text and text+decode, 90 measured processes/condition per size; all fixed output hashes matched. Median paired decode increments were 7.745/7.858/8.885 ms (small/medium/large); causes unisolated. Sanitized export replay, tests and `setpriv --inh-caps=-all tools/check.sh` passed. Shared GPU, one row, no Python/native CLI peak/Metal; release gate pending.
 

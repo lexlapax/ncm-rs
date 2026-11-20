@@ -520,7 +520,7 @@ The examples below assume the Linux CUDA build and the four qualified artifacts 
 sidecar prepared above. They create fresh synthetic inputs and one-row outputs; they are not
 quality, performance or Python-parity tests. TinyStories text must encode to exactly one non-padding
 token; XSum/WMT14 text is truncated and padded per profile. LM1B currently uses the fixed `[[101]]`
-ID input; `--text` also accepts empty strings only. WMT14 uses `cuda`, while the other examples use
+ID input; `--text` also accepts empty strings only. WMT14 CFG scales 0 and 1 need no flag; other positive scales require `--experimental-cfg-wmt14` on `ncm sample` and the `sample-wmt14` positional alias. Previously unflagged non-0/1 alias calls must add this flag; these scales remain experimental. WMT14 uses `cuda`, while the other examples use
 `cuda-cudnn`. A [Linux CUDA screen](results/2026-11-19-phase5-cli/cuda-synthetic-text-examples-v1.md)
 used the same requests with retained artifact paths; the [integrated Linux fresh-clone replay](results/2026-11-19-phase5-cli/linux-guide-integrated-replay-v1.md)
 also ran these examples. The [single-commit Linux replay](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)

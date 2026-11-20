@@ -36,7 +36,7 @@ to tag and publish. Historical Phase 3/4 evidence below is not a measurement of 
   must add the corresponding flags. Qualified top-1 calls retain their positional syntax.
 - WMT14's scoped top-1 qualification retains Metal intermediate differences and explicit
   bounded-retry behavior ([report](results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification));
-  `mlx-retry-padded` is experimental. The boundary for other CFG scales is [awaiting a decision](results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md); it is not a blanket quality claim.
+  `mlx-retry-padded` is experimental. WMT14 CFG 0 and 1 remain unflagged; other positive scales require `--experimental-cfg-wmt14` on both commands. Existing unflagged non-0/1 calls must add that flag; arbitrary scales have no blanket quality claim ([audit](results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md)).
 - LM1B's original five-seed entropy gate failed; the user-approved 80-seed protocol passes on both
   devices. Metal draw-level and floating-policy differences are a scoped exception; fixed-history
   decision/ID differences remain failures ([decisions](results/2026-11-16-phase4-lm1b/user-decisions-v1.md)).
@@ -51,6 +51,6 @@ to tag and publish. Historical Phase 3/4 evidence below is not a measurement of 
 ## Pending before publication
 
 - The Linux guide blocks were replayed from a fresh clone at `c63b205` ([evidence](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)); complete the Mac recipe and fresh-clone replay after the Linux gate. Sudoku medium/hard's original exporter identity remains unresolved and the approved re-exports need full qualification ([investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md)).
-- Finish CUDA command/option, quality and performance qualification, including the WMT14 CFG decision; then validate the current CLI, text/decode and performance on Metal. LM1B empty-text has a scoped [CUDA screen](results/2026-11-19-phase5-cli/cuda-lm1b-empty-text-v1.md#all-three-sizes), not a Metal pass. Record failures and do not infer a GPU pass from CPU tests.
+- Finish CUDA command/option, quality and performance qualification, including the WMT14 CFG boundary; then validate the current CLI, text/decode and performance on Metal. LM1B empty-text has a scoped [CUDA screen](results/2026-11-19-phase5-cli/cuda-lm1b-empty-text-v1.md#all-three-sizes), not a Metal pass. Record failures and do not infer a GPU pass from CPU tests.
 - Update these notes and the context map with actual gate evidence. Ask before tagging and pushing
   `v0.1.0` and publishing the source-only GitHub release.

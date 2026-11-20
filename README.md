@@ -60,7 +60,7 @@ mode rejects strings that do not encode to exactly one non-padding token. LM1B a
   [scoped LM1B exception](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md#2-metal-stochastic-draw-differences-scoped-exception).
 - XSum stochastic sampling and positive CFG, LM1B Metal `--top-p-fp32`, and WMT14's
   `mlx-retry-padded` device are experimental; they are not covered by the ordinary top-1 release bar.
-  WMT14's qualification boundary for other CFG scales is [awaiting a decision](docs/results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md); arbitrary scales are not a blanket quality claim.
+  WMT14 CFG scales 0 and 1 remain unflagged; other positive scales require `--experimental-cfg-wmt14` on both unified and legacy commands. Arbitrary scales are not a blanket quality claim ([audit](docs/results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md)).
 - No serving API, streaming, cancellation or concurrent-request throughput is qualified.
 - Batch limits depend on model, device and available memory. On the tested 8 GiB CUDA card the
   pinned Python LM1B-large baseline ran out of memory at batch 16; its timing sweep used batch 8,

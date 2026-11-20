@@ -11,7 +11,8 @@ Usage:
 
 Run `ncm sample --help` for profiles, options and experimental paths.
 Profile-specific sample commands remain available. The XSum alias requires explicit
-experimental flags for positive CFG and stochastic sampling.
+experimental flags for positive CFG and stochastic sampling. WMT14 CFG scales other
+than 0 or 1 require --experimental-cfg-wmt14 on both commands.
 ";
 
 pub(super) const SAMPLE: &str = "\
@@ -35,6 +36,7 @@ Options:
   --top-p-fp32                   Experimental LM1B Metal top-p sampler.
   --experimental-stochastic-xsum Experimental XSum sampling; requires --seed.
   --experimental-positive-cfg-xsum Experimental positive-CFG XSum; requires --cfg > 0.
+  --experimental-cfg-wmt14       Experimental WMT14 CFG other than 0 or 1.
 
 Devices are explicit; availability depends on the build and profile. WMT14's
 mlx-retry-padded device is experimental. OWT inference is unsupported.
@@ -73,6 +75,7 @@ mod tests {
             "--top-p-fp32",
             "--experimental-stochastic-xsum",
             "--experimental-positive-cfg-xsum",
+            "--experimental-cfg-wmt14",
             "mlx-retry-padded",
         ] {
             let line = SAMPLE.lines().find(|line| line.contains(option)).unwrap();

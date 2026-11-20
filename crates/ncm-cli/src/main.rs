@@ -472,6 +472,8 @@ fn main_impl() -> Result<()> {
         args = sample::translate(&args)?;
     } else if args.get(1).is_some_and(|arg| arg == "sample-xsum") {
         sample::validate_xsum_alias(&mut args)?;
+    } else if args.get(1).is_some_and(|arg| arg == "sample-wmt14") {
+        sample::validate_wmt14_alias(&mut args)?;
     }
     if args.len() == 3 && args[1] == "inspect" {
         let artifact = Artifact::load(&args[2])?;

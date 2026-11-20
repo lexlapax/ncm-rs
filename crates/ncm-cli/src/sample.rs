@@ -2,7 +2,7 @@
 use super::Result;
 use std::{fs, io::Read, path::Path};
 
-const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--top-p-fp32|--host-fp64]";
+const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
 
 /// Read only enough untrusted metadata to choose a path. The chosen path must
 /// subsequently load and validate the complete artifact before inference.
@@ -74,6 +74,38 @@ pub(super) fn validate_xsum_alias(args: &mut Vec<String>) -> Result<()> {
     Ok(())
 }
 
+fn validate_wmt14_cfg(cfg: f64, experimental: bool) -> Result<()> {
+    if !cfg.is_finite() || cfg < 0.0 {
+        return Err("CFG scale must be finite and nonnegative".into());
+    }
+    if (cfg > 0.0 && cfg != 1.0) != experimental {
+        return Err("WMT14 CFG other than 0 or 1 requires --experimental-cfg-wmt14; the flag requires such a scale".into());
+    }
+    Ok(())
+}
+
+pub(super) fn validate_wmt14_alias(args: &mut Vec<String>) -> Result<()> {
+    if args.len() < 5 {
+        return Err("invalid sample-wmt14 arguments".into());
+    }
+    let mut scale: Option<String> = None;
+    let mut experimental = false;
+    for arg in &args[5..] {
+        match arg.as_str() {
+            "--experimental-cfg-wmt14" if !experimental => experimental = true,
+            value if !value.starts_with("--") && scale.is_none() => scale = Some(value.to_owned()),
+            _ => return Err("invalid sample-wmt14 arguments".into()),
+        }
+    }
+    validate_wmt14_cfg(
+        scale.as_deref().map(str::parse).transpose()?.unwrap_or(0.0),
+        experimental,
+    )?;
+    args.truncate(5);
+    args.extend(scale);
+    Ok(())
+}
+
 pub(super) fn translate(args: &[String]) -> Result<Vec<String>> {
     if args.len() < 5 {
         return Err(USAGE.into());
@@ -88,6 +120,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
     let (mut seed, mut cfg, mut rope) = (None, None, None);
     let (mut decode, mut text, mut stochastic, mut positive_cfg, mut top_p, mut host_fp64) =
         (false, false, false, false, false, false);
+    let mut wmt14_experimental = false;
     let mut options = args[5..].iter();
     while let Some(option) = options.next() {
         match option.as_str() {
@@ -106,10 +139,14 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             "--text" if !text => text = true,
             "--experimental-stochastic-xsum" if !stochastic => stochastic = true,
             "--experimental-positive-cfg-xsum" if !positive_cfg => positive_cfg = true,
+            "--experimental-cfg-wmt14" if !wmt14_experimental => wmt14_experimental = true,
             "--top-p-fp32" if !top_p && !host_fp64 => top_p = true,
             "--host-fp64" if !top_p && !host_fp64 => host_fp64 = true,
             _ => return Err(USAGE.into()),
         }
+    }
+    if wmt14_experimental && profile != "wmt14-inference-v1" {
+        return Err("--experimental-cfg-wmt14 is only supported for WMT14".into());
     }
     let mut result = vec![
         args[0].clone(),
@@ -161,6 +198,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             {
                 return Err("unsupported option for WMT14".into());
             }
+            validate_wmt14_cfg(cfg.unwrap_or(0.0), wmt14_experimental)?;
             result[1] = "sample-wmt14".into();
             result.push(cfg.unwrap_or(0.0).to_string());
         }
@@ -197,7 +235,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
 
 #[cfg(test)]
 mod tests {
-    use super::{translate_profile, validate_xsum_alias};
+    use super::{translate_profile, validate_wmt14_alias, validate_xsum_alias};
 
     fn args(options: &[&str]) -> Vec<String> {
         ["ncm", "sample", "artifact", "cuda-cudnn", "input"]
@@ -247,6 +285,67 @@ mod tests {
             validate_xsum_alias(&mut args).unwrap();
             assert!(args[5..].iter().all(|arg| !arg.starts_with("--")));
         }
+    }
+
+    #[test]
+    fn wmt14_cfg_boundary_applies_to_both_routes() {
+        for (scale, flag, accepted) in [
+            ("0", false, true),
+            ("1", false, true),
+            ("1.0", false, true),
+            ("0.5", false, false),
+            ("2", false, false),
+            ("2", true, true),
+            ("0.5", true, true),
+            ("0", true, false),
+            ("1", true, false),
+            ("NaN", false, false),
+            ("-1", true, false),
+        ] {
+            let mut options = vec!["--cfg", scale];
+            if flag {
+                options.push("--experimental-cfg-wmt14");
+            }
+            assert_eq!(
+                translate_profile(&args(&options), "wmt14-inference-v1").is_ok(),
+                accepted,
+                "unified {scale} {flag}"
+            );
+            let mut alias: Vec<String> =
+                ["ncm", "sample-wmt14", "artifact", "cuda", "input", scale]
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect();
+            if flag {
+                alias.push("--experimental-cfg-wmt14".into());
+            }
+            assert_eq!(
+                validate_wmt14_alias(&mut alias).is_ok(),
+                accepted,
+                "alias {scale} {flag}"
+            );
+            if accepted {
+                assert_eq!(alias.len(), 6);
+                assert_eq!(alias[5], scale);
+            }
+        }
+        assert!(
+            translate_profile(&args(&["--experimental-cfg-wmt14"]), "xsum-inference-v2").is_err()
+        );
+        let mut duplicate: Vec<String> = [
+            "ncm",
+            "sample-wmt14",
+            "a",
+            "cuda",
+            "i",
+            "2",
+            "--experimental-cfg-wmt14",
+            "--experimental-cfg-wmt14",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+        assert!(validate_wmt14_alias(&mut duplicate).is_err());
     }
 
     #[test]
