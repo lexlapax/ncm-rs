@@ -5,8 +5,9 @@ Next-Concept Modeling for parallel, coarse-to-fine generation. Production infere
 native CUDA or MLX, not Python; Python is used offline for conversion, references and evaluation.
 
 **Status: Phase 4 complete with scoped, user-accepted exceptions; Phase 5 release candidate in progress.**
-This is not yet a released inference package. The Phase 5 unified CLI has CUDA development screens,
-but its Metal validation, fresh-clone setup, performance evidence and release gates remain pending.
+This is not yet a released inference package. The Phase 5 unified CLI has CUDA development screens
+and a Linux fresh-clone guide replay; Metal validation, complete setup, performance qualification and
+release gates remain pending.
 See the [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md),
 [Phase 5 plan](docs/PHASE5.md) and [current state](agent-context-map.md).
 
@@ -39,34 +40,35 @@ the artifact profile; existing `sample-*` commands remain available. Run `ncm --
 ```sh
 ncm inspect ARTIFACT
 ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode]
-ncm sample ARTIFACT DEVICE TEXT_JSON --text [--decode]  # TinyStories, XSum or WMT14
+ncm sample ARTIFACT DEVICE TEXT_JSON --text [--decode]  # LM1B accepts empty strings only
 ncm generate ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]     # Sudoku
 ncm reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]  # Sudoku codec
 ```
 
 The unified command's CUDA [baseline/alias equivalence screen](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md)
-covers one fixed batch per profile. Its [text-input](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md),
+covers one fixed batch per profile. Additional [text-input](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md),
 [decode](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md) and
-[LM1B rotary](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md) screens have narrower scopes.
-Metal equivalents are pending. LM1B requires the separately generated, hash-pinned rotary sidecar
-beside the artifact, or `--reference-rope FILE`; no table approximation or device fallback is used.
-TinyStories accepts one non-padding prefix token per row; its `--text` mode rejects strings
-that do not encode to exactly one non-padding token. LM1B accepts only its fixed `[101]`
-start-token rows and currently rejects `--text`.
+[LM1B rotary](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md) evidence has the scopes
+specified in those reports. Metal equivalents are pending. LM1B requires the separately generated,
+hash-pinned rotary sidecar beside the artifact, or `--reference-rope FILE`; no table approximation
+or device fallback is used. TinyStories accepts one non-padding prefix token per row; its `--text`
+mode rejects strings that do not encode to exactly one non-padding token. LM1B accepts only its fixed
+`[101]` start-token rows; `--text` accepts 1–32 empty strings mapped to those rows and rejects nonempty prompts.
 
 - FP32 only in this phase; BF16/FP16 and quantization are deferred. OWT inference is unsupported.
 - Neither runtime reproduces the PyTorch random stream; Metal/CUDA draw-level differences are a
   [scoped LM1B exception](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md#2-metal-stochastic-draw-differences-scoped-exception).
 - XSum stochastic sampling and positive CFG, LM1B Metal `--top-p-fp32`, and WMT14's
   `mlx-retry-padded` device are experimental; they are not covered by the ordinary top-1 release bar.
+  WMT14's qualification boundary for other CFG scales is [awaiting a decision](docs/results/2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md); arbitrary scales are not a blanket quality claim.
 - No serving API, streaming, cancellation or concurrent-request throughput is qualified.
 - Batch limits depend on model, device and available memory. On the tested 8 GiB CUDA card the
   pinned Python LM1B-large baseline ran out of memory at batch 16; its timing sweep used batch 8,
   and Rust large batch 16 was not measured ([report](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)).
   CLI argument limits are not a guarantee that a batch fits.
-- The [setup guide](docs/USAGE.md) is an incomplete draft; fresh-clone verification is pending. In
-  particular, the historical Sudoku medium/hard exporter identity is unresolved; see the
-  [export investigation](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
+- The [setup guide](docs/USAGE.md) is an incomplete draft. Its Linux blocks were replayed from a
+  fresh clone at `c63b205`; the Mac recipe and release gates remain pending. The historical Sudoku
+  medium/hard exporter identity is unresolved; see the [export investigation](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
 Release notes are a [draft](docs/RELEASE-NOTES-v0.1.0.md), not a published release. No model weights,
 evaluation data or prebuilt inference binaries are included in Git.

@@ -169,10 +169,10 @@ done
 Each LM1B size download includes a copy of the shared tokenizer checkpoint; plan disk space
 accordingly. The exporters recheck the source sizes and SHA-256 before opening checkpoints using
 `torch.load(weights_only=True)`; they never retry unrestricted pickle. The downloader was screened
-against retained inputs for all profiles; the [integrated Linux replay](results/2026-11-19-phase5-cli/linux-guide-integrated-replay-v1.md)
-freshly downloaded the seven profiles with reproducible manifests. A complete fresh-clone workflow
-on both machines remains unverified. The earlier [download screen](results/2026-11-19-phase5-cli/checkpoint-download-screen-v1.md)
-records its narrower scope.
+against retained inputs for all profiles. The [single-commit Linux replay](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)
+freshly downloaded all nine profiles and checked their documented manifest identities at `c63b205`,
+including the approved medium/hard candidate hashes. The Mac recipe and release gate remain unverified.
+The earlier [download screen](results/2026-11-19-phase5-cli/checkpoint-download-screen-v1.md) records its narrower scope.
 
 ## Export and manifest identities — incomplete
 
@@ -185,8 +185,9 @@ recorded in the [investigation](results/2026-11-19-phase5-cli/linux-export-repro
 
 **Do not silently substitute a new manifest hash for a qualified one.** The user approved the
 provenance-only medium/hard candidates below for further qualification; the original identities
-remain recorded. Complete review, a portable reference environment and a full clean-clone replay
-are still required.
+remain recorded. Full candidate qualification, a portable reference environment and a complete Mac
+fresh-clone replay are still required. The [Linux guide replay](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)
+at `c63b205` does not close those requirements.
 The limited Sudoku-easy Linux replay below does not close those requirements. Existing [Sudoku export](../tools/reference/README.md#sudoku-easy-checkpoint-and-oracle-checks),
 [XSum rotary export](results/2026-11-15-phase4-xsum/rotary-artifact-profile-v2.md),
 [WMT14 export](results/2026-11-16-phase4-wmt14/artifact-plan-v1.md) and
@@ -261,7 +262,7 @@ printf '%s  %s\n' ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d98
 
 The exporter worktree intentionally contains the historical source file restored from a later
 commit; its contents and hash are part of provenance. Inspect its status before removing it. The
-remaining setup guide does not yet specify all artifact exporters or how to reproduce their hashes.
+remaining sections document the other Linux exporters; the complete Mac recipe remains pending.
 
 ### Linux Sudoku medium/hard development replay
 
@@ -269,11 +270,11 @@ The user approved the following provenance-only candidates for further qualifica
 medium/hard exporter is missing; the only provenance field changed is `converter_sha256`, and
 its file record consequently differs in the manifest. All other payload bytes and manifest fields
 matched the retained originals in the [investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
-Their CUDA two-row [screen](results/2026-11-19-phase5-cli/cuda-sudoku-reexports-v1.md) is not full
-qualification. The block below passed with fresh checkpoint downloads in the existing Linux checkout
-([evidence](results/2026-11-19-phase5-cli/linux-export-repro-v1.md#mediumhard-draft-guide-replay-with-fresh-downloads));
-it has not yet been followed from a fresh clone or on macOS. It uses the same Python 3.14.9 build
-and reference environment prepared in the easy section above.
+Their CUDA [full-corpus comparison](results/2026-11-19-phase5-cli/cuda-sudoku-reexport-corpus-v1.md)
+is not full qualification. The block below passed with fresh checkpoint downloads both in the existing
+Linux checkout and in the [single-commit Linux fresh-clone replay](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)
+at `c63b205`; it has not been followed on macOS. It uses the same Python 3.14.9 build and reference
+environment prepared in the easy section above.
 
 ```sh
 for entry in medium:162378394 hard:162378392; do
@@ -522,7 +523,8 @@ token; XSum/WMT14 text is truncated and padded per profile. LM1B currently uses 
 ID input; `--text` also accepts empty strings only. WMT14 uses `cuda`, while the other examples use
 `cuda-cudnn`. A [Linux CUDA screen](results/2026-11-19-phase5-cli/cuda-synthetic-text-examples-v1.md)
 used the same requests with retained artifact paths; the [integrated Linux fresh-clone replay](results/2026-11-19-phase5-cli/linux-guide-integrated-replay-v1.md)
-also ran these examples. Full-guide and Metal replays remain pending.
+also ran these examples. The [single-commit Linux replay](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)
+ran all documented Linux blocks; the Metal replay remains pending.
 
 ```sh
 mkdir reports/text-examples || exit 1
