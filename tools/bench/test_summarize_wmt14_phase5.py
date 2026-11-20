@@ -33,6 +33,24 @@ class AggregateTests(unittest.TestCase):
         self.assertEqual(result['batches']['1']['rust']['sampled_gpu_peak_mib'], [200, 200, 200])
         self.assertEqual(result['batches']['32']['python']['pooled_p95_ms'], 100)
 
+    def test_cuda_pool_counters_are_separate_and_fail_closed(self):
+        data = fixture()
+        records = data[1]['cfg0-b1-rust']
+        counter = {'used_current': 4, 'used_peak': 6, 'reserved_current': 8, 'reserved_peak': 10}
+        for row in records:
+            row['cuda_default_pool_bytes'] = counter.copy()
+        summary = tool.summarize(*data)['batches']['1']['rust']
+        self.assertEqual(summary['cuda_default_pool_bytes'], [counter] * 3)
+        self.assertEqual(summary['peak_allocated_bytes'], [None] * 3)
+        for invalid in (None, {}, {**counter, 'used_peak': 11}, {**counter, 'used_current': True}):
+            bad = copy.deepcopy(data)
+            bad[1]['cfg0-b1-rust'][0]['cuda_default_pool_bytes'] = invalid
+            with self.assertRaises(ValueError):
+                tool.summarize(*bad)
+        del records[0]['cuda_default_pool_bytes']
+        with self.assertRaises(ValueError):
+            tool.summarize(*data)
+
     def test_missing_and_failed_evidence_rejected(self):
         for mutate in (
             lambda m, v, e, a: m.update(modes=[1]),

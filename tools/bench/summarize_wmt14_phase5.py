@@ -6,6 +6,8 @@ import math
 import statistics
 from pathlib import Path
 
+from run_wmt14_fast_argmax_bench import checked_cuda_pool
+
 BATCHES = (1, 4, 16, 32)
 
 
@@ -72,7 +74,7 @@ def summarize(manifest, measurements, events, activity):
                 raise ValueError('invalid device events or RSS')
             medians = [statistics.median(record['trials_seconds']) * 1000 for record in records]
             names = [f'{runtime}-cfg0-b{batch}-r{rep}' for rep in range(3)]
-            result['batches'][str(batch)][runtime] = {
+            summary = {
                 'process_medians_ms': medians, 'median_of_process_medians_ms': statistics.median(medians),
                 'pooled_p95_ms': sorted(samples)[math.ceil(.95 * len(samples)) - 1],
                 'peak_rss_mib': [record['peak_rss_kib'] / 1024 for record in records],
@@ -81,6 +83,11 @@ def summarize(manifest, measurements, events, activity):
                 'peak_allocated_bytes': [record['peak_allocated_bytes'] for record in records],
                 'peak_reserved_bytes': [record['peak_reserved_bytes'] for record in records],
             }
+            if runtime == 'rust' and any('cuda_default_pool_bytes' in record for record in records):
+                if not all('cuda_default_pool_bytes' in record for record in records):
+                    raise ValueError('incomplete CUDA default-pool counters')
+                summary['cuda_default_pool_bytes'] = [checked_cuda_pool(record['cuda_default_pool_bytes']) for record in records]
+            result['batches'][str(batch)][runtime] = summary
     return result
 
 

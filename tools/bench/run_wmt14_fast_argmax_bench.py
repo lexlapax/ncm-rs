@@ -21,6 +21,17 @@ CUDNN = ROOT / '.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib'
 PYTHON = ROOT / '.reference/venv/bin/python'
 
 
+def checked_cuda_pool(value):
+    keys = {'used_current', 'used_peak', 'reserved_current', 'reserved_peak'}
+    if (not isinstance(value, dict) or set(value) != keys
+            or any(type(value[key]) is not int or value[key] <= 0 for key in keys)
+            or value['used_current'] > value['used_peak']
+            or value['reserved_current'] > value['reserved_peak']
+            or value['used_peak'] > value['reserved_peak']):
+        raise ValueError('invalid CUDA default-pool counters')
+    return value
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
@@ -113,7 +124,8 @@ def main():
                         if key in signatures and signatures[key] != outputs:
                             raise ValueError(f'{stem} outputs differ')
                         signatures[key] = outputs
-                        measurements.setdefault(f'cfg{mode}-b{batch}-{runtime}', []).append({'median_seconds': statistics.median(times), 'trials_seconds': times, 'device_event_seconds': device_times, 'peak_rss_kib': result['peak_rss_kib'], 'cleanup_seconds': result.get('cleanup_seconds'), 'peak_allocated_bytes': result.get('peak_allocated_bytes'), 'peak_reserved_bytes': result.get('peak_reserved_bytes')})
+                        cuda_pool = checked_cuda_pool(result.get('cuda_default_pool_bytes')) if runtime == 'rust' else None
+                        measurements.setdefault(f'cfg{mode}-b{batch}-{runtime}', []).append({'median_seconds': statistics.median(times), 'trials_seconds': times, 'device_event_seconds': device_times, 'peak_rss_kib': result['peak_rss_kib'], 'cleanup_seconds': result.get('cleanup_seconds'), 'peak_allocated_bytes': result.get('peak_allocated_bytes'), 'peak_reserved_bytes': result.get('peak_reserved_bytes'), 'cuda_default_pool_bytes': cuda_pool})
                         print(stem, 'median', statistics.median(times), flush=True)
     finally:
         if process is not None:

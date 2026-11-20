@@ -7,6 +7,35 @@ use ncm_model::{Wmt14HostOutput, Wmt14Teacher};
 use serde_json::{Value, json};
 use std::{error::Error, fs, time::Instant};
 
+// SAFETY: the CUDA context is bound to this thread, the pool is CUDA-owned,
+// and each synchronous attribute query writes to a live u64.
+#[allow(unsafe_code)]
+fn default_pool(backend: &CandleBackend) -> Result<serde_json::Value, Box<dyn Error>> {
+    use sys::CUmemPool_attribute::*;
+    let device = backend.device().as_cuda_device()?;
+    device.cuda_stream().context().bind_to_thread()?;
+    let mut pool = std::ptr::null_mut();
+    unsafe {
+        sys::cuDeviceGetDefaultMemPool(&mut pool, device.cuda_stream().context().cu_device())
+            .result()?;
+    }
+    let mut result = std::collections::BTreeMap::new();
+    for (name, attribute) in [
+        ("used_current", CU_MEMPOOL_ATTR_USED_MEM_CURRENT),
+        ("used_peak", CU_MEMPOOL_ATTR_USED_MEM_HIGH),
+        ("reserved_current", CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT),
+        ("reserved_peak", CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH),
+    ] {
+        let mut value = 0_u64;
+        unsafe {
+            sys::cuMemPoolGetAttribute(pool, attribute, (&mut value as *mut u64).cast())
+                .result()?;
+        }
+        result.insert(name, value);
+    }
+    Ok(json!(result))
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().collect();
     let [_, artifact, prefixes, batch, cfg, extras @ ..] = args.as_slice() else {
@@ -124,12 +153,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         .next()
         .ok_or("missing peak RSS value")?
         .parse()?;
+    let pool = default_pool(&backend)?;
     let (codes, ids) = signature.ok_or("missing output")?;
     let code_rows: Vec<_> = codes.chunks_exact(codes.len() / batch).collect();
     let id_rows: Vec<_> = ids.chunks_exact(ids.len() / batch).collect();
     println!(
         "{}",
-        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"deferred_head":deferred_head,"materialize_after":materialize_after,"decoder_rows":decoder_rows,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"outputs":{"codes":code_rows,"ids":id_rows}})
+        json!({"scope":"generation and codes/IDs host readback; model load excluded","batch":batch,"cfg":cfg,"deferred_head":deferred_head,"materialize_after":materialize_after,"decoder_rows":decoder_rows,"warmups":5,"trials_seconds":samples,"device_event_seconds":device_samples,"peak_rss_kib":rss_kib,"cuda_default_pool_bytes":pool,"cuda_pool_scope":"device default CUDA pool high-water marks since process/context start; excludes allocations outside that pool","outputs":{"codes":code_rows,"ids":id_rows}})
     );
     Ok(())
 }
