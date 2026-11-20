@@ -74,6 +74,8 @@ Run checks under `setpriv --inh-caps=-all`; the shell may carry an inheritable c
 
 ## Checks run for this update
 
+- **TinyStories CUDA five-seed quality:** regenerated and scored 256 samples per official seed per runtime against pinned Python; frozen PPL/entropy margins pass in a nonblind retest, and all Rust codes/IDs match pre-change and current CLI chunks ([report](docs/results/2026-11-19-phase5-cli/cuda-tinystories-quality-retest-v1.md)). The qualified streaming-scorer caveat and initial missing-`regex` failure are recorded; `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not performance or Metal evidence.
+
 - **TinyStories CUDA five-seed routing:** pre-change, alias and unified CLI outputs matched byte-for-byte for 128 rows at each official seed ([report](docs/results/2026-11-19-phase5-cli/cuda-tinystories-five-seed-routing-v1.md)). `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not the 256-per-seed evaluator quality gate, Python RNG parity, performance or Metal.
 
 - **CUDA Sudoku CLI corpus regression:** pre-change `generate` and current `sample` matched byte-for-byte on all 6,000 boards across the three original artifacts; scores against retained dataset references matched Phase 3 ([report](docs/results/2026-11-19-phase5-cli/cuda-sudoku-baseline-corpus-v1.md)). Medium/hard current captures were reused from the preceding re-export screen; `setpriv --inh-caps=-all ./tools/check.sh` passed. This is not a new direct Python comparison, performance or Metal evidence.
