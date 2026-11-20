@@ -15,6 +15,8 @@ PREFIX_SHA = '22c76d597ae51dffadf61661d6b7c4d4290fd14b8809bfa6f1959b5c668df93f'
 REFERENCE_SHA = '78f24bba0fecc8ce7c06abf22508516142a5331cc6df5572efd533f9211e9256'
 MANIFEST_SHA = '01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81'
 TEXT_SHA = '4c1d6b68e89b46800219e9099116b1a50d51b2c96a51bdc8abe6dec6a98add9e'
+DECODE_SHA = '43392bd5c8011956f514a5f6bf3f8090d72a09dd3cd08b3027fc02d5c3e3b0d2'
+DECODE_CAPTURE_SHA = 'ff04571bfc72be02aee45ef7f64b6b4226431dca2264a7fd02d30be44294ef0f'
 
 
 def digest(path):
@@ -44,7 +46,7 @@ def expected_batch(prefixes, reference, start):
 
 def check_output(raw, expected):
     actual = json.loads(raw)
-    if not isinstance(actual, dict) or set(actual) != {'codes', 'ids'}:
+    if not isinstance(actual, dict) or set(actual) != set(expected):
         raise ValueError('invalid CLI output')
     for key in ('codes', 'ids'):
         if not isinstance(actual[key], list) or any(
@@ -64,10 +66,20 @@ def validate_text_reference(reference, prefixes):
     return reference['texts']
 
 
-def command_for(route, binary, artifact, input_path, *, text=False):
+def validate_decoded_reference(reference):
+    if (not isinstance(reference, dict) or reference.get('capture_sha256') != DECODE_CAPTURE_SHA
+            or reference.get('start') != 0 or reference.get('count') != 3003
+            or not isinstance(reference.get('hypotheses'), list) or len(reference['hypotheses']) != 3003
+            or any(not isinstance(s, str) for s in reference['hypotheses'])):
+        raise ValueError('invalid pinned decoded reference')
+    return reference['hypotheses']
+
+
+def command_for(route, binary, artifact, input_path, *, text=False, decode=False):
     if route == 'unified':
-        return [str(binary), 'sample', str(artifact), 'cuda', str(input_path), '--cfg', '1', *(['--text'] if text else [])]
-    if route == 'alias' and not text:
+        return [str(binary), 'sample', str(artifact), 'cuda', str(input_path), '--cfg', '1',
+                *(['--text'] if text else []), *(['--decode'] if decode else [])]
+    if route == 'alias' and not text and not decode:
         return [str(binary), 'sample-wmt14', str(artifact), 'cuda', str(input_path), '1']
     raise ValueError('unsupported route')
 
@@ -80,11 +92,12 @@ def main():
     parser.add_argument('--prefixes', type=Path, required=True)
     parser.add_argument('--reference', type=Path, required=True)
     parser.add_argument('--text-reference', type=Path, help='pinned WMT14 text/ID corpus, unified route only')
+    parser.add_argument('--decode-reference', type=Path, help='pinned CFG=1 evaluator decoding, unified route only')
     parser.add_argument('--artifact', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    if args.text_reference and args.route != 'unified':
-        raise ValueError('text input requires the unified route')
+    if (args.text_reference or args.decode_reference) and args.route != 'unified':
+        raise ValueError('text or decode requires the unified route')
     if not re.fullmatch(r'[0-9a-f]{64}', args.binary_sha256):
         raise ValueError('invalid binary hash')
     output = args.output.absolute()
@@ -104,6 +117,13 @@ def main():
         if digest(text_reference) != TEXT_SHA:
             raise ValueError('text reference identity differs')
         text_data = validate_text_reference(json.loads(text_reference.read_bytes()), prefix_data)
+    decoded = None
+    if args.decode_reference:
+        decode_reference = args.decode_reference.resolve()
+        watched[decode_reference] = DECODE_SHA
+        if digest(decode_reference) != DECODE_SHA:
+            raise ValueError('decoded reference identity differs')
+        decoded = validate_decoded_reference(json.loads(decode_reference.read_bytes()))
     reference_data = json.loads(reference.read_bytes())
     # Validate all batches before starting the GPU workload.
     plan = [(start, *expected_batch(prefix_data, reference_data, start)) for start in range(0, 3003, 4)]
@@ -115,7 +135,10 @@ def main():
             json.dump(text_data[start:start + len(inputs)] if text_data is not None else inputs,
                       stream, ensure_ascii=True, separators=(',', ':'))
             stream.write('\n')
-        command = command_for(args.route, binary, artifact, input_path, text=text_data is not None)
+        if decoded is not None:
+            expected = {**expected, 'texts': decoded[start:start + len(inputs)]}
+        command = command_for(args.route, binary, artifact, input_path,
+                              text=text_data is not None, decode=decoded is not None)
         result = subprocess.run(command, capture_output=True, timeout=900, check=False)
         (output / f'output-{start:04}.json').write_bytes(result.stdout)
         (output / f'error-{start:04}.txt').write_bytes(result.stderr)
@@ -131,6 +154,7 @@ def main():
     with (output / 'summary.json').open('x') as stream:
         json.dump({'scope': 'nonblind CUDA CFG=1 CLI output equivalence, not performance',
                    'route': args.route, 'input_mode': 'text' if text_data is not None else 'ids',
+                   'decode': decoded is not None,
                    'rows': sum(record['rows'] for record in records), 'batches': records,
                    'watched_sha256': {str(path): sha for path, sha in watched.items()}}, stream, indent=2, sort_keys=True)
         stream.write('\n')

@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- **CUDA blocked (2026-11-20):** [direct WMT14 CFG=1 text+decode corpus attempt](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#wmt14-cfg1-direct-textdecode-cli-attempt--interrupted) stopped after 28 matching rows with `CUDA_ERROR_SYSTEM_DRIVER_MISMATCH`; `nvidia-smi` reports NVML mismatch (loaded module 620.70.06, NVML library 620.73.04). Cause and repair unconfirmed; no machine change. Six runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. Partial capture retained, no full-corpus claim. User decision needed on machine recovery; exclusive GPU window also pending.
+
 - 2026-11-20: [WMT14 CFG=1 retained CUDA corpus decoding](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#wmt14-cfg1-retained-cuda-corpus-decode) matched pinned evaluator strings on 3,003 rows; CFG=0 regression, altered-reference negative control and `setpriv --inh-caps=-all tools/check.sh` passed. Host-side test only; no direct CLI corpus decode, new GPU inference, performance or Metal claim.
 
 - 2026-11-20: [WMT14 CFG=1 CUDA text corpus](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md#wmt14-cfg1-full-corpus-text-generation) matched the prior ID-input stdout on all 3,003 rows in 751 batches; pinned text IDs equaled frozen prefixes. Independent replay, five runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. Nonblind shared-GPU correctness only, no decode/Metal/performance claim; raw texts and outputs local.

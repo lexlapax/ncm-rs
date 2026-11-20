@@ -53,6 +53,23 @@ setpriv --inh-caps=-all env \
   cargo test --locked -p ncm-cli --bin ncm tinystories_retained_corpus_decode_matches_pinned_evaluator -- --ignored --nocapture
 ```
 
+## WMT14 CFG=1 direct text/decode CLI attempt — interrupted
+
+On 2026-11-20, a direct CUDA unified CLI `--cfg 1 --text --decode` corpus run stopped at the eighth four-row batch (row 28) with `CUDA_ERROR_SYSTEM_DRIVER_MISMATCH`. The runner emitted no completion summary. An independent replay checked the seven completed batches (28 rows): text inputs matched the pinned source, codes/IDs matched the prior text-only CLI run and decoded strings matched the pinned evaluator. This is partial evidence only, not a full corpus pass. The failed batch had empty stdout; stderr SHA-256 `8a2ff9350c8103700174cd31fd4c5aaf8b8d2fddd268447fad7cd33c7138f537`. Partial captures are preserved under ignored `reports/phase5-wmt14-cfg1-text-decode-corpus-v1/`.
+
+Immediately after failure, `/proc/driver/nvidia/version` reported loaded NVIDIA module `620.70.06`, while `nvidia-smi` failed with NVML driver/library version mismatch and reported NVML `620.73`; `/usr/lib/libnvidia-ml.so.1` resolved to `libnvidia-ml.so.620.73.04`. This establishes a version mismatch, not its cause or a safe repair. No live system changes were made. The test runner SHA-256 was `232fef2fcdb2b7c5b34bdbf19681fee6aaed106a4495628fc121f38f77aa9115`; candidate binary `83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce`. Six offline runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. CUDA availability and the user's machine-change decision are pending; rerun from a fresh output directory after the environment is restored, never reuse this partial capture as a full result.
+
+```sh
+setpriv --inh-caps=-all env LD_LIBRARY_PATH="$PWD/.reference/venv/lib/python3.14/site-packages/nvidia/cudnn/lib" OMP_NUM_THREADS=1 \
+  python3 tools/bench/phase5_wmt14_cfg1_cli.py --binary target/release/ncm \
+  --binary-sha256 83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce \
+  --prefixes reports/phase4-wmt14-tokenizer-reference-v1.json \
+  --reference reports/phase5-wmt14-cfg1-cuda-retest-v1/python.json \
+  --text-reference reports/phase5-text-corpus-v1/wmt14.json \
+  --decode-reference reports/phase5-wmt14-cfg1-cuda-retest-v1/rust-text.json \
+  --artifact artifacts/canonical/wmt14-inference-v1-final --output reports/NEW-wmt14-cfg1-text-decode
+```
+
 ## WMT14 CFG=1 retained CUDA corpus decode
 
 On 2026-11-20, the artifact-bound CLI decoder matched the pinned evaluator on all 3,003 retained WMT14 CFG=1 CUDA rows. The ignored test binds capture SHA-256 `ff04571bfc72be02aee45ef7f64b6b4226431dca2264a7fd02d30be44294ef0f` and evaluator output SHA-256 `43392bd5c8011956f514a5f6bf3f8090d72a09dd3cd08b3027fc02d5c3e3b0d2`, checks their linkage, ordered rows and 64 IDs per row, then compares every decoded string. The [quality retest](cuda-wmt14-cfg1-quality-retest-v1.md) and its CLI comparisons bind those IDs to the fixed CFG=1 corpus. The CFG=0 ignored test was also rerun after refactoring the shared test helper; both passed. An altered CFG=1 evaluator file was rejected by the hash check, and `setpriv --inh-caps=-all tools/check.sh` passed. This is a host-side decoder check, not new GPU inference, direct `--decode` CLI corpus coverage, performance or Metal validation. Raw captures remain local.
