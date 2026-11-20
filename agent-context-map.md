@@ -6,7 +6,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
-- 2026-11-20: the CLI's artifact-bound decoder [matched the pinned evaluator for all 3,003 retained WMT14 CUDA output rows](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#wmt14-retained-cuda-corpus-decode). The ignored corpus test and `setpriv --inh-caps=-all tools/check.sh` passed; a modified reference failed its hash check. No runtime changes or Metal validation; captures remain local.
+- 2026-11-20: the CLI's artifact-bound decoder matched pinned evaluator text for retained CUDA outputs: [3,003 WMT14 rows](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#wmt14-retained-cuda-corpus-decode), [11,334 XSum and 1,280 TinyStories rows](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md#xsum-and-tinystories-retained-cuda-output-decoding). The ignored corpus tests and `setpriv --inh-caps=-all tools/check.sh` passed; modified WMT14 and XSum references failed hash checks. No runtime changes or Metal validation; captures remain local.
 
 - 2026-11-20: [XSum CUDA/Python model performance retest](docs/results/2026-11-19-phase5-cli/cuda-xsum-performance-retest-v1.md) used three alternating processes and 30 trials at batches 1/4/32; outputs matched for those prefixes and Rust had lower observed median latency and RSS. Both aggregate summaries replayed byte-for-byte and `setpriv --inh-caps=-all tools/check.sh` passed. Desktop GPU was shared; this is not changed-CLI, cold-load, previous-Rust or Metal qualification. Raw captures are local only. Remaining release gates and profiling remain open.
 

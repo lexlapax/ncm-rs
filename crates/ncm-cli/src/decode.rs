@@ -352,6 +352,90 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires retained TinyStories CUDA captures and pinned artifact"]
+    fn tinystories_retained_corpus_decode_matches_pinned_evaluator() {
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_TINYSTORIES_ARTIFACT").unwrap())
+                .unwrap();
+        let decoder = Decoder::from_artifact(&artifact).unwrap();
+        drop(artifact);
+        let directory =
+            std::path::PathBuf::from(std::env::var("NCM_TINYSTORIES_CAPTURES").unwrap());
+        for (seed, hash) in [
+            (
+                0,
+                "7130d8f638c6c60c08eb4a6e92a3aa6029576b121243b00434c583cdcb0858ea",
+            ),
+            (
+                1,
+                "c50b33df058e9d9d95d884ffcae61593f17b712c3df3f48852fdfd7d6f7cdd5c",
+            ),
+            (
+                2,
+                "337709f40d8174f247c8d30c2b62364877ca369e116ca352dc10150343f7cd00",
+            ),
+            (
+                3,
+                "59d3c85c90396bb15a4bb9276fe97180a9d33caedda21fab31ecf8d8c33320ae",
+            ),
+            (
+                42,
+                "78cb02830fedcd6725bc22213534582b646c3b94a8fe97457bb16c339927774b",
+            ),
+        ] {
+            let raw = std::fs::read(directory.join(format!("rust-{seed}.json"))).unwrap();
+            assert_eq!(ncm_io::sha256(&raw), hash);
+            let capture: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+            assert_eq!(capture["seed"], seed);
+            let ids: Vec<Vec<u32>> = serde_json::from_value(capture["raw_ids"].clone()).unwrap();
+            let texts: Vec<String> = serde_json::from_value(capture["texts"].clone()).unwrap();
+            assert_eq!(ids.len(), 256);
+            assert_eq!(texts.len(), ids.len());
+            assert!(ids.iter().all(|row| row.len() == 128));
+            let mut result = serde_json::json!({"ids": ids});
+            decoder.add_texts(&mut result).unwrap();
+            assert_eq!(result["texts"], serde_json::json!(texts), "seed {seed}");
+        }
+    }
+
+    #[test]
+    #[ignore = "requires retained XSum CUDA scorer output and pinned artifact"]
+    fn xsum_retained_corpus_decode_matches_pinned_evaluator() {
+        let artifact =
+            ncm_io::Artifact::load_inference(std::env::var("NCM_XSUM_ARTIFACT").unwrap()).unwrap();
+        let decoder = Decoder::from_artifact(&artifact).unwrap();
+        drop(artifact);
+        let reference = std::fs::read(std::env::var("NCM_XSUM_SCORED_CAPTURE").unwrap()).unwrap();
+        assert_eq!(
+            ncm_io::sha256(&reference),
+            "47302a63f8d014ae64eb7d6293ff3cbd0b41f4e94f702a42c6f870b4a93c6ed3"
+        );
+        let reference: serde_json::Value = serde_json::from_slice(&reference).unwrap();
+        assert_eq!(reference["start"], 0);
+        assert_eq!(reference["stop"], 11334);
+        let rows = reference["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 11334);
+        for (batch, rows) in rows.chunks(128).enumerate() {
+            let mut ids = Vec::with_capacity(rows.len());
+            let mut expected = Vec::with_capacity(rows.len());
+            for (offset, row) in rows.iter().enumerate() {
+                assert_eq!(row["index"], batch * 128 + offset);
+                let raw_ids: Vec<u32> = serde_json::from_value(row["raw_ids"].clone()).unwrap();
+                assert_eq!(raw_ids.len(), 48);
+                ids.push(raw_ids);
+                expected.push(row["hypothesis"].as_str().unwrap());
+            }
+            let mut result = serde_json::json!({"ids": ids});
+            decoder.add_texts(&mut result).unwrap();
+            assert_eq!(
+                result["texts"],
+                serde_json::json!(expected),
+                "batch {batch}"
+            );
+        }
+    }
+
+    #[test]
     #[ignore = "requires retained WMT14 CUDA capture and pinned evaluator decoding"]
     fn wmt14_retained_corpus_decode_matches_pinned_evaluator() {
         let artifact =

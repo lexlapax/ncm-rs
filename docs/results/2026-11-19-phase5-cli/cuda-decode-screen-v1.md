@@ -19,6 +19,23 @@ The original screen left text encoding, LM1B rotary setup, broader decode checks
 and performance evidence pending. Later work is recorded in the [current context map](../../../agent-context-map.md);
 no release gate is claimed by this screen.
 
+## XSum and TinyStories retained CUDA output decoding
+
+On 2026-11-20, the CLI's artifact-bound `Decoder::add_texts` matched the pinned evaluator decoding on all **11,334** XSum top-1 CFG=0 rows and **1,280** TinyStories rows across five seeds. XSum's test checks the pinned scored capture hash, ordered row indices, 48 IDs per row, and every hypothesis. TinyStories checks each pinned sample hash, seed, 256 rows of 128 IDs, and every text; its [quality scorer](cuda-tinystories-quality-retest-v1.md) previously checked those sample texts against the pinned upstream BPE decoder. The [XSum quality retest](cuda-xsum-quality-retest-v1.md) and TinyStories retest separately matched these IDs to the unified CLI. These are host-side decoding checks, not new inference, stochastic-quality, performance or Metal results. No runtime code changed.
+
+The retained XSum scorer file `reports/phase5-xsum-rust-score-full-v1.json` has SHA-256 `47302a63f8d014ae64eb7d6293ff3cbd0b41f4e94f702a42c6f870b4a93c6ed3`. TinyStories sample hashes are pinned in the regression test. These evaluation-derived captures remain ignored locally; see the linked retests for their generation. A modified XSum reference was rejected by its hash check. Both ignored tests and `setpriv --inh-caps=-all tools/check.sh` passed.
+
+```sh
+setpriv --inh-caps=-all env \
+  NCM_XSUM_ARTIFACT="$PWD/artifacts/canonical/xsum-inference-rope-v2-final" \
+  NCM_XSUM_SCORED_CAPTURE="$PWD/reports/phase5-xsum-rust-score-full-v1.json" \
+  cargo test --locked -p ncm-cli --bin ncm xsum_retained_corpus_decode_matches_pinned_evaluator -- --ignored --nocapture
+setpriv --inh-caps=-all env \
+  NCM_TINYSTORIES_ARTIFACT="$PWD/artifacts/canonical/tinystories-phase4-v1" \
+  NCM_TINYSTORIES_CAPTURES="$PWD/reports/phase5-tinystories-quality-cuda-v2" \
+  cargo test --locked -p ncm-cli --bin ncm tinystories_retained_corpus_decode_matches_pinned_evaluator -- --ignored --nocapture
+```
+
 ## WMT14 retained CUDA corpus decode
 
 On 2026-11-20, the artifact-bound `Decoder::add_texts` used by `ncm sample --decode` matched the pinned evaluator's decoded hypotheses on all **3,003** retained WMT14 CFG=0 CUDA output rows from the [quality retest](cuda-wmt14-quality-retest-v1.md). The ignored regression test checks the hashes and linkage of the capture and evaluator output, every sequential row index, 64 IDs per row, and all decoded strings. The same IDs were independently matched to the unified CLI in the quality retest; this host-side test does not run the CLI or a GPU, test Metal, or cover other text profiles. No runtime code changed.
