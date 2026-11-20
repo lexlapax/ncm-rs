@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [post-WMT14-boundary nine-profile CUDA routing rerun](docs/results/2026-11-19-phase5-cli/cuda-current-routing-v1.md#post-wmt14-boundary-nine-profile-rerun) matched pre-change, alias and unified stdout for each fixed request, with previous output hashes reproduced. Independent replay, five focused runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. No Metal, quality or performance gate claim; captures local.
+
 - 2026-11-20: [updated step 1 progress audit](docs/results/2026-11-19-phase5-cli/step1-progress-audit-v2.md) maps current scoped evidence and remaining CUDA, Metal, release, profiling and optimization gates; not a completion audit. Thirty relative file links and `setpriv --inh-caps=-all tools/check.sh` passed; no runtime change.
 
 - 2026-11-20: [WMT14 CFG=1 CUDA alias corpus comparison](docs/results/2026-11-19-phase5-cli/cuda-wmt14-cfg1-quality-retest-v1.md#legacy-and-pre-change-aliases) matched the frozen Python capture on 3,003 rows; independent replay found byte-identical input/stdout across pre-change alias, current alias and prior unified CLI for all 751 batches. Extended runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. Nonblind shared-GPU correctness evidence, not performance/Metal; raw captures local.

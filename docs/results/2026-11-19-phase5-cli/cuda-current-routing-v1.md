@@ -34,3 +34,11 @@ runs used `setpriv --inh-caps=-all`, `OMP_NUM_THREADS=1` and the reference cuDNN
 Raw captures remain ignored in `reports/phase5-xsum-alias-flags-cuda-v1/`. Host tests separately
 check rejection of unflagged experimental aliases. These are fixed-input screens, not full corpus,
 quality, performance, alternate Sudoku artifact qualification or Metal evidence.
+
+## Post-WMT14 boundary nine-profile rerun
+
+On 2026-11-20, the same nine fixed requests were rerun on CUDA with the pre-change baseline and a release candidate built from `d5b2931`, which includes the WMT14 CFG boundary. All baseline, alias and unified stdout streams were byte-identical per profile; all nine hashes matched the previous screen. The WMT14 request here uses default CFG=0; the separate [CFG boundary screen](cuda-wmt14-cfg-boundary-v1.md) exercises scales 0/1/2 and the [CFG=1 corpus comparison](cuda-wmt14-cfg1-quality-retest-v1.md#legacy-and-pre-change-aliases) covers all three routes.
+
+Candidate SHA-256 `83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce`; baseline `f10abaaec672dd7c0c62034972fb4b15fc204f2b1f5693e4a09f5e9640767098`; runner `2af9fdd181a6ab05ce8c1f4bfddbbd99c4eaf81985fa564943f20e6178cad81a`. Ignored result `reports/phase5-cli-equivalence-current-v2/result.json` SHA-256 `3bf0a020cac4cb3cbdbfb3ce431293decd7e9c0da474fd14a04c28a98b34e016`. The runner checked input and binary hashes before and after; an independent replay checked saved stdout equality and hashes against the previous nine-profile screen. Five focused runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. This is fixed-input CUDA equivalence only, not an exhaustive option matrix, model-quality or performance gate, or Metal evidence; raw outputs remain local.
+
+Reproduce with the [documented routing command](cuda-routing-screen-v2.md), substituting `target/release/ncm`, the candidate hash above and a fresh output directory. Build with `cargo build -p ncm-cli --features cuda-cudnn --release --locked` and the same CUDA/cuDNN environment; the runner verifies the provided binary hash but cannot prove its source.
