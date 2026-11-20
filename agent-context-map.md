@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [CPU lifecycle mismatch investigation](docs/results/2026-11-19-phase5-cli/linux-lifecycle-env-investigation-v1.md) reproduced a failed observation with the sampled child environment equal to a subsequent collector environment read. A pre-exec race is plausible but unproven; mismatch remains fail-closed and intermittent full-check failure unresolved. Probe privacy/preflight tests and `setpriv --inh-caps=-all tools/check.sh` passed; no runtime or machine policy change.
+
 - 2026-11-20: [LM1B CUDA/Python repeated model timing](docs/results/2026-11-19-phase5-cli/cuda-lm1b-performance-retest-v1.md) covers small/medium batches 1/4/16 and large 1/4/8 with 3 processes and 30 trials; Rust generation median/RSS was lower, model-load intervals longer. Aggregate replay, negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. Independent RNGs, shared GPU, noncomparable allocator scopes, local-only raw data and no changed-CLI/previous-Rust/Metal comparison leave release qualification pending.
 
 - 2026-11-20: [LM1B CUDA CLI cohort routing](docs/results/2026-11-19-phase5-cli/cuda-lm1b-cli-cohort-v1.md) matched old and unified stdout and retained seed-2000 codes/IDs for 256 rows per size. Independent replay, runner tests and `setpriv --inh-caps=-all tools/check.sh` passed. This is one seed, not full CLI cohort or Metal; raw outputs remain local.
