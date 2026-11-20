@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [XSum/WMT14 CUDA CLI text/decode cold screens](docs/results/2026-11-19-phase5-cli/cuda-text-cold-performance-v1.md) compare old ID, unified ID, text and text+decode across 90 paired fresh processes per condition; expected outputs matched. Median paired text−ID increases were 14.766 ms XSum and 74.469 ms WMT14 on one row; causes unisolated. Sanitized trial export replayed, offline tests and `setpriv --inh-caps=-all tools/check.sh` passed. Shared GPU, no native device peaks/Python/warm model/Metal; not release qualification.
+
 - 2026-11-20: published [sanitized CUDA cold trial series](docs/results/2026-11-19-phase5-cli/cuda-cold-trials-v1.json): 90 paired measured time/RSS values per condition for seven profiles, no inputs, outputs or paths. Export audited retained captures; replay, independent aggregate verification, negative controls and `setpriv --inh-caps=-all tools/check.sh` passed. Full raw outputs/telemetry remain local, and these shared-GPU screens do not qualify release performance.
 
 - 2026-11-20: [CPU lifecycle mismatch investigation](docs/results/2026-11-19-phase5-cli/linux-lifecycle-env-investigation-v1.md) reproduced a failed observation with the sampled child environment equal to a later collector read. A test-only post-exec marker separates the fake lifecycle composition test from startup: 30 consecutive fixture runs, focused observer/coordinator tests and `setpriv --inh-caps=-all tools/check.sh` passed. Production observer remains fail-closed and has no authenticated startup barrier; the race is unresolved. No runtime or machine policy change.
