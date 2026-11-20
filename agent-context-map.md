@@ -6,6 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- 2026-11-20: [XSum CUDA/Python model performance retest](docs/results/2026-11-19-phase5-cli/cuda-xsum-performance-retest-v1.md) used three alternating processes and 30 trials at batches 1/4/32; outputs matched for those prefixes and Rust had lower observed median latency and RSS. Both aggregate summaries replayed byte-for-byte and `setpriv --inh-caps=-all tools/check.sh` passed. Desktop GPU was shared; this is not changed-CLI, cold-load, previous-Rust or Metal qualification. Raw captures are local only. Remaining release gates and profiling remain open.
+
 - **Phases 0–3 complete.** Phase 2 closed with a [scoped Apple immediate-memory exception](docs/results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md).
   Phase 3 Sudoku is complete on CUDA and Metal ([report](docs/results/2026-11-14-phase3-sudoku/README.md)).
 - **Phase 4 complete with scoped, user-accepted exceptions** (2026-11-19, [audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md), [contract](docs/PHASE4-TEXT.md), [handoff](RESUME.md)).
