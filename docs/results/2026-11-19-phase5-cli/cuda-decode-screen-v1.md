@@ -53,6 +53,18 @@ setpriv --inh-caps=-all env \
   cargo test --locked -p ncm-cli --bin ncm tinystories_retained_corpus_decode_matches_pinned_evaluator -- --ignored --nocapture
 ```
 
+## WMT14 CFG=1 retained CUDA corpus decode
+
+On 2026-11-20, the artifact-bound CLI decoder matched the pinned evaluator on all 3,003 retained WMT14 CFG=1 CUDA rows. The ignored test binds capture SHA-256 `ff04571bfc72be02aee45ef7f64b6b4226431dca2264a7fd02d30be44294ef0f` and evaluator output SHA-256 `43392bd5c8011956f514a5f6bf3f8090d72a09dd3cd08b3027fc02d5c3e3b0d2`, checks their linkage, ordered rows and 64 IDs per row, then compares every decoded string. The [quality retest](cuda-wmt14-cfg1-quality-retest-v1.md) and its CLI comparisons bind those IDs to the fixed CFG=1 corpus. The CFG=0 ignored test was also rerun after refactoring the shared test helper; both passed. An altered CFG=1 evaluator file was rejected by the hash check, and `setpriv --inh-caps=-all tools/check.sh` passed. This is a host-side decoder check, not new GPU inference, direct `--decode` CLI corpus coverage, performance or Metal validation. Raw captures remain local.
+
+```sh
+setpriv --inh-caps=-all env \
+  NCM_WMT14_ARTIFACT="$PWD/artifacts/canonical/wmt14-inference-v1-final" \
+  NCM_WMT14_CAPTURE="$PWD/reports/phase5-wmt14-cfg1-cuda-retest-v1/rust.json" \
+  NCM_WMT14_DECODED_CAPTURE="$PWD/reports/phase5-wmt14-cfg1-cuda-retest-v1/rust-text.json" \
+  cargo test --locked -p ncm-cli --bin ncm decode::tests::wmt14_cfg1_retained_corpus_decode_matches_pinned_evaluator -- --ignored --exact
+```
+
 ## WMT14 retained CUDA corpus decode
 
 On 2026-11-20, the artifact-bound `Decoder::add_texts` used by `ncm sample --decode` matched the pinned evaluator's decoded hypotheses on all **3,003** retained WMT14 CFG=0 CUDA output rows from the [quality retest](cuda-wmt14-quality-retest-v1.md). The ignored regression test checks the hashes and linkage of the capture and evaluator output, every sequential row index, 64 IDs per row, and all decoded strings. The same IDs were independently matched to the unified CLI in the quality retest; this host-side test does not run the CLI or a GPU, test Metal, or cover other text profiles. No runtime code changed.

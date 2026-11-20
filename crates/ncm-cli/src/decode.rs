@@ -511,21 +511,15 @@ mod tests {
         }
     }
 
-    #[test]
-    #[ignore = "requires retained WMT14 CUDA capture and pinned evaluator decoding"]
-    fn wmt14_retained_corpus_decode_matches_pinned_evaluator() {
+    fn check_wmt14_retained_corpus_decode(capture_hash: &str, reference_hash: &str) {
         let artifact =
             ncm_io::Artifact::load_inference(std::env::var("NCM_WMT14_ARTIFACT").unwrap()).unwrap();
         let decoder = Decoder::from_artifact(&artifact).unwrap();
         drop(artifact);
         let capture = std::fs::read(std::env::var("NCM_WMT14_CAPTURE").unwrap()).unwrap();
         let reference = std::fs::read(std::env::var("NCM_WMT14_DECODED_CAPTURE").unwrap()).unwrap();
-        let capture_hash = "d26b8a3b16a4ad07565f52d3e61f22b30e2512ea10348e674a24e9ed52fecc79";
         assert_eq!(ncm_io::sha256(&capture), capture_hash);
-        assert_eq!(
-            ncm_io::sha256(&reference),
-            "0daf73dd5844b1dd832a9b9192e231d149c1be815b40cb833f55f4e81235c624"
-        );
+        assert_eq!(ncm_io::sha256(&reference), reference_hash);
         let capture: serde_json::Value = serde_json::from_slice(&capture).unwrap();
         let reference: serde_json::Value = serde_json::from_slice(&reference).unwrap();
         assert_eq!(reference["capture_sha256"], capture_hash);
@@ -550,6 +544,24 @@ mod tests {
             decoder.add_texts(&mut result).unwrap();
             assert_eq!(result["texts"], serde_json::json!(texts), "batch {batch}");
         }
+    }
+
+    #[test]
+    #[ignore = "requires retained WMT14 CUDA capture and pinned evaluator decoding"]
+    fn wmt14_retained_corpus_decode_matches_pinned_evaluator() {
+        check_wmt14_retained_corpus_decode(
+            "d26b8a3b16a4ad07565f52d3e61f22b30e2512ea10348e674a24e9ed52fecc79",
+            "0daf73dd5844b1dd832a9b9192e231d149c1be815b40cb833f55f4e81235c624",
+        );
+    }
+
+    #[test]
+    #[ignore = "requires retained WMT14 CFG=1 CUDA capture and pinned evaluator decoding"]
+    fn wmt14_cfg1_retained_corpus_decode_matches_pinned_evaluator() {
+        check_wmt14_retained_corpus_decode(
+            "ff04571bfc72be02aee45ef7f64b6b4226431dca2264a7fd02d30be44294ef0f",
+            "43392bd5c8011956f514a5f6bf3f8090d72a09dd3cd08b3027fc02d5c3e3b0d2",
+        );
     }
 
     #[test]
