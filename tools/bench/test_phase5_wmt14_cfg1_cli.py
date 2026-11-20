@@ -1,6 +1,6 @@
 import unittest
 
-from phase5_wmt14_cfg1_cli import check_output, expected_batch
+from phase5_wmt14_cfg1_cli import check_output, command_for, expected_batch
 
 
 class WmtCfgCliTests(unittest.TestCase):
@@ -9,6 +9,14 @@ class WmtCfgCliTests(unittest.TestCase):
         self.reference = {'count': 3003, 'start': 0, 'batch_size': 4, 'cfg_scale': 1.0,
                           'outputs': [{'row': i, 'codes': [0] * 313, 'raw_ids': [1] * 64}
                                       for i in range(3003)]}
+
+    def test_commands_use_explicit_cfg_one_for_each_route(self):
+        self.assertEqual(command_for('unified', 'bin', 'art', 'input'),
+                         ['bin', 'sample', 'art', 'cuda', 'input', '--cfg', '1'])
+        self.assertEqual(command_for('alias', 'bin', 'art', 'input'),
+                         ['bin', 'sample-wmt14', 'art', 'cuda', 'input', '1'])
+        with self.assertRaises(ValueError):
+            command_for('other', 'bin', 'art', 'input')
 
     def test_full_and_tail_batch(self):
         self.assertEqual(len(expected_batch(self.prefixes, self.reference, 0)[0]), 4)

@@ -60,4 +60,22 @@ setpriv --inh-caps=-all python3 tools/bench/phase5_wmt14_cfg1_cli.py \
   --artifact artifacts/canonical/wmt14-inference-v1-final --output reports/NEW-wmt14-cfg1-cli
 ```
 
-Raw inputs, outputs, errors and summary remain under ignored `reports/phase5-wmt14-cfg1-cli-corpus-v1/`. This is a nonblind shared-GPU output retest, not a performance or Metal gate. It does not establish full legacy-alias corpus coverage or a release performance gate.
+Raw inputs, outputs, errors and summary remain under ignored `reports/phase5-wmt14-cfg1-cli-corpus-v1/`. This is a nonblind shared-GPU output retest, not a performance or Metal gate. The runner was subsequently extended for alias comparison below; the SHA above identifies the original runner at `06b6721`.
+
+## Legacy and pre-change aliases
+
+The extended runner invoked both the retained pre-change binary and current release binary through `sample-wmt14` at CFG=1, using the same frozen batch grouping. Both matched Python on all 3,003 rows. An independent replay then compared the saved input and stdout bytes across pre-change alias, current alias and the previously captured unified CLI: all 751 batches were byte-identical, and all stderr files were empty. This is broader than the fixed-request gate, but remains nonblind shared-GPU correctness evidence, not performance or Metal qualification.
+
+The extended runner SHA-256 is `d021f36cef17965d848fb2ed26ae42767cec4c9f47918fb1696a2f3c383af980`; pre-change binary SHA-256 `f10abaaec672dd7c0c62034972fb4b15fc204f2b1f5693e4a09f5e9640767098`; current binary `83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce`. The ignored old/current summary hashes are `f8d9ec03da879de9accbbad9f4fced6e24fa284d59ccf5e245914989cb89df1a` / `cacbc53af6d3700a496da218f6f35c2f5de1338caa78b53f507cbd5ee8140e1d`. Raw files remain under `reports/phase5-wmt14-cfg1-{old,current}-alias-v1/`. Four focused runner tests and `setpriv --inh-caps=-all tools/check.sh` passed.
+
+Reproduce using the same pinned input, artifact, reference and library environment as above; supply a fresh output path for each invocation:
+
+```sh
+setpriv --inh-caps=-all python3 tools/bench/phase5_wmt14_cfg1_cli.py --route alias \
+  --binary reports/phase5-cli-equivalence/baseline-ncm \
+  --binary-sha256 f10abaaec672dd7c0c62034972fb4b15fc204f2b1f5693e4a09f5e9640767098 \
+  --prefixes reports/phase4-wmt14-tokenizer-reference-v1.json \
+  --reference reports/phase5-wmt14-cfg1-cuda-retest-v1/python.json \
+  --artifact artifacts/canonical/wmt14-inference-v1-final --output reports/NEW-wmt14-cfg1-old-alias
+# Repeat with target/release/ncm, binary hash 83f9a9a243ac83a7b8f6cf888ddebcdafa9fd49f7dbf45b44df7d1a3429bd8ce and a different output directory.
+```

@@ -1,4 +1,4 @@
-"""Compare the unified CUDA CLI against the frozen WMT14 CFG=1 corpus.
+"""Compare a CUDA CLI route against the frozen WMT14 CFG=1 corpus.
 
 Nonblind output equivalence, not a performance or new held-out experiment.
 Inputs and output parent must be trusted and stable.
@@ -55,8 +55,17 @@ def check_output(raw, expected):
         raise ValueError('CLI output differs from frozen reference')
 
 
+def command_for(route, binary, artifact, input_path):
+    if route == 'unified':
+        return [str(binary), 'sample', str(artifact), 'cuda', str(input_path), '--cfg', '1']
+    if route == 'alias':
+        return [str(binary), 'sample-wmt14', str(artifact), 'cuda', str(input_path), '1']
+    raise ValueError('unsupported route')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--route', choices=('unified', 'alias'), default='unified')
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--binary-sha256', required=True)
     parser.add_argument('--prefixes', type=Path, required=True)
@@ -86,7 +95,7 @@ def main():
         with input_path.open('x') as stream:
             json.dump(inputs, stream, separators=(',', ':'))
             stream.write('\n')
-        command = [str(binary), 'sample', str(artifact), 'cuda', str(input_path), '--cfg', '1']
+        command = command_for(args.route, binary, artifact, input_path)
         result = subprocess.run(command, capture_output=True, timeout=900, check=False)
         (output / f'output-{start:04}.json').write_bytes(result.stdout)
         (output / f'error-{start:04}.txt').write_bytes(result.stderr)
@@ -100,8 +109,8 @@ def main():
         if digest(path) != sha:
             raise ValueError(f'input changed during capture: {path}')
     with (output / 'summary.json').open('x') as stream:
-        json.dump({'scope': 'nonblind unified CUDA CFG=1 CLI output equivalence, not performance',
-                   'rows': sum(record['rows'] for record in records), 'batches': records,
+        json.dump({'scope': 'nonblind CUDA CFG=1 CLI output equivalence, not performance',
+                   'route': args.route, 'rows': sum(record['rows'] for record in records), 'batches': records,
                    'watched_sha256': {str(path): sha for path, sha in watched.items()}}, stream, indent=2, sort_keys=True)
         stream.write('\n')
 
