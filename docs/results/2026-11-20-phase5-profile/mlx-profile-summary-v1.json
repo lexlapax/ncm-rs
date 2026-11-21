@@ -1,0 +1,1006 @@
+{
+  "binary_sha256": "1dddcb8bf7c4fe282c7dbe19b7471352ed2cc41dac4221df31b74435dcabbe1f",
+  "platform": "mlx",
+  "rows": [
+    {
+      "artifact_load_ms": 175.5,
+      "batch": 1,
+      "codec_decode_ms": 0.95,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 60.83,
+      "host_readback_ms": 0.36,
+      "instrumented_total_ms": 66.08,
+      "memory": {
+        "hwm_mib": 358.52,
+        "mlx_active_after_load_mib": 155.13,
+        "mlx_cache_run_mib": 673.19,
+        "mlx_peak_run_mib": 261.7,
+        "rss_after_artifact_mib": 173.95,
+        "rss_after_run_mib": 358.52,
+        "rss_after_upload_mib": 338.19
+      },
+      "model_load_total_ms": 197.98,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 4.742625
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 5.137916000000001
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 4.991458
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 4.724334
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 4.766959
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 4.7234169999999995
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 4.822458
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 5.043417
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 5.052458000000001
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 5.386708
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 5.665166999999999
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 5.771208
+        }
+      ],
+      "per_level_sampling_ms": 3.69,
+      "prefix_prepare_ms": 0.37,
+      "profile": "sudoku-easy",
+      "sampling_and_penalties_ms": 3.69,
+      "uninstrumented_median_ms": 54.36,
+      "uninstrumented_p95_ms": 54.65,
+      "weight_upload_ms": 22.48
+    },
+    {
+      "artifact_load_ms": 165.41,
+      "batch": 128,
+      "codec_decode_ms": 7.57,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 1537.03,
+      "host_readback_ms": 0.63,
+      "instrumented_total_ms": 1536.55,
+      "memory": {
+        "hwm_mib": 356.64,
+        "mlx_active_after_load_mib": 155.13,
+        "mlx_cache_run_mib": 22216.6,
+        "mlx_peak_run_mib": 2618.1,
+        "rss_after_artifact_mib": 174.52,
+        "rss_after_run_mib": 356.66,
+        "rss_after_upload_mib": 338.83
+      },
+      "model_load_total_ms": 187.38,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 156.910792
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 156.822792
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 115.18558399999999
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 84.23425
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 92.994375
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 91.906
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 94.922125
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 137.872833
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 114.206917
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 178.843042
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 147.099166
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 166.029667
+        }
+      ],
+      "per_level_sampling_ms": 5.11,
+      "prefix_prepare_ms": 1.2,
+      "profile": "sudoku-easy",
+      "sampling_and_penalties_ms": 5.11,
+      "uninstrumented_median_ms": 1263.8,
+      "uninstrumented_p95_ms": 1298.78,
+      "weight_upload_ms": 21.97
+    },
+    {
+      "artifact_load_ms": 617.22,
+      "batch": 1,
+      "codec_decode_ms": 1.6,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 95.99,
+      "host_readback_ms": 0.14,
+      "instrumented_total_ms": 113.62,
+      "memory": {
+        "hwm_mib": 1015.7,
+        "mlx_active_after_load_mib": 477.63,
+        "mlx_cache_run_mib": 594.75,
+        "mlx_peak_run_mib": 606.59,
+        "rss_after_artifact_mib": 500.7,
+        "rss_after_run_mib": 1015.7,
+        "rss_after_upload_mib": 991.72
+      },
+      "model_load_total_ms": 703.34,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 7.250875000000001
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 7.388040999999999
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 7.506333
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 7.421375
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 7.835165999999999
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 8.21125
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 9.346834
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 9.641583
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 9.807625
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 10.531208
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 11.047667
+        }
+      ],
+      "per_level_sampling_ms": 15.16,
+      "prefix_prepare_ms": 0.37,
+      "profile": "tinystories",
+      "sampling_and_penalties_ms": 15.16,
+      "uninstrumented_median_ms": 93.67,
+      "uninstrumented_p95_ms": 94.01,
+      "weight_upload_ms": 86.12
+    },
+    {
+      "artifact_load_ms": 583.75,
+      "batch": 128,
+      "codec_decode_ms": 35.69,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 1552.36,
+      "host_readback_ms": 0.23,
+      "instrumented_total_ms": 1691.33,
+      "memory": {
+        "hwm_mib": 1013.59,
+        "mlx_active_after_load_mib": 477.63,
+        "mlx_cache_run_mib": 20227.51,
+        "mlx_peak_run_mib": 2475.29,
+        "rss_after_artifact_mib": 500.62,
+        "rss_after_run_mib": 1013.59,
+        "rss_after_upload_mib": 991.64
+      },
+      "model_load_total_ms": 668.79,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 31.815916
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 45.060500000000005
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 62.409333
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 79.75525
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 97.660917
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 123.97354200000001
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 154.19020799999998
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 183.15783399999998
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 217.21475
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 256.33554200000003
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 300.784708
+        }
+      ],
+      "per_level_sampling_ms": 21.57,
+      "prefix_prepare_ms": 1.12,
+      "profile": "tinystories",
+      "sampling_and_penalties_ms": 21.57,
+      "uninstrumented_median_ms": 1631.91,
+      "uninstrumented_p95_ms": 1710.82,
+      "weight_upload_ms": 85.04
+    },
+    {
+      "artifact_load_ms": 1225.05,
+      "batch": 1,
+      "codec_decode_ms": 2.09,
+      "final_penalties_ms": 8.07,
+      "generator_levels_sum_ms": 209.5,
+      "host_readback_ms": 0.22,
+      "instrumented_total_ms": 229.96,
+      "memory": {
+        "hwm_mib": 1584.56,
+        "mlx_active_after_load_mib": 578.71,
+        "mlx_cache_run_mib": 4425.12,
+        "mlx_peak_run_mib": 1117.88,
+        "rss_after_artifact_mib": 964.88,
+        "rss_after_run_mib": 1584.56,
+        "rss_after_upload_mib": 1545.5
+      },
+      "model_load_total_ms": 1308.44,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 21.423208
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 21.694125000000003
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 23.669083
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 23.498792
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 23.582708
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 24.159042
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 22.100624999999997
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 24.147041
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 25.226458
+        }
+      ],
+      "per_level_sampling_ms": 6.11,
+      "prefix_prepare_ms": 1.18,
+      "profile": "xsum",
+      "sampling_and_penalties_ms": 14.18,
+      "uninstrumented_median_ms": 212.74,
+      "uninstrumented_p95_ms": 214.28,
+      "weight_upload_ms": 83.39
+    },
+    {
+      "artifact_load_ms": 1186.69,
+      "batch": 32,
+      "codec_decode_ms": 34.01,
+      "final_penalties_ms": 49.95,
+      "generator_levels_sum_ms": 2926.06,
+      "host_readback_ms": 0.72,
+      "instrumented_total_ms": 2995.67,
+      "memory": {
+        "hwm_mib": 1639.08,
+        "mlx_active_after_load_mib": 578.71,
+        "mlx_cache_run_mib": 17217.96,
+        "mlx_peak_run_mib": 2583.15,
+        "rss_after_artifact_mib": 965.41,
+        "rss_after_run_mib": 1638.98,
+        "rss_after_upload_mib": 1545.83
+      },
+      "model_load_total_ms": 1269.03,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 313.806667
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 330.192667
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 315.910959
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 315.65779100000003
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 319.15749999999997
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 323.81399999999996
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 327.964292
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 337.69545800000003
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 341.858208
+        }
+      ],
+      "per_level_sampling_ms": 4.54,
+      "prefix_prepare_ms": 2.46,
+      "profile": "xsum",
+      "sampling_and_penalties_ms": 54.49,
+      "uninstrumented_median_ms": 2920.73,
+      "uninstrumented_p95_ms": 2974.9,
+      "weight_upload_ms": 82.34
+    },
+    {
+      "artifact_load_ms": 1277.57,
+      "batch": 1,
+      "codec_decode_ms": 2.38,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 104.58,
+      "host_readback_ms": 0.0,
+      "instrumented_total_ms": 112.65,
+      "memory": {
+        "hwm_mib": 1561.5,
+        "mlx_active_after_load_mib": 1008.14,
+        "mlx_cache_run_mib": 1304.36,
+        "mlx_peak_run_mib": 1162.73,
+        "rss_after_artifact_mib": 643.38,
+        "rss_after_run_mib": 1121.25,
+        "rss_after_upload_mib": 1103.2
+      },
+      "model_load_total_ms": 2008.41,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 8.086
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 9.20375
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 9.134167
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 9.186541
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 9.164083999999999
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 10.022292
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 8.951416
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 9.9165
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 10.605082999999999
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 10.381
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 9.927625
+        }
+      ],
+      "per_level_sampling_ms": 5.81,
+      "prefix_prepare_ms": 0.45,
+      "profile": "wmt14",
+      "sampling_and_penalties_ms": 5.81,
+      "uninstrumented_median_ms": 97.32,
+      "uninstrumented_p95_ms": 97.65,
+      "weight_upload_ms": 730.85
+    },
+    {
+      "artifact_load_ms": 1233.6,
+      "batch": 32,
+      "codec_decode_ms": 30.49,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 790.49,
+      "host_readback_ms": 0.0,
+      "instrumented_total_ms": 827.08,
+      "memory": {
+        "hwm_mib": 1561.31,
+        "mlx_active_after_load_mib": 1008.14,
+        "mlx_cache_run_mib": 18958.24,
+        "mlx_peak_run_mib": 2835.02,
+        "rss_after_artifact_mib": 643.3,
+        "rss_after_run_mib": 1120.27,
+        "rss_after_upload_mib": 1103.02
+      },
+      "model_load_total_ms": 1968.53,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 59.165124999999996
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 60.02575
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 61.511041000000006
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 65.31129200000001
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 67.51779099999999
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 69.879542
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 71.16679099999999
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 78.20537499999999
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 82.389917
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 86.44325
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 88.87504200000001
+        }
+      ],
+      "per_level_sampling_ms": 5.64,
+      "prefix_prepare_ms": 0.52,
+      "profile": "wmt14",
+      "sampling_and_penalties_ms": 5.64,
+      "uninstrumented_median_ms": 819.79,
+      "uninstrumented_p95_ms": 820.23,
+      "weight_upload_ms": 734.93
+    },
+    {
+      "artifact_load_ms": 1044.84,
+      "batch": 1,
+      "codec_decode_ms": 3.14,
+      "final_penalties_ms": 17.41,
+      "generator_levels_sum_ms": 107.96,
+      "host_readback_ms": 0.09,
+      "instrumented_total_ms": 134.31,
+      "memory": {
+        "hwm_mib": 1674.22,
+        "mlx_active_after_load_mib": 795.84,
+        "mlx_cache_run_mib": 777.22,
+        "mlx_peak_run_mib": 926.67,
+        "rss_after_artifact_mib": 821.91,
+        "rss_after_run_mib": 1674.19,
+        "rss_after_upload_mib": 1619.66
+      },
+      "model_load_total_ms": 1124.59,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 12.868542
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 8.116125
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 7.917709
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 8.248209
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 7.952209
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 9.033125
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 9.405083999999999
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 10.274708
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 11.289583
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 11.093416999999999
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 11.76525
+        }
+      ],
+      "per_level_sampling_ms": 5.98,
+      "prefix_prepare_ms": 0.4,
+      "profile": "lm1b-small",
+      "sampling_and_penalties_ms": 23.39,
+      "uninstrumented_median_ms": 102.02,
+      "uninstrumented_p95_ms": 102.4,
+      "weight_upload_ms": 79.75
+    },
+    {
+      "artifact_load_ms": 996.18,
+      "batch": 16,
+      "codec_decode_ms": 10.61,
+      "final_penalties_ms": 82.33,
+      "generator_levels_sum_ms": 378.0,
+      "host_readback_ms": 0.07,
+      "instrumented_total_ms": 482.44,
+      "memory": {
+        "hwm_mib": 1672.86,
+        "mlx_active_after_load_mib": 795.84,
+        "mlx_cache_run_mib": 9028.55,
+        "mlx_peak_run_mib": 2171.74,
+        "rss_after_artifact_mib": 821.83,
+        "rss_after_run_mib": 1672.8,
+        "rss_after_upload_mib": 1619.58
+      },
+      "model_load_total_ms": 1075.17,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 116.117709
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 10.874500000000001
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 13.190583
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 16.416625
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 18.334708000000003
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 24.477458000000002
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 27.186916
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 29.7655
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 34.798375
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 39.641042
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 47.198792000000005
+        }
+      ],
+      "per_level_sampling_ms": 10.73,
+      "prefix_prepare_ms": 0.73,
+      "profile": "lm1b-small",
+      "sampling_and_penalties_ms": 93.07,
+      "uninstrumented_median_ms": 473.78,
+      "uninstrumented_p95_ms": 476.01,
+      "weight_upload_ms": 79.0
+    },
+    {
+      "artifact_load_ms": 3774.34,
+      "batch": 1,
+      "codec_decode_ms": 2.82,
+      "final_penalties_ms": 17.44,
+      "generator_levels_sum_ms": 206.24,
+      "host_readback_ms": 0.06,
+      "instrumented_total_ms": 235.24,
+      "memory": {
+        "hwm_mib": 3328.28,
+        "mlx_active_after_load_mib": 1632.98,
+        "mlx_cache_run_mib": 1014.37,
+        "mlx_peak_run_mib": 1806.4,
+        "rss_after_artifact_mib": 1659.38,
+        "rss_after_run_mib": 1726.09,
+        "rss_after_upload_mib": 3294.55
+      },
+      "model_load_total_ms": 3932.18,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 20.115042
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 15.299666
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 15.506834000000001
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 15.390958
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 16.379749999999998
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 16.880417
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 19.439584
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 19.383417
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 20.0665
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 22.144167
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 25.629041
+        }
+      ],
+      "per_level_sampling_ms": 6.14,
+      "prefix_prepare_ms": 0.41,
+      "profile": "lm1b-medium",
+      "sampling_and_penalties_ms": 23.58,
+      "uninstrumented_median_ms": 209.22,
+      "uninstrumented_p95_ms": 210.05,
+      "weight_upload_ms": 157.84
+    },
+    {
+      "artifact_load_ms": 3497.22,
+      "batch": 16,
+      "codec_decode_ms": 10.66,
+      "final_penalties_ms": 82.43,
+      "generator_levels_sum_ms": 959.86,
+      "host_readback_ms": 0.07,
+      "instrumented_total_ms": 1068.32,
+      "memory": {
+        "hwm_mib": 3357.75,
+        "mlx_active_after_load_mib": 1632.98,
+        "mlx_cache_run_mib": 16364.41,
+        "mlx_peak_run_mib": 3257.52,
+        "rss_after_artifact_mib": 1659.44,
+        "rss_after_run_mib": 3357.69,
+        "rss_after_upload_mib": 3294.78
+      },
+      "model_load_total_ms": 3667.59,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 131.576833
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 29.9675
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 39.645374999999994
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 50.687542
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 61.836166999999996
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 71.295709
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 84.892291
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 95.37675
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 114.45045800000001
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 130.471834
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 149.662542
+        }
+      ],
+      "per_level_sampling_ms": 12.35,
+      "prefix_prepare_ms": 0.74,
+      "profile": "lm1b-medium",
+      "sampling_and_penalties_ms": 94.78,
+      "uninstrumented_median_ms": 1053.27,
+      "uninstrumented_p95_ms": 1057.14,
+      "weight_upload_ms": 170.37
+    },
+    {
+      "artifact_load_ms": 3681.65,
+      "batch": 1,
+      "codec_decode_ms": 3.1,
+      "final_penalties_ms": 24.45,
+      "generator_levels_sum_ms": 368.92,
+      "host_readback_ms": 0.11,
+      "instrumented_total_ms": 402.42,
+      "memory": {
+        "hwm_mib": 6454.53,
+        "mlx_active_after_load_mib": 3190.87,
+        "mlx_cache_run_mib": 1242.52,
+        "mlx_peak_run_mib": 3415.12,
+        "rss_after_artifact_mib": 3217.05,
+        "rss_after_run_mib": 3296.0,
+        "rss_after_upload_mib": 6410.25
+      },
+      "model_load_total_ms": 3986.98,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 30.531
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 26.086499999999997
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 26.701124999999998
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 27.884417000000003
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 28.585416
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 29.52625
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 34.202666
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 35.449875
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 36.576375
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 43.657250000000005
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 49.718833
+        }
+      ],
+      "per_level_sampling_ms": 6.66,
+      "prefix_prepare_ms": 0.47,
+      "profile": "lm1b-large",
+      "sampling_and_penalties_ms": 31.11,
+      "uninstrumented_median_ms": 384.0,
+      "uninstrumented_p95_ms": 389.49,
+      "weight_upload_ms": 305.33
+    },
+    {
+      "artifact_load_ms": 3530.79,
+      "batch": 8,
+      "codec_decode_ms": 19.26,
+      "final_penalties_ms": 84.17,
+      "generator_levels_sum_ms": 1316.23,
+      "host_readback_ms": 0.11,
+      "instrumented_total_ms": 1474.6,
+      "memory": {
+        "hwm_mib": 6454.42,
+        "mlx_active_after_load_mib": 3190.87,
+        "mlx_cache_run_mib": 8880.1,
+        "mlx_peak_run_mib": 4576.34,
+        "rss_after_artifact_mib": 3216.8,
+        "rss_after_run_mib": 3297.73,
+        "rss_after_upload_mib": 6409.97
+      },
+      "model_load_total_ms": 3836.86,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 90.26804200000001
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 48.931083
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 58.063125
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 74.43900000000001
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 93.285959
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 110.086292
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 133.889416
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 147.221667
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 159.427125
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 188.7465
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 211.86875
+        }
+      ],
+      "per_level_sampling_ms": 42.14,
+      "prefix_prepare_ms": 1.26,
+      "profile": "lm1b-large",
+      "sampling_and_penalties_ms": 126.32,
+      "uninstrumented_median_ms": 1298.73,
+      "uninstrumented_p95_ms": 1302.0,
+      "weight_upload_ms": 306.07
+    }
+  ]
+}
