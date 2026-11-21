@@ -57,13 +57,25 @@ still exceed available GPU memory.
 
 ### Apple Silicon / MLX
 
-The [native MLX setup](../tools/reference/README.md#apple-silicon--mlx-phase-1) records the tested
-M1 Ultra, macOS, Rust, MLX wheel and project-local prebuilt native-library procedure. It uses
-`MLX_SYS_PREBUILT`, an absolute local rpath and `cargo` feature `mlx`; the wheel requires macOS
-26.2 or later. It is a development configuration, not a redistributable prebuilt binary. After
-preparing the matching native prefix as described there:
+The tested development machine uses an Apple M1 Ultra (macOS 26.7.3, Xcode 27.2, Rust 1.99.1,
+`mlx-rs` 0.34.0 from `Cargo.lock`, native MLX 0.32.2, and Python 3.14.10 via `uv` for extracting
+the prebuilt native MLX libraries). Do **not** install the Linux Torch lock on macOS. The
+`macosx_26_0_arm64` wheel requires macOS 26.2 or later; the resulting `ncm` binary uses a local
+rpath and is not a redistributable prebuilt package.
 
 ```sh
+export PATH="/opt/homebrew/bin:$PATH"
+mkdir -p .reference artifacts/canonical reports
+uv venv --python 3.14.10 .reference/mlx-venv
+uv pip install --python .reference/mlx-venv/bin/python -r tools/reference/requirements-macos.lock
+.reference/mlx-venv/bin/python - <<'PY' || exit 1
+import pathlib, shutil, sysconfig
+source = pathlib.Path(sysconfig.get_path('purelib')) / 'mlx'
+target = pathlib.Path('.reference/mlx-native')
+target.mkdir(exist_ok=False)
+for name in ('include', 'share', 'lib'):
+    shutil.copytree(source / name, target / name)
+PY
 export MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"
 export RUSTFLAGS="-C link-arg=-Wl,-rpath,$MLX_SYS_PREBUILT/lib"
 export RUSTDOCFLAGS="$RUSTFLAGS" CARGO_BUILD_JOBS=8
@@ -71,9 +83,11 @@ cargo build --release --locked -p ncm-cli --features mlx
 ./tools/check.sh --mlx
 ```
 
-The Phase 5 unified CLI and these setup instructions have not yet passed a fresh-clone Metal gate.
-Do not install the Linux Torch lock on macOS. Offline artifact preparation may be done separately
-on Linux and the verified artifacts transferred; a self-contained Mac preparation recipe is pending.
+Offline checkpoint downloads and PyTorch exports run on Linux (sections below); transfer the
+verified canonical artifact directories and the shared LM1B rotary sidecar into
+`artifacts/canonical/` on macOS and verify their pinned `manifest.json` and sidecar SHA-256
+digests before inference (see the [Apple Silicon / MLX synthetic examples](#apple-silicon--mlx-synthetic-examples)
+section below).
 
 ## Pinned sources and tokenizer assets
 
@@ -564,8 +578,71 @@ for name in ('tiny','xsum','wmt14','lm1b'):
 PY
 ```
 
-Run `target/release/ncm --help` and `target/release/ncm sample --help` for the complete current interface. These
-examples must still be tested from a fresh clone on Mac before release. The CUDA-only
-[CLI equivalence screen](results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md) and
-[text-input screen](results/2026-11-19-phase5-cli/cuda-text-input-v1.md) describe separate limited
-checks, not the release gate.
+Run `target/release/ncm --help` and `target/release/ncm sample --help` for the complete current interface.
+
+## Apple Silicon / MLX synthetic examples
+
+After building `target/release/ncm` with `--features mlx` above and placing the verified canonical
+artifacts (exported on Linux) plus `lm1b-reference-rope-v1.safetensors` under `artifacts/canonical/`,
+confirm the manifest and sidecar digests and run the Sudoku-easy and four text smoke examples on
+`mlx`:
+
+```sh
+printf '%s  %s\n' \
+  ad6a99ad7d5ccc069e0fedf26a85f755e06cd76590463e1e04e17363e35d9832 artifacts/canonical/sudoku-easy-qualified/manifest.json \
+  0337e4d2ab2e52d6808123847ad945749276a616d5865e3db5f9861f4ff48db1 artifacts/canonical/tinystories-phase4-v1/manifest.json \
+  8b850bdaa5ee7ada43bfc4105e2ac99e2edc3d7e114a76567ce03b87f0b9eee4 artifacts/canonical/xsum-inference-rope-v2-final/manifest.json \
+  01772927d6c334edd37650b042bb37a6e915652de701226e0a6661a847c8cc81 artifacts/canonical/wmt14-inference-v1-final/manifest.json \
+  58969517838438b12811f48a6d34bf81cd09a56c6eaa1c8ab5fd65993b6ecd76 artifacts/canonical/lm1b-small-inference-v1/manifest.json \
+  9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc artifacts/canonical/lm1b-reference-rope-v1.safetensors \
+  | shasum -a 256 -c - || exit 1
+
+mkdir reports/mlx-examples || exit 1
+python3 - <<'PY' || exit 1
+import json
+from pathlib import Path
+root = Path('reports/mlx-examples')
+board = [11]
+for i in range(9):
+    if i:
+        board.append(10)
+    board.extend([0] * 9)
+board.append(11)
+assert len(board) == 91
+for name, value in {
+    'sudoku-input': [board],
+    'tiny-input': ['hello'],
+    'xsum-input': ['The council opened a new park on Tuesday.'],
+    'wmt14-input': ['Das ist ein kleines Beispiel.'],
+    'lm1b-input': [''],
+}.items():
+    with (root / f'{name}.json').open('x') as stream:
+        json.dump(value, stream, ensure_ascii=False)
+        stream.write('\n')
+PY
+(
+  set -eC
+  export OMP_NUM_THREADS=1
+  cli=target/release/ncm
+  dir=reports/mlx-examples
+  "$cli" sample artifacts/canonical/sudoku-easy-qualified mlx "$dir/sudoku-input.json" > "$dir/sudoku-sample.json"
+  "$cli" generate artifacts/canonical/sudoku-easy-qualified mlx "$dir/sudoku-input.json" > "$dir/sudoku-alias.json"
+  cmp "$dir/sudoku-sample.json" "$dir/sudoku-alias.json"
+  "$cli" sample artifacts/canonical/tinystories-phase4-v1 mlx "$dir/tiny-input.json" --text --seed 42 --decode > "$dir/tiny-output.json"
+  "$cli" sample artifacts/canonical/xsum-inference-rope-v2-final mlx "$dir/xsum-input.json" --text --decode > "$dir/xsum-output.json"
+  "$cli" sample artifacts/canonical/wmt14-inference-v1-final mlx "$dir/wmt14-input.json" --text --decode > "$dir/wmt14-output.json"
+  "$cli" sample artifacts/canonical/lm1b-small-inference-v1 mlx "$dir/lm1b-input.json" --text --seed 42 --decode > "$dir/lm1b-output.json"
+) || exit 1
+python3 - <<'PY'
+import json
+from pathlib import Path
+root = Path('reports/mlx-examples')
+sudoku = json.loads((root / 'sudoku-sample.json').read_text())
+assert set(sudoku) == {'codes', 'ids'} and len(sudoku['codes'][0]) == 322 and len(sudoku['ids'][0]) == 89
+for name in ('tiny', 'xsum', 'wmt14', 'lm1b'):
+    result = json.loads((root / f'{name}-output.json').read_text())
+    assert all(isinstance(result.get(k), list) and len(result[k]) == 1 for k in ('codes', 'ids', 'texts'))
+    assert isinstance(result['texts'][0], str)
+    print(name, 'one decoded row')
+PY
+```
