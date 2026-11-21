@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,6 +20,7 @@ class HandoffImageProbeTests(unittest.TestCase):
         self.assertNotIn('34', json.dumps(result))
         self.assertNotIn('78', json.dumps(result))
 
+    @unittest.skipUnless(sys.platform == 'linux', 'Linux /proc/<pid>/exe observation')
     def test_instrumentation_preserves_mismatch_and_restores_stat(self):
         def failing(_self, pid):
             os.stat(f'/proc/{pid}/exe')

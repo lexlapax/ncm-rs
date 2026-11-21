@@ -129,7 +129,7 @@ class ColdScreenTests(unittest.TestCase):
                  patch.object(tool, 'execute', side_effect=execute), patch.object(tool, 'summarize', return_value={}), \
                  patch.object(tool, 'ROUNDS', 1), patch.object(tool, 'WARMUPS', 0), patch.object(tool, 'TRIALS', 1):
                 tool.main()
-            self.assertEqual(set(calls), {('baseline', 'sample', original), ('candidate', 'sample', alternate)})
+            self.assertEqual(set(calls), {('baseline', 'sample', original.resolve()), ('candidate', 'sample', alternate.resolve())})
             self.assertIn('"comparison": "artifact"', (root / 'out' / 'result.json').read_text())
 
     def test_artifact_comparison_rejects_partial_and_non_sudoku_options(self):
