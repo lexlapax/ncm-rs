@@ -4,12 +4,14 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
 Next-Concept Modeling for parallel, coarse-to-fine generation. Production inference uses
 native CUDA or MLX, not Python; Python is used offline for conversion, references and evaluation.
 
-**Status: Phase 4 complete with scoped, user-accepted exceptions; Phase 5 release candidate in progress.**
-This is not yet a released inference package. The Phase 5 unified CLI has CUDA development screens
-and a Linux fresh-clone guide replay; Metal validation, complete setup, performance qualification and
-release gates remain pending.
+**Status: Phase 5 step 1 (`v0.1.0` release candidate) verified on Linux/CUDA and Apple Silicon/MLX; Steps 2–4 (profiling and targeted FP32 optimization) in progress.**
+The unified `ncm sample` CLI, legacy aliases, feature folding, `--text`/`--decode` paths, and
+fresh-clone setup guides have passed verification on both CUDA and Metal. Tagging and publishing
+`v0.1.0` awaits user confirmation.
 See the [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md),
-[Phase 5 plan](docs/PHASE5.md) and [current state](agent-context-map.md).
+[Phase 5 plan](docs/PHASE5.md), [CUDA routing/text evidence](docs/results/2026-11-19-phase5-cli/cuda-current-routing-v1.md),
+[Metal step 1 evidence](docs/results/2026-11-19-phase5-cli/mlx-step1-cli-v1.md), and
+[current state](agent-context-map.md).
 
 ## Profile and evidence matrix
 
@@ -45,11 +47,12 @@ ncm generate ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]     # Sudoku
 ncm reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]  # Sudoku codec
 ```
 
-The unified command's CUDA [baseline/alias equivalence screen](docs/results/2026-11-19-phase5-cli/cuda-routing-screen-v2.md)
-covers one fixed batch per profile. Additional [text-input](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md),
-[decode](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md) and
-[LM1B rotary](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md) evidence has the scopes
-specified in those reports. Metal equivalents are pending. LM1B requires the separately generated,
+The unified command's baseline/alias/unified equivalence passed across all nine profiles on both
+CUDA ([CUDA routing](docs/results/2026-11-19-phase5-cli/cuda-current-routing-v1.md)) and Metal
+([Metal step 1](docs/results/2026-11-19-phase5-cli/mlx-step1-cli-v1.md)), alongside
+[text-input](docs/results/2026-11-19-phase5-cli/cuda-text-input-v1.md),
+[decode](docs/results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md), and
+[LM1B rotary](docs/results/2026-11-19-phase5-cli/cuda-lm1b-rope-v1.md) verification on both platforms. LM1B requires the separately generated,
 hash-pinned rotary sidecar beside the artifact, or `--reference-rope FILE`; no table approximation
 or device fallback is used. TinyStories accepts one non-padding prefix token per row; its `--text`
 mode rejects strings that do not encode to exactly one non-padding token. LM1B accepts only its fixed
@@ -66,11 +69,13 @@ mode rejects strings that do not encode to exactly one non-padding token. LM1B a
   pinned Python LM1B-large baseline ran out of memory at batch 16; its timing sweep used batch 8,
   and Rust large batch 16 was not measured ([report](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)).
   CLI argument limits are not a guarantee that a batch fits.
-- The [setup guide](docs/USAGE.md) is an incomplete draft. Its Linux blocks were replayed from a
-  fresh clone at `c63b205`; the Mac recipe and release gates remain pending. The historical Sudoku
-  medium/hard exporter identity is unresolved; see the [export investigation](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
+- The [setup guide](docs/USAGE.md) was verified from fresh clones on both Linux
+  ([Linux replay](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)) and macOS
+  ([macOS replay](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md)). The historical Sudoku
+  medium/hard exporter identity is unresolved; provenance-only re-exports are documented in the
+  [export investigation](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
 
-Release notes are a [draft](docs/RELEASE-NOTES-v0.1.0.md), not a published release. No model weights,
+Release notes are prepared in [docs/RELEASE-NOTES-v0.1.0.md](docs/RELEASE-NOTES-v0.1.0.md) (awaiting tag/release approval). No model weights,
 evaluation data or prebuilt inference binaries are included in Git.
 
 ## Build and local checks

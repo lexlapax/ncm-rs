@@ -1,11 +1,12 @@
-# Inference setup — working draft
+# Inference setup
 
-**Not a verified release recipe.** Phase 5 is still in progress. The commands below document
-current development inputs and builds. The Linux blocks were followed from a fresh clone at
-`c63b205` ([evidence](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)); the Mac
-recipe is incomplete. The approved Sudoku medium/hard provenance-only re-exports and LM1B text-input
-behavior still need full qualification. Do not treat this document as the v0.1.0 setup gate.
-See the [current state](../agent-context-map.md) and [export investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md).
+This guide covers building `ncm-cli`, preparing or verifying pinned artifacts, and running
+synthetic smoke requests on Linux/CUDA and Apple Silicon/MLX. Both platform recipes were verified
+from fresh clones: the 15 Linux blocks at `c63b205` ([Linux fresh-clone replay](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md))
+and the macOS/MLX blocks at `88d2956` ([macOS fresh-clone replay](results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md)).
+The approved Sudoku medium/hard provenance-only re-exports retain their recorded provenance
+differences from the original Phase 3 exports ([export investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md)).
+See the [current state](../agent-context-map.md).
 
 Production inference is Rust plus native CUDA/cuDNN or MLX. Python and network access below are
 for **offline preparation only**. No model weights, evaluation data or native binaries are in Git.

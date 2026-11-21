@@ -10,6 +10,7 @@ tracks the latest state.
 
 | Report | Scope | Status and limits |
 | --- | --- | --- |
+| [Apple Silicon / Metal Step 1 CLI](2026-11-19-phase5-cli/mlx-step1-cli-v1.md), [macOS fresh-clone setup](2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md) | `./tools/check.sh --mlx`, 9-profile baseline/alias/unified routing, flag boundaries, LM1B sidecar/`--top-p-fp32`, corpus encode/decode, Metal `--text`/`--decode`, fresh-clone macOS guide replay | Step 1 Metal checks and fresh-clone setup pass; `v0.1.0` tag awaits user confirmation; Steps 2–4 next. |
 | [WMT14 CFG surface audit](2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md) | Unqualified WMT14 scale routing and release policy | Decision pending; no inference or policy change. |
 | [CPU lifecycle mismatch investigation](2026-11-19-phase5-cli/linux-lifecycle-env-investigation-v1.md) | Fake supervised child environment observation | Intermittent mismatch reproduced; fail-closed behavior unchanged, cause not proved. |
 | [CUDA CLI routing](2026-11-19-phase5-cli/cuda-routing-screen-v2.md), [current CLI and XSum flags](2026-11-19-phase5-cli/cuda-current-routing-v1.md), [TinyStories five seeds](2026-11-19-phase5-cli/cuda-tinystories-five-seed-routing-v1.md), [TinyStories quality retest](2026-11-19-phase5-cli/cuda-tinystories-quality-retest-v1.md) | Fixed-profile routing, experimental XSum flags and five-seed TinyStories CUDA quality retest | TinyStories quality passes its scoped retest; performance, other quality and Metal gates remain open. |

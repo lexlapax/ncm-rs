@@ -1,10 +1,9 @@
-# v0.1.0 release notes — draft, not released
+# v0.1.0 release notes — ready for tagging
 
-This is a working draft for the [Phase 5 release candidate](PHASE5.md#step-1--release-candidate-v010-no-numerical-changes).
-No local or remote `v0.1.0` tag was observed, and GitHub's release lookup returned not found on
-2026-11-20. Linux/CUDA and Metal release gates, complete reproducible setup, and the remaining
-decisions in the [context map](../agent-context-map.md) must be completed before requesting approval
-to tag and publish. Historical Phase 3/4 evidence below is not a measurement of every current CLI path.
+Release candidate for [Phase 5 step 1](PHASE5.md#step-1--release-candidate-v010-no-numerical-changes)
+(lean FP32 inference release, no numerical changes). All Step 1 CLI, text/decode, feature-folding,
+and fresh-clone setup checks have passed on both Linux/CUDA and Apple Silicon/MLX. No `v0.1.0` tag
+or GitHub release has been published yet; tagging and source-only release creation await user approval.
 
 ## Intended scope
 
@@ -48,9 +47,17 @@ to tag and publish. Historical Phase 3/4 evidence below is not a measurement of 
   ([report](results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md)). Model, batch, desktop
   activity and allocator scope affect capacity; accepted CLI batch limits are not memory guarantees.
 
-## Pending before publication
+## Step 1 verification summary
 
-- The Linux guide blocks were replayed from a fresh clone at `c63b205` ([evidence](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)); complete the Mac recipe and fresh-clone replay after the Linux gate. Sudoku medium/hard's original exporter identity remains unresolved and the approved re-exports need full qualification ([investigation](results/2026-11-19-phase5-cli/linux-export-repro-v1.md)).
-- Finish CUDA command/option, quality and performance qualification, including the WMT14 CFG boundary; then validate the current CLI, text/decode and performance on Metal. LM1B empty-text has a scoped [CUDA screen](results/2026-11-19-phase5-cli/cuda-lm1b-empty-text-v1.md#all-three-sizes), not a Metal pass. Record failures and do not infer a GPU pass from CPU tests.
-- Update these notes and the context map with actual gate evidence. Ask before tagging and pushing
-  `v0.1.0` and publishing the source-only GitHub release.
+- **Linux/CUDA:** nine-profile baseline/alias/unified byte-identical routing ([routing](results/2026-11-19-phase5-cli/cuda-current-routing-v1.md)),
+  WMT14 CFG boundary ([boundary](results/2026-11-19-phase5-cli/cuda-wmt14-cfg-boundary-v1.md)),
+  full-corpus text encoding/generation and retained-output decoding ([text](results/2026-11-19-phase5-cli/cuda-text-input-v1.md), [decode](results/2026-11-19-phase5-cli/cuda-decode-screen-v1.md)),
+  nonblind quality retests across all released profiles, post-reboot WMT14 model timing with default-pool counters ([timing](results/2026-11-19-phase5-cli/cuda-wmt14-performance-retest-v1.md)),
+  and a single-commit fresh-clone Linux setup replay ([Linux guide replay](results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md)).
+- **Apple Silicon/MLX:** `./tools/check.sh --mlx` (18 operator cases, 493 macOS report tests, MLX clippy/test/doc),
+  nine-profile baseline/alias/unified byte-identical routing with `--features mlx` only, invalid-device
+  rejections, XSum/WMT14 experimental flag boundaries, `mlx-retry-padded`, LM1B sibling rotary sidecar
+  and `--top-p-fp32`, all six macOS corpus/boundary encode+decode tests, end-to-end Metal `--text`/`--decode`
+  equivalence ([Metal step 1](results/2026-11-19-phase5-cli/mlx-step1-cli-v1.md)), and a fresh-clone macOS
+  setup replay ([macOS guide replay](results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md)).
+- **Publication gate:** ask before tagging `v0.1.0`, pushing the tag, and publishing the source-only GitHub release.
