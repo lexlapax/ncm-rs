@@ -39,3 +39,20 @@ setpriv --inh-caps=-all python3 tools/bench/export_phase5_text_model_trials.py -
   --run reports/phase5-wmt14-cuda-perf-v1 --summary docs/results/2026-11-19-phase5-cli/wmt14-cuda-perf-summary-v1.json \
   --output reports/NEW-wmt14-timing-trials.json
 ```
+
+## Post-reboot rerun with Rust CUDA default-pool counters
+
+2026-11-20. At `4f804fa` after the NVIDIA driver update to `620.73.04` (with `llama-server.service` stopped and three desktop GPU clients remaining), the same 3-process × 5-warmup × 30-trial CFG=0 protocol ran with the pool-instrumented probe binary (`0c0eb8606d56e06c8400d90dfee0de5e40ea8a4f3d127d9e94a63148ac695f6d`). Independent replay verified identical outputs across all 24 processes and recomputed every median, pooled p95, RSS and pool counter.
+
+| Batch | Runtime | Median of process medians (ms) | Pooled p95 (ms) | Median peak RSS (MiB) | Allocator / default-pool peak (MiB, distinct scopes) |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 1 | Rust | 57.855 | 58.307 | 1829.504 | default-pool used 1050.19 / reserved 1088.00 |
+| 1 | Python | 64.324 | 64.793 | 2092.719 | PyTorch alloc 1126.15 / reserved 1192.00 |
+| 4 | Rust | 165.064 | 166.488 | 1824.582 | default-pool used 1161.85 / reserved 1248.00 |
+| 4 | Python | 178.549 | 179.205 | 2092.949 | PyTorch alloc 1244.74 / reserved 1324.00 |
+| 16 | Rust | 630.848 | 661.355 | 1819.875 | default-pool used 1608.49 / reserved 1824.00–1856.00 |
+| 16 | Python | 651.295 | 680.567 | 2093.082 | PyTorch alloc 1724.28 / reserved 2132.00 |
+| 32 | Rust | 1246.266 | 1250.804 | 1854.734 | default-pool used 2204.01 / reserved 2624.00 |
+| 32 | Python | 1323.332 | 1327.232 | 2092.672 | PyTorch alloc 2360.43 / reserved 3558.00 |
+
+Compact aggregate: [wmt14-cuda-perf-summary-v2.json](wmt14-cuda-perf-summary-v2.json) (SHA-256 `848bc5bdd3799815c2a22e10f1edfacaa49abaea0c674dd8681d51ecbaf075b3`). Raw bundle remains ignored locally at `reports/phase5-wmt14-post-reboot-perf-v1/` (manifest SHA-256 `00df551211a5ad04555f9c294fc07b6956af572a62e94743dd2252e3152b5d21`; measurements `1d0abaeccf2a542e30d6ea559b0aa086d4b18616195936764a0760195992da65`; 533 activity samples showing 3 other GPU processes). Rust's default-pool high-water mark excludes non-pool/context/library allocations and is not directly interchangeable with PyTorch's caching allocator peak. Shared device, model-only scope; not a standalone release gate.
