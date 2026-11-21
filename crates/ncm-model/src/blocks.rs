@@ -12,6 +12,14 @@ pub trait TraceSink<B: CodecBackend> {
     fn wmt14_head_input(&mut self, _level: usize, _value: &B::Tensor) -> Result<()> {
         Ok(())
     }
+    /// Optional stage-profiling boundary for an FP32 tensor; no-op by default.
+    fn stage_tensor(&mut self, _name: &str, _value: &B::Tensor) -> Result<()> {
+        Ok(())
+    }
+    /// Optional stage-profiling boundary for an index tensor; no-op by default.
+    fn stage_indices(&mut self, _name: &str, _value: &B::Indices) -> Result<()> {
+        Ok(())
+    }
 }
 pub struct NoTrace;
 impl<B: CodecBackend> TraceSink<B> for NoTrace {

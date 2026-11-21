@@ -181,6 +181,10 @@ impl MlxBackend {
         backend.evaluate(&[backend.add(&one, &one)?])?;
         Ok(backend)
     }
+    /// Synchronously materialize a single MLX tensor (FP32 or indices) without copying to host.
+    pub fn eval_tensor(&self, x: &MlxTensor) -> Result<()> {
+        with_stream(&self.stream, || mlx_rs::transforms::eval([&x.0])).map_err(error)
+    }
     /// Use nonoverlapping projection layouts for the three WMT14 cascade strides.
     pub fn gpu_wmt14_upsample_experimental() -> Result<Self> {
         let mut backend = Self::gpu()?;

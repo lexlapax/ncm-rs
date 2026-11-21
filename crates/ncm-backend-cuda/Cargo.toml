@@ -425,3 +425,7 @@ required-features = ["lm1b-experimental", "cuda-cudnn"]
 [[example]]
 name = "lm1b_small_heldout_capture"
 required-features = ["lm1b-experimental", "cuda-cudnn"]
+
+[[example]]
+name = "phase5_stage_profile"
+required-features = ["cuda-cudnn", "wmt14-experimental", "lm1b-experimental"]

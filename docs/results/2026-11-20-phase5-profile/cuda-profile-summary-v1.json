@@ -1,0 +1,1006 @@
+{
+  "binary_sha256": "2cf5ea599fae2a75c620d7ca6df8554905b279bdce3c8a0e49338a7012f74557",
+  "platform": "cuda",
+  "rows": [
+    {
+      "artifact_load_ms": 174.56,
+      "batch": 1,
+      "codec_decode_ms": 0.23,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 25.3,
+      "host_readback_ms": 0.03,
+      "instrumented_total_ms": 25.98,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 192.0,
+        "cuda_pool_used_peak_load_mib": 154.95,
+        "cuda_pool_used_peak_run_mib": 168.77,
+        "hwm_mib": 603.78,
+        "rss_after_artifact_mib": 561.4,
+        "rss_after_run_mib": 589.95,
+        "rss_after_upload_mib": 449.91
+      },
+      "model_load_total_ms": 217.39,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 1.693028
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 1.829326
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 1.804864
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 2.054282
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 2.075595
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 2.083796
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 2.103576
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 2.0435309999999998
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 2.078105
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 2.43947
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 2.5424
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 2.554173
+        }
+      ],
+      "per_level_sampling_ms": 0.33,
+      "prefix_prepare_ms": 0.03,
+      "profile": "sudoku-easy",
+      "sampling_and_penalties_ms": 0.33,
+      "uninstrumented_median_ms": 26.18,
+      "uninstrumented_p95_ms": 29.83,
+      "weight_upload_ms": 42.83
+    },
+    {
+      "artifact_load_ms": 174.21,
+      "batch": 128,
+      "codec_decode_ms": 9.8,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 1788.8,
+      "host_readback_ms": 2.33,
+      "instrumented_total_ms": 1805.27,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 1440.0,
+        "cuda_pool_used_peak_load_mib": 154.95,
+        "cuda_pool_used_peak_run_mib": 1284.89,
+        "hwm_mib": 604.12,
+        "rss_after_artifact_mib": 561.3,
+        "rss_after_run_mib": 574.5,
+        "rss_after_upload_mib": 449.93
+      },
+      "model_load_total_ms": 216.3,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 109.83161299999999
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 120.331391
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 115.56075200000001
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 119.222838
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 122.708414
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 127.523426
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 135.586458
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 146.034677
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 158.74837399999998
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 184.39143199999998
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 210.358026
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 238.50127099999997
+        }
+      ],
+      "per_level_sampling_ms": 1.08,
+      "prefix_prepare_ms": 0.44,
+      "profile": "sudoku-easy",
+      "sampling_and_penalties_ms": 1.08,
+      "uninstrumented_median_ms": 1628.43,
+      "uninstrumented_p95_ms": 1634.63,
+      "weight_upload_ms": 42.09
+    },
+    {
+      "artifact_load_ms": 615.29,
+      "batch": 1,
+      "codec_decode_ms": 0.72,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 40.8,
+      "host_readback_ms": 0.03,
+      "instrumented_total_ms": 42.01,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 512.0,
+        "cuda_pool_used_peak_load_mib": 483.16,
+        "cuda_pool_used_peak_run_mib": 492.92,
+        "hwm_mib": 940.57,
+        "rss_after_artifact_mib": 887.55,
+        "rss_after_run_mib": 782.67,
+        "rss_after_upload_mib": 462.44
+      },
+      "model_load_total_ms": 738.05,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 2.630252
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 2.672336
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 2.777811
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 3.105544
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 3.186588
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 3.499781
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 4.0084
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 4.088663
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 4.2240899999999995
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 4.667143
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 5.936217
+        }
+      ],
+      "per_level_sampling_ms": 0.52,
+      "prefix_prepare_ms": 0.03,
+      "profile": "tinystories",
+      "sampling_and_penalties_ms": 0.52,
+      "uninstrumented_median_ms": 41.64,
+      "uninstrumented_p95_ms": 42.3,
+      "weight_upload_ms": 122.76
+    },
+    {
+      "artifact_load_ms": 615.84,
+      "batch": 128,
+      "codec_decode_ms": 85.17,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 2312.37,
+      "host_readback_ms": 3.1,
+      "instrumented_total_ms": 2411.59,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 1952.0,
+        "cuda_pool_used_peak_load_mib": 483.16,
+        "cuda_pool_used_peak_run_mib": 1808.25,
+        "hwm_mib": 933.75,
+        "rss_after_artifact_mib": 887.62,
+        "rss_after_run_mib": 778.02,
+        "rss_after_upload_mib": 455.68
+      },
+      "model_load_total_ms": 734.05,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 32.969122
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 64.36239400000001
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 89.38858900000001
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 115.95606
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 141.754918
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 182.835711
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 224.11072900000002
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 271.135736
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 324.851025
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 393.05113600000004
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 471.951464
+        }
+      ],
+      "per_level_sampling_ms": 7.71,
+      "prefix_prepare_ms": 0.2,
+      "profile": "tinystories",
+      "sampling_and_penalties_ms": 7.71,
+      "uninstrumented_median_ms": 2361.55,
+      "uninstrumented_p95_ms": 2372.07,
+      "weight_upload_ms": 118.2
+    },
+    {
+      "artifact_load_ms": 893.73,
+      "batch": 1,
+      "codec_decode_ms": 0.77,
+      "final_penalties_ms": 1.07,
+      "generator_levels_sum_ms": 162.26,
+      "host_readback_ms": 0.01,
+      "instrumented_total_ms": 165.34,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 672.0,
+        "cuda_pool_used_peak_load_mib": 578.36,
+        "cuda_pool_used_peak_run_mib": 632.73,
+        "hwm_mib": 1074.13,
+        "rss_after_artifact_mib": 1059.03,
+        "rss_after_run_mib": 903.47,
+        "rss_after_upload_mib": 737.19
+      },
+      "model_load_total_ms": 1024.29,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 17.360722
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 17.887925
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 17.846308
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 17.918922000000002
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 18.076190999999998
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 18.225088
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 18.415526
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 18.231203
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 18.299796
+        }
+      ],
+      "per_level_sampling_ms": 0.18,
+      "prefix_prepare_ms": 0.07,
+      "profile": "xsum",
+      "sampling_and_penalties_ms": 1.25,
+      "uninstrumented_median_ms": 157.5,
+      "uninstrumented_p95_ms": 159.48,
+      "weight_upload_ms": 130.56
+    },
+    {
+      "artifact_load_ms": 721.12,
+      "batch": 32,
+      "codec_decode_ms": 8.53,
+      "final_penalties_ms": 25.9,
+      "generator_levels_sum_ms": 4663.82,
+      "host_readback_ms": 0.02,
+      "instrumented_total_ms": 4697.51,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 2848.0,
+        "cuda_pool_used_peak_load_mib": 578.36,
+        "cuda_pool_used_peak_run_mib": 2201.24,
+        "hwm_mib": 1074.31,
+        "rss_after_artifact_mib": 1059.16,
+        "rss_after_run_mib": 905.29,
+        "rss_after_upload_mib": 737.28
+      },
+      "model_load_total_ms": 851.98,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 497.65358399999997
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 500.058997
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 506.8405
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 509.19195299999996
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 514.285444
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 524.4747749999999
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 533.4966370000001
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 532.781128
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 545.037614
+        }
+      ],
+      "per_level_sampling_ms": 0.48,
+      "prefix_prepare_ms": 1.67,
+      "profile": "xsum",
+      "sampling_and_penalties_ms": 26.38,
+      "uninstrumented_median_ms": 4366.58,
+      "uninstrumented_p95_ms": 4383.37,
+      "weight_upload_ms": 130.86
+    },
+    {
+      "artifact_load_ms": 1252.32,
+      "batch": 1,
+      "codec_decode_ms": 1.46,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 57.55,
+      "host_readback_ms": 0.01,
+      "instrumented_total_ms": 59.24,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 1088.0,
+        "cuda_pool_used_peak_load_mib": 1007.95,
+        "cuda_pool_used_peak_run_mib": 1050.19,
+        "hwm_mib": 1516.62,
+        "rss_after_artifact_mib": 1484.85,
+        "rss_after_run_mib": 784.59,
+        "rss_after_upload_mib": 495.83
+      },
+      "model_load_total_ms": 1469.34,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 4.154705
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 4.746720000000001
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 4.63174
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 4.7132249999999996
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 4.744044000000001
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 4.793007
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 4.820208
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 6.103276999999999
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 6.204387
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 6.287389
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 6.348234000000001
+        }
+      ],
+      "per_level_sampling_ms": 0.2,
+      "prefix_prepare_ms": 0.03,
+      "profile": "wmt14",
+      "sampling_and_penalties_ms": 0.2,
+      "uninstrumented_median_ms": 59.02,
+      "uninstrumented_p95_ms": 61.68,
+      "weight_upload_ms": 217.02
+    },
+    {
+      "artifact_load_ms": 1255.13,
+      "batch": 32,
+      "codec_decode_ms": 30.3,
+      "final_penalties_ms": 0.0,
+      "generator_levels_sum_ms": 1225.07,
+      "host_readback_ms": 0.03,
+      "instrumented_total_ms": 1255.79,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 2624.0,
+        "cuda_pool_used_peak_load_mib": 1007.95,
+        "cuda_pool_used_peak_run_mib": 2204.01,
+        "hwm_mib": 1519.64,
+        "rss_after_artifact_mib": 1487.87,
+        "rss_after_run_mib": 812.6,
+        "rss_after_upload_mib": 498.87
+      },
+      "model_load_total_ms": 1473.87,
+      "per_level_generator_ms": [
+        {
+          "level": "level_00_logits",
+          "median_ms": 79.882475
+        },
+        {
+          "level": "level_01_logits",
+          "median_ms": 87.525535
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 90.807788
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 96.616131
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 103.682284
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 107.87447
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 113.19755099999999
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 123.37890999999999
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 135.02024100000003
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 139.278337
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 147.809124
+        }
+      ],
+      "per_level_sampling_ms": 0.7,
+      "prefix_prepare_ms": 0.27,
+      "profile": "wmt14",
+      "sampling_and_penalties_ms": 0.7,
+      "uninstrumented_median_ms": 1206.91,
+      "uninstrumented_p95_ms": 1208.25,
+      "weight_upload_ms": 218.74
+    },
+    {
+      "artifact_load_ms": 1295.49,
+      "batch": 1,
+      "codec_decode_ms": 2.02,
+      "final_penalties_ms": 2.03,
+      "generator_levels_sum_ms": 37.24,
+      "host_readback_ms": 0.02,
+      "instrumented_total_ms": 43.08,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 864.0,
+        "cuda_pool_used_peak_load_mib": 796.1,
+        "cuda_pool_used_peak_run_mib": 838.73,
+        "hwm_mib": 1240.74,
+        "rss_after_artifact_mib": 1208.54,
+        "rss_after_run_mib": 791.23,
+        "rss_after_upload_mib": 444.12
+      },
+      "model_load_total_ms": 1468.51,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 2.3111759999999997
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 2.307691
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 2.3424460000000003
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 2.777742
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 2.8521050000000003
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 2.945061
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 3.780706
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 3.798023
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 3.8776140000000003
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 4.343787
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 5.906007
+        }
+      ],
+      "per_level_sampling_ms": 1.69,
+      "prefix_prepare_ms": 0.05,
+      "profile": "lm1b-small",
+      "sampling_and_penalties_ms": 3.72,
+      "uninstrumented_median_ms": 43.01,
+      "uninstrumented_p95_ms": 43.27,
+      "weight_upload_ms": 173.03
+    },
+    {
+      "artifact_load_ms": 1050.76,
+      "batch": 16,
+      "codec_decode_ms": 32.44,
+      "final_penalties_ms": 16.96,
+      "generator_levels_sum_ms": 302.27,
+      "host_readback_ms": 6.31,
+      "instrumented_total_ms": 384.13,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 1536.0,
+        "cuda_pool_used_peak_load_mib": 796.1,
+        "cuda_pool_used_peak_run_mib": 1350.03,
+        "hwm_mib": 1242.55,
+        "rss_after_artifact_mib": 1210.43,
+        "rss_after_run_mib": 773.23,
+        "rss_after_upload_mib": 446.13
+      },
+      "model_load_total_ms": 1222.36,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 9.042743000000002
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 8.59062
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 10.966203
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 14.903737
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 18.923892000000002
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 23.793229999999998
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 29.602481
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 34.444991
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 43.12349699999999
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 49.775991
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 59.099196
+        }
+      ],
+      "per_level_sampling_ms": 25.92,
+      "prefix_prepare_ms": 0.23,
+      "profile": "lm1b-small",
+      "sampling_and_penalties_ms": 42.88,
+      "uninstrumented_median_ms": 374.95,
+      "uninstrumented_p95_ms": 376.69,
+      "weight_upload_ms": 171.6
+    },
+    {
+      "artifact_load_ms": 2487.2,
+      "batch": 1,
+      "codec_decode_ms": 2.15,
+      "final_penalties_ms": 2.18,
+      "generator_levels_sum_ms": 113.57,
+      "host_readback_ms": 0.02,
+      "instrumented_total_ms": 119.64,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 1696.0,
+        "cuda_pool_used_peak_load_mib": 1633.25,
+        "cuda_pool_used_peak_run_mib": 1675.88,
+        "hwm_mib": 2077.96,
+        "rss_after_artifact_mib": 2045.75,
+        "rss_after_run_mib": 771.9,
+        "rss_after_upload_mib": 444.43
+      },
+      "model_load_total_ms": 2836.41,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 6.828902
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 6.456654
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 6.49828
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 8.185699
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 8.428853
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 8.710137
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 11.683925
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 12.238055
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 12.767472999999999
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 13.305002
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 18.463027
+        }
+      ],
+      "per_level_sampling_ms": 1.77,
+      "prefix_prepare_ms": 0.05,
+      "profile": "lm1b-medium",
+      "sampling_and_penalties_ms": 3.95,
+      "uninstrumented_median_ms": 119.51,
+      "uninstrumented_p95_ms": 119.64,
+      "weight_upload_ms": 349.22
+    },
+    {
+      "artifact_load_ms": 1985.48,
+      "batch": 16,
+      "codec_decode_ms": 32.55,
+      "final_penalties_ms": 16.88,
+      "generator_levels_sum_ms": 985.79,
+      "host_readback_ms": 5.61,
+      "instrumented_total_ms": 1068.66,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 2336.0,
+        "cuda_pool_used_peak_load_mib": 1633.25,
+        "cuda_pool_used_peak_run_mib": 2187.2,
+        "hwm_mib": 2077.84,
+        "rss_after_artifact_mib": 2045.75,
+        "rss_after_run_mib": 760.54,
+        "rss_after_upload_mib": 444.41
+      },
+      "model_load_total_ms": 2333.72,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 19.626617
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 27.996913
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 39.514796
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 51.959039
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 61.647577000000005
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 78.19043
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 98.261459
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 113.672265
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 138.02716700000002
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 160.169781
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 196.72531400000003
+        }
+      ],
+      "per_level_sampling_ms": 28.3,
+      "prefix_prepare_ms": 0.24,
+      "profile": "lm1b-medium",
+      "sampling_and_penalties_ms": 45.18,
+      "uninstrumented_median_ms": 1061.99,
+      "uninstrumented_p95_ms": 1062.77,
+      "weight_upload_ms": 348.24
+    },
+    {
+      "artifact_load_ms": 4667.57,
+      "batch": 1,
+      "codec_decode_ms": 2.21,
+      "final_penalties_ms": 2.24,
+      "generator_levels_sum_ms": 242.45,
+      "host_readback_ms": 0.02,
+      "instrumented_total_ms": 248.88,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 3264.0,
+        "cuda_pool_used_peak_load_mib": 3190.72,
+        "cuda_pool_used_peak_run_mib": 3233.35,
+        "hwm_mib": 3635.7,
+        "rss_after_artifact_mib": 3603.07,
+        "rss_after_run_mib": 772.66,
+        "rss_after_upload_mib": 444.84
+      },
+      "model_load_total_ms": 5344.51,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 14.088745
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 12.30701
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 12.642924
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 16.926494
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 17.428900000000002
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 17.785843999999997
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 25.732571999999998
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 27.530809
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 28.999244
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 29.708153
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 39.30429
+        }
+      ],
+      "per_level_sampling_ms": 1.8,
+      "prefix_prepare_ms": 0.06,
+      "profile": "lm1b-large",
+      "sampling_and_penalties_ms": 4.04,
+      "uninstrumented_median_ms": 248.62,
+      "uninstrumented_p95_ms": 252.04,
+      "weight_upload_ms": 676.94
+    },
+    {
+      "artifact_load_ms": 3754.15,
+      "batch": 8,
+      "codec_decode_ms": 16.24,
+      "final_penalties_ms": 9.57,
+      "generator_levels_sum_ms": 1132.08,
+      "host_readback_ms": 3.47,
+      "instrumented_total_ms": 1176.8,
+      "memory": {
+        "cuda_pool_reserved_peak_run_mib": 3520.0,
+        "cuda_pool_used_peak_load_mib": 3190.72,
+        "cuda_pool_used_peak_run_mib": 3472.05,
+        "hwm_mib": 3635.91,
+        "rss_after_artifact_mib": 3603.18,
+        "rss_after_run_mib": 775.04,
+        "rss_after_upload_mib": 445.05
+      },
+      "model_load_total_ms": 4427.78,
+      "per_level_generator_ms": [
+        {
+          "level": "level_01_logits",
+          "median_ms": 26.850819
+        },
+        {
+          "level": "level_02_logits",
+          "median_ms": 36.816494
+        },
+        {
+          "level": "level_03_logits",
+          "median_ms": 50.04409
+        },
+        {
+          "level": "level_04_logits",
+          "median_ms": 62.135833
+        },
+        {
+          "level": "level_05_logits",
+          "median_ms": 75.007395
+        },
+        {
+          "level": "level_06_logits",
+          "median_ms": 89.5487
+        },
+        {
+          "level": "level_07_logits",
+          "median_ms": 115.676582
+        },
+        {
+          "level": "level_08_logits",
+          "median_ms": 127.67724799999999
+        },
+        {
+          "level": "level_09_logits",
+          "median_ms": 153.055275
+        },
+        {
+          "level": "level_10_logits",
+          "median_ms": 180.316482
+        },
+        {
+          "level": "level_11_logits",
+          "median_ms": 214.95352
+        }
+      ],
+      "per_level_sampling_ms": 14.7,
+      "prefix_prepare_ms": 0.14,
+      "profile": "lm1b-large",
+      "sampling_and_penalties_ms": 24.27,
+      "uninstrumented_median_ms": 1170.13,
+      "uninstrumented_p95_ms": 1172.36,
+      "weight_upload_ms": 673.64
+    }
+  ]
+}

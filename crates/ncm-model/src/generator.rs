@@ -410,6 +410,7 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
         let ids = b.upload_indices(prefix_tokens, &[batch, cfg.prefix_len])?;
         let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &ids)?;
         let prefix = self.linear(&self.model.parameters.input, &raw)?;
+        trace.stage_tensor("prefix_done", &prefix)?;
         let mut cumulative: Option<B::Tensor> = None;
         let mut codes = Vec::with_capacity(codec_cfg.levels().len());
         let mut previous: Option<B::Indices> = None;
@@ -442,8 +443,10 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
             let hidden = self.decode_level(&prefix, &target, length, level)?;
             let logits = self.linear(&self.model.parameters.heads[level], &hidden)?;
             trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
+            trace.stage_tensor(&format!("level_{level:02}_logits"), &logits)?;
             let next = b.select_last(&logits, true)?;
             trace.indices(&format!("generator.level_{level:02}.codes"), &next)?;
+            trace.stage_indices(&format!("level_{level:02}_sampled"), &next)?;
             codes.push(next.clone());
             previous = Some(next);
         }
@@ -463,6 +466,7 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
         let (logits, ids) = self
             .codec
             .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
+        trace.stage_indices("codec_decode_done", &ids)?;
         Ok(Generated { codes, logits, ids })
     }
 }
@@ -937,6 +941,16 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, None)
     }
 
+    /// Profiled CFG-zero top-1 returning generated tensors and emitting stage boundaries.
+    pub fn generate_top1_profiled(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Generated<B>> {
+        self.run_internal(prefix_tokens, None, batch, trace, None)
+    }
+
     /// Try the original input shape first. If the WMT14 head rejects a
     /// maximum, repeat rows to one batch of eight and return only the originals.
     /// The second generation uses the same head guard. The flag reports a retry.
@@ -975,12 +989,29 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
         scale: f64,
         tile_rows: usize,
     ) -> Result<Wmt14HostOutput> {
+        self.generate_top1_with_tiled_decoder_traced(
+            prefix_tokens,
+            batch,
+            scale,
+            tile_rows,
+            &mut crate::NoTrace,
+        )
+    }
+
+    /// Traced/profiled WMT14 top-1 with tiled vocabulary projection.
+    pub fn generate_top1_with_tiled_decoder_traced(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        tile_rows: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Wmt14HostOutput> {
         if !(1..=32).contains(&tile_rows) {
             return Err(Error::Input(
                 "WMT14 decoder tile must use 1..=32 rows".into(),
             ));
         }
-        let trace = &mut crate::NoTrace;
         let (codes, latent) = if scale == 0.0 {
             self.run_to_latent(prefix_tokens, None, batch, trace, None)?
         } else {
@@ -996,6 +1027,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 "invalid WMT14 tiled generation codes".into(),
             ));
         }
+        trace.stage_tensor("codec_decode_done", &latent)?;
         Ok(Wmt14HostOutput { codes, ids })
     }
 
@@ -1198,6 +1230,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
         trace.tensor("generator.final_logits", &logits)?;
         trace.indices("generator.greedy_ids", &ids)?;
+        trace.stage_indices("codec_decode_done", &ids)?;
         Ok(Generated { codes, logits, ids })
     }
 
@@ -1246,6 +1279,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             prefix_ids.clone()
         };
         trace.indices("generator.prefix_ids", &observed_prefix)?;
+        trace.stage_tensor("prefix_done", &prefix)?;
         if let Some(codes) = &forced {
             trace.indices("generator.forced_codes", codes)?;
         }
@@ -1401,6 +1435,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 }
             }
             trace.tensor(&format!("generator.level_{level:02}.logits"), &head_logits)?;
+            trace.stage_tensor(&format!("level_{level:02}_logits"), &head_logits)?;
             let selected = if let Some(codes) = &forced {
                 b.narrow_indices(codes, 1, offset, length)?
             } else {
@@ -1414,6 +1449,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                     selected
                 }
             };
+            trace.stage_indices(&format!("level_{level:02}_sampled"), &selected)?;
             offset += length;
             selected_levels.push(selected.clone());
             let book = self
@@ -1955,6 +1991,17 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
     /// and the inverse-CDF sampler are not PyTorch's random-number stream.
     /// Prefix padding and other generation settings are explicitly unsupported.
     pub fn sample_seeded(&self, prefix: &[u32], batch: usize, seed: u64) -> Result<Generated<B>> {
+        self.sample_seeded_traced(prefix, batch, seed, &mut crate::NoTrace)
+    }
+
+    /// Profiled TinyStories seeded sampling emitting stage boundaries.
+    pub fn sample_seeded_traced(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Generated<B>> {
         let _request = self
             .request_lock
             .lock()
@@ -1990,6 +2037,7 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
         let prefix_ids = b.upload_indices(prefix, &[batch, 1])?;
         let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
         let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
+        trace.stage_tensor("prefix_done", &prefix)?;
         let mut selected = b.upload_indices(&initial, &[batch, 1])?;
         let mut codes = vec![selected.clone()];
         let mut cumulative: Option<B::Tensor> = None;
@@ -2028,11 +2076,13 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
             let score = b.sub(&b.scale(&b.project(&z, book)?, 2.0)?, &head.squared_norm)?;
             let score = b.scale(&score, 1.0 / f64::from(head.mean_squared_norm))?;
             let logits = b.scale(&score, f64::from(head.inverse_temperature))?;
+            trace.stage_tensor(&format!("level_{:02}_logits", level + 1), &logits)?;
             let words: Vec<u32> = (0..batch * length)
                 .map(|_| (random.next() >> 32) as u32)
                 .collect();
             let words = b.upload_indices(&words, &[batch, length])?;
             selected = b.categorical_4096(&logits, &words)?;
+            trace.stage_indices(&format!("level_{:02}_sampled", level + 1), &selected)?;
             codes.push(selected.clone());
             cumulative = Some(sum);
         }
@@ -2060,6 +2110,7 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
         let (logits, ids) = self
             .codec
             .decode_latent_outputs(&latent, &mut crate::NoTrace)?;
+        trace.stage_indices("codec_decode_done", &ids)?;
         Ok(Generated { codes, logits, ids })
     }
 
@@ -2375,13 +2426,24 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         prefix_tokens: &[u32],
         batch: usize,
     ) -> Result<XsumGenerated<B>> {
+        self.generate_top1_cpu_profiled(prefix_tokens, batch, &mut crate::NoTrace)
+    }
+
+    /// Profiled CPU-penalty top-1 generation (same execution as `generate_top1_cpu`).
+    pub fn generate_top1_cpu_profiled(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<XsumGenerated<B>> {
         let _request = self
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let output =
-            self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, false, None)?;
-        self.finish_cpu(output, batch)
+        let output = self.run_internal(prefix_tokens, None, batch, trace, false, None)?;
+        let out = self.finish_cpu(output, batch)?;
+        trace.stage_indices("penalties_done", &out.codes)?;
+        Ok(out)
     }
 
     /// Seeded CFG-0 sampling with explicitly requested CPU FP64 final selection.
@@ -2453,13 +2515,24 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         prefix_tokens: &[u32],
         batch: usize,
     ) -> Result<XsumGenerated<B>> {
+        self.generate_top1_device_profiled(prefix_tokens, batch, &mut crate::NoTrace)
+    }
+
+    /// Profiled device-penalty top-1 generation (same execution as `generate_top1_device`).
+    pub fn generate_top1_device_profiled(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<XsumGenerated<B>> {
         let _request = self
             .request_lock
             .lock()
             .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let output =
-            self.run_internal(prefix_tokens, None, batch, &mut crate::NoTrace, false, None)?;
-        self.finish_device(output)
+        let output = self.run_internal(prefix_tokens, None, batch, trace, false, None)?;
+        let out = self.finish_device(output)?;
+        trace.stage_indices("penalties_done", &out.codes)?;
+        Ok(out)
     }
 
     /// Generate top-1 codes with the pinned upstream classifier-free guidance
@@ -2629,6 +2702,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         let prefix_ids = b.upload_indices(prefix_tokens, &[batch, 512])?;
         let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
         let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
+        trace.stage_tensor("prefix_done", &prefix)?;
         let forced = forced_codes
             .map(|codes| b.upload_indices(codes, &[batch, total]))
             .transpose()?;
@@ -2707,6 +2781,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             let score = b.scale(&score, 1.0 / f64::from(head.mean_squared_norm))?;
             let logits = b.scale(&score, f64::from(head.inverse_temperature))?;
             trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
+            trace.stage_tensor(&format!("level_{level:02}_logits"), &logits)?;
             let selected = if let Some(codes) = &forced {
                 b.narrow_indices(codes, 1, offset, length)?
             } else {
@@ -2741,6 +2816,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 }
             };
             offset += length;
+            trace.stage_indices(&format!("level_{level:02}_sampled"), &selected)?;
             selected_levels.push(selected.clone());
             let embedding = if forced.is_some() {
                 b.embedding(book, &selected)?
@@ -2797,6 +2873,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             )
         };
         trace.tensor("generator.final_logits", &logits)?;
+        trace.stage_tensor("codec_decode_done", &logits)?;
         if let Some(ids) = &greedy_ids {
             trace.indices("generator.greedy_ids", ids)?;
         }
@@ -3418,14 +3495,18 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         seed: u64,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(
-            prefix,
-            batch,
-            seed,
-            &mut crate::NoTrace,
-            Lm1bDraw::DeviceFp64,
-            true,
-        )
+        self.sample_seeded_fully_device_traced(prefix, batch, seed, &mut crate::NoTrace)
+    }
+
+    /// Profiled form of `sample_seeded_fully_device`.
+    pub fn sample_seeded_fully_device_traced(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_impl(prefix, batch, seed, trace, Lm1bDraw::DeviceFp64, true)
     }
 
     /// Explicit experimental FP32 top-p=1 probabilities with host FP64 draws.
@@ -3460,14 +3541,18 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         batch: usize,
         seed: u64,
     ) -> Result<Lm1bSample<B>> {
-        self.sample_seeded_impl(
-            prefix,
-            batch,
-            seed,
-            &mut crate::NoTrace,
-            Lm1bDraw::DeviceFp32,
-            false,
-        )
+        self.sample_seeded_device_fp32_traced(prefix, batch, seed, &mut crate::NoTrace)
+    }
+
+    /// Profiled form of `sample_seeded_device_fp32`.
+    pub fn sample_seeded_device_fp32_traced(
+        &self,
+        prefix: &[u32],
+        batch: usize,
+        seed: u64,
+        trace: &mut impl crate::TraceSink<B>,
+    ) -> Result<Lm1bSample<B>> {
+        self.sample_seeded_impl(prefix, batch, seed, trace, Lm1bDraw::DeviceFp32, false)
     }
 
     fn sample_seeded_impl(
@@ -3536,6 +3621,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
         trace.indices("generator.initial_codes", &initial)?;
         let raw = b.embedding(self.codec.weight("encoder.wte.weight")?, &prefix_ids)?;
         let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
+        trace.stage_tensor("prefix_done", &prefix)?;
         let mut cumulative = None;
         let mut offset = 0;
         let mut selected_levels = Vec::with_capacity(12);
@@ -3598,6 +3684,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                 }
                 let logits = b.add(&b.project(&hidden, &self.head)?, &self.head_bias[level])?;
                 trace.tensor(&format!("generator.level_{level:02}.logits"), &logits)?;
+                trace.stage_tensor(&format!("level_{level:02}_logits"), &logits)?;
                 if codes.is_none() {
                     generated = if draw == Lm1bDraw::DeviceFp32 {
                         let rng = random
@@ -3682,6 +3769,9 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             } else {
                 generated.expect("generated level")
             };
+            if level > 0 {
+                trace.stage_indices(&format!("level_{level:02}_sampled"), &selected)?;
+            }
             selected_levels.push(selected.clone());
             offset += length;
             let embedding = b.embedding(
@@ -3718,6 +3808,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             .decode_latent_outputs(&cumulative.expect("levels"), &mut crate::NoTrace)?;
         trace.tensor("generator.final_logits", &logits)?;
         trace.indices("generator.greedy_ids", &greedy)?;
+        trace.stage_tensor("codec_decode_done", &logits)?;
         let penalized = if device_penalty {
             let selected = b.lm1b_penalty_fp64(&logits, &self.device_allowance)?;
             let ids = b.read_indices(&selected)?;
@@ -3737,6 +3828,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             }
             ids
         };
+        trace.stage_indices("penalties_done", &result_codes)?;
         trace.indices(
             "generator.penalized_ids",
             &b.upload_indices(&penalized, &[batch, 128])?,

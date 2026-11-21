@@ -216,3 +216,7 @@ required-features = ["mlx", "lm1b-experimental"]
 [[example]]
 name = "lm1b_top_p_model_trace"
 required-features = ["mlx", "lm1b-experimental"]
+
+[[example]]
+name = "phase5_stage_profile"
+required-features = ["mlx", "wmt14-experimental", "lm1b-experimental"]
