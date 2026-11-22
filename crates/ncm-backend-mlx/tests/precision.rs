@@ -30,7 +30,10 @@ fn mlx_fp16_rejects_out_of_range_weights() {
         .expect("Metal GPU")
         .with_precision(ComputePrecision::Fp16)
         .expect("Metal FP16");
-    let err = fp16.upload_f32(&[1.0, 70_000.0], &[1, 2]).unwrap_err();
+    let err = match fp16.upload_f32(&[1.0, 70_000.0], &[1, 2]) {
+        Err(err) => err,
+        Ok(_) => panic!("expected FP16 finite-range rejection"),
+    };
     assert!(
         err.to_string().contains("FP16 finite range"),
         "unexpected error: {err}"
