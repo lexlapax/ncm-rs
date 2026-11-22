@@ -436,7 +436,13 @@ impl WeightBackend for MlxBackend {
         let shape = upload_shape(shape, values.len())?;
         self.array_op(&[], || {
             let arr = Array::from_slice(values, &shape);
-            self.cast_from_f32(arr)
+            let out = self.cast_from_f32(arr)?;
+            if self.precision != ComputePrecision::Fp32 {
+                // Materialize half-precision weights immediately so MLX releases the
+                // temporary FP32 upload buffer instead of retaining the full model in FP32.
+                out.eval()?;
+            }
+            Ok(out)
         })
     }
 }
