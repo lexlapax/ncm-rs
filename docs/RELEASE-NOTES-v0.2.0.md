@@ -1,7 +1,6 @@
-# v0.2.0 release notes — draft (awaiting tag approval)
+# v0.2.0 release notes
 
-Target release following the published `v0.1.0` release (`de2975a`).
-This release delivers Phase 5 Steps 2–4 plus the five-milestone cross-phase gap-audit bundle verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra). No `v0.2.0` tag or GitHub release has been created yet; tagging awaits user approval.
+Source-only release following `v0.1.0` (`de2975a`), delivering Phase 5 Steps 2–4 plus the five-milestone cross-phase gap-audit bundle verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra).
 
 ## Highlights
 

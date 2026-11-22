@@ -2,9 +2,8 @@
 
 A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified FP32 foundation for running local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production inference uses native CUDA/cuDNN or native MLX; Python is used strictly offline for checkpoint conversion, references, and evaluation.
 
-**Status: Phase 5 & pre-`v0.2.0` gap-audit bundle complete on Linux/CUDA and Apple Silicon/MLX.**
-- **`v0.1.0` published** (`de2975a`, source-only): unified `ncm sample` CLI, folded GPU build features, `--text`/`--decode`, and fresh-clone setup guides verified on both GPUs.
-- **`v0.2.0` candidate verified on both GPUs** (`4d970fa` / `e7b8cfa`):
+**Status: `v0.2.0` released on Linux/CUDA and Apple Silicon/MLX.**
+- **`v0.2.0` published** (source-only):
   - **Streaming verified weight loading + pipelined SHA-256:** **2.05×–2.46× faster load** and up to **-2.8 GiB (0.22×) host HWM** on CUDA; **1.93×–3.63× faster load** and **48–49% lower peak RSS** vs Python MLX on Metal (`lm1b-large`: 3,298 vs 6,495 MiB).
   - **FP32 prefix K/V caching (zero corpus diffs):** **3.24× faster XSum** (`155.8 → 48.1 ms`) and **1.54× faster WMT14** (`58.5 → 38.0 ms`) on CUDA; **2.42× faster XSum** (`204.6 → 84.6 ms`, `-187 MiB` MLX peak) and **1.20× faster WMT14** (`-59 MiB` MLX peak) on Metal.
   - **Local NCM model foundation & parity fixes:** config-driven `local-ncm-v1` artifacts + stdlib exporter (`tools/reference/export_local_ncm.py`), self-contained `lm1b-*-inference-v2` option, XSum Metal seeded + positive CFG support, and **9/9 byte-identical CLI outputs** on both GPUs.
@@ -14,7 +13,7 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
 
 - **Users (install, build, fetch/export checkpoints, run inference):** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
 - **Developers (Rust library embedding, backend traits, adding local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
-- **Release notes:** [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md) | [v0.2.0 (draft, awaiting tag approval)](docs/RELEASE-NOTES-v0.2.0.md).
+- **Release notes:** [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
 
 ## Profile and evidence matrix
 
