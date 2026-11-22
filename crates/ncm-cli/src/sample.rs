@@ -202,17 +202,24 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             result[1] = "sample-wmt14".into();
             result.push(cfg.unwrap_or(0.0).to_string());
         }
-        "lm1b-small-inference-v1" | "lm1b-medium-inference-v1" | "lm1b-large-inference-v1" => {
+        "lm1b-small-inference-v1"
+        | "lm1b-medium-inference-v1"
+        | "lm1b-large-inference-v1"
+        | "lm1b-small-inference-v2"
+        | "lm1b-medium-inference-v2"
+        | "lm1b-large-inference-v2" => {
             if cfg.is_some() || stochastic || positive_cfg {
                 return Err("unsupported option for LM1B".into());
             }
             result[1] = "sample-lm1b".into();
             result.push(seed.unwrap_or(0).to_string());
+            let embedded = profile.ends_with("-v2");
             let default_rope = Path::new(&args[2])
                 .join("..")
                 .join("lm1b-reference-rope-v1.safetensors");
             result.push(match rope {
                 Some(path) => path.clone(),
+                None if embedded => "--embedded-rope".into(),
                 None => default_rope
                     .to_str()
                     .ok_or("LM1B default rotary path is not valid UTF-8")?
@@ -226,6 +233,15 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             }
             if host_fp64 {
                 result.push("--host-fp64".into());
+            }
+        }
+        "local-ncm-v1" => {
+            if cfg.is_some() || rope.is_some() || stochastic || positive_cfg || top_p || host_fp64 {
+                return Err("unsupported option for local-ncm-v1".into());
+            }
+            result[1] = "sample-local".into();
+            if let Some(seed) = seed {
+                result.push(seed.to_string());
             }
         }
         _ => return Err(format!("unsupported artifact profile: {profile}").into()),
@@ -426,6 +442,19 @@ mod tests {
             default_rope[6],
             "artifact/../lm1b-reference-rope-v1.safetensors"
         );
+        for v2 in [
+            "lm1b-small-inference-v2",
+            "lm1b-medium-inference-v2",
+            "lm1b-large-inference-v2",
+        ] {
+            let embedded = translate_profile(&args(&["--seed", "7"]), v2).unwrap();
+            assert_eq!(embedded[1], "sample-lm1b");
+            assert_eq!(embedded[6], "--embedded-rope");
+            let explicit =
+                translate_profile(&args(&["--seed", "7", "--reference-rope", "custom"]), v2)
+                    .unwrap();
+            assert_eq!(explicit[6], "custom");
+        }
         assert!(
             translate_profile(
                 &args(&["--seed", "1", "--experimental-stochastic-xsum"]),
@@ -440,5 +469,32 @@ mod tests {
             )
             .is_ok()
         );
+        assert_eq!(
+            translate_profile(&args(&[]), "local-ncm-v1").unwrap(),
+            ["ncm", "sample-local", "artifact", "cuda-cudnn", "input"]
+        );
+        assert_eq!(
+            translate_profile(
+                &args(&["--seed", "42", "--text", "--decode"]),
+                "local-ncm-v1"
+            )
+            .unwrap(),
+            [
+                "ncm",
+                "sample-local",
+                "artifact",
+                "cuda-cudnn",
+                "input",
+                "42"
+            ]
+        );
+        for bad in [
+            &["--cfg", "1"][..],
+            &["--reference-rope", "r"][..],
+            &["--top-p-fp32"][..],
+            &["--host-fp64"][..],
+        ] {
+            assert!(translate_profile(&args(bad), "local-ncm-v1").is_err());
+        }
     }
 }

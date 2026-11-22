@@ -19,7 +19,7 @@ use ncm_model::XsumTeacher;
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
 ))]
-use ncm_model::{Codec, Generator, TinyStoriesTeacher};
+use ncm_model::{Codec, Generator, LocalNcmModel, TinyStoriesTeacher};
 use std::{error::Error, fs, io::Read, path::Path};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -179,6 +179,89 @@ fn dispatch_tinystories(
 }
 
 #[cfg(any(
+    feature = "cpu",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
+fn sample_local<B: GeneratorBackend + Clone>(
+    backend: B,
+    artifact: Artifact,
+    inputs: &[Vec<u32>],
+    seed: Option<u64>,
+) -> Result<serde_json::Value> {
+    if inputs.is_empty() || inputs.len() > 128 || inputs.iter().any(|r| r.len() != inputs[0].len())
+    {
+        return Err("local-ncm-v1 expects 1..=128 equal-length prefix token rows".into());
+    }
+    let model = LocalNcmModel::from_artifact(backend.clone(), &artifact)?;
+    drop(artifact);
+    let prefix_len = model.config().prefix_len;
+    if inputs[0].len() != prefix_len {
+        return Err(format!(
+            "local-ncm-v1 expects prefix length {prefix_len}, got {}",
+            inputs[0].len()
+        )
+        .into());
+    }
+    let flat: Vec<u32> = inputs.iter().flatten().copied().collect();
+    let generated = model.generate(&flat, inputs.len(), seed)?;
+    drop(generated.logits);
+    let flat_codes = backend.read_indices(&generated.codes)?;
+    let flat_ids = backend.read_indices(&generated.ids)?;
+    let code_len = model.codec_config().code_length();
+    let context_len = model.codec_config().raw().context_length;
+    if flat_codes.len() != inputs.len() * code_len || flat_ids.len() != inputs.len() * context_len {
+        return Err("invalid local-ncm-v1 backend output shape".into());
+    }
+    let codes: Vec<Vec<u32>> = flat_codes
+        .chunks_exact(code_len)
+        .map(<[u32]>::to_vec)
+        .collect();
+    let ids: Vec<Vec<u32>> = flat_ids
+        .chunks_exact(context_len)
+        .map(<[u32]>::to_vec)
+        .collect();
+    Ok(match seed {
+        Some(seed) => serde_json::json!({"seed": seed, "codes": codes, "ids": ids}),
+        None => serde_json::json!({"codes": codes, "ids": ids}),
+    })
+}
+
+fn dispatch_local(
+    device: &str,
+    artifact: Artifact,
+    inputs: &[Vec<u32>],
+    seed: Option<u64>,
+) -> Result<serde_json::Value> {
+    let _ = (&artifact, inputs, seed);
+    match device {
+        #[cfg(feature = "cpu")]
+        "cpu" => sample_local(
+            ncm_backend_cuda::CandleBackend::cpu(),
+            artifact,
+            inputs,
+            seed,
+        ),
+        #[cfg(feature = "cuda")]
+        "cuda" => sample_local(
+            ncm_backend_cuda::CandleBackend::cuda(0)?,
+            artifact,
+            inputs,
+            seed,
+        ),
+        #[cfg(feature = "cuda-cudnn")]
+        "cuda-cudnn" => sample_local(
+            ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?,
+            artifact,
+            inputs,
+            seed,
+        ),
+        #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+        "mlx" => sample_local(ncm_backend_mlx::MlxBackend::gpu()?, artifact, inputs, seed),
+        _ => Err("requested device is unavailable in this build; no fallback".into()),
+    }
+}
+
+#[cfg(any(
     feature = "cuda-cudnn",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
 ))]
@@ -205,7 +288,8 @@ fn sample_xsum(
 ) -> Result<serde_json::Value> {
     let prefixes = xsum_prefixes(inputs)?;
     let backend = ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?;
-    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
+    let model =
+        XsumTeacher::from_owned_artifact(backend.clone(), artifact)?.with_prefix_cache(true);
     let generated = if let Some(seed) = seed {
         model.sample_seeded_device(&prefixes, inputs.len(), cfg_scale, seed)?
     } else {
@@ -250,14 +334,12 @@ fn sample_xsum_mlx(
     cfg_scale: f64,
     seed: Option<u64>,
 ) -> Result<serde_json::Value> {
-    if seed.is_some() && cfg_scale != 0.0 {
-        return Err("Seeded XSum Metal generation requires CFG 0".into());
-    }
     let prefixes = xsum_prefixes(inputs)?;
     let backend = ncm_backend_mlx::MlxBackend::gpu()?;
-    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
+    let model =
+        XsumTeacher::from_owned_artifact(backend.clone(), artifact)?.with_prefix_cache(true);
     let generated = if let Some(seed) = seed {
-        model.sample_seeded_cpu(&prefixes, inputs.len(), seed)?
+        model.sample_seeded_cfg_cpu(&prefixes, inputs.len(), cfg_scale, seed)?
     } else {
         model.generate_top1_cfg_cpu(&prefixes, inputs.len(), cfg_scale)?
     };
@@ -312,9 +394,11 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     let prefixes: Vec<_> = inputs.iter().flatten().copied().collect();
     let teacher = if metal_optimized {
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+            .with_prefix_cache(scale == 0.0)
             .with_deferred_head_check_experimental()
     } else {
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+            .with_prefix_cache(scale == 0.0)
     };
     let batch = inputs.len();
     let (output, retried) = if metal_optimized && (scale == 0.0 || scale == 1.0) {
@@ -491,7 +575,12 @@ fn main_impl() -> Result<()> {
     if !(5..=7).contains(&args.len())
         || !matches!(
             args[1].as_str(),
-            "generate" | "reconstruct" | "sample-tinystories" | "sample-xsum" | "sample-wmt14"
+            "generate"
+                | "reconstruct"
+                | "sample-tinystories"
+                | "sample-xsum"
+                | "sample-wmt14"
+                | "sample-local"
         )
         || (args[1] == "sample-tinystories" && args.len() != 6)
         || (args.len() == 7 && args[1] != "sample-xsum")
@@ -525,6 +614,9 @@ fn main_impl() -> Result<()> {
     } else if args[1] == "sample-wmt14" {
         let scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
         dispatch_wmt14(&args[3], artifact, &inputs, scale)?
+    } else if args[1] == "sample-local" {
+        let seed = args.get(5).map(|s| s.parse::<u64>()).transpose()?;
+        dispatch_local(&args[3], artifact, &inputs, seed)?
     } else if let Some(seed) = sample_seed {
         dispatch_tinystories(&args[3], artifact, &inputs, seed)?
     } else {

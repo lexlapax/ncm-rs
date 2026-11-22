@@ -1,10 +1,23 @@
 # Agent context map
 
-Last updated: 2026-11-21 UTC. Read first; load linked context lazily. Keep this file short:
+Last updated: 2026-11-22 UTC. Read first; load linked context lazily. Keep this file short:
 current state, decisions, blockers and next actions. Put durable evidence in `docs/results/`.
 The full pre-compaction history is archived in [docs/history/context-map-2026-11-18.md](docs/history/context-map-2026-11-18.md).
 
 ## Current state
+
+- **Pre-`v0.2.0` cross-phase gap-audit milestones A–E implemented and Linux/CUDA-verified (2026-11-22); Metal/MLX validation on `macstudio` next:**
+  - User elected to hold `v0.2.0` tagging and address all five audit items from [cross-phase-gap-audit-v1.md](docs/results/2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md) first:
+    - **Milestone A (warm-inference & I/O hygiene):** added `GeneratorBackend::sampled_embedding_8192` (removing 11× per-level CUDA host syncs in `Lm1bSmallTeacher`), `TraceSink::wants_trace()` (skipping unused codec greedy argmax and `upload_indices(&penalized)` during inference), precomputed FP64 penalty tables (`lm1b_penalized_ids` + `select_xsum_tokens_cpu`), pipelined whole-file SHA-256 I/O in `ncm-io` (`validate_streaming_bundle`), and cleared `cargo check --workspace --locked` warnings.
+    - **Milestone B (XSum Metal seeded + positive CFG):** added `XsumTeacher::sample_seeded_cfg_cpu` and wired `sample_xsum_mlx` so seeded XSum Metal supports positive CFG scales (matching CUDA CLI flags; Metal GPU verification next).
+    - **Milestone C (`lm1b-*-inference-v2` self-contained artifacts):** admitted `lm1b-{small,medium,large}-inference-v2` bundling hash-pinned `rope_cos`/`rope_sin` in `inference.safetensors` (`lm1b_small_runtime_artifact.py --reference-rope`), auto-routed by `ncm sample` while keeping `v1` + sidecar unchanged. Verified real exported `lm1b-small-inference-v2` in an isolated directory (no sidecar) on `cuda-cudnn` is **100% byte-identical** (`cd87171d...`) to `v1` + sidecar.
+    - **Milestone D (XSum & WMT14 prefix K/V caching):** added `PrefixKvCache` / `prefill_prefix_cache` / `decode_target_with_prefix_cache` in `ncm-model`, enabled for XSum (all modes) and WMT14 (`cfg == 0.0`, preserving exact parity on CFG > 0) and dropped before final vocab projection. Verified on RTX 3060 Ti: WMT14 **full 3,003-row corpus** (`0` code/ID diffs; `b=1` 1.61×, `b=4` 2.23×) and XSum **1,024 rows + CFG=1 + seed=42** (`0` diffs; `b=1` 3.40×, `b=4` 4.20×).
+    - **Milestone E (`local-ncm-v1` config-driven local model foundation):** added `CodecConfig::validate_local`, `LocalNcmConfig`/`LocalGeneratorConfig`/`LocalHeadKind`, `"local-ncm-v1"` profile in `ncm-io`, offline `LocalTokenizer` in `ncm-tokenizers`, `LocalNcmModel` in `ncm-model` (with prefix cache, greedy + seeded sampling, all 3 head kinds), unified `ncm sample` support, and stdlib exporter `tools/reference/export_local_ncm.py` (+ `test_export_local_ncm.py`). Verified on CPU (`tests/local_ncm.rs`) and end-to-end on CUDA (`ncm inspect`, `--text --decode`, greedy `cpu == cuda-cudnn`, deterministic `--seed 42`).
+  - **Linux/CUDA full gate passed (2026-11-22, `llama-server.service` stopped with user approval):**
+    - `./tools/check.sh` and `./tools/check.sh --cuda` (18/18 CUDA operator cases, `sampled_embedding_8192`, `local_ncm`, `test_export_local_ncm.py`).
+    - **9/9 CLI byte-equivalence** (`phase5_cli_equivalence.py --platform cuda`) matched pre-Step-3 `baseline-ncm` identically on all 9 profiles.
+    - **3-alternating-process 7-profile CUDA benchmark** (`reports/phase5-v020-bench/cuda-bench-v1/summary.json`, SHA-256 `cd85f4a4...`): load **2.05×–2.46× faster** (`lm1b-large` 4,306→2,103 ms), HWM **-125 to -2,833 MiB** (`lm1b-large` 3,638→804 MiB, 0.22×), warm latency **3.24× faster on XSum** (155.8→48.1 ms), **1.54× faster on WMT14** (58.5→38.0 ms, 0 MiB VRAM increase), and **faster + 18–19 MiB lower VRAM peak on LM1B small/medium/large**.
+  - **Next actions:** pull onto `macstudio`, run Apple Silicon/Metal validation (`./tools/check.sh --mlx`, `prefix_cache_equiv_probe` including XSum Metal CFG=1+seed=42, LM1B v2 & `local-ncm-v1` Metal CLI tests, 9/9 Metal CLI equivalence, 7-profile Metal benchmark, and LM1B Metal vs Python MLX head-to-head), publish dual-platform results & refreshed docs, then confirm `v0.2.0` tag/release with user.
 
 - **Phase 5 complete on Linux/CUDA and Apple Silicon/Metal (2026-11-21):**
   - **Step 1 (`v0.1.0`):** published annotated tag `v0.1.0` at `de2975a` and source-only GitHub release (`https://github.com/lexlapax/ncm-rs/releases/tag/v0.1.0`).

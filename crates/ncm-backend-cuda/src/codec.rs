@@ -513,6 +513,17 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             .map_err(|e| Error::Backend(e.to_string()))?;
         self.embedding(weight, &safe)
     }
+    fn sampled_embedding_8192(&self, weight: &Tensor, indices: &Tensor) -> Result<Tensor> {
+        self.check_tensor(indices, DType::U32)
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        if weight.dims().first() != Some(&8192) {
+            return Err(Error::Input("sampled codebook must have 8192 rows".into()));
+        }
+        let safe = indices
+            .minimum(8191u32)
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        self.embedding(weight, &safe)
+    }
     fn categorical_4096(&self, logits: &Tensor, uniforms: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {

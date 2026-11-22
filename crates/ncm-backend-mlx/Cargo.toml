@@ -220,3 +220,7 @@ required-features = ["mlx", "lm1b-experimental"]
 [[example]]
 name = "phase5_stage_profile"
 required-features = ["mlx", "wmt14-experimental", "lm1b-experimental"]
+
+[[example]]
+name = "prefix_cache_equiv_probe"
+required-features = ["mlx", "wmt14-experimental"]

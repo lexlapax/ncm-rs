@@ -7,6 +7,10 @@ use std::collections::BTreeMap;
 
 const CONFIG_SHA: &str = "1bc5e0c10050c8221ec72c277d8510a9a541117db5705cb12173f12b733a1475";
 const LEVELS: [usize; 12] = [1, 8, 16, 24, 32, 40, 52, 64, 76, 92, 108, 128];
+const LM1B_ROPE_COS_SHA256: &str =
+    "d657dbfb9ad59d73f5d108d944e5cfc6ca81feef4b01a6cf46c68a26315af18a";
+const LM1B_ROPE_SIN_SHA256: &str =
+    "bb349c94065a91579983a0e0c1e20621e943e4975d720a41e474170f3822ba29";
 
 /// A pinned LM1B generator size. All sizes share the codec, tokenizer, levels and
 /// 64-wide attention heads; only generator depth, head count and width differ.
@@ -45,11 +49,15 @@ pub const LM1B_SIZES: [Lm1bSize; 3] = [
 ];
 
 impl Lm1bSize {
-    /// The size for an artifact profile; unknown profiles fail explicitly.
+    /// The size for an artifact profile (`-v1` or self-contained `-v2`); unknown profiles fail explicitly.
     pub fn from_profile(profile: &str) -> Result<Self> {
+        let normalized = profile
+            .strip_suffix("-v2")
+            .map(|prefix| format!("{prefix}-v1"));
+        let candidate = normalized.as_deref().unwrap_or(profile);
         LM1B_SIZES
             .into_iter()
-            .find(|size| size.profile == profile)
+            .find(|size| size.profile == candidate)
             .ok_or_else(|| Error::Config("unsupported LM1B artifact profile".into()))
     }
 
@@ -282,15 +290,66 @@ fn validate_distribution(tensor: &TensorView<'_>, width: usize) -> Result<()> {
     Ok(())
 }
 
+fn decode_lm1b_rope_tensor(tensor: &TensorView<'_>, expected_sha256: &str) -> Result<Vec<f32>> {
+    if tensor.dtype() != Dtype::F32
+        || tensor.shape() != [128, 32]
+        || ncm_io::sha256(tensor.data()) != expected_sha256
+    {
+        return Err(Error::Weights("invalid LM1B embedded rotary table".into()));
+    }
+    Ok(tensor
+        .data()
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|bytes| f32::from_le_bytes(*bytes))
+        .collect())
+}
+
+fn validate_inference_bundle(
+    inference: &[u8],
+    expect_rope: bool,
+) -> Result<(usize, Option<(Vec<f32>, Vec<f32>)>)> {
+    let tensors_inference =
+        SafeTensors::deserialize(inference).map_err(|e| Error::Weights(e.to_string()))?;
+    let expected_count = if expect_rope { 4 } else { 2 };
+    if tensors_inference.len() != expected_count {
+        return Err(Error::Weights("LM1B inference inventory differs".into()));
+    }
+    for (name, width) in [("level0_unigram", 8192), ("token_unigram", 30528)] {
+        let tensor = tensors_inference
+            .tensor(name)
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        validate_distribution(&tensor, width)?;
+    }
+    let rope_tables = if expect_rope {
+        let cos = tensors_inference
+            .tensor("rope_cos")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let sin = tensors_inference
+            .tensor("rope_sin")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        Some((
+            decode_lm1b_rope_tensor(&cos, LM1B_ROPE_COS_SHA256)?,
+            decode_lm1b_rope_tensor(&sin, LM1B_ROPE_SIN_SHA256)?,
+        ))
+    } else {
+        None
+    };
+    Ok((tensors_inference.len(), rope_tables))
+}
+
 /// Checks known preparation bytes on the host; it does not construct a model,
 /// authenticate an artifact, upload weights, or enable LM1B inference.
 pub struct Lm1bSmallGeneratorInspection {
     pub size: Lm1bSize,
     pub generator_tensors: usize,
     pub inference_tensors: usize,
+    pub rope_tables: Option<(Vec<f32>, Vec<f32>)>,
 }
 impl Lm1bSmallGeneratorInspection {
     pub fn from_artifact(artifact: &Artifact) -> Result<Self> {
+        let expect_rope = artifact.manifest().profile.ends_with("-v2");
         let config = artifact
             .file("config.json")
             .map_err(|e| Error::Weights(e.to_string()))?;
@@ -301,7 +360,12 @@ impl Lm1bSmallGeneratorInspection {
             let generator = artifact
                 .file("generator.safetensors")
                 .map_err(|e| Error::Weights(e.to_string()))?;
-            return Self::from_preparation_bytes(config, generator, inference);
+            return Self::from_preparation_bytes_with_rope(
+                config,
+                generator,
+                inference,
+                expect_rope,
+            );
         }
         let size = Lm1bSize::from_config(config)?;
         if !artifact.bundle_f32_weights_verified_finite("generator.safetensors") {
@@ -355,21 +419,12 @@ impl Lm1bSmallGeneratorInspection {
             &LEVELS,
             1,
         )?;
-        let tensors_inference =
-            SafeTensors::deserialize(inference).map_err(|e| Error::Weights(e.to_string()))?;
-        if tensors_inference.len() != 2 {
-            return Err(Error::Weights("LM1B inference inventory differs".into()));
-        }
-        for (name, width) in [("level0_unigram", 8192), ("token_unigram", 30528)] {
-            let tensor = tensors_inference
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            validate_distribution(&tensor, width)?;
-        }
+        let (inference_tensors, rope_tables) = validate_inference_bundle(inference, expect_rope)?;
         Ok(Self {
             size,
             generator_tensors: entries.len(),
-            inference_tensors: tensors_inference.len(),
+            inference_tensors,
+            rope_tables,
         })
     }
 
@@ -377,6 +432,15 @@ impl Lm1bSmallGeneratorInspection {
         config: &[u8],
         generator: &[u8],
         inference: &[u8],
+    ) -> Result<Self> {
+        Self::from_preparation_bytes_with_rope(config, generator, inference, false)
+    }
+
+    fn from_preparation_bytes_with_rope(
+        config: &[u8],
+        generator: &[u8],
+        inference: &[u8],
+        expect_rope: bool,
     ) -> Result<Self> {
         let size = Lm1bSize::from_config(config)?;
         let tensors =
@@ -406,21 +470,12 @@ impl Lm1bSmallGeneratorInspection {
             .tensor("attn_mask_for_masking")
             .map_err(|e| Error::Weights(e.to_string()))?;
         xsum_generator::validate_mask(&mask, &LEVELS, 1)?;
-        let tensors_inference =
-            SafeTensors::deserialize(inference).map_err(|e| Error::Weights(e.to_string()))?;
-        if tensors_inference.len() != 2 {
-            return Err(Error::Weights("LM1B inference inventory differs".into()));
-        }
-        for (name, width) in [("level0_unigram", 8192), ("token_unigram", 30528)] {
-            let tensor = tensors_inference
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            validate_distribution(&tensor, width)?;
-        }
+        let (inference_tensors, rope_tables) = validate_inference_bundle(inference, expect_rope)?;
         Ok(Self {
             size,
             generator_tensors: tensors.len(),
-            inference_tensors: tensors_inference.len(),
+            inference_tensors,
+            rope_tables,
         })
     }
 }
@@ -450,6 +505,8 @@ mod tests {
         for size in LM1B_SIZES {
             assert_eq!(size.width, size.heads * 64);
             assert_eq!(Lm1bSize::from_profile(size.profile).unwrap(), size);
+            let v2 = size.profile.replace("-v1", "-v2");
+            assert_eq!(Lm1bSize::from_profile(&v2).unwrap(), size);
         }
         let large = expected_shapes(&LM1B_SIZES[2]);
         assert_eq!(

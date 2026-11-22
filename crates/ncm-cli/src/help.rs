@@ -18,16 +18,17 @@ than 0 or 1 require --experimental-cfg-wmt14 on both commands.
 pub(super) const SAMPLE: &str = "\
 Usage: ncm sample ARTIFACT DEVICE INPUT_JSON [OPTIONS]
 
-The artifact manifest selects Sudoku, TinyStories, XSum, WMT14 or LM1B.
+The artifact manifest selects Sudoku, TinyStories, XSum, WMT14, LM1B or local-ncm-v1.
 INPUT_JSON contains token-ID rows; with --text it contains an array of strings.
---text supports TinyStories (one non-padding token), XSum and WMT14. LM1B
-accepts only empty strings, mapped to [101]; nonempty prompts are unsupported.
-LM1B requires the pinned rotary export named
-lm1b-reference-rope-v1.safetensors beside the artifact directory,
-or an explicit --reference-rope FILE.
+--text supports TinyStories (one non-padding token), XSum, WMT14 and local-ncm-v1
+(when tokenizer.json is bundled). LM1B accepts only empty strings, mapped to [101];
+nonempty prompts are unsupported.
+LM1B v1 requires the pinned rotary export named lm1b-reference-rope-v1.safetensors
+beside the artifact directory, or an explicit --reference-rope FILE. LM1B v2 bundles
+the verified rotary tables inside inference.safetensors.
 
 Options:
-  --seed N                       Seed TinyStories or LM1B (default 0).
+  --seed N                       Seed TinyStories, LM1B (default 0) or local-ncm-v1.
   --cfg S                        Classifier-free guidance scale (default 0).
   --decode                       Include evaluator-decoded text for text profiles.
   --text                         Encode text input; LM1B accepts only empty strings.

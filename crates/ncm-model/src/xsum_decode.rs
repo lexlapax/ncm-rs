@@ -37,9 +37,13 @@ pub fn select_xsum_tokens_cpu(
         .collect();
     let mut output = Vec::with_capacity(batch * time);
     let mut counts = vec![0_u32; vocab];
+    let mut excess = vec![0.0_f64; vocab];
+    let mut deficit = vec![0.0_f64; vocab];
     const ADJACENCY: [f64; 4] = [-5.0, -2.5, -1.25, -0.625];
     for row in logits.chunks_exact(row_len) {
         counts.fill(0);
+        excess.fill(0.0);
+        deficit.copy_from_slice(&allowed);
         let row_start = output.len();
         for (t, values) in row.chunks_exact(vocab).enumerate() {
             let remaining = (time - t) as f64 / time as f64;
@@ -48,21 +52,25 @@ pub fn select_xsum_tokens_cpu(
             // unpenalized values at least one is unaffected, so no value below
             // them can win. Keep earlier IDs first for exact-score ties.
             let mut candidates = [(f64::NEG_INFINITY, usize::MAX); 5];
-            for (id, &value) in values.iter().enumerate() {
+            let mut threshold = f64::NEG_INFINITY;
+            for (id, ((&value, &ex), &def)) in values
+                .iter()
+                .zip(excess.iter())
+                .zip(deficit.iter())
+                .enumerate()
+            {
                 if !value.is_finite() {
                     return Err(Error::Input("nonfinite XSum decoder logit".into()));
                 }
-                let count = f64::from(counts[id]);
-                let mut score = f64::from(value);
-                score -= 2.0 * (count - allowed[id]).max(0.0);
-                score += remaining * (allowed[id] - count).max(0.0);
-                if score > candidates[4].0 {
+                let score = (f64::from(value) - ex) + remaining * def;
+                if score > threshold {
                     let mut pos = 4;
                     while pos > 0 && score > candidates[pos - 1].0 {
                         candidates[pos] = candidates[pos - 1];
                         pos -= 1;
                     }
                     candidates[pos] = (score, id);
+                    threshold = candidates[4].0;
                 }
             }
             let mut best_id = usize::MAX;
@@ -83,6 +91,9 @@ pub fn select_xsum_tokens_cpu(
             }
             output.push(best_id as u32);
             counts[best_id] += 1;
+            let count = f64::from(counts[best_id]);
+            excess[best_id] = 2.0 * (count - allowed[best_id]).max(0.0);
+            deficit[best_id] = (allowed[best_id] - count).max(0.0);
         }
     }
     Ok(output)

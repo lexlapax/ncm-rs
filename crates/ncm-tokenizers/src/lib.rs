@@ -3,7 +3,7 @@ mod assets;
 mod bpe;
 mod hf_bpe;
 mod hf_wordpiece;
-pub use assets::{AssetError, TextTokenizer, TokenizerMetadata};
+pub use assets::{AssetError, LocalTokenizer, TextTokenizer, TokenizerMetadata};
 pub use bpe::ByteBpe;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

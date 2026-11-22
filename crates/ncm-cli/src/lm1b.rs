@@ -216,24 +216,33 @@ mod backend {
             crate::read_inputs(Path::new(input.0))?
         };
         let prefixes = prefixes(&inputs)?;
-        if !fs::metadata(reference_rope)
-            .map_err(|e| format!("LM1B rotary table {reference_rope}: {e}"))?
-            .is_file()
-        {
-            return Err("LM1B-small reference rotary table must be a regular file".into());
-        }
-        let mut bytes = Vec::new();
-        fs::File::open(reference_rope)?
-            .take(ROTARY_BYTES + 1)
-            .read_to_end(&mut bytes)?;
-        if bytes.len() as u64 != ROTARY_BYTES {
-            return Err("unexpected LM1B-small reference rotary table size".into());
-        }
-        let (cosine, sine) = lm1b_small_reference_rope(&bytes)?;
+        let external_rope = if reference_rope == "--embedded-rope" {
+            None
+        } else {
+            if !fs::metadata(reference_rope)
+                .map_err(|e| format!("LM1B rotary table {reference_rope}: {e}"))?
+                .is_file()
+            {
+                return Err("LM1B-small reference rotary table must be a regular file".into());
+            }
+            let mut bytes = Vec::new();
+            fs::File::open(reference_rope)?
+                .take(ROTARY_BYTES + 1)
+                .read_to_end(&mut bytes)?;
+            if bytes.len() as u64 != ROTARY_BYTES {
+                return Err("unexpected LM1B-small reference rotary table size".into());
+            }
+            Some(lm1b_small_reference_rope(&bytes)?)
+        };
 
         let artifact = Artifact::load_inference_streaming(artifact)?;
-        // Small, medium and large are admitted; any other profile fails explicitly.
+        // Small, medium and large (v1 and v2) are admitted; any other profile fails explicitly.
         ncm_model::Lm1bSize::from_profile(&artifact.manifest().profile)?;
+        if external_rope.is_none() && !artifact.manifest().profile.ends_with("-v2") {
+            return Err(
+                "LM1B v1 artifacts require --reference-rope or sibling rotary sidecar".into(),
+            );
+        }
         let tokenizer = if decode {
             Some(TextTokenizer::from_asset_bytes(
                 artifact.file("tokenizer-manifest.json")?,
@@ -244,8 +253,12 @@ mod backend {
             None
         };
         let backend = make_backend()?;
-        let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?
-            .with_reference_rope_diagnostic(&cosine, &sine)?;
+        let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?;
+        let model = if let Some((cosine, sine)) = external_rope {
+            model.with_reference_rope_diagnostic(&cosine, &sine)?
+        } else {
+            model
+        };
         drop(artifact);
 
         let batch = prefixes.len();

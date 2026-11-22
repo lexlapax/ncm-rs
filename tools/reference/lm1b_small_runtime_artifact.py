@@ -16,9 +16,11 @@ from wmt14_export_preparation import save_checked
 
 
 SIZES = ('small', 'medium', 'large')
+ROPE_SIDECAR_BYTES = 32920
+ROPE_SIDECAR_SHA256 = '9dd9537934ccf599764488829b74a0cf1498bae6efc05b8f229005c94f0711bc'
 
 
-def bundle_states(generator, tokenizer, size='small'):
+def bundle_states(generator, tokenizer, size='small', rope_tensors=None):
     parts = checkpoint_parts(generator, tokenizer, size)
     codec = parts['codec.safetensors']
     expected = {f'vq.{kind}_{i}' for kind in ('ema_cluster_size', 'ema_w', 'codebook_hit') for i in range(12)}
@@ -28,14 +30,18 @@ def bundle_states(generator, tokenizer, size='small'):
     other = {name: value for name, value in codec.items() if name not in training}
     if len(other) != 100:
         raise ValueError('unexpected LM1B codec inventory')
+    inference = dict(parts['inference.safetensors'])
+    if rope_tensors is not None:
+        inference['rope_cos'] = rope_tensors['cosine']
+        inference['rope_sin'] = rope_tensors['sine']
     return {'generator.safetensors': parts['generator.safetensors'], 'codec.safetensors': other,
-            'training.safetensors': training, 'inference.safetensors': parts['inference.safetensors']}
+            'training.safetensors': training, 'inference.safetensors': inference}
 
 
-def export(source, tokenizer_asset, output, size='small'):
+def export(source, tokenizer_asset, output, size='small', reference_rope=None):
     if size not in SIZES:
         raise ValueError('unknown LM1B size')
-    profile = f'lm1b-{size}-inference-v1'
+    profile = f'lm1b-{size}-inference-v2' if reference_rope is not None else f'lm1b-{size}-inference-v1'
     out = output.resolve()
     if output.exists() or output.is_symlink() or not out.is_relative_to((ROOT / 'artifacts/canonical').resolve()):
         raise ValueError('new output under artifacts/canonical required')
@@ -43,6 +49,13 @@ def export(source, tokenizer_asset, output, size='small'):
              'tokenizer.pt': CHECKPOINTS['tokenizer.pt'], f'{size}/config.yaml': CONFIGS[size]}
     for name, (length, sha) in paths.items():
         verify_input(source / name, length, sha)
+    rope_tensors = None
+    if reference_rope is not None:
+        verify_input(reference_rope, ROPE_SIDECAR_BYTES, ROPE_SIDECAR_SHA256)
+        from safetensors.torch import load_file
+        rope_tensors = load_file(str(reference_rope))
+        if set(rope_tensors) != {'cosine', 'sine'}:
+            raise ValueError('unexpected LM1B reference rotary inventory')
     lock_path = ROOT / 'tools/reference/tokenizers-v1.lock.json'
     lock = json.loads(lock_path.read_bytes())['profiles']['bert']
     manifest, payload, license_file = (tokenizer_asset / name for name in ('manifest.json', 'tokenizer.json', 'LICENSE'))
@@ -57,6 +70,8 @@ def export(source, tokenizer_asset, output, size='small'):
                Path(__file__).with_name('wmt14_export_preparation.py').resolve(),
                Path(__file__).with_name('tinystories_artifact.py').resolve(), lock_path,
                manifest.resolve(), payload.resolve(), license_file.resolve()]
+    if reference_rope is not None:
+        watched.append(reference_rope.resolve())
     before = {p.name: digest_file(p) for p in watched}
     if len(before) != len(watched):
         raise ValueError('duplicate watched names')
@@ -65,7 +80,7 @@ def export(source, tokenizer_asset, output, size='small'):
         raise ValueError('unexpected task')
     generator = torch.load(source / f'{size}/generator.pt', map_location='cpu', weights_only=True, mmap=True)
     tokenizer = torch.load(source / 'tokenizer.pt', map_location='cpu', weights_only=True, mmap=True)
-    bundles = bundle_states(generator, tokenizer, size)
+    bundles = bundle_states(generator, tokenizer, size, rope_tensors=rope_tensors)
     out.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f'.ncm-lm1b-{size}-inference-prep-', dir=out.parent))
     try:
@@ -74,13 +89,16 @@ def export(source, tokenizer_asset, output, size='small'):
         for origin, name in ((payload, 'tokenizer.json'), (manifest, 'tokenizer-manifest.json'),
                              (license_file, 'tokenizer.LICENSE')):
             shutil.copyfile(origin, temporary / name)
+        inference_meta = ['level0_unigram', 'token_unigram']
+        if reference_rope is not None:
+            inference_meta.extend(['rope_cos', 'rope_sin'])
         json_file(temporary / 'provenance.json', {
             'scope': 'bounded inference artifact export; no model or GPU qualification',
             'python': platform.python_version(), 'torch': torch.__version__,
             'source_sha256': {name: sha for name, (_, sha) in paths.items()}, 'watched_sha256': before,
             'source_loading': 'torch.load(weights_only=True, mmap=True); no unrestricted retry',
             'training_state': '36 EMA/hit buffers retained separately; classification limited to generation preparation',
-            'inference_metadata': ['level0_unigram', 'token_unigram'],
+            'inference_metadata': inference_meta,
             'serialization': 'safetensors; unchanged tensor layouts and dtypes', 'aliases': [],
         })
         files = {p.name: {'bytes': p.stat().st_size, 'sha256': digest_file(p)} for p in sorted(temporary.iterdir())}
@@ -109,8 +127,10 @@ def main():
     parser.add_argument('--tokenizer-asset', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--size', choices=SIZES, default='small')
+    parser.add_argument('--reference-rope', type=Path, default=None,
+                        help='embed pinned LM1B rotary tables into inference.safetensors (exports v2 profile)')
     args = parser.parse_args()
-    print(json.dumps(export(args.source, args.tokenizer_asset, args.output, args.size), sort_keys=True))
+    print(json.dumps(export(args.source, args.tokenizer_asset, args.output, args.size, args.reference_rope), sort_keys=True))
 
 
 if __name__ == '__main__':

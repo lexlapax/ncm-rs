@@ -3,7 +3,8 @@
 mod config;
 mod owt;
 pub use config::{
-    Auxiliary, CodecConfig, FineDrop, Levels, QuantizerConfig, RawCodecConfig, Residual,
+    Auxiliary, CodecConfig, FineDrop, Levels, LocalGeneratorConfig, LocalHeadKind, LocalNcmConfig,
+    QuantizerConfig, RawCodecConfig, Residual,
 };
 pub use owt::OwtConfigOnly;
 
@@ -272,6 +273,18 @@ pub trait GeneratorBackend: CodecBackend {
     ) -> Result<Self::Tensor> {
         Err(Error::Backend(
             "safe sampled embedding is unsupported".into(),
+        ))
+    }
+    /// Embed sampled 8192-way codes without indexing out of bounds when a
+    /// sampler has returned its invalid-row sentinel. Original indices remain
+    /// unchanged so the caller can reject any sentinel before returning.
+    fn sampled_embedding_8192(
+        &self,
+        _weight: &Self::Tensor,
+        _indices: &Self::Indices,
+    ) -> Result<Self::Tensor> {
+        Err(Error::Backend(
+            "safe 8192-way sampled embedding is unsupported".into(),
         ))
     }
     /// Copy B×S×(3HD) projected Q/K/V to contiguous 3×B×H×S×D.

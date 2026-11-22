@@ -276,6 +276,56 @@ fn cleanup(mut text: String) -> String {
     }
     text
 }
+
+/// Offline HuggingFace `tokenizer.json` loader for `local-ncm-v1` user artifacts.
+/// Never touches the network or executes remote code; rejects payloads > 32 MiB.
+pub struct LocalTokenizer {
+    tokenizer: Box<tokenizers::Tokenizer>,
+    vocab_size: usize,
+}
+
+impl LocalTokenizer {
+    pub fn from_json_bytes(payload: &[u8]) -> Result<Self> {
+        if payload.len() > 32 * 1024 * 1024 {
+            return Err(invalid("local tokenizer.json exceeds 32 MiB"));
+        }
+        let tokenizer =
+            tokenizers::Tokenizer::from_bytes(payload).map_err(|e| invalid(&e.to_string()))?;
+        let vocab_size = total_vocab_size(&tokenizer);
+        if vocab_size == 0 {
+            return Err(invalid("local tokenizer has empty vocabulary"));
+        }
+        Ok(Self {
+            tokenizer: Box::new(tokenizer),
+            vocab_size,
+        })
+    }
+
+    pub fn vocab_size(&self) -> usize {
+        self.vocab_size
+    }
+
+    pub fn encode(&self, text: &str) -> Result<Vec<u32>> {
+        if text.len() > 1024 * 1024 {
+            return Err(invalid("input text exceeds 1 MiB"));
+        }
+        Ok(self
+            .tokenizer
+            .encode_fast(text, true)
+            .map_err(|e| invalid(&e.to_string()))?
+            .get_ids()
+            .to_vec())
+    }
+
+    pub fn decode(&self, ids: &[u32], skip_special_tokens: bool) -> Result<String> {
+        if ids.len() > MAX_DECODE_IDS || ids.iter().any(|&id| id as usize >= self.vocab_size) {
+            return Err(invalid("invalid token ID or request size"));
+        }
+        self.tokenizer
+            .decode(ids, skip_special_tokens)
+            .map_err(|e| invalid(&e.to_string()))
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -295,6 +345,26 @@ mod tests {
             );
             assert_eq!(total_vocab_size(&tokenizer), tokenizer.get_vocab_size(true));
         }
+    }
+    #[test]
+    fn local_tokenizer_roundtrips_json_bytes_offline() {
+        let model = tokenizers::models::wordpiece::WordPiece::builder()
+            .vocab([
+                ("[UNK]".into(), 0),
+                ("[PAD]".into(), 1),
+                ("hello".into(), 2),
+                ("world".into(), 3),
+            ])
+            .build()
+            .unwrap();
+        let mut raw = tokenizers::Tokenizer::new(model);
+        raw.with_pre_tokenizer(Some(tokenizers::pre_tokenizers::whitespace::Whitespace));
+        let json = raw.to_string(false).unwrap();
+        let local = LocalTokenizer::from_json_bytes(json.as_bytes()).unwrap();
+        assert_eq!(local.vocab_size(), 4);
+        assert_eq!(local.encode("hello world").unwrap(), [2, 3]);
+        assert_eq!(local.decode(&[2, 3], true).unwrap(), "hello world");
+        assert!(local.decode(&[4], true).is_err());
     }
     #[test]
     fn bounded_asset_reads_reserve_once() {

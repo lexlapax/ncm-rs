@@ -40,6 +40,27 @@ const LM1B_MEDIUM_MAX_FILE: u64 = 1280 * 1024 * 1024;
 const LM1B_MEDIUM_MAX_TOTAL: u64 = 1920 * 1024 * 1024;
 const LM1B_LARGE_MAX_FILE: u64 = 2944 * 1024 * 1024;
 const LM1B_LARGE_MAX_TOTAL: u64 = 3584 * 1024 * 1024;
+// Generic local user checkpoints (`local-ncm-v1`) use a separate bounded budget
+// that never weakens any pinned upstream profile's limits.
+const LOCAL_MAX_FILE: u64 = 4 * 1024 * 1024 * 1024;
+const LOCAL_MAX_TOTAL: u64 = 8 * 1024 * 1024 * 1024;
+const LOCAL_REQUIRED_FILES: [&str; 4] = [
+    "codec.safetensors",
+    "generator.safetensors",
+    "config.json",
+    "provenance.json",
+];
+const LOCAL_ALLOWED_FILES: [&str; 9] = [
+    "codec.safetensors",
+    "generator.safetensors",
+    "training.safetensors",
+    "inference.safetensors",
+    "config.json",
+    "tokenizer.json",
+    "tokenizer-manifest.json",
+    "tokenizer.LICENSE",
+    "provenance.json",
+];
 const FILES: [&str; 6] = [
     "codec.safetensors",
     "generator.safetensors",
@@ -585,26 +606,51 @@ fn validate_streaming_bundle(
         let next = std::sync::atomic::AtomicUsize::new(0);
         let next_ref = &next;
         std::thread::scope(|scope| -> Result<()> {
+            const WHOLE_CHUNK: usize = 2 * 1024 * 1024;
             let whole_handle = scope.spawn(move || -> Result<()> {
-                let mut file_hash = Sha256::new();
-                file_hash.update(prefix);
-                file_hash.update(header_ref);
-                let mut scratch = wmt14_scratch::Scratch::new(STREAM_CHUNK)?;
-                let mut pos = data_start;
-                while pos < total_bytes {
-                    let n = usize::try_from((total_bytes - pos).min(STREAM_CHUNK as u64))
-                        .map_err(|_| invalid("chunk size overflow"))?;
-                    scratch.read_at(file_ref, pos, n)?;
-                    file_hash.update(scratch.bytes());
-                    pos += n as u64;
+                let (full_tx, full_rx) = std::sync::mpsc::sync_channel::<wmt14_scratch::Scratch>(2);
+                let (empty_tx, empty_rx) =
+                    std::sync::mpsc::sync_channel::<wmt14_scratch::Scratch>(2);
+                for _ in 0..2 {
+                    let _ = empty_tx.send(wmt14_scratch::Scratch::new(WHOLE_CHUNK)?);
                 }
-                let mut extra = [0u8; 1];
-                if file_ref.read_at(&mut extra, total_bytes)? != 0
-                    || format!("{:x}", file_hash.finalize()) != expected_file_sha
-                {
-                    return Err(invalid(format!("file size/hash mismatch: {bundle}")));
-                }
-                Ok(())
+                std::thread::scope(|inner| -> Result<()> {
+                    let reader = inner.spawn(move || -> Result<()> {
+                        let mut pos = data_start;
+                        while pos < total_bytes {
+                            let n = usize::try_from((total_bytes - pos).min(WHOLE_CHUNK as u64))
+                                .map_err(|_| invalid("chunk size overflow"))?;
+                            let Ok(mut scratch) = empty_rx.recv() else {
+                                return Ok(());
+                            };
+                            scratch.read_at(file_ref, pos, n)?;
+                            if full_tx.send(scratch).is_err() {
+                                return Ok(());
+                            }
+                            pos += n as u64;
+                        }
+                        let mut extra = [0u8; 1];
+                        if file_ref.read_at(&mut extra, total_bytes)? != 0 {
+                            return Err(invalid(format!("file size/hash mismatch: {bundle}")));
+                        }
+                        Ok(())
+                    });
+                    let mut file_hash = Sha256::new();
+                    file_hash.update(prefix);
+                    file_hash.update(header_ref);
+                    while let Ok(scratch) = full_rx.recv() {
+                        file_hash.update(scratch.bytes());
+                        let _ = empty_tx.send(scratch);
+                    }
+                    drop(empty_tx);
+                    reader
+                        .join()
+                        .map_err(|_| invalid("file reader thread panicked"))??;
+                    if format!("{:x}", file_hash.finalize()) != expected_file_sha {
+                        return Err(invalid(format!("file size/hash mismatch: {bundle}")));
+                    }
+                    Ok(())
+                })
             });
             let worker_handles: Vec<_> = (0..tensor_workers)
                 .map(|_| {
@@ -710,8 +756,21 @@ impl Artifact {
         }
         let manifest: Manifest =
             serde_json::from_slice(&bounded_read(&root.join("manifest.json"), MAX_MANIFEST)?)?;
-        if manifest.schema_version != 1
-            || manifest.upstream_commit != UPSTREAM
+        let is_local = manifest.profile == "local-ncm-v1";
+        let valid_metadata_str = |s: &str| {
+            !s.is_empty() && s.len() <= 256 && s.bytes().all(|b| (0x20..=0x7e).contains(&b))
+        };
+        if manifest.schema_version != 1 {
+            return Err(invalid("unsupported schema, profile or source pins"));
+        }
+        if is_local {
+            if !valid_metadata_str(&manifest.upstream_commit)
+                || !valid_metadata_str(&manifest.checkpoint_repository)
+                || !valid_metadata_str(&manifest.checkpoint_revision)
+            {
+                return Err(invalid("invalid local-ncm-v1 manifest provenance fields"));
+            }
+        } else if manifest.upstream_commit != UPSTREAM
             || manifest.checkpoint_revision != CHECKPOINT_REVISION
             || manifest.checkpoint_repository != "hazyresearch/ncm-checkpoints"
         {
@@ -720,8 +779,30 @@ impl Artifact {
         if reusable && manifest.profile != "wmt14-inference-v1" {
             return Err(invalid("reusable bundle loader requires WMT14"));
         }
-        let (files, bundles, max_file, max_total): (&[&str], &[&str], u64, u64) =
-            match manifest.profile.as_str() {
+        let (max_file, max_total): (u64, u64) = if is_local {
+            let declared_files: BTreeSet<&str> =
+                manifest.files.keys().map(String::as_str).collect();
+            let required: BTreeSet<&str> = LOCAL_REQUIRED_FILES.iter().copied().collect();
+            let allowed: BTreeSet<&str> = LOCAL_ALLOWED_FILES.iter().copied().collect();
+            if !required.is_subset(&declared_files) || !declared_files.is_subset(&allowed) {
+                return Err(invalid("unexpected file/bundle inventory"));
+            }
+            let expected_bundles: BTreeSet<&str> = declared_files
+                .iter()
+                .copied()
+                .filter(|name| name.ends_with(".safetensors"))
+                .collect();
+            let declared_bundles: BTreeSet<&str> =
+                manifest.tensors.keys().map(String::as_str).collect();
+            if declared_bundles != expected_bundles {
+                return Err(invalid("unexpected file/bundle inventory"));
+            }
+            (LOCAL_MAX_FILE, LOCAL_MAX_TOTAL)
+        } else {
+            let (files, bundles, max_file, max_total): (&[&str], &[&str], u64, u64) = match manifest
+                .profile
+                .as_str()
+            {
                 "sudoku-easy-inspection-v1"
                 | "sudoku-medium-inspection-v1"
                 | "sudoku-hard-inspection-v1" => (&FILES, &BUNDLES, MAX_FILE, MAX_TOTAL),
@@ -738,19 +819,19 @@ impl Artifact {
                     XSUM_MAX_TOTAL,
                 ),
                 "wmt14-inference-v1" => (&WMT14_FILES, &BUNDLES, WMT14_MAX_FILE, WMT14_MAX_TOTAL),
-                "lm1b-small-inference-v1" => (
+                "lm1b-small-inference-v1" | "lm1b-small-inference-v2" => (
                     &TINYSTORIES_FILES,
                     &TINYSTORIES_BUNDLES,
                     LM1B_SMALL_MAX_FILE,
                     LM1B_SMALL_MAX_TOTAL,
                 ),
-                "lm1b-medium-inference-v1" => (
+                "lm1b-medium-inference-v1" | "lm1b-medium-inference-v2" => (
                     &TINYSTORIES_FILES,
                     &TINYSTORIES_BUNDLES,
                     LM1B_MEDIUM_MAX_FILE,
                     LM1B_MEDIUM_MAX_TOTAL,
                 ),
-                "lm1b-large-inference-v1" => (
+                "lm1b-large-inference-v1" | "lm1b-large-inference-v2" => (
                     &TINYSTORIES_FILES,
                     &TINYSTORIES_BUNDLES,
                     LM1B_LARGE_MAX_FILE,
@@ -758,22 +839,24 @@ impl Artifact {
                 ),
                 _ => return Err(invalid("unsupported schema, profile or source pins")),
             };
-        // Exact flat filename sets reject unknown files, absolute paths, traversal and aliases.
-        if manifest
-            .files
-            .keys()
-            .map(String::as_str)
-            .collect::<BTreeSet<_>>()
-            != files.iter().copied().collect()
-            || manifest
-                .tensors
+            // Exact flat filename sets reject unknown files, absolute paths, traversal and aliases.
+            if manifest
+                .files
                 .keys()
                 .map(String::as_str)
                 .collect::<BTreeSet<_>>()
-                != bundles.iter().copied().collect()
-        {
-            return Err(invalid("unexpected file/bundle inventory"));
-        }
+                != files.iter().copied().collect()
+                || manifest
+                    .tensors
+                    .keys()
+                    .map(String::as_str)
+                    .collect::<BTreeSet<_>>()
+                    != bundles.iter().copied().collect()
+            {
+                return Err(invalid("unexpected file/bundle inventory"));
+            }
+            (max_file, max_total)
+        };
         let mut total = 0u64;
         for record in manifest.files.values() {
             check_hash_format(&record.sha256)?;

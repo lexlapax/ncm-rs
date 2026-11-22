@@ -1007,6 +1007,19 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         .map(MlxTensor)
         .map_err(error)
     }
+    fn sampled_embedding_8192(&self, weight: &MlxTensor, indices: &MlxTensor) -> Result<MlxTensor> {
+        check(weight, Dtype::Float32)?;
+        check(indices, Dtype::Uint32)?;
+        if weight.0.shape().len() != 2 || weight.0.shape().first() != Some(&8192) {
+            return Err(Error::Input("sampled codebook must have 8192 rows".into()));
+        }
+        with_stream(&self.stream, || -> ops::Result<Array> {
+            let safe = mlx_rs::ops::minimum(&indices.0, Array::from_slice(&[8191u32], &[1]))?;
+            Ok(weight.0.take_axis(&safe, 0)?)
+        })
+        .map(MlxTensor)
+        .map_err(error)
+    }
     fn xsum_categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
         check(logits, Dtype::Float32)?;
         check(uniforms, Dtype::Uint32)?;

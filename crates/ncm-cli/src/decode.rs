@@ -1,7 +1,8 @@
 //! Evaluator-compatible decoding of generated text IDs.
 use crate::Result;
+use ncm_core::LocalNcmConfig;
 use ncm_io::Artifact;
-use ncm_tokenizers::TextTokenizer;
+use ncm_tokenizers::{LocalTokenizer, TextTokenizer};
 
 struct Policy {
     tokenizer_profile: &'static str,
@@ -56,13 +57,49 @@ fn evaluator_ids(row: &[u32], policy: &Policy, tokenizer_vocab: usize) -> Result
         .collect())
 }
 
-pub(super) struct Decoder {
-    tokenizer: TextTokenizer,
-    policy: Policy,
+struct LocalPolicy {
+    eos: Option<u32>,
+    pad: Option<u32>,
+    model_vocab: u32,
+    prefix_len: usize,
 }
+
+enum DecoderInner {
+    Pinned {
+        tokenizer: Box<TextTokenizer>,
+        policy: Policy,
+    },
+    Local {
+        tokenizer: LocalTokenizer,
+        policy: LocalPolicy,
+    },
+}
+
+pub(super) struct Decoder(DecoderInner);
 
 impl Decoder {
     pub(super) fn from_artifact(artifact: &Artifact) -> Result<Self> {
+        if artifact.manifest().profile == "local-ncm-v1" {
+            let cfg = LocalNcmConfig::from_json(artifact.file("config.json")?)?;
+            let tokenizer_bytes = artifact.file("tokenizer.json").map_err(
+                |_| "local-ncm-v1 --text/--decode requires tokenizer.json in the artifact",
+            )?;
+            let tokenizer = LocalTokenizer::from_json_bytes(tokenizer_bytes)?;
+            let model_vocab = u32::try_from(cfg.codec().raw().in_vocab_size)
+                .map_err(|_| "local-ncm-v1 vocabulary exceeds u32")?;
+            if tokenizer.vocab_size() > cfg.codec().raw().in_vocab_size {
+                return Err("local-ncm-v1 tokenizer vocabulary exceeds codec in_vocab_size".into());
+            }
+            return Ok(Self(DecoderInner::Local {
+                tokenizer,
+                policy: LocalPolicy {
+                    eos: cfg.model().eos_token_id,
+                    pad: cfg.model().pad_token_id,
+                    model_vocab,
+                    prefix_len: cfg.model().prefix_len,
+                },
+            }));
+        }
         let policy = policy(&artifact.manifest().profile)?;
         let tokenizer = TextTokenizer::from_asset_bytes(
             artifact.file("tokenizer-manifest.json")?,
@@ -77,42 +114,90 @@ impl Decoder {
         {
             return Err("tokenizer does not match generation profile".into());
         }
-        Ok(Self { tokenizer, policy })
+        Ok(Self(DecoderInner::Pinned {
+            tokenizer: Box::new(tokenizer),
+            policy,
+        }))
     }
 
     pub(super) fn encode_texts(&self, texts: &[String]) -> Result<Vec<Vec<u32>>> {
         if texts.is_empty() || texts.len() > 128 {
             return Err("text input must contain 1..=128 strings".into());
         }
-        texts
-            .iter()
-            .map(|text| {
-                let mut ids = self.tokenizer.encode(text)?;
-                if let Some(length) = self.policy.input_length {
-                    ids.truncate(length);
-                    ids.resize(length, self.policy.pad);
-                } else {
-                    validate_tinystories_prefix(&ids)?;
-                }
-                Ok(ids)
-            })
-            .collect()
+        match &self.0 {
+            DecoderInner::Pinned { tokenizer, policy } => texts
+                .iter()
+                .map(|text| {
+                    let mut ids = tokenizer.encode(text)?;
+                    if let Some(length) = policy.input_length {
+                        ids.truncate(length);
+                        ids.resize(length, policy.pad);
+                    } else {
+                        validate_tinystories_prefix(&ids)?;
+                    }
+                    Ok(ids)
+                })
+                .collect(),
+            DecoderInner::Local { tokenizer, policy } => texts
+                .iter()
+                .map(|text| {
+                    let mut ids = tokenizer.encode(text)?;
+                    if ids.is_empty() {
+                        return Err("local-ncm-v1 text input encoded to zero tokens".into());
+                    }
+                    if let Some(pad) = policy.pad {
+                        ids.truncate(policy.prefix_len);
+                        ids.resize(policy.prefix_len, pad);
+                        if ids.iter().all(|&id| id == pad) {
+                            return Err("local-ncm-v1 text input encoded to all pad tokens".into());
+                        }
+                    } else if ids.len() != policy.prefix_len {
+                        return Err(format!(
+                            "local-ncm-v1 text input encoded to {} tokens, expected {} (no pad_token_id configured)",
+                            ids.len(),
+                            policy.prefix_len
+                        )
+                        .into());
+                    }
+                    Ok(ids)
+                })
+                .collect(),
+        }
     }
 
     pub(super) fn add_texts(&self, result: &mut serde_json::Value) -> Result<()> {
         let ids: Vec<Vec<u32>> =
             serde_json::from_value(result.get("ids").ok_or("missing generated IDs")?.clone())?;
-        let texts: Vec<String> = ids
-            .iter()
-            .map(|row| {
-                let selected = evaluator_ids(
-                    row,
-                    &self.policy,
-                    self.tokenizer.metadata().total_vocab_size,
-                )?;
-                Ok(self.tokenizer.decode(&selected, true)?)
-            })
-            .collect::<Result<_>>()?;
+        let texts: Vec<String> = match &self.0 {
+            DecoderInner::Pinned { tokenizer, policy } => ids
+                .iter()
+                .map(|row| {
+                    let selected =
+                        evaluator_ids(row, policy, tokenizer.metadata().total_vocab_size)?;
+                    Ok(tokenizer.decode(&selected, true)?)
+                })
+                .collect::<Result<_>>()?,
+            DecoderInner::Local { tokenizer, policy } => ids
+                .iter()
+                .map(|row| {
+                    if row.iter().any(|&id| id >= policy.model_vocab) {
+                        return Err("generated ID exceeds model vocabulary".into());
+                    }
+                    let end = policy
+                        .eos
+                        .and_then(|eos| row.iter().position(|&id| id == eos))
+                        .unwrap_or(row.len());
+                    let selected: Vec<u32> = row[..end]
+                        .iter()
+                        .copied()
+                        .filter(|&id| {
+                            Some(id) != policy.pad && (id as usize) < tokenizer.vocab_size()
+                        })
+                        .collect();
+                    Ok(tokenizer.decode(&selected, true)?)
+                })
+                .collect::<Result<_>>()?,
+        };
         result["texts"] = serde_json::json!(texts);
         Ok(())
     }

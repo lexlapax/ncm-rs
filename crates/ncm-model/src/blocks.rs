@@ -12,6 +12,11 @@ pub trait TraceSink<B: CodecBackend> {
     fn wmt14_head_input(&mut self, _level: usize, _value: &B::Tensor) -> Result<()> {
         Ok(())
     }
+    /// Whether this sink observes `tensor`/`indices` trace outputs. Returning `false`
+    /// allows inference paths to skip trace-only computations (such as unused greedy argmax).
+    fn wants_trace(&self) -> bool {
+        true
+    }
     /// Optional stage-profiling boundary for an FP32 tensor; no-op by default.
     fn stage_tensor(&mut self, _name: &str, _value: &B::Tensor) -> Result<()> {
         Ok(())
@@ -23,6 +28,9 @@ pub trait TraceSink<B: CodecBackend> {
 }
 pub struct NoTrace;
 impl<B: CodecBackend> TraceSink<B> for NoTrace {
+    fn wants_trace(&self) -> bool {
+        false
+    }
     fn tensor(&mut self, _: &str, _: &B::Tensor) -> Result<()> {
         Ok(())
     }

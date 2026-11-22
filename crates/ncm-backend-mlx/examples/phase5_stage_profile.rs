@@ -73,6 +73,9 @@ impl TraceSink<MlxBackend> for StageRecorder {
     fn stage_tensor(&mut self, name: &str, value: &MlxTensor) -> ncm_core::Result<()> {
         self.mark_eval(name, Some(value))
     }
+    fn wants_trace(&self) -> bool {
+        false
+    }
     fn stage_indices(&mut self, name: &str, value: &MlxTensor) -> ncm_core::Result<()> {
         self.mark_eval(name, Some(value))
     }
@@ -297,7 +300,8 @@ fn main() -> Result<()> {
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap()?;
             let t1 = Instant::now();
-            let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
+            let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?
+                .with_prefix_cache(true);
             weight_upload_ms = t1.elapsed().as_secs_f64() * 1000.0;
             mem_after_upload = snap()?;
 
@@ -333,6 +337,7 @@ fn main() -> Result<()> {
             mem_after_artifact = snap()?;
             let t1 = Instant::now();
             let model = Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+                .with_prefix_cache(true)
                 .with_deferred_head_check_experimental()
                 .with_level_materialization_experimental(5)?;
             weight_upload_ms = t1.elapsed().as_secs_f64() * 1000.0;

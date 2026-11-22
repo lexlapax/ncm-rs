@@ -5,6 +5,7 @@ mod codec;
 mod generator;
 #[cfg(feature = "lm1b-experimental")]
 mod lm1b_small;
+mod local_ncm;
 mod wmt14_generator;
 mod xsum_decode;
 mod xsum_generator;
@@ -23,6 +24,7 @@ pub use lm1b_small::{
     LM1B_SIZES, Lm1bSize, Lm1bSmallCodecInspection, Lm1bSmallGeneratorInspection,
     lm1b_small_reference_rope,
 };
+pub use local_ncm::LocalNcmModel;
 pub use wmt14_generator::Wmt14GeneratorInspection;
 pub use xsum_decode::select_xsum_tokens_cpu;
 pub use xsum_generator::XsumGeneratorInspection;
@@ -87,7 +89,15 @@ impl<B: WeightBackend> Codec<B> {
     /// Integrity checks belong to Artifact; this adds codec semantic checks, not
     /// manifest authentication. Generator/evaluation metadata is not executed.
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
-        if artifact.manifest().profile == "lm1b-small-inference-v1" {
+        if matches!(
+            artifact.manifest().profile.as_str(),
+            "lm1b-small-inference-v1"
+                | "lm1b-small-inference-v2"
+                | "lm1b-medium-inference-v1"
+                | "lm1b-medium-inference-v2"
+                | "lm1b-large-inference-v1"
+                | "lm1b-large-inference-v2"
+        ) {
             return Err(Error::Config(
                 "LM1B-small codec execution is unsupported".into(),
             ));
@@ -122,7 +132,7 @@ impl<B: WeightBackend> Codec<B> {
         Self::from_artifact_with_limit(backend, config, artifact, 448 * 1024 * 1024)
     }
 
-    fn from_artifact_with_limit(
+    pub(crate) fn from_artifact_with_limit(
         backend: B,
         config: CodecConfig,
         artifact: &Artifact,

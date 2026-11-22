@@ -117,19 +117,19 @@ pub struct GeneratorWeights<B: WeightBackend> {
     parameters: GeneratorParameters<B::Tensor>,
     tensor_count: usize,
 }
-struct Affine<T> {
-    weight: T,
-    bias: T,
+pub(crate) struct Affine<T> {
+    pub(crate) weight: T,
+    pub(crate) bias: T,
 }
-struct GeneratorBlock<T> {
-    ln_1: Affine<T>,
-    qkv: Affine<T>,
-    q_norm: T,
-    k_norm: T,
-    attention_projection: Affine<T>,
-    ln_2: Affine<T>,
-    mlp_in: Affine<T>,
-    mlp_out: Affine<T>,
+pub(crate) struct GeneratorBlock<T> {
+    pub(crate) ln_1: Affine<T>,
+    pub(crate) qkv: Affine<T>,
+    pub(crate) q_norm: T,
+    pub(crate) k_norm: T,
+    pub(crate) attention_projection: Affine<T>,
+    pub(crate) ln_2: Affine<T>,
+    pub(crate) mlp_in: Affine<T>,
+    pub(crate) mlp_out: Affine<T>,
 }
 struct GeneratorParameters<T> {
     input: Affine<T>,
@@ -139,12 +139,12 @@ struct GeneratorParameters<T> {
     blocks: Box<[GeneratorBlock<T>]>,
     heads: Box<[Affine<T>]>,
 }
-fn take<T>(weights: &mut BTreeMap<String, T>, name: &str) -> Result<T> {
+pub(crate) fn take<T>(weights: &mut BTreeMap<String, T>, name: &str) -> Result<T> {
     weights
         .remove(name)
         .ok_or_else(|| Error::Weights(format!("missing generator tensor {name}")))
 }
-fn take_affine<T>(weights: &mut BTreeMap<String, T>, name: &str) -> Result<Affine<T>> {
+pub(crate) fn take_affine<T>(weights: &mut BTreeMap<String, T>, name: &str) -> Result<Affine<T>> {
     Ok(Affine {
         weight: take(weights, &format!("{name}.weight"))?,
         bias: take(weights, &format!("{name}.bias"))?,
@@ -385,10 +385,10 @@ pub struct Generator<B: ncm_core::GeneratorBackend> {
     geometry: Vec<LevelGeometry<B::Tensor>>,
     request_lock: std::sync::Mutex<()>,
 }
-struct LevelGeometry<T> {
-    mask: T,
-    cosine: T,
-    sine: T,
+pub(crate) struct LevelGeometry<T> {
+    pub(crate) mask: T,
+    pub(crate) cosine: T,
+    pub(crate) sine: T,
 }
 /// Device-resident generated codes and final codec output.
 pub struct Generated<B: ncm_core::GeneratorBackend> {
@@ -548,7 +548,7 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
     }
 }
 
-fn prepare_geometry<B: ncm_core::GeneratorBackend>(
+pub(crate) fn prepare_geometry<B: ncm_core::GeneratorBackend>(
     b: &B,
     levels: &[usize],
     prefix_len: usize,
@@ -632,7 +632,7 @@ fn prepare_geometry_with_rope<B: ncm_core::GeneratorBackend>(
 // Shared block execution for profiles with the same upstream transformer.
 // Profile-specific embeddings, attention masks and output heads stay outside.
 #[allow(clippy::too_many_arguments)]
-fn decode_transformer<B: ncm_core::GeneratorBackend>(
+pub(crate) fn decode_transformer<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
     final_norm: &Affine<B::Tensor>,
@@ -754,6 +754,112 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
     }
     let x = norm(final_norm, &x)?;
     b.narrow(&x, 1, prefix_len, length)
+}
+
+/// Per-layer cached `(K, V)` tensors for a static prefix of shape `[batch, heads, prefix_len, head]`.
+pub(crate) type PrefixKvCache<T> = Vec<(T, T)>;
+
+/// Run the transformer blocks once over the static prefix `[batch, prefix_len, width]` and
+/// capture each layer's post-RoPE `(K, V)` tensors for reuse across every target level.
+/// `prefix_mask` is an optional additive attention mask broadcastable to
+/// `[batch, heads, prefix_len, prefix_len]` (e.g. `[batch, 1, 1, prefix_len]` for padding).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn prefill_prefix_cache<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    blocks: &[GeneratorBlock<B::Tensor>],
+    prefix: &B::Tensor,
+    prefix_cosine: &B::Tensor,
+    prefix_sine: &B::Tensor,
+    prefix_mask: Option<&B::Tensor>,
+    prefix_len: usize,
+    heads: usize,
+    width: usize,
+) -> Result<PrefixKvCache<B::Tensor>> {
+    let batch = b.shape(prefix)[0];
+    let head = width / heads;
+    let linear =
+        |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
+    let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
+        if batch < 16 {
+            b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
+        } else {
+            b.layer_norm_accelerated(x, &affine.weight, Some(&affine.bias), 1e-6)
+        }
+    };
+    let mut x = prefix.clone();
+    let mut cache = Vec::with_capacity(blocks.len());
+    for (index, block) in blocks.iter().enumerate() {
+        let normalized = norm(&block.ln_1, &x)?;
+        let qkv = linear(&block.qkv, &normalized)?;
+        let [q, k, v] = b.split_qkv(&qkv, batch, prefix_len, heads, head)?;
+        let k = b.rms_rope(&k, &block.k_norm, prefix_cosine, prefix_sine, 1e-6)?;
+        if index + 1 == blocks.len() {
+            // The final layer's prefix output hidden state is not needed for target levels;
+            // skip its attention + MLP and only cache `(k, v)`.
+            cache.push((k, v));
+            break;
+        }
+        let q = b.rms_rope(&q, &block.q_norm, prefix_cosine, prefix_sine, 1e-6)?;
+        let attn = b.attention(&q, &k, &v, prefix_mask)?;
+        let attn = b.merge_heads(&attn, batch, prefix_len, heads, head)?;
+        cache.push((k, v));
+        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let normalized = norm(&block.ln_2, &x)?;
+        let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
+        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+    }
+    Ok(cache)
+}
+
+/// Decode only the `length` target positions using precomputed per-layer prefix `(K, V)`.
+/// `target_mask` is an optional additive attention mask broadcastable to
+/// `[batch, heads, length, prefix_len + length]` (e.g. `[batch, 1, 1, prefix_len + length]`
+/// for prefix padding, or `None` when the prefix has no padding).
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn decode_target_with_prefix_cache<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    blocks: &[GeneratorBlock<B::Tensor>],
+    final_norm: &Affine<B::Tensor>,
+    target: &B::Tensor,
+    cache: &PrefixKvCache<B::Tensor>,
+    target_cosine: &B::Tensor,
+    target_sine: &B::Tensor,
+    target_mask: Option<&B::Tensor>,
+    heads: usize,
+    width: usize,
+    length: usize,
+) -> Result<B::Tensor> {
+    if cache.len() != blocks.len() {
+        return Err(Error::Input("prefix KV cache layer count mismatch".into()));
+    }
+    let batch = b.shape(target)[0];
+    let head = width / heads;
+    let linear =
+        |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
+    let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
+        if batch < 16 {
+            b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
+        } else {
+            b.layer_norm_accelerated(x, &affine.weight, Some(&affine.bias), 1e-6)
+        }
+    };
+    let mut x = target.clone();
+    for (block, (prefix_k, prefix_v)) in blocks.iter().zip(cache) {
+        let normalized = norm(&block.ln_1, &x)?;
+        let qkv = linear(&block.qkv, &normalized)?;
+        let [q, k, v] = b.split_qkv(&qkv, batch, length, heads, head)?;
+        let q = b.rms_rope(&q, &block.q_norm, target_cosine, target_sine, 1e-6)?;
+        let k = b.rms_rope(&k, &block.k_norm, target_cosine, target_sine, 1e-6)?;
+        let keys = b.concat_f32(&[prefix_k.clone(), k], 2)?;
+        let values = b.concat_f32(&[prefix_v.clone(), v], 2)?;
+        let attn = b.attention(&q, &keys, &values, target_mask)?;
+        let attn = b.merge_heads(&attn, batch, length, heads, head)?;
+        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let normalized = norm(&block.ln_2, &x)?;
+        let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
+        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+    }
+    norm(final_norm, &x)
 }
 
 #[cfg(feature = "lm1b-experimental")]
@@ -955,6 +1061,12 @@ const WMT14_HEAD_REJECTED: &str = "tied or nonfinite WMT14 head maximum is unsup
 
 #[cfg(feature = "wmt14-experimental")]
 impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
+    /// Enable or disable per-request prefix K/V caching (supported for WMT14 CFG=0).
+    pub fn with_prefix_cache(mut self, enabled: bool) -> Self {
+        self.cached_prefix_experimental = enabled;
+        self
+    }
+
     /// Keep raw selector sentinels and check them together before decoding.
     /// Intermediate lookups clamp sentinels to valid indices while evaluation
     /// proceeds. An invalid head still rejects the whole request.
@@ -1554,6 +1666,9 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             trace.tensor(&format!("reconstruction.level_{level:02}"), &observed_sum)?;
             cumulative = Some(sum);
         }
+        // Release prefix activations and cached K/V before final vocabulary projection.
+        drop(prefix_cache);
+        drop(prefix);
         let codes = b.concat_indices(&selected_levels, 1)?;
         let codes = if let Some((original, _)) = cfg {
             b.narrow_indices(&codes, 0, 0, original)?
@@ -2290,6 +2405,7 @@ pub struct XsumTeacher<B: ncm_core::GeneratorBackend> {
     token_allowance: Vec<f32>,
     device_allowance: B::Tensor,
     reference_ties: bool,
+    prefix_cache: bool,
     request_lock: std::sync::Mutex<()>,
 }
 
@@ -2450,8 +2566,15 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
             token_allowance: inspection.token_allowance,
             device_allowance,
             reference_ties,
+            prefix_cache: false,
             request_lock: std::sync::Mutex::new(()),
         })
+    }
+
+    /// Enable or disable per-request prefix K/V caching across XSum's nine levels.
+    pub fn with_prefix_cache(mut self, enabled: bool) -> Self {
+        self.prefix_cache = enabled;
+        self
     }
 }
 
@@ -2536,22 +2659,22 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         batch: usize,
         seed: u64,
     ) -> Result<XsumGenerated<B>> {
-        let _request = self
-            .request_lock
-            .lock()
-            .map_err(|_| Error::Backend("generator request lock poisoned".into()))?;
-        let output = self.run_internal(
-            prefix_tokens,
-            None,
-            batch,
-            &mut crate::NoTrace,
-            false,
-            Some(XsumSampling {
-                cfg: None,
-                random: Some(SplitMix64(seed)),
-            }),
-        )?;
-        self.finish_cpu(output, batch)
+        self.sample_seeded_cfg_cpu(prefix_tokens, batch, 0.0, seed)
+    }
+
+    /// Seeded sampling with optional positive CFG and explicitly requested CPU FP64
+    /// final selection. Positive CFG uses the same upstream document/null schedule
+    /// and request-local SplitMix64 stream as `sample_seeded_device`.
+    pub fn sample_seeded_cfg_cpu(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        seed: u64,
+    ) -> Result<XsumGenerated<B>> {
+        self.sample_seeded_internal(prefix_tokens, batch, scale, seed, |output| {
+            self.finish_cpu(output, batch)
+        })
     }
 
     fn finish_cpu(&self, output: XsumRun<B>, batch: usize) -> Result<XsumGenerated<B>> {
@@ -2698,6 +2821,19 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
         scale: f64,
         seed: u64,
     ) -> Result<XsumGenerated<B>> {
+        self.sample_seeded_internal(prefix_tokens, batch, scale, seed, |output| {
+            self.finish_device(output)
+        })
+    }
+
+    fn sample_seeded_internal(
+        &self,
+        prefix_tokens: &[u32],
+        batch: usize,
+        scale: f64,
+        seed: u64,
+        finish: impl FnOnce(XsumRun<B>) -> Result<XsumGenerated<B>>,
+    ) -> Result<XsumGenerated<B>> {
         if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
             return Err(Error::Input("invalid XSum CFG scale".into()));
         }
@@ -2736,7 +2872,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 random: Some(SplitMix64(seed)),
             }),
         )?;
-        self.finish_device(output)
+        finish(output)
     }
 
     fn finish_device(&self, output: XsumRun<B>) -> Result<XsumGenerated<B>> {
@@ -2789,6 +2925,40 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             .map(|codes| b.upload_indices(codes, &[batch, total]))
             .transpose()?;
         let has_padding = prefix_tokens.contains(&50257);
+        let use_cache = self.prefix_cache && forced.is_none();
+        let prefix_pad_vec: Option<Vec<f32>> = if has_padding {
+            let mut pad = Vec::with_capacity(batch * 512);
+            for row in prefix_tokens.as_chunks::<512>().0 {
+                pad.extend(
+                    row.iter()
+                        .map(|&v| if v == 50257 { f32::NEG_INFINITY } else { 0.0 }),
+                );
+            }
+            Some(pad)
+        } else {
+            None
+        };
+        let prefix_cache = if use_cache {
+            let prefix_cos = b.narrow(&self.geometry[0].cosine, 0, 0, 512)?;
+            let prefix_sin = b.narrow(&self.geometry[0].sine, 0, 0, 512)?;
+            let prefix_mask = prefix_pad_vec
+                .as_ref()
+                .map(|pad| b.upload_f32(pad, &[batch, 1, 1, 512]))
+                .transpose()?;
+            Some(prefill_prefix_cache(
+                b,
+                &self.blocks,
+                &prefix,
+                &prefix_cos,
+                &prefix_sin,
+                prefix_mask.as_ref(),
+                512,
+                12,
+                768,
+            )?)
+        } else {
+            None
+        };
         let mut selected_levels = Vec::with_capacity(levels.len());
         let mut cumulative: Option<B::Tensor> = None;
         let mut offset = 0;
@@ -2810,44 +2980,69 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             let target = b.add(&target, &b.narrow(&self.level_embedding, 0, level, 1)?)?;
             let seq = 512 + length;
             let base = &self.geometry[level];
-            let mask = if has_padding {
-                let mut padding = Vec::with_capacity(batch * seq);
-                for row in prefix_tokens.as_chunks::<512>().0 {
-                    padding.extend(
-                        row.iter()
-                            .map(|&v| if v == 50257 { f32::NEG_INFINITY } else { 0.0 }),
-                    );
-                    padding.extend(std::iter::repeat_n(0.0, length));
-                }
-                let padding = b.upload_f32(&padding, &[batch, 1, 1, seq])?;
-                b.add(&base.mask, &padding)?
-            } else {
-                base.mask.clone()
-            };
-            let geometry = LevelGeometry {
-                mask,
-                cosine: base.cosine.clone(),
-                sine: base.sine.clone(),
-            };
-            let hidden = decode_transformer_observed(
-                b,
-                &self.blocks,
-                &self.final_norm,
-                &geometry,
-                &prefix,
-                &target,
-                512,
-                12,
-                768,
-                length,
-                false,
-                None,
-                if level == 1 && forced.is_some() {
-                    Some(trace)
+            let hidden = if let Some(cache) = &prefix_cache {
+                let target_cos = b.narrow(&base.cosine, 0, 512, length)?;
+                let target_sin = b.narrow(&base.sine, 0, 512, length)?;
+                let target_mask = if let Some(pad) = &prefix_pad_vec {
+                    let mut padding = Vec::with_capacity(batch * seq);
+                    for row in pad.as_chunks::<512>().0 {
+                        padding.extend_from_slice(row);
+                        padding.extend(std::iter::repeat_n(0.0, length));
+                    }
+                    Some(b.upload_f32(&padding, &[batch, 1, 1, seq])?)
                 } else {
                     None
-                },
-            )?;
+                };
+                decode_target_with_prefix_cache(
+                    b,
+                    &self.blocks,
+                    &self.final_norm,
+                    &target,
+                    cache,
+                    &target_cos,
+                    &target_sin,
+                    target_mask.as_ref(),
+                    12,
+                    768,
+                    length,
+                )?
+            } else {
+                let mask = if let Some(pad) = &prefix_pad_vec {
+                    let mut padding = Vec::with_capacity(batch * seq);
+                    for row in pad.as_chunks::<512>().0 {
+                        padding.extend_from_slice(row);
+                        padding.extend(std::iter::repeat_n(0.0, length));
+                    }
+                    let padding = b.upload_f32(&padding, &[batch, 1, 1, seq])?;
+                    b.add(&base.mask, &padding)?
+                } else {
+                    base.mask.clone()
+                };
+                let geometry = LevelGeometry {
+                    mask,
+                    cosine: base.cosine.clone(),
+                    sine: base.sine.clone(),
+                };
+                decode_transformer_observed(
+                    b,
+                    &self.blocks,
+                    &self.final_norm,
+                    &geometry,
+                    &prefix,
+                    &target,
+                    512,
+                    12,
+                    768,
+                    length,
+                    false,
+                    None,
+                    if level == 1 && forced.is_some() {
+                        Some(trace)
+                    } else {
+                        None
+                    },
+                )?
+            };
             let head = &self.heads[level];
             if level == 1 && forced.is_some() {
                 trace.tensor("diagnostic.level_01.hidden", &hidden)?;
@@ -2922,6 +3117,9 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             trace.tensor(&format!("reconstruction.level_{level:02}"), &sum)?;
             cumulative = Some(sum);
         }
+        // Release prefix activations and cached K/V before final vocabulary projection.
+        drop(prefix_cache);
+        drop(prefix);
         let codes = b.concat_indices(&selected_levels, 1)?;
         if forced.is_none() && b.read_indices(&codes)?.iter().any(|&value| value >= 4096) {
             let reason = if sampling.as_ref().is_some_and(|s| s.random.is_some()) {
@@ -3466,7 +3664,10 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
         if !weights.is_empty() {
             return Err(Error::Weights("unbound LM1B generator tensor".into()));
         }
-        let (cosine, sine) = lm1b_reference_order_rope();
+        let (cosine, sine) = match inspected.rope_tables {
+            Some(tables) => tables,
+            None => lm1b_reference_order_rope(),
+        };
         let geometry = prepare_geometry_with_rope(
             &backend,
             codec.config().levels(),
@@ -3850,14 +4051,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                             &logits,
                             &b.upload_indices(&words, &[batch, length])?,
                         )?;
-                        if b.read_indices(&selected)?
-                            .iter()
-                            .any(|&value| value >= 8192)
-                        {
-                            return Err(Error::Backend(
-                                "invalid LM1B device categorical logits".into(),
-                            ));
-                        }
+                        // Defer the single invalid-code check until after all levels;
+                        // intermediate lookups clamp sentinels via `sampled_embedding_8192`.
                         Some(selected)
                     } else if draw == Lm1bDraw::HostTopPOne {
                         let rng = random
@@ -3913,11 +4108,14 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             }
             selected_levels.push(selected.clone());
             offset += length;
-            let embedding = b.embedding(
-                self.codec
-                    .weight(&format!("vq.embeddings.{level}.weight"))?,
-                &selected,
-            )?;
+            let book = self
+                .codec
+                .weight(&format!("vq.embeddings.{level}.weight"))?;
+            let embedding = if draw == Lm1bDraw::DeviceFp64 && codes.is_none() && level > 0 {
+                b.sampled_embedding_8192(book, &selected)?
+            } else {
+                b.embedding(book, &selected)?
+            };
             let up = self.codec.upsample(&embedding, level)?;
             let contribution = self.codec.refine(&up, level)?;
             let sum = if let Some(old) = cumulative {
@@ -3939,14 +4137,30 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             ));
         }
         let result_codes = b.concat_indices(&selected_levels, 1)?;
+        if draw == Lm1bDraw::DeviceFp64
+            && codes.is_none()
+            && b.read_indices(&result_codes)?
+                .iter()
+                .any(|&value| value >= 8192)
+        {
+            return Err(Error::Backend(
+                "invalid LM1B device categorical logits".into(),
+            ));
+        }
         if codes.is_none() {
             trace.indices("generator.generated_codes", &result_codes)?;
         }
-        let (logits, greedy) = self
-            .codec
-            .decode_latent_outputs(&cumulative.expect("levels"), &mut crate::NoTrace)?;
-        trace.tensor("generator.final_logits", &logits)?;
-        trace.indices("generator.greedy_ids", &greedy)?;
+        let logits = if trace.wants_trace() {
+            let (logits, greedy) = self
+                .codec
+                .decode_latent_outputs(&cumulative.expect("levels"), &mut crate::NoTrace)?;
+            trace.tensor("generator.final_logits", &logits)?;
+            trace.indices("generator.greedy_ids", &greedy)?;
+            logits
+        } else {
+            self.codec
+                .decode_latent_logits(&cumulative.expect("levels"), &mut crate::NoTrace)?
+        };
         trace.stage_tensor("codec_decode_done", &logits)?;
         let penalized = if device_penalty {
             let selected = b.lm1b_penalty_fp64(&logits, &self.device_allowance)?;
@@ -3956,8 +4170,8 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             }
             ids
         } else {
-            // Two rows per block bounds host-visible logits to two rows while keeping two
-            // penalty threads busy; per-row arithmetic and order are unchanged.
+            // Four rows per block bounds host-visible logits to ~62 MiB while keeping
+            // four penalty threads busy; per-row arithmetic and order are unchanged.
             let row_len = 128 * 30528;
             let mut ids = Vec::with_capacity(batch * 128);
             for block in b.visit_f32_rows(&logits, LM1B_PENALTY_ROWS, |values| {
@@ -3968,10 +4182,12 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
             ids
         };
         trace.stage_indices("penalties_done", &result_codes)?;
-        trace.indices(
-            "generator.penalized_ids",
-            &b.upload_indices(&penalized, &[batch, 128])?,
-        )?;
+        if trace.wants_trace() {
+            trace.indices(
+                "generator.penalized_ids",
+                &b.upload_indices(&penalized, &[batch, 128])?,
+            )?;
+        }
         Ok(Lm1bSample {
             codes: result_codes,
             ids: penalized,
@@ -4053,13 +4269,16 @@ fn validate_lm1b_request(
 }
 
 #[cfg(feature = "lm1b-experimental")]
-const LM1B_PENALTY_ROWS: usize = 2;
+const LM1B_PENALTY_ROWS: usize = 4;
 
 #[cfg(feature = "lm1b-experimental")]
 fn lm1b_penalized_parallel(logits: &[f32], allowance: &[f32], batch: usize) -> Result<Vec<u32>> {
     let row_len = 128 * 30528;
     if !(1..=32).contains(&batch) || logits.len() != batch * row_len || allowance.len() != 30528 {
         return Err(Error::Input("invalid LM1B penalty dimensions".into()));
+    }
+    if batch == 1 {
+        return lm1b_penalized_ids(logits, allowance, 1, 128);
     }
     let mut result = Vec::with_capacity(batch * 128);
     for chunk in logits.chunks(4 * row_len) {
@@ -4105,27 +4324,59 @@ fn lm1b_penalized_ids(
         .map(|&x| f64::from(x) * time as f64)
         .collect();
     let mut output = Vec::with_capacity(batch * time);
+    let mut counts = vec![0_u32; vocab];
+    let mut excess = vec![0.0_f64; vocab];
+    let mut deficit = vec![0.0_f64; vocab];
+    const ADJACENCY: [f64; 4] = [10.0, 5.0, 2.5, 1.25];
     for row in logits.chunks_exact(time * vocab) {
-        let mut counts = vec![0_u32; vocab];
+        counts.fill(0);
+        excess.fill(0.0);
+        deficit.copy_from_slice(&allow);
         let start = output.len();
         for (t, values) in row.chunks_exact(vocab).enumerate() {
+            let deficit_scale = 2.0 * ((time - t) as f64 / time as f64);
+            // At most four previous token IDs receive strictly positive adjacency penalties.
+            // Among the five highest unpenalized scores (keeping earlier IDs first on ties),
+            // at least one is unpenalized, so no token outside the top five can win.
+            let mut candidates = [(f64::NEG_INFINITY, usize::MAX); 5];
+            let mut threshold = f64::NEG_INFINITY;
+            for (id, ((&value, &ex), &def)) in values
+                .iter()
+                .zip(excess.iter())
+                .zip(deficit.iter())
+                .enumerate()
+            {
+                let score = (f64::from(value) - ex) + deficit_scale * def;
+                if score > threshold {
+                    let mut pos = 4;
+                    while pos > 0 && score > candidates[pos - 1].0 {
+                        candidates[pos] = candidates[pos - 1];
+                        pos -= 1;
+                    }
+                    candidates[pos] = (score, id);
+                    threshold = candidates[4].0;
+                }
+            }
             let mut best = f64::NEG_INFINITY;
             let mut chosen = 0;
-            for (id, &value) in values.iter().enumerate() {
-                let count = f64::from(counts[id]);
-                let mut score = f64::from(value) - 11.5 * (count - allow[id]).max(0.0);
-                score += 2.0 * ((time - t) as f64 / time as f64) * (allow[id] - count).max(0.0);
-                for (j, &penalty) in [10.0, 5.0, 2.5, 1.25].iter().enumerate().take(t.min(4)) {
+            for (mut score, id) in candidates {
+                if id == usize::MAX {
+                    continue;
+                }
+                for (j, &penalty) in ADJACENCY.iter().enumerate().take(t.min(4)) {
                     if output[start + t - j - 1] as usize == id {
                         score -= penalty;
                     }
                 }
-                if score > best {
+                if score > best || (score == best && id < chosen) {
                     best = score;
                     chosen = id;
                 }
             }
             counts[chosen] += 1;
+            let count = f64::from(counts[chosen]);
+            excess[chosen] = 11.5 * (count - allow[chosen]).max(0.0);
+            deficit[chosen] = (allow[chosen] - count).max(0.0);
             output.push(chosen as u32);
         }
     }
@@ -4201,5 +4452,60 @@ mod lm1b_teacher_tests {
             expected
         );
         assert!(lm1b_penalized_parallel(&logits[..1], &allowance, 5).is_err());
+    }
+
+    #[test]
+    fn top_five_lm1b_penalties_match_full_scan_with_ties_and_repetition() {
+        let vocab = 30528usize;
+        let time = 128usize;
+        let mut allowance = vec![0.0f32; vocab];
+        for (i, slot) in allowance.iter_mut().enumerate().take(64) {
+            *slot = ((i % 7) as f32 + 0.5) / 1024.0;
+        }
+        let mut rng = SplitMix64(0x1234_5678);
+        let mut logits = vec![-20.0f32; time * vocab];
+        for t in 0..time {
+            let row = &mut logits[t * vocab..(t + 1) * vocab];
+            // Create dense near-ties and 6-way exact ties among low IDs.
+            for slot in row.iter_mut().take(32) {
+                *slot = ((rng.next() % 11) as f32) * 0.5;
+            }
+            if t % 5 == 0 {
+                for slot in row.iter_mut().take(6) {
+                    *slot = 9.0;
+                }
+            }
+        }
+        // Straightforward reference implementation.
+        let allow: Vec<f64> = allowance
+            .iter()
+            .map(|&x| f64::from(x) * time as f64)
+            .collect();
+        let mut counts = vec![0_u32; vocab];
+        let mut expected = Vec::with_capacity(time);
+        for (t, values) in logits.chunks_exact(vocab).enumerate() {
+            let mut best = f64::NEG_INFINITY;
+            let mut chosen = 0;
+            for (id, &value) in values.iter().enumerate() {
+                let count = f64::from(counts[id]);
+                let mut score = f64::from(value) - 11.5 * (count - allow[id]).max(0.0);
+                score += 2.0 * ((time - t) as f64 / time as f64) * (allow[id] - count).max(0.0);
+                for (j, &penalty) in [10.0, 5.0, 2.5, 1.25].iter().enumerate().take(t.min(4)) {
+                    if expected[t - j - 1] as usize == id {
+                        score -= penalty;
+                    }
+                }
+                if score > best {
+                    best = score;
+                    chosen = id;
+                }
+            }
+            counts[chosen] += 1;
+            expected.push(chosen as u32);
+        }
+        assert_eq!(
+            lm1b_penalized_ids(&logits, &allowance, 1, time).unwrap(),
+            expected
+        );
     }
 }

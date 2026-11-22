@@ -10,7 +10,7 @@ publish = false
 
 [features]
 default = []
-cpu = ["dep:candle-core"]
+cpu = ["dep:ncm-core", "dep:candle-core"]
 cuda = ["cpu", "candle-core/cuda", "dep:candle-nn"]
 cuda-cudnn = ["cuda", "dep:cudarc"]
 cudnn-probe = ["cuda-cudnn", "candle-core/cudnn"]
@@ -18,7 +18,7 @@ wmt14-experimental = ["cuda", "ncm-model/wmt14-experimental"]
 lm1b-experimental = ["cuda", "ncm-model/lm1b-experimental"]
 
 [dependencies]
-ncm-core = { path = "../ncm-core" }
+ncm-core = { path = "../ncm-core", optional = true }
 candle-core = { version = "=0.11.1", optional = true, default-features = false }
 # Same pinned runtime for FP32 CUDA norms, softmax and rotary operations.
 candle-nn = { version = "=0.11.1", optional = true, default-features = false, features = ["cuda"] }
@@ -429,3 +429,7 @@ required-features = ["lm1b-experimental", "cuda-cudnn"]
 [[example]]
 name = "phase5_stage_profile"
 required-features = ["cuda-cudnn", "wmt14-experimental", "lm1b-experimental"]
+
+[[example]]
+name = "prefix_cache_equiv_probe"
+required-features = ["cuda-cudnn", "wmt14-experimental"]

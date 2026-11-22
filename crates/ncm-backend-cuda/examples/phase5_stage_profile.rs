@@ -92,6 +92,9 @@ impl StageRecorder {
 }
 
 impl TraceSink<CandleBackend> for StageRecorder {
+    fn wants_trace(&self) -> bool {
+        false
+    }
     fn tensor(&mut self, _: &str, _: &Tensor) -> ncm_core::Result<()> {
         Ok(())
     }
@@ -333,7 +336,8 @@ fn main() -> Result<()> {
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
-            let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?;
+            let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)?
+                .with_prefix_cache(true);
             backend.device().synchronize()?;
             weight_upload_ms = t1.elapsed().as_secs_f64() * 1000.0;
             mem_after_upload = snap(&backend)?;
@@ -373,7 +377,8 @@ fn main() -> Result<()> {
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
-            let model = Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?;
+            let model = Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
+                .with_prefix_cache(true);
             backend.device().synchronize()?;
             weight_upload_ms = t1.elapsed().as_secs_f64() * 1000.0;
             mem_after_upload = snap(&backend)?;

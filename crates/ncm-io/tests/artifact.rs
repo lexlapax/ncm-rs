@@ -820,3 +820,48 @@ fn streaming_inference_rejects_tampering_nonfinite_weights_and_symlinks() {
     std::os::unix::fs::symlink("real.safetensors", dir.path().join("codec.safetensors")).unwrap();
     assert!(Artifact::load_inference_streaming(dir.path()).is_err());
 }
+
+#[test]
+fn local_ncm_v1_profile_admits_minimal_and_optional_files_and_rejects_extras() {
+    let (dir, mut manifest) = fixture();
+    manifest.profile = "local-ncm-v1".into();
+    manifest.upstream_commit = "local-dev".into();
+    manifest.checkpoint_repository = "local/my-ncm".into();
+    manifest.checkpoint_revision = "v1".into();
+    // Drop optional training.safetensors and tokenizer.json to test minimal 4-file artifact.
+    manifest.files.remove("training.safetensors");
+    manifest.tensors.remove("training.safetensors");
+    manifest.files.remove("tokenizer.json");
+    save(dir.path(), &manifest);
+
+    let loaded = Artifact::load_inference(dir.path()).unwrap();
+    assert_eq!(loaded.manifest().profile, "local-ncm-v1");
+    assert!(loaded.file("tokenizer.json").is_err());
+
+    #[cfg(unix)]
+    {
+        let streamed = Artifact::load_inference_streaming(dir.path()).unwrap();
+        assert_eq!(streamed.manifest().profile, "local-ncm-v1");
+        assert!(streamed.is_streaming_bundle("codec.safetensors"));
+        assert!(streamed.is_streaming_bundle("generator.safetensors"));
+    }
+
+    // Adding an undeclared file name must fail closed.
+    let rogue = b"nope";
+    fs::write(dir.path().join("extra.bin"), rogue).unwrap();
+    manifest.files.insert(
+        "extra.bin".into(),
+        FileRecord {
+            bytes: rogue.len() as u64,
+            sha256: sha256(rogue),
+        },
+    );
+    save(dir.path(), &manifest);
+    assert!(Artifact::load_inference(dir.path()).is_err());
+    manifest.files.remove("extra.bin");
+
+    // Empty provenance fields must be rejected.
+    manifest.checkpoint_repository = String::new();
+    save(dir.path(), &manifest);
+    assert!(Artifact::load_inference(dir.path()).is_err());
+}
