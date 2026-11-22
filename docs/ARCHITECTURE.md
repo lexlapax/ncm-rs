@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Implemented across Phases 0–5 for all nine released FP32 profiles on Linux/CUDA and Apple Silicon/Metal** (`v0.1.0` published at `de2975a`; Phase 5 Step 3 streaming/parallel model-load optimization verified on both GPUs at `ee8769f`). See [docs/DEVELOPING.md](DEVELOPING.md) for library usage and adding new local models, and [docs/results/2026-11-20-phase5-audit/phase5-final-audit-v1.md](results/2026-11-20-phase5-audit/phase5-final-audit-v1.md) for the complete requirement-to-evidence audit.
+Status: **Implemented across Phases 0–5 plus the pre-`v0.2.0` gap-audit bundle on Linux/CUDA and Apple Silicon/Metal** (`v0.1.0` published at `de2975a`; `v0.2.0` candidate verified on both GPUs at `e7b8cfa`). See [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-20-phase5-audit/phase5-final-audit-v1.md](results/2026-11-20-phase5-audit/phase5-final-audit-v1.md) for the requirement-to-evidence audit.
 
 ## Decision: one model, two runtime adapters
 
@@ -51,12 +51,12 @@ Defined in [crates/ncm-core/src/lib.rs](../crates/ncm-core/src/lib.rs):
 | --- | --- |
 | Sudoku (easy, medium, hard) | Qualified FP32 greedy generation & codec reconstruction on CUDA and Metal |
 | TinyStories | Qualified seeded generation + `--text`/`--decode` (Byte BPE) on CUDA and Metal (with recorded Metal exceptions) |
-| XSum | Qualified top-1 CFG 0 + `--text`/`--decode` (GPT-2) on CUDA and Metal (with recorded exceptions); experimental CFG/stochastic flags gated |
-| WMT14 | Qualified top-1 CFG 0/1 + `--text`/`--decode` (Qwen3) on CUDA and Metal; experimental CFG/padded-retry gated |
-| LM1B (small, medium, large) | Qualified seeded generation (80-seed gate) + empty-only `--text`/`--decode` (BERT) on CUDA and Metal; requires pinned rotary sidecar |
+| XSum | Qualified top-1 CFG 0 + `--text`/`--decode` (GPT-2) + FP32 prefix K/V cache on CUDA and Metal (with recorded exceptions); experimental positive CFG and stochastic sampling supported on both CUDA and Metal |
+| WMT14 | Qualified top-1 CFG 0/1 + `--text`/`--decode` (Qwen3) + FP32 prefix K/V cache (CFG 0) on CUDA and Metal; experimental CFG/padded-retry gated |
+| LM1B (small, medium, large) | Qualified seeded generation (80-seed gate) + empty-only `--text`/`--decode` (BERT) on CUDA and Metal; `v1` uses sibling rotary sidecar, `v2` bundles hash-pinned RoPE tables in `inference.safetensors` |
+| Custom local NCM (`local-ncm-v1`) | Generic config-driven `LocalNcmModel` + offline `LocalTokenizer` + FP32 prefix K/V cache + stdlib exporter (`tools/reference/export_local_ncm.py`) on CPU, CUDA, and Metal |
 | OpenWebText (OWT) | Config validation (`OwtConfigOnly`), no-EOS-cut policy, and synthetic operator shapes implemented; runtime execution refused until upstream releases weights |
-| Prefix K/V cache, BF16/FP16, quantization | Deferred past Phase 5; each requires its own equivalence/quality gate |
-| Generic config-driven text model loader | Planned for future extensibility (see [cross-phase gap audit](results/2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md)) |
+| BF16/FP16, quantization | Deferred past Phase 5; each requires its own equivalence/quality gate |
 | Multi-request serving, streaming, training | Deferred (Phase 6+ / separate approval gate) |
 
 ## Platform, safety, and compatibility policy

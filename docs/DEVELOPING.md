@@ -103,9 +103,35 @@ When adding or optimizing a backend operator:
 3. Keep `unsafe_code = deny` at the crate root; any unavoidable FFI or `mmap` must be narrowly scoped with `#[allow(unsafe_code)]` and explicit `// SAFETY:` comments.
 4. Validate on **Linux/CUDA first**, then **macOS/MLX**, using real hardware (`./tools/check.sh --cuda`, then `./tools/check.sh --mlx`).
 
-## 4. Adding a New Local NCM Model or Profile
+## 4. Running Your Own Local NCM Model (`local-ncm-v1`)
 
-To add support for a newly trained or newly released local NCM checkpoint:
+For custom local NCM checkpoints that follow the standard NCM multiscale RVQ codec + block-diagonal RoPE transformer architecture, you do **not** need to write custom Rust structs. Export the checkpoint to the verified `local-ncm-v1` artifact profile using the stdlib offline exporter [tools/reference/export_local_ncm.py](../tools/reference/export_local_ncm.py) (optional `torch` only when converting `.pt`/`.pth` files):
+
+```sh
+python3 tools/reference/export_local_ncm.py \
+  --config path/to/config.json \
+  --codec path/to/codec.safetensors \
+  --generator path/to/generator.safetensors \
+  --tokenizer path/to/tokenizer.json \
+  --output artifacts/canonical/my-local-ncm
+```
+
+`config.json` contains `"tokenizer"` (`RawCodecConfig` validated by `CodecConfig::validate_local`) and `"model"` (`LocalGeneratorConfig`, supporting `"head_kind": "untied_affine" | "untied_linear" | "shared_head_biases"`, optional `"pad_token_id"`, `"eos_token_id"`, and `"temperature"`). Run it directly on CUDA or Metal with the unified CLI:
+
+```sh
+# Inspect manifest & SHA-256 inventory:
+target/release/ncm inspect artifacts/canonical/my-local-ncm
+
+# Generate from token IDs or text (when tokenizer.json is bundled):
+target/release/ncm sample artifacts/canonical/my-local-ncm cuda-cudnn prompts.json --text --decode --seed 42
+target/release/ncm sample artifacts/canonical/my-local-ncm mlx prompts.json --text --decode --seed 42
+```
+
+From Rust, load it via `LocalNcmModel::from_artifact(backend, &artifact)` (`crates/ncm-model/src/local_ncm.rs`), which runs full host preflight before GPU allocation, enables per-layer FP32 prefix K/V caching automatically when `prefix_len > 1`, and supports greedy (`seed: None`) or deterministic SplitMix64 sampling (`seed: Some(u64)`).
+
+## 5. Adding a New Bespoke Pinned Profile
+
+If a model introduces new architectural components beyond `local-ncm-v1` (custom decoding penalties, CFG schedules, or unigram tables):
 
 1. **Export to the canonical non-executable artifact format** (see [docs/ARTIFACTS.md](ARTIFACTS.md)):
    - Write an offline exporter under `tools/reference/` using `torch.load(..., weights_only=True)` (never execute pickle in Rust).
@@ -128,7 +154,7 @@ To add support for a newly trained or newly released local NCM checkpoint:
    - End-to-end quality gate on the profile's official metric (accuracy / ROUGE / BLEU+chrF / generative PPL+entropy).
    - Alternating 3-process performance & memory comparison (`docs/REPORTING.md`, `tools/bench/run_phase5_step3_bench.py`) proving Rust matches or beats Python on latency and memory.
 
-## 5. Local Validation & Benchmarking Workflow
+## 6. Local Validation & Benchmarking Workflow
 
 ```sh
 # 1. Default CPU checks (fmt, clippy, unit tests, docs, Python report tests):

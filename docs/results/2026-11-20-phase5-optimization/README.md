@@ -68,4 +68,58 @@ Protocol: `tools/bench/run_lm1b_small_mlx_timing.py --size {small,medium,large} 
 
 - Local checks passed on both platforms at `ee8769f`: `setpriv --inh-caps=-all ./tools/check.sh`, `setpriv --inh-caps=-all ./tools/check.sh --cuda` (`18` cases), and `./tools/check.sh --mlx` (`18` cases + `ncm-cli --features mlx` clippy/tests).
 - Streaming verification assumes a trusted, non-concurrently-mutated artifact directory (same trust model as `Artifact::load` and `Artifact::load_inference`), and opens weight bundles with `O_NOFOLLOW`.
-- Warm-cache page-cache residency applies to repeated alternating processes; cold-disk reads were not separately isolated. Whole-file SHA-256 remains inherently single-threaded over the largest bundle (`generator.safetensors` = 2.9 GiB on LM1B-large), which bounds the remaining ~2.1–2.4 s load floor on LM1B-large.
+- Warm-cache page-cache residency applies to repeated alternating processes; cold-disk reads were not separately isolated. Whole-file SHA-256 remains inherently single-threaded over the largest bundle (`generator.safetensors` = 2.9 GiB on LM1B-large), which bounds the remaining ~2.0–2.1 s load floor on LM1B-large.
+
+---
+
+## Pre-`v0.2.0` Gap-Audit Optimization & Foundation Bundle (`4d970fa` / `e7b8cfa`, 2026-11-22)
+
+Following the [cross-phase gap audit](../2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md), five additional improvements were implemented and verified on both CUDA (RTX 3060 Ti) and Metal (M1 Ultra) before tagging `v0.2.0`:
+
+1. **Warm-inference & I/O pipeline (Milestone A):** added `GeneratorBackend::sampled_embedding_8192` (removing 11× per-level CUDA host syncs in `Lm1bSmallTeacher`), `TraceSink::wants_trace()` (skipping unused codec greedy argmax & `upload_indices(&penalized)` during inference), precomputed FP64 penalty tables (`lm1b_penalized_ids` + `select_xsum_tokens_cpu`), pipelined whole-file SHA-256 I/O in `ncm-io` (`validate_streaming_bundle` overlapping `pread` and SHA-256 over two 2 MiB scratch buffers), and cleared `cargo check --workspace --locked` warnings.
+2. **XSum Metal seeded + positive CFG (Milestone B):** added `XsumTeacher::sample_seeded_cfg_cpu` and enabled positive CFG + seeded sampling on Metal (`ncm sample ... mlx --cfg 1 --experimental-positive-cfg-xsum --seed 42 --experimental-stochastic-xsum`).
+3. **Self-contained LM1B v2 artifacts (Milestone C):** admitted `lm1b-{small,medium,large}-inference-v2` bundling hash-pinned `rope_cos`/`rope_sin` inside `inference.safetensors` (`lm1b_small_runtime_artifact.py --reference-rope`), verified byte-identical to `v1` + sidecar in isolated directories on both CUDA (`cd87171d...`) and Metal (`3f28b815...`).
+4. **FP32 prefix K/V caching for XSum & WMT14 (Milestone D):** added `PrefixKvCache` / `prefill_prefix_cache` / `decode_target_with_prefix_cache`, enabled on XSum (all modes) and WMT14 (`cfg == 0.0`, preserving exact parity on CFG > 0), dropping `prefix_cache` and `prefix` before final vocabulary projection.
+   - **CUDA corpus equivalence (`prefix_cache_equiv_probe`):** WMT14 **3,003/3,003 rows** (`0` code diffs, `0` ID diffs; `b=1` 1.61×, `b=4` 2.23×); XSum **1,024 rows + CFG=1 + seed=42** (`0` diffs across all modes; `b=1` 3.40×, `b=4` 4.20×).
+   - **Metal corpus equivalence (`prefix_cache_equiv_probe`):** WMT14 **256 rows** (`0` code/ID diffs; `b=1` 1.21×, `b=4` 2.00×); XSum **512 rows + CFG=1 + seed=42 + CFG=1&seed=42** (`0` diffs across all modes; `b=1` 2.50×, `b=4` 1.59×).
+5. **Generic config-driven `local-ncm-v1` model foundation (Milestone E):** added `LocalNcmConfig` / `CodecConfig::validate_local`, `"local-ncm-v1"` profile in `ncm-io`, offline `LocalTokenizer`, `LocalNcmModel` (all 3 head kinds, prefix cache, greedy + seeded sampling), unified `ncm sample` support, and stdlib exporter `tools/reference/export_local_ncm.py`. Verified end-to-end on CPU, CUDA, and Metal.
+
+### Cumulative `v0.2.0` vs Pre-Step-3 Baseline: Linux / CUDA (RTX 3060 Ti)
+
+Protocol: `tools/bench/run_phase5_step3_bench.py --platform cuda --processes 3` (`llama-server.service` stopped; 3 alternating fresh processes, 30 warm trials per candidate; batch 1).
+Summary JSON: [cuda-v020-summary-v1.json](cuda-v020-summary-v1.json) (SHA-256 `cd85f4a41cd8584b350dab0c04aa1705dd48b5bcdc3fdf58497d179a970ff86f`).
+9/9 CLI byte-equivalence (`phase5_cli_equivalence.py --platform cuda`): **9/9 exact matches** against pre-Step-3 `baseline-ncm`.
+
+| Profile | Load before -> `v0.2.0` (ms) | Load speedup | Host HWM before -> `v0.2.0` (MiB) | Warm median before -> `v0.2.0` (ms) | Warm speedup | CUDA pool peak (MiB, before / `v0.2.0`) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sudoku-easy` | 203.2 -> 91.8 | **2.21×** | 605.1 -> 611.9 | 25.63 -> 25.65 | 1.00× | 168.8 / 168.8 |
+| `tinystories` | 700.9 -> 295.7 | **2.37×** | 940.1 -> 815.3 (**-125**) | 41.21 -> 41.27 | 1.00× | 492.9 / 492.9 |
+| `xsum` | 820.5 -> 356.1 | **2.30×** | 1,076.4 -> 895.5 (**-181**) | 155.75 -> **48.09** | **3.24×** | 632.7 / 686.1 |
+| `wmt14` | 1,392.4 -> 598.2 | **2.33×** | 1,517.7 -> 818.4 (**-699**) | 58.47 -> **38.04** | **1.54×** | 1,050.2 / 1,050.2 |
+| `lm1b-small` | 1,150.9 -> 467.8 | **2.46×** | 1,241.9 -> 803.2 (**-439**) | 42.95 -> **41.73** | **1.03×** | 838.7 / **820.2** |
+| `lm1b-medium` | 2,185.7 -> 1,013.2 | **2.16×** | 2,080.8 -> 803.8 (**-1,277**) | 119.27 -> **118.45** | **1.01×** | 1,675.9 / **1,657.3** |
+| `lm1b-large` | 4,306.1 -> 2,102.7 | **2.05×** | 3,637.6 -> 804.5 (**-2,833**, 0.22×) | 249.11 -> **247.98** | **1.005×** | 3,233.3 / **3,215.6** |
+
+### Cumulative `v0.2.0` vs Pre-Step-3 Baseline: Apple Silicon / Metal (M1 Ultra)
+
+Protocol: `tools/bench/run_phase5_step3_bench.py --platform mlx --processes 3` (`dotsetup.rmlx` idle/untouched; 3 alternating fresh processes, 30 warm trials per candidate; batch 1).
+Summary JSON: [mlx-v020-summary-v1.json](mlx-v020-summary-v1.json) (SHA-256 `6619013f6a7a146579f815f7160d196ebebda733011f0abbe21bdb7781f36de2`).
+9/9 CLI byte-equivalence (`phase5_cli_equivalence.py --platform mlx`): **9/9 exact matches** against pre-Step-3 `baseline-ncm`.
+
+| Profile | Load before -> `v0.2.0` (ms) | Load speedup | Peak RSS before -> `v0.2.0` (MiB) | Warm median before -> `v0.2.0` (ms) | Warm speedup | MLX peak (MiB, before / `v0.2.0`) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sudoku-easy` | 200.1 -> 92.8 | **2.16×** | 359.2 -> 197.2 (**-162**) | 53.46 -> 54.04 | 0.99× | 261.1 / 261.7 |
+| `tinystories` | 670.4 -> 283.9 | **2.36×** | 1,015.9 -> 526.7 (**-489**) | 93.79 -> 93.68 | 1.00× | 606.9 / 606.6 |
+| `xsum` | 1,039.7 -> 341.1 | **3.05×** | 1,584.7 -> 1,016.8 (**-568**) | 204.61 -> **84.64** | **2.42×** | 1,117.9 / **930.6** (-187) |
+| `wmt14` | 2,012.2 -> 561.5 | **3.58×** | 1,561.7 -> 1,122.5 (**-439**) | 93.67 -> **78.35** | **1.20×** | 1,162.7 / **1,104.2** (-59) |
+| `lm1b-small` | 1,088.5 -> 386.3 | **2.82×** | 1,674.4 -> 878.4 (**-796**) | 101.70 -> **96.26** | **1.06×** | 926.7 / 926.7 |
+| `lm1b-medium` | 3,370.3 -> 927.9 | **3.63×** | 3,328.5 -> 1,726.7 (**-1,602**) | 210.02 -> **204.66** | **1.03×** | 1,806.4 / 1,806.4 |
+| `lm1b-large` | 3,885.2 -> 2,018.3 | **1.93×** | 6,454.7 -> 3,298.6 (**-3,156**, 0.51×) | 385.41 -> **381.33** | **1.01×** | 3,414.5 / 3,413.8 |
+
+### Updated Direct Head-to-Head vs Python MLX on Metal (`v0.2.0`, Batch 1)
+
+| Size | Model Load: Python MLX vs Rust | Warm Median: Python MLX vs Rust | Warm p95: Python MLX vs Rust | Peak RSS: Python MLX vs Rust | MLX Peak: Python vs Rust | Result JSON |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `lm1b-small` | 516.0 vs **425.9 ms (1.21×)** | 120.19 vs **97.10 ms (1.24×)** | 122.42 vs **98.92 ms (1.24×)** | 1,683 vs **880 MiB (0.52×)** | 944 vs **927 MiB** | [mlx-vs-py-lm1b-small-v020.json](mlx-vs-py-lm1b-small-v020.json) (`c4e805e3...`) |
+| `lm1b-medium` | 1,044.3 vs **983.1 ms (1.06×)** | 229.90 vs **204.56 ms (1.12×)** | 233.52 vs **208.12 ms (1.12×)** | 3,368 vs **1,729 MiB (0.51×)** | 1,832 vs **1,806 MiB** | [mlx-vs-py-lm1b-medium-v020.json](mlx-vs-py-lm1b-medium-v020.json) (`9175a46f...`) |
+| `lm1b-large` | 2,025.5 vs 2,068.2 ms (0.98×) | 405.24 vs **382.60 ms (1.06×)** | 408.11 vs **386.44 ms (1.06×)** | 6,495 vs **3,298 MiB (0.51×)** | 3,448 vs **3,415 MiB** | [mlx-vs-py-lm1b-large-v020.json](mlx-vs-py-lm1b-large-v020.json) (`27257b4a...`) |

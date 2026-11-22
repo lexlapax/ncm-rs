@@ -647,3 +647,9 @@ for name in ('tiny', 'xsum', 'wmt14', 'lm1b'):
     print(name, 'one decoded row')
 PY
 ```
+
+## Optional self-contained LM1B v2 & custom local NCM models (`local-ncm-v1`)
+
+- **Self-contained LM1B v2 (`lm1b-{small,medium,large}-inference-v2`):** pass `--reference-rope artifacts/canonical/lm1b-reference-rope-v1.safetensors` to `tools/reference/lm1b_small_runtime_artifact.py` to bundle the hash-pinned `rope_cos` and `rope_sin` tensors directly inside `inference.safetensors`. `ncm sample` automatically uses the embedded tables when `--reference-rope` is omitted, producing byte-identical outputs to `v1` + sidecar without requiring a sibling file.
+- **XSum seeded + positive CFG on Metal:** both CUDA and Metal now accept `--cfg S --experimental-positive-cfg-xsum --seed N --experimental-stochastic-xsum`.
+- **Custom local NCM checkpoints (`local-ncm-v1`):** export local `.safetensors` or `.pt` codec/generator weights plus `config.json` (and optional HuggingFace `tokenizer.json`) using `tools/reference/export_local_ncm.py`, then run `ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--text] [--decode]` on `cuda-cudnn`, `cuda`, or `mlx`. See [docs/DEVELOPING.md](DEVELOPING.md#4-running-your-own-local-ncm-model-local-ncm-v1) and [docs/ARTIFACTS.md](ARTIFACTS.md).

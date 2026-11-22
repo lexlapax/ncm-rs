@@ -63,3 +63,19 @@ To make `ncm-rs` an even stronger foundation for running new local NCM models in
    - Default CPU-only `cargo check` emits two harmless `unused_dependencies` warnings (`ncm-core` in `ncm-backend-cuda` when no feature is active, and `ncm-model`/`ncm-backend-cuda` in `ncm-cli` when no backend feature is active). Gating or cleaning those in a small maintenance PR will keep feature-off builds warning-free.
 7. **Linux CPU lifecycle observer race (`tools/bench` test-only):**
    - Intermittent `ObservationMismatch` in fake-worker supervisor tests (`linux-lifecycle-env-investigation-v1.md`) does not affect production Rust inference, only an offline benchmark supervisor test helper.
+
+---
+
+## 4. Resolution Ledger (Pre-`v0.2.0` Bundle, `4d970fa` / `e7b8cfa`, 2026-11-22)
+
+The user elected to address all five actionable gap-audit items prior to tagging `v0.2.0`. All five are now implemented and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra); see the [updated optimization report](../2026-11-20-phase5-optimization/README.md#pre-v020-gap-audit-optimization--foundation-bundle-4d970fa--e7b8cfa-2026-11-22):
+
+| Audit Item | Status | Verification Summary |
+| --- | --- | --- |
+| **1. Warm LM1B wins, SHA-256 I/O pipeline & Cargo warnings** | **Resolved** | `sampled_embedding_8192` removes 11× per-level CUDA host syncs; `TraceSink::wants_trace()` skips unused codec greedy argmax & penalty index uploads (-18 to -19 MiB CUDA VRAM peak; faster warm LM1B on CUDA & Metal); pipelined 2 MiB double-buffered whole-file SHA-256 cuts LM1B-large load to `2,102.7 ms` CUDA (2.05×) and `2,018.3 ms` Metal (within 2% of unverified Python MLX while verifying full SHA-256 + finite FP32); `cargo check --workspace --locked` emits 0 warnings. |
+| **2. XSum Metal seeded + positive CFG** | **Resolved** | Added `XsumTeacher::sample_seeded_cfg_cpu` and wired `sample_xsum_mlx`. Verified on M1 Ultra (`prefix_cache_equiv_probe` 512 rows + `cfg1_seed42_id_diffs=0`; CLI `--cfg 1 --seed 42 --decode` deterministic SHA-256 `dee14e21...`). |
+| **3. Self-contained LM1B v2 artifacts** | **Resolved** | Added `lm1b-{small,medium,large}-inference-v2` bundling hash-pinned `rope_cos`/`rope_sin` in `inference.safetensors` (`lm1b_small_runtime_artifact.py --reference-rope`). Verified 100% byte-identical to `v1` + sidecar in isolated directories on CUDA (`cd87171d...`) and Metal (`3f28b815...`). |
+| **4. FP32 prefix K/V caching for XSum & WMT14** | **Resolved** | Added `PrefixKvCache` (`prefill_prefix_cache` + `decode_target_with_prefix_cache`), dropping cache before vocab projection. **CUDA:** WMT14 3,003/3,003 rows `0` diffs (`1.54×` warm, `0` MiB VRAM delta); XSum 1,024 rows `0` diffs (`3.24×` warm, `155.8 -> 48.1 ms`). **Metal:** WMT14 256 rows `0` diffs (`1.20×` warm, `-59 MiB` MLX peak); XSum 512 rows `0` diffs (`2.42×` warm, `204.6 -> 84.6 ms`, `-187 MiB` MLX peak). |
+| **5. Config-driven local NCM foundation (`local-ncm-v1`)** | **Resolved** | Added `LocalNcmConfig` / `CodecConfig::validate_local`, `"local-ncm-v1"` artifact profile, offline `LocalTokenizer`, `LocalNcmModel` (all 3 head kinds, prefix cache, greedy + seeded sampling), unified `ncm sample` routing, and stdlib exporter `tools/reference/export_local_ncm.py`. Verified on CPU (`tests/local_ncm.rs`), CUDA, and Metal. |
+
+**Remaining deferred items (intentionally out of scope for `v0.2.0`):** OpenWebText execution (weights unreleased upstream), lower-precision FP16/BF16/quantized inference, multi-request concurrent serving/streaming APIs, and the offline benchmark supervisor test-only race (`linux-lifecycle-env-investigation-v1.md`). All historical Phase 2–4 quality/numerical exceptions remain explicitly documented above.
