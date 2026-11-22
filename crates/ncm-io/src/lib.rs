@@ -136,7 +136,7 @@ pub struct TensorRecord {
     pub sha256: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum TensorDtype {
     F32,
     I64,
@@ -312,12 +312,46 @@ pub struct Artifact {
     manifest: Manifest,
     payloads: BTreeMap<String, Vec<u8>>,
     reusable_wmt14: Option<ReusableWmt14>,
+    streaming: BTreeMap<String, StreamedBundle>,
 }
 
 struct ReusableWmt14 {
     root: PathBuf,
     name: &'static str,
     data: wmt14_scratch::Scratch,
+}
+
+struct StreamedBundle {
+    file: fs::File,
+    /// Ordered by file offset for sequential page-cache reads: (manifest_idx, file_offset, bytes).
+    ordered: Vec<(usize, u64, usize)>,
+    /// True when every F32 tensor except `attn_mask_for_masking` was checked finite during load.
+    finite_checked_f32: bool,
+}
+
+fn has_nonfinite_f32_le(data: &[u8]) -> bool {
+    debug_assert_eq!(data.len() % 4, 0);
+    let (groups, tail) = data.as_chunks::<64>();
+    for group in groups {
+        let mut bad = false;
+        for bytes in group.as_chunks::<4>().0 {
+            bad |= u32::from_le_bytes(*bytes) & 0x7f80_0000 == 0x7f80_0000;
+        }
+        if bad {
+            return true;
+        }
+    }
+    tail.as_chunks::<4>()
+        .0
+        .iter()
+        .any(|bytes| u32::from_le_bytes(*bytes) & 0x7f80_0000 == 0x7f80_0000)
+}
+
+fn worker_count() -> usize {
+    std::thread::available_parallelism()
+        .map(usize::from)
+        .unwrap_or(1)
+        .clamp(1, 8)
 }
 
 fn verify_payload(name: &str, bytes: &[u8], record: &FileRecord) -> Result<()> {
@@ -339,30 +373,300 @@ fn verify_bundle(bundle: &str, bytes: &[u8], entries: &[TensorRecord]) -> Result
     if names.len() != entries.len() || names != tensors.names().into_iter().collect() {
         return Err(invalid(format!("missing/extra/duplicate tensor: {bundle}")));
     }
+    let mut slices = Vec::with_capacity(entries.len());
     for entry in entries {
         check_hash_format(&entry.sha256)?;
         if entry.shape.len() > 8 {
             return Err(invalid("tensor rank exceeds limit"));
         }
-        let bytes = entry
+        let expected_bytes = entry
             .shape
             .iter()
             .try_fold(entry.dtype.size(), |size, dim| size.checked_mul(*dim))
             .ok_or_else(|| invalid("tensor shape overflow"))?;
         let tensor = tensors.tensor(&entry.name)?;
-        if bytes != entry.bytes
+        if expected_bytes != entry.bytes
             || tensor.shape() != entry.shape
             || tensor.dtype() != entry.dtype.native()
             || tensor.data().len() != entry.bytes
-            || sha256(tensor.data()) != entry.sha256
         {
             return Err(invalid(format!(
                 "tensor metadata/hash mismatch: {bundle}/{}",
                 entry.name
             )));
         }
+        slices.push((entry.name.as_str(), entry.sha256.as_str(), tensor.data()));
     }
-    Ok(())
+    let threads = worker_count().min(slices.len().max(1));
+    if threads <= 1 || bytes.len() < 4 * 1024 * 1024 {
+        for (name, expected, data) in slices {
+            if sha256(data) != expected {
+                return Err(invalid(format!(
+                    "tensor metadata/hash mismatch: {bundle}/{name}"
+                )));
+            }
+        }
+        return Ok(());
+    }
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let slices = &slices;
+    let next = &next;
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..threads)
+            .map(|_| {
+                scope.spawn(move || -> Result<()> {
+                    loop {
+                        let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        if i >= slices.len() {
+                            return Ok(());
+                        }
+                        let (name, expected, data) = slices[i];
+                        if sha256(data) != expected {
+                            return Err(invalid(format!(
+                                "tensor metadata/hash mismatch: {bundle}/{name}"
+                            )));
+                        }
+                    }
+                })
+            })
+            .collect();
+        for h in handles {
+            h.join()
+                .map_err(|_| invalid("hash worker thread panicked"))??;
+        }
+        Ok(())
+    })
+}
+
+fn validate_streaming_bundle(
+    path: &Path,
+    bundle: &str,
+    record: &FileRecord,
+    entries: &[TensorRecord],
+    check_finite_f32: bool,
+) -> Result<StreamedBundle> {
+    let meta = fs::symlink_metadata(path)?;
+    if !meta.file_type().is_file() || meta.len() != record.bytes {
+        return Err(invalid(format!("invalid bundle file: {bundle}")));
+    }
+    #[cfg(unix)]
+    let file = {
+        use std::os::unix::fs::OpenOptionsExt;
+        fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(path)?
+    };
+    #[cfg(not(unix))]
+    let file = fs::File::open(path)?;
+    let opened_meta = file.metadata()?;
+    if !opened_meta.is_file() || opened_meta.len() != record.bytes {
+        return Err(invalid(format!("invalid bundle file: {bundle}")));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::FileExt;
+        let mut prefix = [0u8; 8];
+        file.read_exact_at(&mut prefix, 0)?;
+        let header_len = u64::from_le_bytes(prefix);
+        if header_len > 100_000_000 || header_len.checked_add(8).is_none_or(|n| n > record.bytes) {
+            return Err(invalid(format!("invalid bundle header length: {bundle}")));
+        }
+        let header_size = usize::try_from(header_len).map_err(|_| invalid("header overflow"))?;
+        let mut header = vec![0u8; header_size];
+        file.read_exact_at(&mut header, 8)?;
+        let data_start = 8 + header_len;
+        let metadata: safetensors::tensor::Metadata = serde_json::from_slice(&header)?;
+        if (metadata.data_len() as u64).checked_add(data_start) != Some(record.bytes) {
+            return Err(invalid(format!("bundle extent mismatch: {bundle}")));
+        }
+        let by_name: BTreeMap<_, _> = entries
+            .iter()
+            .enumerate()
+            .map(|(idx, entry)| (entry.name.as_str(), (idx, entry)))
+            .collect();
+        if by_name.len() != entries.len() || metadata.tensors().len() != entries.len() {
+            return Err(invalid(format!("missing/extra/duplicate tensor: {bundle}")));
+        }
+        let mut ordered = Vec::with_capacity(entries.len());
+        for name in metadata.offset_keys() {
+            let info = metadata
+                .info(&name)
+                .ok_or_else(|| invalid("missing tensor metadata"))?;
+            let &(idx, entry) = by_name
+                .get(name.as_str())
+                .ok_or_else(|| invalid(format!("unexpected tensor: {bundle}/{name}")))?;
+            check_hash_format(&entry.sha256)?;
+            if entry.shape.len() > 8 {
+                return Err(invalid("tensor rank exceeds limit"));
+            }
+            let size = entry
+                .shape
+                .iter()
+                .try_fold(entry.dtype.size(), |n, &dim| n.checked_mul(dim))
+                .ok_or_else(|| invalid("tensor shape overflow"))?;
+            if info.shape != entry.shape
+                || info.dtype != entry.dtype.native()
+                || size != entry.bytes
+                || info.data_offsets.1 - info.data_offsets.0 != entry.bytes
+            {
+                return Err(invalid(format!(
+                    "tensor metadata/hash mismatch: {bundle}/{name}"
+                )));
+            }
+            let offset = data_start
+                .checked_add(info.data_offsets.0 as u64)
+                .ok_or_else(|| invalid("tensor offset overflow"))?;
+            ordered.push((idx, offset, entry.bytes));
+        }
+
+        // For small bundles (< 4 MiB), verify whole-file and per-tensor hashes in one
+        // sequential pass without spawning threads. For larger bundles, hash the whole
+        // file on one thread while verifying per-tensor hashes and finite FP32 values
+        // in parallel using bounded 1 MiB scratch buffers (unmapped on Darwin drop).
+        const STREAM_CHUNK: usize = 1024 * 1024;
+        if record.bytes < 4 * 1024 * 1024 {
+            let mut file_hash = Sha256::new();
+            file_hash.update(prefix);
+            file_hash.update(&header);
+            let mut scratch = wmt14_scratch::Scratch::new(STREAM_CHUNK)?;
+            for &(idx, offset, len) in &ordered {
+                let entry = &entries[idx];
+                let mut tensor_hash = Sha256::new();
+                let mut rem = len;
+                let mut cur = offset;
+                let check_finite = check_finite_f32
+                    && matches!(entry.dtype, TensorDtype::F32)
+                    && entry.name != "attn_mask_for_masking";
+                while rem > 0 {
+                    let n = rem.min(STREAM_CHUNK);
+                    scratch.read_at(&file, cur, n)?;
+                    let chunk = scratch.bytes();
+                    if check_finite && has_nonfinite_f32_le(chunk) {
+                        return Err(invalid(format!(
+                            "nonfinite FP32 value in {bundle}/{}",
+                            entry.name
+                        )));
+                    }
+                    tensor_hash.update(chunk);
+                    file_hash.update(chunk);
+                    rem -= n;
+                    cur += n as u64;
+                }
+                if format!("{:x}", tensor_hash.finalize()) != entry.sha256 {
+                    return Err(invalid(format!(
+                        "tensor metadata/hash mismatch: {bundle}/{}",
+                        entry.name
+                    )));
+                }
+            }
+            let mut extra = [0u8; 1];
+            if file.read_at(&mut extra, record.bytes)? != 0
+                || format!("{:x}", file_hash.finalize()) != record.sha256
+            {
+                return Err(invalid(format!("file size/hash mismatch: {bundle}")));
+            }
+            return Ok(StreamedBundle {
+                file,
+                ordered,
+                finite_checked_f32: check_finite_f32,
+            });
+        }
+
+        let file_ref = &file;
+        let ordered_ref = &ordered;
+        let total_bytes = record.bytes;
+        let expected_file_sha = record.sha256.as_str();
+        let header_ref = &header;
+        let tensor_workers = worker_count()
+            .saturating_sub(1)
+            .clamp(1, 6)
+            .min(ordered.len().max(1));
+        let next = std::sync::atomic::AtomicUsize::new(0);
+        let next_ref = &next;
+        std::thread::scope(|scope| -> Result<()> {
+            let whole_handle = scope.spawn(move || -> Result<()> {
+                let mut file_hash = Sha256::new();
+                file_hash.update(prefix);
+                file_hash.update(header_ref);
+                let mut scratch = wmt14_scratch::Scratch::new(STREAM_CHUNK)?;
+                let mut pos = data_start;
+                while pos < total_bytes {
+                    let n = usize::try_from((total_bytes - pos).min(STREAM_CHUNK as u64))
+                        .map_err(|_| invalid("chunk size overflow"))?;
+                    scratch.read_at(file_ref, pos, n)?;
+                    file_hash.update(scratch.bytes());
+                    pos += n as u64;
+                }
+                let mut extra = [0u8; 1];
+                if file_ref.read_at(&mut extra, total_bytes)? != 0
+                    || format!("{:x}", file_hash.finalize()) != expected_file_sha
+                {
+                    return Err(invalid(format!("file size/hash mismatch: {bundle}")));
+                }
+                Ok(())
+            });
+            let worker_handles: Vec<_> = (0..tensor_workers)
+                .map(|_| {
+                    scope.spawn(move || -> Result<()> {
+                        let mut scratch = wmt14_scratch::Scratch::new(STREAM_CHUNK)?;
+                        loop {
+                            let i = next_ref.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                            if i >= ordered_ref.len() {
+                                return Ok(());
+                            }
+                            let (idx, offset, len) = ordered_ref[i];
+                            let entry = &entries[idx];
+                            let check_finite = check_finite_f32
+                                && matches!(entry.dtype, TensorDtype::F32)
+                                && entry.name != "attn_mask_for_masking";
+                            let mut tensor_hash = Sha256::new();
+                            let mut rem = len;
+                            let mut cur = offset;
+                            while rem > 0 {
+                                let n = rem.min(STREAM_CHUNK);
+                                scratch.read_at(file_ref, cur, n)?;
+                                let chunk = scratch.bytes();
+                                if check_finite && has_nonfinite_f32_le(chunk) {
+                                    return Err(invalid(format!(
+                                        "nonfinite FP32 value in {bundle}/{}",
+                                        entry.name
+                                    )));
+                                }
+                                tensor_hash.update(chunk);
+                                rem -= n;
+                                cur += n as u64;
+                            }
+                            if format!("{:x}", tensor_hash.finalize()) != entry.sha256 {
+                                return Err(invalid(format!(
+                                    "tensor metadata/hash mismatch: {bundle}/{}",
+                                    entry.name
+                                )));
+                            }
+                        }
+                    })
+                })
+                .collect();
+            whole_handle
+                .join()
+                .map_err(|_| invalid("file hash thread panicked"))??;
+            for h in worker_handles {
+                h.join()
+                    .map_err(|_| invalid("tensor hash thread panicked"))??;
+            }
+            Ok(())
+        })?;
+        Ok(StreamedBundle {
+            file,
+            ordered,
+            finite_checked_f32: check_finite_f32,
+        })
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (file, check_finite_f32);
+        Err(invalid("streaming bundle loader requires unix"))
+    }
 }
 
 impl Artifact {
@@ -370,11 +674,19 @@ impl Artifact {
     /// Inference payloads remain owned and immutable; `file("training.safetensors")`
     /// explicitly fails on this reduced view. `load` retains the full artifact.
     pub fn load_inference(root: impl AsRef<Path>) -> Result<Self> {
-        Self::load_impl(root.as_ref(), true, false)
+        Self::load_impl(root.as_ref(), true, false, false)
+    }
+
+    /// Validate the complete artifact using bounded streaming buffers (~4 MiB per worker)
+    /// and parallel SHA-256 verification. Weight bundles (`codec.safetensors`,
+    /// `generator.safetensors`) stay on open validated file descriptors and are streamed
+    /// one tensor at a time via `visit_bundle_tensors`, cutting both load time and peak RSS.
+    pub fn load_inference_streaming(root: impl AsRef<Path>) -> Result<Self> {
+        Self::load_impl(root.as_ref(), true, false, true)
     }
 
     pub fn load(root: impl AsRef<Path>) -> Result<Self> {
-        Self::load_impl(root.as_ref(), false, false)
+        Self::load_impl(root.as_ref(), false, false, false)
     }
 
     /// Validate both WMT14 bundles with one host buffer. Only the generator
@@ -382,10 +694,15 @@ impl Artifact {
     /// reread against the already validated manifest before exposing it.
     pub fn load_wmt14_inference_reusable(root: impl AsRef<Path>) -> Result<Self> {
         let root = std::path::absolute(root)?;
-        Self::load_impl(&root, true, true)
+        Self::load_impl(&root, true, true, false)
     }
 
-    fn load_impl(root: &Path, inference: bool, reusable: bool) -> Result<Self> {
+    fn load_impl(
+        root: &Path,
+        inference: bool,
+        reusable: bool,
+        streaming_mode: bool,
+    ) -> Result<Self> {
         // Strip trailing separators/dot components before the no-symlink leaf check.
         let root = root.components().collect::<std::path::PathBuf>();
         if !fs::symlink_metadata(&root)?.file_type().is_dir() {
@@ -468,6 +785,7 @@ impl Artifact {
             }
         }
         let mut payloads = BTreeMap::new();
+        let mut streaming = BTreeMap::new();
         let reusable_wmt14 = if reusable {
             let codec = &manifest.files["codec.safetensors"];
             let generator = &manifest.files["generator.safetensors"];
@@ -479,8 +797,16 @@ impl Artifact {
                 ("generator.safetensors", generator),
             ] {
                 data.read(&root.join(name), file.bytes)?;
-                verify_payload(name, data.bytes(), file)?;
-                verify_bundle(name, data.bytes(), &manifest.tensors[name])?;
+                std::thread::scope(|scope| -> Result<()> {
+                    let bytes = data.bytes();
+                    let entries = &manifest.tensors[name];
+                    let whole = scope.spawn(move || verify_payload(name, bytes, file));
+                    let bundle_res = verify_bundle(name, bytes, entries);
+                    whole
+                        .join()
+                        .map_err(|_| invalid("hash thread panicked"))??;
+                    bundle_res
+                })?;
             }
             Some(ReusableWmt14 {
                 root: root.clone(),
@@ -490,34 +816,97 @@ impl Artifact {
         } else {
             None
         };
-        for (name, record) in &manifest.files {
-            if inference && name == "training.safetensors" {
-                validate_training_stream(&root.join(name), record, &manifest.tensors[name])?;
-                continue;
+        if streaming_mode {
+            for (name, record) in &manifest.files {
+                if matches!(
+                    name.as_str(),
+                    "codec.safetensors" | "generator.safetensors" | "training.safetensors"
+                ) {
+                    continue;
+                }
+                let bytes = bounded_read(&root.join(name), record.bytes)?;
+                verify_payload(name, &bytes, record)?;
+                payloads.insert(name.clone(), bytes);
             }
-            if reusable && matches!(name.as_str(), "codec.safetensors" | "generator.safetensors") {
-                continue;
+            if let Some(entries) = manifest.tensors.get("inference.safetensors") {
+                verify_bundle(
+                    "inference.safetensors",
+                    &payloads["inference.safetensors"],
+                    entries,
+                )?;
             }
-            let bytes = bounded_read(&root.join(name), record.bytes)?;
-            verify_payload(name, &bytes, record)?;
-            payloads.insert(name.clone(), bytes);
-        }
-        for (bundle, entries) in &manifest.tensors {
-            if (inference && bundle == "training.safetensors")
-                || (reusable
-                    && matches!(
-                        bundle.as_str(),
-                        "codec.safetensors" | "generator.safetensors"
-                    ))
-            {
-                continue;
+            let stream_results: Vec<(&'static str, StreamedBundle)> =
+                std::thread::scope(|scope| -> Result<Vec<(&'static str, StreamedBundle)>> {
+                    let mut handles = Vec::new();
+                    for name in [
+                        "codec.safetensors",
+                        "generator.safetensors",
+                        "training.safetensors",
+                    ] {
+                        if let (Some(record), Some(entries)) =
+                            (manifest.files.get(name), manifest.tensors.get(name))
+                        {
+                            let path = root.join(name);
+                            let check_finite = name != "training.safetensors";
+                            handles.push(scope.spawn(move || {
+                                validate_streaming_bundle(
+                                    &path,
+                                    name,
+                                    record,
+                                    entries,
+                                    check_finite,
+                                )
+                                .map(|b| (name, b))
+                            }));
+                        }
+                    }
+                    let mut out = Vec::new();
+                    for h in handles {
+                        out.push(
+                            h.join()
+                                .map_err(|_| invalid("streaming validation thread panicked"))??,
+                        );
+                    }
+                    Ok(out)
+                })?;
+            for (name, bundle) in stream_results {
+                if name != "training.safetensors" {
+                    streaming.insert(name.to_owned(), bundle);
+                }
             }
-            verify_bundle(bundle, &payloads[bundle], entries)?;
+        } else {
+            for (name, record) in &manifest.files {
+                if inference && name == "training.safetensors" {
+                    validate_training_stream(&root.join(name), record, &manifest.tensors[name])?;
+                    continue;
+                }
+                if reusable
+                    && matches!(name.as_str(), "codec.safetensors" | "generator.safetensors")
+                {
+                    continue;
+                }
+                let bytes = bounded_read(&root.join(name), record.bytes)?;
+                if let Some(entries) = manifest.tensors.get(name) {
+                    std::thread::scope(|scope| -> Result<()> {
+                        let bytes_ref = bytes.as_slice();
+                        let whole = scope.spawn(move || verify_payload(name, bytes_ref, record));
+                        let bundle_res = verify_bundle(name, bytes_ref, entries);
+                        whole
+                            .join()
+                            .map_err(|_| invalid("hash thread panicked"))??;
+                        bundle_res
+                    })?;
+                } else {
+                    verify_payload(name, &bytes, record)?;
+                }
+                payloads.insert(name.clone(), bytes);
+            }
         }
         Ok(Self {
             manifest,
             payloads,
             reusable_wmt14,
+            streaming,
         })
     }
 
@@ -548,8 +937,113 @@ impl Artifact {
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
     }
+
+    /// Return the validated byte length of a declared file.
+    pub fn file_bytes(&self, name: &str) -> Result<u64> {
+        self.manifest
+            .files
+            .get(name)
+            .map(|r| r.bytes)
+            .ok_or_else(|| invalid("undeclared artifact file"))
+    }
+
+    /// Return the validated tensor inventory for a declared bundle.
+    pub fn bundle_tensors(&self, bundle: &str) -> Result<&[TensorRecord]> {
+        self.manifest
+            .tensors
+            .get(bundle)
+            .map(Vec::as_slice)
+            .ok_or_else(|| invalid("undeclared artifact bundle"))
+    }
+
+    /// Whether the bundle is backed by an open validated file descriptor rather than an in-memory buffer.
+    pub fn is_streaming_bundle(&self, bundle: &str) -> bool {
+        self.streaming.contains_key(bundle)
+    }
+
+    /// Whether every F32 tensor in `bundle` (except `attn_mask_for_masking`) has already
+    /// been verified finite during streaming artifact validation.
+    pub fn bundle_f32_weights_verified_finite(&self, bundle: &str) -> bool {
+        self.streaming
+            .get(bundle)
+            .is_some_and(|s| s.finite_checked_f32)
+    }
+
+    /// Read a single tensor's raw little-endian bytes from a validated bundle.
+    pub fn read_bundle_tensor(&self, bundle: &str, name: &str) -> Result<Vec<u8>> {
+        let entries = self.bundle_tensors(bundle)?;
+        if let Some(streamed) = self.streaming.get(bundle) {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::FileExt;
+                let &(idx, offset, len) = streamed
+                    .ordered
+                    .iter()
+                    .find(|&&(idx, _, _)| entries[idx].name == name)
+                    .ok_or_else(|| invalid(format!("missing tensor: {bundle}/{name}")))?;
+                let _ = idx;
+                let mut out = vec![0u8; len];
+                streamed.file.read_exact_at(&mut out, offset)?;
+                return Ok(out);
+            }
+            #[cfg(not(unix))]
+            {
+                let _ = streamed;
+                return Err(invalid("streaming bundle requires unix"));
+            }
+        }
+        let bytes = self.file(bundle)?;
+        let tensors = SafeTensors::deserialize(bytes)?;
+        let tensor = tensors.tensor(name)?;
+        Ok(tensor.data().to_vec())
+    }
+
+    /// Visit each tensor in a validated bundle. For streaming artifacts, tensors are read
+    /// sequentially one at a time into a single reusable buffer (immediately unmapped on macOS).
+    pub fn visit_bundle_tensors<E>(
+        &self,
+        bundle: &str,
+        mut map_io: impl FnMut(Error) -> E,
+        mut f: impl FnMut(&str, &[usize], TensorDtype, &[u8]) -> std::result::Result<(), E>,
+    ) -> std::result::Result<(), E> {
+        let entries = self.bundle_tensors(bundle).map_err(&mut map_io)?;
+        if let Some(streamed) = self.streaming.get(bundle) {
+            #[cfg(unix)]
+            {
+                let max_bytes = entries.iter().map(|e| e.bytes).max().unwrap_or(0);
+                let mut scratch =
+                    wmt14_scratch::Scratch::new(max_bytes.max(1)).map_err(&mut map_io)?;
+                for &(idx, offset, len) in &streamed.ordered {
+                    let entry = &entries[idx];
+                    scratch
+                        .read_at(&streamed.file, offset, len)
+                        .map_err(&mut map_io)?;
+                    f(&entry.name, &entry.shape, entry.dtype, scratch.bytes())?;
+                }
+                return Ok(());
+            }
+            #[cfg(not(unix))]
+            {
+                let _ = streamed;
+                return Err(map_io(invalid("streaming bundle requires unix")));
+            }
+        }
+        let bytes = self.file(bundle).map_err(&mut map_io)?;
+        let tensors = SafeTensors::deserialize(bytes).map_err(|e| map_io(Error::Tensor(e)))?;
+        for entry in entries {
+            let tensor = tensors
+                .tensor(&entry.name)
+                .map_err(|e| map_io(Error::Tensor(e)))?;
+            f(&entry.name, &entry.shape, entry.dtype, tensor.data())?;
+        }
+        Ok(())
+    }
+
     /// Release a validated payload when no longer needed; subsequent access fails.
     pub fn release_file(&mut self, name: &str) -> Result<()> {
+        if self.streaming.remove(name).is_some() {
+            return Ok(());
+        }
         if self
             .reusable_wmt14
             .as_ref()

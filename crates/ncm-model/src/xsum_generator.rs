@@ -97,49 +97,118 @@ impl XsumGeneratorInspection {
             shapes.insert(format!("lm_heads.{i}.proj.weight"), vec![384, 768]);
             shapes.insert(format!("lm_heads.{i}.log_inv_T"), vec![]);
         }
-        let bytes = artifact
-            .file("generator.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
-        if tensors.len() != shapes.len() + 2 {
-            return Err(Error::Weights(
-                "XSum generator tensor inventory differs".into(),
-            ));
-        }
-        for (name, shape) in &shapes {
-            let value = tensors
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            if value.dtype() != Dtype::F32
-                || value.shape() != shape
-                || has_nonfinite_f32_le(value.data())
-            {
-                return Err(Error::Weights(format!(
-                    "invalid XSum generator tensor {name}"
-                )));
+        if artifact.is_streaming_bundle("generator.safetensors") {
+            if !artifact.bundle_f32_weights_verified_finite("generator.safetensors") {
+                return Err(Error::Weights(
+                    "streaming XSum generator missing finite-value preflight".into(),
+                ));
             }
-        }
-        for i in 0..9 {
-            let value = tensors
-                .tensor(&format!("lm_heads.{i}.log_inv_T"))
+            let entries = artifact
+                .bundle_tensors("generator.safetensors")
                 .map_err(|e| Error::Weights(e.to_string()))?;
-            let raw: [u8; 4] = value
-                .data()
-                .try_into()
-                .map_err(|_| Error::Weights("invalid head scale".into()))?;
-            let temperature = f32::from_le_bytes(raw).exp();
-            if !temperature.is_finite() || temperature <= 0.0 {
-                return Err(Error::Weights("invalid XSum head temperature".into()));
+            if entries.len() != shapes.len() + 2 {
+                return Err(Error::Weights(
+                    "XSum generator tensor inventory differs".into(),
+                ));
             }
+            let by_name: std::collections::BTreeMap<_, _> = entries
+                .iter()
+                .map(|entry| (entry.name.as_str(), entry))
+                .collect();
+            for (name, shape) in &shapes {
+                let entry = by_name.get(name.as_str()).ok_or_else(|| {
+                    Error::Weights(format!("invalid XSum generator tensor {name}"))
+                })?;
+                if !matches!(entry.dtype, ncm_io::TensorDtype::F32) || entry.shape != *shape {
+                    return Err(Error::Weights(format!(
+                        "invalid XSum generator tensor {name}"
+                    )));
+                }
+            }
+            for i in 0..9 {
+                let raw_bytes = artifact
+                    .read_bundle_tensor("generator.safetensors", &format!("lm_heads.{i}.log_inv_T"))
+                    .map_err(|e| Error::Weights(e.to_string()))?;
+                let raw: [u8; 4] = raw_bytes
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| Error::Weights("invalid head scale".into()))?;
+                let temperature = f32::from_le_bytes(raw).exp();
+                if !temperature.is_finite() || temperature <= 0.0 {
+                    return Err(Error::Weights("invalid XSum head temperature".into()));
+                }
+            }
+            let level_entry = by_name
+                .get("lvl_1L")
+                .ok_or_else(|| Error::Weights("missing generator level buffer".into()))?;
+            let level_bytes = artifact
+                .read_bundle_tensor("generator.safetensors", "lvl_1L")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            validate_levels_raw(
+                level_entry.dtype,
+                &level_entry.shape,
+                &level_bytes,
+                codec.levels(),
+            )?;
+            let mask_entry = by_name
+                .get("attn_mask_for_masking")
+                .ok_or_else(|| Error::Weights("missing generator attention mask".into()))?;
+            let mask_bytes = artifact
+                .read_bundle_tensor("generator.safetensors", "attn_mask_for_masking")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            validate_mask_raw(
+                mask_entry.dtype,
+                &mask_entry.shape,
+                &mask_bytes,
+                codec.levels(),
+                config.model.prefix_len,
+            )?;
+        } else {
+            let bytes = artifact
+                .file("generator.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let tensors =
+                SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+            if tensors.len() != shapes.len() + 2 {
+                return Err(Error::Weights(
+                    "XSum generator tensor inventory differs".into(),
+                ));
+            }
+            for (name, shape) in &shapes {
+                let value = tensors
+                    .tensor(name)
+                    .map_err(|e| Error::Weights(e.to_string()))?;
+                if value.dtype() != Dtype::F32
+                    || value.shape() != shape
+                    || has_nonfinite_f32_le(value.data())
+                {
+                    return Err(Error::Weights(format!(
+                        "invalid XSum generator tensor {name}"
+                    )));
+                }
+            }
+            for i in 0..9 {
+                let value = tensors
+                    .tensor(&format!("lm_heads.{i}.log_inv_T"))
+                    .map_err(|e| Error::Weights(e.to_string()))?;
+                let raw: [u8; 4] = value
+                    .data()
+                    .try_into()
+                    .map_err(|_| Error::Weights("invalid head scale".into()))?;
+                let temperature = f32::from_le_bytes(raw).exp();
+                if !temperature.is_finite() || temperature <= 0.0 {
+                    return Err(Error::Weights("invalid XSum head temperature".into()));
+                }
+            }
+            let level = tensors
+                .tensor("lvl_1L")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            validate_levels(&level, codec.levels())?;
+            let mask = tensors
+                .tensor("attn_mask_for_masking")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            validate_mask(&mask, codec.levels(), config.model.prefix_len)?;
         }
-        let level = tensors
-            .tensor("lvl_1L")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        validate_levels(&level, codec.levels())?;
-        let mask = tensors
-            .tensor("attn_mask_for_masking")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        validate_mask(&mask, codec.levels(), config.model.prefix_len)?;
         let bytes = artifact
             .file("inference.safetensors")
             .map_err(|e| Error::Weights(e.to_string()))?;
@@ -215,15 +284,28 @@ fn decode_rope_tensor(tensor: &TensorView<'_>, expected: &str) -> Result<Vec<f32
 }
 
 pub(crate) fn validate_levels(level: &TensorView<'_>, lengths: &[usize]) -> Result<()> {
+    let dtype = match level.dtype() {
+        Dtype::I64 => ncm_io::TensorDtype::I64,
+        Dtype::F32 => ncm_io::TensorDtype::F32,
+        _ => return Err(Error::Weights("incorrect generator level buffer".into())),
+    };
+    validate_levels_raw(dtype, level.shape(), level.data(), lengths)
+}
+
+pub(crate) fn validate_levels_raw(
+    dtype: ncm_io::TensorDtype,
+    shape: &[usize],
+    data: &[u8],
+    lengths: &[usize],
+) -> Result<()> {
     let total: usize = lengths.iter().sum();
     let expected = lengths
         .iter()
         .enumerate()
         .flat_map(|(i, &len)| std::iter::repeat_n(i as i64, len));
-    if level.dtype() != Dtype::I64
-        || level.shape() != [1, total]
-        || !level
-            .data()
+    if !matches!(dtype, ncm_io::TensorDtype::I64)
+        || shape != [1, total]
+        || !data
             .as_chunks::<8>()
             .0
             .iter()
@@ -236,15 +318,30 @@ pub(crate) fn validate_levels(level: &TensorView<'_>, lengths: &[usize]) -> Resu
 }
 
 pub(crate) fn validate_mask(mask: &TensorView<'_>, lengths: &[usize], prefix: usize) -> Result<()> {
+    let dtype = match mask.dtype() {
+        Dtype::F32 => ncm_io::TensorDtype::F32,
+        Dtype::I64 => ncm_io::TensorDtype::I64,
+        _ => return Err(Error::Weights("invalid generator attention mask".into())),
+    };
+    validate_mask_raw(dtype, mask.shape(), mask.data(), lengths, prefix)
+}
+
+pub(crate) fn validate_mask_raw(
+    dtype: ncm_io::TensorDtype,
+    shape: &[usize],
+    data: &[u8],
+    lengths: &[usize],
+    prefix: usize,
+) -> Result<()> {
     let seq = prefix + lengths.iter().sum::<usize>();
-    if mask.dtype() != Dtype::F32 || mask.shape() != [1, 1, seq, seq] {
+    if !matches!(dtype, ncm_io::TensorDtype::F32) || shape != [1, 1, seq, seq] {
         return Err(Error::Weights("invalid generator attention mask".into()));
     }
     let mut levels = vec![usize::MAX; prefix];
     for (i, &len) in lengths.iter().enumerate() {
         levels.extend(std::iter::repeat_n(i, len));
     }
-    for (i, raw) in mask.data().as_chunks::<4>().0.iter().enumerate() {
+    for (i, raw) in data.as_chunks::<4>().0.iter().enumerate() {
         let (row, col) = (i / seq, i % seq);
         let allowed = col < prefix || (row >= prefix && levels[row] == levels[col]);
         let expected = if allowed {

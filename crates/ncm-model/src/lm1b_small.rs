@@ -290,6 +290,89 @@ pub struct Lm1bSmallGeneratorInspection {
     pub inference_tensors: usize,
 }
 impl Lm1bSmallGeneratorInspection {
+    pub fn from_artifact(artifact: &Artifact) -> Result<Self> {
+        let config = artifact
+            .file("config.json")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let inference = artifact
+            .file("inference.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        if !artifact.is_streaming_bundle("generator.safetensors") {
+            let generator = artifact
+                .file("generator.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            return Self::from_preparation_bytes(config, generator, inference);
+        }
+        let size = Lm1bSize::from_config(config)?;
+        if !artifact.bundle_f32_weights_verified_finite("generator.safetensors") {
+            return Err(Error::Weights(
+                "streaming LM1B generator missing finite-value preflight".into(),
+            ));
+        }
+        let entries = artifact
+            .bundle_tensors("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let shapes = expected_shapes(&size);
+        if entries.len() != shapes.len() + 2 {
+            return Err(Error::Weights("LM1B generator inventory differs".into()));
+        }
+        let by_name: BTreeMap<_, _> = entries
+            .iter()
+            .map(|entry| (entry.name.as_str(), entry))
+            .collect();
+        for (name, shape) in &shapes {
+            let entry = by_name
+                .get(name.as_str())
+                .ok_or_else(|| Error::Weights(format!("invalid LM1B generator tensor {name}")))?;
+            if !matches!(entry.dtype, ncm_io::TensorDtype::F32) || entry.shape != *shape {
+                return Err(Error::Weights(format!(
+                    "invalid LM1B generator tensor {name}"
+                )));
+            }
+        }
+        let level_entry = by_name
+            .get("lvl_1L")
+            .ok_or_else(|| Error::Weights("missing generator level buffer".into()))?;
+        let level_bytes = artifact
+            .read_bundle_tensor("generator.safetensors", "lvl_1L")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        xsum_generator::validate_levels_raw(
+            level_entry.dtype,
+            &level_entry.shape,
+            &level_bytes,
+            &LEVELS,
+        )?;
+        let mask_entry = by_name
+            .get("attn_mask_for_masking")
+            .ok_or_else(|| Error::Weights("missing generator attention mask".into()))?;
+        let mask_bytes = artifact
+            .read_bundle_tensor("generator.safetensors", "attn_mask_for_masking")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        xsum_generator::validate_mask_raw(
+            mask_entry.dtype,
+            &mask_entry.shape,
+            &mask_bytes,
+            &LEVELS,
+            1,
+        )?;
+        let tensors_inference =
+            SafeTensors::deserialize(inference).map_err(|e| Error::Weights(e.to_string()))?;
+        if tensors_inference.len() != 2 {
+            return Err(Error::Weights("LM1B inference inventory differs".into()));
+        }
+        for (name, width) in [("level0_unigram", 8192), ("token_unigram", 30528)] {
+            let tensor = tensors_inference
+                .tensor(name)
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            validate_distribution(&tensor, width)?;
+        }
+        Ok(Self {
+            size,
+            generator_tensors: entries.len(),
+            inference_tensors: tensors_inference.len(),
+        })
+    }
+
     pub fn from_preparation_bytes(
         config: &[u8],
         generator: &[u8],

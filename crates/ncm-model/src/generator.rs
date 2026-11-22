@@ -158,10 +158,84 @@ impl<B: WeightBackend> GeneratorWeights<B> {
         crate::validate_artifact_profile(artifact, config_bytes)?;
         let codec = artifact_config(config_bytes)?;
         let envelope: Envelope = serde_json::from_slice(config_bytes)?;
-        let bytes = artifact
-            .file("generator.safetensors")
+        if !artifact.is_streaming_bundle("generator.safetensors") {
+            let bytes = artifact
+                .file("generator.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            return Self::from_safetensors(backend, envelope.model, &codec, bytes);
+        }
+        let config = envelope.model;
+        config.validate(&codec)?;
+        let file_bytes = artifact
+            .file_bytes("generator.safetensors")
             .map_err(|e| Error::Weights(e.to_string()))?;
-        Self::from_safetensors(backend, envelope.model, &codec, bytes)
+        if file_bytes > (256 * 1024 * 1024 + 1024 * 1024) as u64 {
+            return Err(Error::Weights("generator exceeds size limit".into()));
+        }
+        if !artifact.bundle_f32_weights_verified_finite("generator.safetensors") {
+            return Err(Error::Weights(
+                "streaming generator missing finite-value preflight".into(),
+            ));
+        }
+        let shapes = config.shapes(&codec);
+        let entries = artifact
+            .bundle_tensors("generator.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        if entries.len() != shapes.len() + 2 {
+            return Err(Error::Weights("generator tensor inventory differs".into()));
+        }
+        let by_name: BTreeMap<_, _> = entries
+            .iter()
+            .map(|entry| (entry.name.as_str(), entry))
+            .collect();
+        for (name, shape) in &shapes {
+            let entry = by_name
+                .get(name.as_str())
+                .ok_or_else(|| Error::Weights(format!("invalid generator tensor {name}")))?;
+            if !matches!(entry.dtype, ncm_io::TensorDtype::F32) || entry.shape != *shape {
+                return Err(Error::Weights(format!("invalid generator tensor {name}")));
+            }
+        }
+        let level_entry = by_name
+            .get("lvl_1L")
+            .ok_or_else(|| Error::Weights("invalid level buffer".into()))?;
+        let level_bytes = artifact
+            .read_bundle_tensor("generator.safetensors", "lvl_1L")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        crate::xsum_generator::validate_levels_raw(
+            level_entry.dtype,
+            &level_entry.shape,
+            &level_bytes,
+            codec.levels(),
+        )?;
+        let mask_entry = by_name
+            .get("attn_mask_for_masking")
+            .ok_or_else(|| Error::Weights("invalid attention mask".into()))?;
+        let mask_bytes = artifact
+            .read_bundle_tensor("generator.safetensors", "attn_mask_for_masking")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        crate::xsum_generator::validate_mask_raw(
+            mask_entry.dtype,
+            &mask_entry.shape,
+            &mask_bytes,
+            codec.levels(),
+            config.prefix_len,
+        )?;
+        let tensor_count = shapes.len();
+        let mut weights = BTreeMap::new();
+        artifact.visit_bundle_tensors(
+            "generator.safetensors",
+            |e| Error::Weights(e.to_string()),
+            |name, shape, _dtype, data| {
+                if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                    return Ok(());
+                }
+                let values = upload_values(data)?;
+                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                Ok(())
+            },
+        )?;
+        Self::from_uploaded_weights(backend, config, weights, tensor_count)
     }
     pub fn from_safetensors(
         backend: B,
@@ -240,15 +314,18 @@ impl<B: WeightBackend> GeneratorWeights<B> {
             let tensor = tensors
                 .tensor(&name)
                 .map_err(|e| Error::Weights(e.to_string()))?;
-            let values: Vec<f32> = tensor
-                .data()
-                .as_chunks::<4>()
-                .0
-                .iter()
-                .map(|x| f32::from_le_bytes(*x))
-                .collect();
+            let values = upload_values(tensor.data())?;
             weights.insert(name, backend.upload_f32(&values, &shape)?);
         }
+        Self::from_uploaded_weights(backend, config, weights, tensor_count)
+    }
+
+    fn from_uploaded_weights(
+        backend: B,
+        config: GeneratorConfig,
+        mut weights: BTreeMap<String, B::Tensor>,
+        tensor_count: usize,
+    ) -> Result<Self> {
         let input = take_affine(&mut weights, "transformer.wte")?;
         let query = take(&mut weights, "l0_queries")?;
         let level_embedding = take(&mut weights, "transformer.wle.weight")?;
@@ -758,23 +835,21 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
     }
 
     fn from_checked_parts(backend: B, artifact: &Artifact, codec: crate::Codec<B>) -> Result<Self> {
-        let bytes = artifact
-            .file("generator.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
         let mut weights = BTreeMap::new();
-        for name in tensors.names() {
-            if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                continue;
-            }
-            let tensor = tensors
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            weights.insert(
-                name.to_owned(),
-                backend.upload_f32(&upload_values(tensor.data())?, tensor.shape())?,
-            );
-        }
+        artifact.visit_bundle_tensors(
+            "generator.safetensors",
+            |e| Error::Weights(e.to_string()),
+            |name, shape, _dtype, data| {
+                if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                    return Ok(());
+                }
+                weights.insert(
+                    name.to_owned(),
+                    backend.upload_f32(&upload_values(data)?, shape)?,
+                );
+                Ok(())
+            },
+        )?;
         let input = take_affine(&mut weights, "transformer.wte")?;
         let level_embedding = take(&mut weights, "transformer.wle.weight")?;
         let final_norm = take_affine(&mut weights, "transformer.ln_f")?;
@@ -1890,43 +1965,45 @@ impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
         // Check the complete generator and inference inventory before any upload.
         let inspection = TinyStoriesGeneratorInspection::from_artifact(artifact)?;
         let codec = crate::Codec::from_artifact(backend.clone(), artifact)?;
-        let bytes = artifact
-            .file("generator.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
         let mut weights = BTreeMap::new();
-        let mut scales = Vec::with_capacity(11);
-        for i in 0..11 {
-            let t = tensors
-                .tensor(&format!("lm_heads.{i}.log_inv_T"))
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            let log_scale = f32::from_le_bytes(
-                t.data()
-                    .try_into()
-                    .map_err(|_| Error::Weights("invalid head scale".into()))?,
-            );
-            let scale = log_scale.exp();
-            if !scale.is_finite() || scale <= 0.0 {
-                return Err(Error::Weights("invalid head temperature".into()));
-            }
-            scales.push(scale);
-        }
-        for name in tensors.names() {
-            if name == "lvl_1L" || name == "attn_mask_for_masking" || name.ends_with(".log_inv_T") {
-                continue;
-            }
-            let t = tensors
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            let values: Vec<f32> = t
-                .data()
-                .as_chunks::<4>()
-                .0
-                .iter()
-                .map(|x| f32::from_le_bytes(*x))
-                .collect();
-            weights.insert(name.to_owned(), backend.upload_f32(&values, t.shape())?);
-        }
+        let mut raw_scales = [None::<f32>; 11];
+        artifact.visit_bundle_tensors(
+            "generator.safetensors",
+            |e| Error::Weights(e.to_string()),
+            |name, shape, _dtype, data| {
+                if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                    return Ok(());
+                }
+                if let Some(rest) = name
+                    .strip_prefix("lm_heads.")
+                    .and_then(|s| s.strip_suffix(".log_inv_T"))
+                {
+                    let idx: usize = rest
+                        .parse()
+                        .map_err(|_| Error::Weights("invalid head scale".into()))?;
+                    let slot = raw_scales
+                        .get_mut(idx)
+                        .ok_or_else(|| Error::Weights("invalid head scale".into()))?;
+                    let log_scale = f32::from_le_bytes(
+                        data.try_into()
+                            .map_err(|_| Error::Weights("invalid head scale".into()))?,
+                    );
+                    let scale = log_scale.exp();
+                    if !scale.is_finite() || scale <= 0.0 {
+                        return Err(Error::Weights("invalid head temperature".into()));
+                    }
+                    *slot = Some(scale);
+                    return Ok(());
+                }
+                let values = upload_values(data)?;
+                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                Ok(())
+            },
+        )?;
+        let scales: Vec<f32> = raw_scales
+            .into_iter()
+            .map(|s| s.ok_or_else(|| Error::Weights("missing head scale".into())))
+            .collect::<Result<_>>()?;
         let input = take_affine(&mut weights, "transformer.wte")?;
         let level_embedding = take(&mut weights, "transformer.wle.weight")?;
         let final_norm = take_affine(&mut weights, "transformer.ln_f")?;
@@ -2275,35 +2352,40 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
         reference_ties: bool,
         codec: crate::Codec<B>,
     ) -> Result<Self> {
-        let bytes = artifact
-            .file("generator.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
-        let mut scales = Vec::with_capacity(9);
-        for i in 0..9 {
-            let tensor = tensors
-                .tensor(&format!("lm_heads.{i}.log_inv_T"))
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            let raw: [u8; 4] = tensor
-                .data()
-                .try_into()
-                .map_err(|_| Error::Weights("invalid head scale".into()))?;
-            scales.push(f32::from_le_bytes(raw).exp());
-        }
+        let mut raw_scales = [None::<f32>; 9];
         let mut weights = BTreeMap::new();
-        for name in tensors.names() {
-            if name == "lvl_1L" || name == "attn_mask_for_masking" || name.ends_with(".log_inv_T") {
-                continue;
-            }
-            let tensor = tensors
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            let values = upload_values(tensor.data())?;
-            weights.insert(
-                name.to_owned(),
-                backend.upload_f32(&values, tensor.shape())?,
-            );
-        }
+        artifact.visit_bundle_tensors(
+            "generator.safetensors",
+            |e| Error::Weights(e.to_string()),
+            |name, shape, _dtype, data| {
+                if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                    return Ok(());
+                }
+                if let Some(rest) = name
+                    .strip_prefix("lm_heads.")
+                    .and_then(|s| s.strip_suffix(".log_inv_T"))
+                {
+                    let idx: usize = rest
+                        .parse()
+                        .map_err(|_| Error::Weights("invalid head scale".into()))?;
+                    let slot = raw_scales
+                        .get_mut(idx)
+                        .ok_or_else(|| Error::Weights("invalid head scale".into()))?;
+                    let raw: [u8; 4] = data
+                        .try_into()
+                        .map_err(|_| Error::Weights("invalid head scale".into()))?;
+                    *slot = Some(f32::from_le_bytes(raw).exp());
+                    return Ok(());
+                }
+                let values = upload_values(data)?;
+                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                Ok(())
+            },
+        )?;
+        let scales: Vec<f32> = raw_scales
+            .into_iter()
+            .map(|s| s.ok_or_else(|| Error::Weights("missing head scale".into())))
+            .collect::<Result<_>>()?;
         let input = take_affine(&mut weights, "transformer.wte")?;
         let query = take(&mut weights, "l0_queries")?;
         let level_embedding = take(&mut weights, "transformer.wle.weight")?;
@@ -2948,82 +3030,151 @@ impl TinyStoriesGeneratorInspection {
             shapes.insert(format!("lm_heads.{i}.proj.weight"), vec![384, 768]);
             shapes.insert(format!("lm_heads.{i}.log_inv_T"), vec![]);
         }
-        let bytes = artifact
-            .file("generator.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
-        if tensors.len() != shapes.len() + 2 {
-            return Err(Error::Weights(
-                "TinyStories generator tensor inventory differs".into(),
-            ));
-        }
-        for (name, shape) in &shapes {
-            let t = tensors
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            if t.dtype() != Dtype::F32 || t.shape() != shape || has_nonfinite_f32_le(t.data()) {
-                return Err(Error::Weights(format!(
-                    "invalid TinyStories generator tensor {name}"
-                )));
-            }
-        }
-        for i in 0..11 {
-            let scale = tensors
-                .tensor(&format!("lm_heads.{i}.log_inv_T"))
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            let raw: [u8; 4] = scale
-                .data()
-                .try_into()
-                .map_err(|_| Error::Weights("invalid head scale".into()))?;
-            let temperature = f32::from_le_bytes(raw).exp();
-            if !temperature.is_finite() || temperature <= 0.0 {
-                return Err(Error::Weights("invalid head temperature".into()));
-            }
-        }
         let levels = &codec.levels()[1..];
-        let total: usize = levels.iter().sum();
-        let level = tensors
-            .tensor("lvl_1L")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        let expected = levels
-            .iter()
-            .enumerate()
-            .flat_map(|(i, &len)| std::iter::repeat_n(i as i64, len));
-        if level.dtype() != Dtype::I64
-            || level.shape() != [1, total]
-            || !level
-                .data()
-                .as_chunks::<8>()
-                .0
-                .iter()
-                .map(|x| i64::from_le_bytes(*x))
-                .eq(expected)
-        {
-            return Err(Error::Weights("incorrect TinyStories level buffer".into()));
-        }
-        let seq = 1 + total;
-        let mask = tensors
-            .tensor("attn_mask_for_masking")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        if mask.dtype() != Dtype::F32 || mask.shape() != [1, 1, seq, seq] {
-            return Err(Error::Weights("invalid TinyStories attention mask".into()));
-        }
-        let mut positions = vec![usize::MAX];
-        for (i, &len) in levels.iter().enumerate() {
-            positions.extend(std::iter::repeat_n(i, len));
-        }
-        for (i, raw) in mask.data().as_chunks::<4>().0.iter().enumerate() {
-            let (row, col) = (i / seq, i % seq);
-            let allowed = col == 0 || (row > 0 && positions[row] == positions[col]);
-            let expected = if allowed {
-                0f32.to_bits()
-            } else {
-                f32::NEG_INFINITY.to_bits()
-            };
-            if u32::from_le_bytes(*raw) != expected {
+        if artifact.is_streaming_bundle("generator.safetensors") {
+            if !artifact.bundle_f32_weights_verified_finite("generator.safetensors") {
                 return Err(Error::Weights(
-                    "incorrect TinyStories attention mask".into(),
+                    "streaming TinyStories generator missing finite-value preflight".into(),
                 ));
+            }
+            let entries = artifact
+                .bundle_tensors("generator.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            if entries.len() != shapes.len() + 2 {
+                return Err(Error::Weights(
+                    "TinyStories generator tensor inventory differs".into(),
+                ));
+            }
+            let by_name: BTreeMap<_, _> = entries
+                .iter()
+                .map(|entry| (entry.name.as_str(), entry))
+                .collect();
+            for (name, shape) in &shapes {
+                let entry = by_name.get(name.as_str()).ok_or_else(|| {
+                    Error::Weights(format!("invalid TinyStories generator tensor {name}"))
+                })?;
+                if !matches!(entry.dtype, ncm_io::TensorDtype::F32) || entry.shape != *shape {
+                    return Err(Error::Weights(format!(
+                        "invalid TinyStories generator tensor {name}"
+                    )));
+                }
+            }
+            for i in 0..11 {
+                let raw_bytes = artifact
+                    .read_bundle_tensor("generator.safetensors", &format!("lm_heads.{i}.log_inv_T"))
+                    .map_err(|e| Error::Weights(e.to_string()))?;
+                let raw: [u8; 4] = raw_bytes
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| Error::Weights("invalid head scale".into()))?;
+                let temperature = f32::from_le_bytes(raw).exp();
+                if !temperature.is_finite() || temperature <= 0.0 {
+                    return Err(Error::Weights("invalid head temperature".into()));
+                }
+            }
+            let level_entry = by_name
+                .get("lvl_1L")
+                .ok_or_else(|| Error::Weights("incorrect TinyStories level buffer".into()))?;
+            let level_bytes = artifact
+                .read_bundle_tensor("generator.safetensors", "lvl_1L")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            crate::xsum_generator::validate_levels_raw(
+                level_entry.dtype,
+                &level_entry.shape,
+                &level_bytes,
+                levels,
+            )?;
+            let mask_entry = by_name
+                .get("attn_mask_for_masking")
+                .ok_or_else(|| Error::Weights("invalid TinyStories attention mask".into()))?;
+            let mask_bytes = artifact
+                .read_bundle_tensor("generator.safetensors", "attn_mask_for_masking")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            crate::xsum_generator::validate_mask_raw(
+                mask_entry.dtype,
+                &mask_entry.shape,
+                &mask_bytes,
+                levels,
+                1,
+            )?;
+        } else {
+            let bytes = artifact
+                .file("generator.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let tensors =
+                SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
+            if tensors.len() != shapes.len() + 2 {
+                return Err(Error::Weights(
+                    "TinyStories generator tensor inventory differs".into(),
+                ));
+            }
+            for (name, shape) in &shapes {
+                let t = tensors
+                    .tensor(name)
+                    .map_err(|e| Error::Weights(e.to_string()))?;
+                if t.dtype() != Dtype::F32 || t.shape() != shape || has_nonfinite_f32_le(t.data()) {
+                    return Err(Error::Weights(format!(
+                        "invalid TinyStories generator tensor {name}"
+                    )));
+                }
+            }
+            for i in 0..11 {
+                let scale = tensors
+                    .tensor(&format!("lm_heads.{i}.log_inv_T"))
+                    .map_err(|e| Error::Weights(e.to_string()))?;
+                let raw: [u8; 4] = scale
+                    .data()
+                    .try_into()
+                    .map_err(|_| Error::Weights("invalid head scale".into()))?;
+                let temperature = f32::from_le_bytes(raw).exp();
+                if !temperature.is_finite() || temperature <= 0.0 {
+                    return Err(Error::Weights("invalid head temperature".into()));
+                }
+            }
+            let total: usize = levels.iter().sum();
+            let level = tensors
+                .tensor("lvl_1L")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            let expected = levels
+                .iter()
+                .enumerate()
+                .flat_map(|(i, &len)| std::iter::repeat_n(i as i64, len));
+            if level.dtype() != Dtype::I64
+                || level.shape() != [1, total]
+                || !level
+                    .data()
+                    .as_chunks::<8>()
+                    .0
+                    .iter()
+                    .map(|x| i64::from_le_bytes(*x))
+                    .eq(expected)
+            {
+                return Err(Error::Weights("incorrect TinyStories level buffer".into()));
+            }
+            let seq = 1 + total;
+            let mask = tensors
+                .tensor("attn_mask_for_masking")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            if mask.dtype() != Dtype::F32 || mask.shape() != [1, 1, seq, seq] {
+                return Err(Error::Weights("invalid TinyStories attention mask".into()));
+            }
+            let mut positions = vec![usize::MAX];
+            for (i, &len) in levels.iter().enumerate() {
+                positions.extend(std::iter::repeat_n(i, len));
+            }
+            for (i, raw) in mask.data().as_chunks::<4>().0.iter().enumerate() {
+                let (row, col) = (i / seq, i % seq);
+                let allowed = col == 0 || (row > 0 && positions[row] == positions[col]);
+                let expected = if allowed {
+                    0f32.to_bits()
+                } else {
+                    f32::NEG_INFINITY.to_bits()
+                };
+                if u32::from_le_bytes(*raw) != expected {
+                    return Err(Error::Weights(
+                        "incorrect TinyStories attention mask".into(),
+                    ));
+                }
             }
         }
         let bytes = artifact
@@ -3264,38 +3415,26 @@ pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
 impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
     pub fn from_artifact(backend: B, artifact: &Artifact) -> Result<Self> {
         let size = crate::Lm1bSize::from_profile(&artifact.manifest().profile)?;
-        let inspected = crate::Lm1bSmallGeneratorInspection::from_preparation_bytes(
-            artifact
-                .file("config.json")
-                .map_err(|e| Error::Weights(e.to_string()))?,
-            artifact
-                .file("generator.safetensors")
-                .map_err(|e| Error::Weights(e.to_string()))?,
-            artifact
-                .file("inference.safetensors")
-                .map_err(|e| Error::Weights(e.to_string()))?,
-        )?;
+        let inspected = crate::Lm1bSmallGeneratorInspection::from_artifact(artifact)?;
         if inspected.size != size || inspected.generator_tensors != size.generator_tensors() {
             return Err(Error::Weights("LM1B generator differs from profile".into()));
         }
         let codec = crate::Codec::from_lm1b_small_artifact_experimental(backend.clone(), artifact)?;
-        let bytes = artifact
-            .file("generator.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        let tensors = SafeTensors::deserialize(bytes).map_err(|e| Error::Weights(e.to_string()))?;
         let mut weights = BTreeMap::new();
-        for name in tensors.names() {
-            if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                continue;
-            }
-            let t = tensors
-                .tensor(name)
-                .map_err(|e| Error::Weights(e.to_string()))?;
-            weights.insert(
-                name.to_owned(),
-                backend.upload_f32(&upload_values(t.data())?, t.shape())?,
-            );
-        }
+        artifact.visit_bundle_tensors(
+            "generator.safetensors",
+            |e| Error::Weights(e.to_string()),
+            |name, shape, _dtype, data| {
+                if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                    return Ok(());
+                }
+                weights.insert(
+                    name.to_owned(),
+                    backend.upload_f32(&upload_values(data)?, shape)?,
+                );
+                Ok(())
+            },
+        )?;
         let input = take_affine(&mut weights, "transformer.wte")?;
         let levels = take(&mut weights, "transformer.wle.weight")?;
         let final_norm = take_affine(&mut weights, "transformer.ln_f")?;

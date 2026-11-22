@@ -231,7 +231,7 @@ mod backend {
         }
         let (cosine, sine) = lm1b_small_reference_rope(&bytes)?;
 
-        let artifact = Artifact::load_inference(artifact)?;
+        let artifact = Artifact::load_inference_streaming(artifact)?;
         // Small, medium and large are admitted; any other profile fails explicitly.
         ncm_model::Lm1bSize::from_profile(&artifact.manifest().profile)?;
         let tokenizer = if decode {

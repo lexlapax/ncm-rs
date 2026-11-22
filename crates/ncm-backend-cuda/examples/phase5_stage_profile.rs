@@ -241,7 +241,7 @@ fn main() -> Result<()> {
             let tokens = load_sudoku_inputs(extra.ok_or("missing sudoku input")?, batch)?;
             let backend = CandleBackend::cuda(0)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -285,7 +285,7 @@ fn main() -> Result<()> {
             let prefixes = vec![0_u32; batch];
             let backend = CandleBackend::cuda_cudnn(0)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -329,7 +329,7 @@ fn main() -> Result<()> {
             let prefixes = load_xsum_inputs(extra.ok_or("missing xsum input")?, batch)?;
             let backend = CandleBackend::cuda_cudnn(0)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -369,7 +369,7 @@ fn main() -> Result<()> {
             let prefixes = load_wmt14_inputs(extra.ok_or("missing wmt14 input")?, batch)?;
             let backend = CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -414,7 +414,7 @@ fn main() -> Result<()> {
             let prefixes = vec![101_u32; batch];
             let backend = CandleBackend::cuda_lm1b_efficient_experimental(0)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();

@@ -4,24 +4,45 @@ use std::path::Path;
 use crate::Result;
 
 #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-pub(super) struct Scratch(Vec<u8>);
+pub(super) struct Scratch {
+    buf: Vec<u8>,
+    len: usize,
+}
 
 #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 impl Scratch {
     pub(super) fn new(capacity: usize) -> Result<Self> {
-        let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(capacity)
+        let mut buf = Vec::new();
+        buf.try_reserve_exact(capacity)
             .map_err(|_| crate::invalid("WMT14 scratch allocation failed"))?;
-        Ok(Self(bytes))
+        Ok(Self { buf, len: 0 })
     }
 
     pub(super) fn read(&mut self, path: &Path, limit: u64) -> Result<()> {
-        crate::bounded_read_into(path, limit, &mut self.0)
+        crate::bounded_read_into(path, limit, &mut self.buf)?;
+        self.len = self.buf.len();
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    pub(super) fn read_at(&mut self, file: &std::fs::File, offset: u64, len: usize) -> Result<()> {
+        use std::os::unix::fs::FileExt;
+        if len > self.buf.len() {
+            if len > self.buf.capacity() {
+                self.buf = Vec::new();
+                self.buf
+                    .try_reserve_exact(len)
+                    .map_err(|_| crate::invalid("scratch allocation failed"))?;
+            }
+            self.buf.resize(len, 0);
+        }
+        file.read_exact_at(&mut self.buf[..len], offset)?;
+        self.len = len;
+        Ok(())
     }
 
     pub(super) fn bytes(&self) -> &[u8] {
-        &self.0
+        &self.buf[..self.len]
     }
 
     pub(super) fn trim(&mut self) -> std::io::Result<()> {
@@ -124,6 +145,20 @@ mod darwin {
             if file.read(&mut [0u8; 1])? != 0 {
                 return Err(crate::invalid("WMT14 scratch input file grew"));
             }
+            self.len = len;
+            Ok(())
+        }
+
+        pub(crate) fn read_at(&mut self, file: &fs::File, offset: u64, len: usize) -> Result<()> {
+            use std::os::unix::fs::FileExt;
+            if len > self.mapped {
+                *self = Self::new(len)?;
+            }
+            self.len = 0;
+            // SAFETY: the first len bytes lie in the initialized anonymous
+            // mapping, with exclusive access for the duration of the read.
+            let target = unsafe { slice::from_raw_parts_mut(self.start.as_ptr(), len) };
+            file.read_exact_at(target, offset)?;
             self.len = len;
             Ok(())
         }

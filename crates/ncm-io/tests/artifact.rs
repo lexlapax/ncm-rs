@@ -608,3 +608,215 @@ fn owt_artifacts_are_rejected_until_a_checkpoint_is_released() {
         );
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn streaming_inference_matches_copied_load_across_small_and_parallel_bundles() {
+    // Include tensors spanning both single-pass (< 4 MiB) and parallel (>= 4 MiB) paths,
+    // plus an attn_mask_for_masking containing -inf which must be permitted.
+    let (dir, mut manifest) = fixture();
+    let big_a: Vec<u8> = (0..1_100_000usize)
+        .flat_map(|i| ((i % 97) as f32 * 0.25).to_le_bytes())
+        .collect();
+    let big_b: Vec<u8> = (0..200_000usize)
+        .flat_map(|i| (-((i % 53) as f32) * 0.5).to_le_bytes())
+        .collect();
+    let mask_raw: Vec<u8> = [0.0f32, f32::NEG_INFINITY, 0.0, 0.0]
+        .into_iter()
+        .flat_map(f32::to_le_bytes)
+        .collect();
+    let gen_bytes = serialize(
+        [
+            (
+                "w_a",
+                TensorView::new(Dtype::F32, vec![1_100_000], &big_a).unwrap(),
+            ),
+            (
+                "w_b",
+                TensorView::new(Dtype::F32, vec![200_000], &big_b).unwrap(),
+            ),
+            (
+                "attn_mask_for_masking",
+                TensorView::new(Dtype::F32, vec![1, 1, 2, 2], &mask_raw).unwrap(),
+            ),
+        ],
+        None,
+    )
+    .unwrap();
+    assert!(gen_bytes.len() > 4 * 1024 * 1024);
+    fs::write(dir.path().join("generator.safetensors"), &gen_bytes).unwrap();
+    manifest.files.insert(
+        "generator.safetensors".into(),
+        FileRecord {
+            bytes: gen_bytes.len() as u64,
+            sha256: sha256(&gen_bytes),
+        },
+    );
+    manifest.tensors.insert(
+        "generator.safetensors".into(),
+        vec![
+            TensorRecord {
+                name: "w_a".into(),
+                shape: vec![1_100_000],
+                dtype: TensorDtype::F32,
+                bytes: big_a.len(),
+                sha256: sha256(&big_a),
+            },
+            TensorRecord {
+                name: "w_b".into(),
+                shape: vec![200_000],
+                dtype: TensorDtype::F32,
+                bytes: big_b.len(),
+                sha256: sha256(&big_b),
+            },
+            TensorRecord {
+                name: "attn_mask_for_masking".into(),
+                shape: vec![1, 1, 2, 2],
+                dtype: TensorDtype::F32,
+                bytes: mask_raw.len(),
+                sha256: sha256(&mask_raw),
+            },
+        ],
+    );
+    save(dir.path(), &manifest);
+
+    let copied = Artifact::load_inference(dir.path()).unwrap();
+    let mut streamed = Artifact::load_inference_streaming(dir.path()).unwrap();
+    assert!(streamed.is_streaming_bundle("codec.safetensors"));
+    assert!(streamed.is_streaming_bundle("generator.safetensors"));
+    assert!(!streamed.is_streaming_bundle("training.safetensors"));
+    assert!(streamed.bundle_f32_weights_verified_finite("codec.safetensors"));
+    assert!(streamed.bundle_f32_weights_verified_finite("generator.safetensors"));
+    assert!(streamed.file("codec.safetensors").is_err());
+    assert!(streamed.file("generator.safetensors").is_err());
+    assert!(streamed.file("training.safetensors").is_err());
+    assert_eq!(streamed.file("config.json").unwrap(), b"{}");
+
+    for bundle in ["codec.safetensors", "generator.safetensors"] {
+        let mut from_copied = BTreeMap::new();
+        copied
+            .visit_bundle_tensors(
+                bundle,
+                |e| e.to_string(),
+                |name, shape, dtype, data| {
+                    from_copied.insert(name.to_owned(), (shape.to_vec(), dtype, data.to_vec()));
+                    Ok(())
+                },
+            )
+            .unwrap();
+        let mut from_streamed = BTreeMap::new();
+        streamed
+            .visit_bundle_tensors(
+                bundle,
+                |e| e.to_string(),
+                |name, shape, dtype, data| {
+                    from_streamed.insert(name.to_owned(), (shape.to_vec(), dtype, data.to_vec()));
+                    Ok(())
+                },
+            )
+            .unwrap();
+        assert_eq!(from_copied, from_streamed);
+    }
+    assert_eq!(
+        streamed
+            .read_bundle_tensor("generator.safetensors", "attn_mask_for_masking")
+            .unwrap(),
+        mask_raw
+    );
+    streamed.release_file("codec.safetensors").unwrap();
+    assert!(!streamed.is_streaming_bundle("codec.safetensors"));
+    assert!(streamed.release_file("codec.safetensors").is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn streaming_inference_rejects_tampering_nonfinite_weights_and_symlinks() {
+    // 1. Nonfinite weight in codec (small path) is rejected even when hashes match.
+    let (dir, mut manifest) = fixture();
+    let bad: Vec<u8> = [1.0f32, f32::NAN]
+        .into_iter()
+        .flat_map(f32::to_le_bytes)
+        .collect();
+    let bytes = serialize(
+        [("x", TensorView::new(Dtype::F32, vec![2], &bad).unwrap())],
+        None,
+    )
+    .unwrap();
+    fs::write(dir.path().join("codec.safetensors"), &bytes).unwrap();
+    manifest.files.insert(
+        "codec.safetensors".into(),
+        FileRecord {
+            bytes: bytes.len() as u64,
+            sha256: sha256(&bytes),
+        },
+    );
+    manifest.tensors.insert(
+        "codec.safetensors".into(),
+        vec![TensorRecord {
+            name: "x".into(),
+            shape: vec![2],
+            dtype: TensorDtype::F32,
+            bytes: bad.len(),
+            sha256: sha256(&bad),
+        }],
+    );
+    save(dir.path(), &manifest);
+    assert!(Artifact::load_inference_streaming(dir.path()).is_err());
+
+    // 2. Nonfinite weight in parallel (>= 4 MiB) bundle is rejected even when hashes match.
+    let (dir, mut manifest) = fixture();
+    let mut big = vec![0u8; 4_400_000];
+    big[4_399_996..4_400_000].copy_from_slice(&f32::INFINITY.to_le_bytes());
+    let bytes = serialize(
+        [(
+            "w",
+            TensorView::new(Dtype::F32, vec![1_100_000], &big).unwrap(),
+        )],
+        None,
+    )
+    .unwrap();
+    fs::write(dir.path().join("generator.safetensors"), &bytes).unwrap();
+    manifest.files.insert(
+        "generator.safetensors".into(),
+        FileRecord {
+            bytes: bytes.len() as u64,
+            sha256: sha256(&bytes),
+        },
+    );
+    manifest.tensors.insert(
+        "generator.safetensors".into(),
+        vec![TensorRecord {
+            name: "w".into(),
+            shape: vec![1_100_000],
+            dtype: TensorDtype::F32,
+            bytes: big.len(),
+            sha256: sha256(&big),
+        }],
+    );
+    save(dir.path(), &manifest);
+    assert!(Artifact::load_inference_streaming(dir.path()).is_err());
+
+    // 3. Matching outer file hash does not bypass per-tensor hash check.
+    let (dir, mut manifest) = fixture();
+    let path = dir.path().join("generator.safetensors");
+    let mut raw = fs::read(&path).unwrap();
+    *raw.last_mut().unwrap() ^= 1;
+    fs::write(&path, &raw).unwrap();
+    manifest
+        .files
+        .get_mut("generator.safetensors")
+        .unwrap()
+        .sha256 = sha256(&raw);
+    save(dir.path(), &manifest);
+    assert!(Artifact::load_inference_streaming(dir.path()).is_err());
+
+    // 4. Symlink bundle is rejected via O_NOFOLLOW.
+    let (dir, _) = fixture();
+    fs::rename(
+        dir.path().join("codec.safetensors"),
+        dir.path().join("real.safetensors"),
+    )
+    .unwrap();
+    std::os::unix::fs::symlink("real.safetensors", dir.path().join("codec.safetensors")).unwrap();
+    assert!(Artifact::load_inference_streaming(dir.path()).is_err());
+}

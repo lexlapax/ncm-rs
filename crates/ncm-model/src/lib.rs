@@ -97,10 +97,7 @@ impl<B: WeightBackend> Codec<B> {
             .map_err(|e| Error::Weights(e.to_string()))?;
         validate_artifact_profile(artifact, bytes)?;
         let config = artifact_config(bytes)?;
-        let bytes = artifact
-            .file("codec.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        Self::from_safetensors(backend, config, bytes)
+        Self::from_artifact_with_limit(backend, config, artifact, 256 * 1024 * 1024 + 1024 * 1024)
     }
 
     /// Supports explicit synthetic fixtures as well as the checked artifact path.
@@ -115,20 +112,89 @@ impl<B: WeightBackend> Codec<B> {
     #[cfg(feature = "wmt14-experimental")]
     pub fn from_wmt14_artifact_experimental(backend: B, artifact: &Artifact) -> Result<Self> {
         let config = wmt14_generator::codec_config(artifact)?;
-        let bytes = artifact
-            .file("codec.safetensors")
-            .map_err(|e| Error::Weights(e.to_string()))?;
-        Self::from_safetensors_with_limit(backend, config, bytes, 640 * 1024 * 1024 + 1024 * 1024)
+        Self::from_artifact_with_limit(backend, config, artifact, 640 * 1024 * 1024 + 1024 * 1024)
     }
 
     /// Development-only LM1B-small codec; normal model loading remains disabled.
     #[cfg(feature = "lm1b-experimental")]
     pub fn from_lm1b_small_artifact_experimental(backend: B, artifact: &Artifact) -> Result<Self> {
         let config = lm1b_small::codec_config(artifact)?;
-        let bytes = artifact
-            .file("codec.safetensors")
+        Self::from_artifact_with_limit(backend, config, artifact, 448 * 1024 * 1024)
+    }
+
+    fn from_artifact_with_limit(
+        backend: B,
+        config: CodecConfig,
+        artifact: &Artifact,
+        limit: usize,
+    ) -> Result<Self> {
+        if !artifact.is_streaming_bundle("codec.safetensors") {
+            let bytes = artifact
+                .file("codec.safetensors")
+                .map_err(|e| Error::Weights(e.to_string()))?;
+            return Self::from_safetensors_with_limit(backend, config, bytes, limit);
+        }
+        let file_bytes = artifact
+            .file_bytes("codec.safetensors")
             .map_err(|e| Error::Weights(e.to_string()))?;
-        Self::from_safetensors_with_limit(backend, config, bytes, 448 * 1024 * 1024)
+        if file_bytes > limit as u64 {
+            return Err(Error::Weights(
+                "safetensors file exceeds codec limit".into(),
+            ));
+        }
+        if !artifact.bundle_f32_weights_verified_finite("codec.safetensors") {
+            return Err(Error::Weights(
+                "streaming codec bundle missing finite-value preflight".into(),
+            ));
+        }
+        let entries = artifact
+            .bundle_tensors("codec.safetensors")
+            .map_err(|e| Error::Weights(e.to_string()))?;
+        let expected = config.weight_shapes();
+        if entries.len() != expected.len() {
+            return Err(Error::Weights(
+                "runtime tensor inventory size differs".into(),
+            ));
+        }
+        let by_name: BTreeMap<_, _> = entries
+            .iter()
+            .map(|entry| (entry.name.as_str(), entry))
+            .collect();
+        for (name, shape) in &expected {
+            let entry = by_name
+                .get(name.as_str())
+                .ok_or_else(|| Error::Weights(format!("missing codec tensor {name}")))?;
+            if !matches!(entry.dtype, ncm_io::TensorDtype::F32)
+                || entry.shape != *shape
+                || entry.bytes != shape.iter().product::<usize>() * 4
+            {
+                return Err(Error::Weights(format!("wrong dtype/shape for {name}")));
+            }
+        }
+        let mut weights = BTreeMap::new();
+        artifact.visit_bundle_tensors(
+            "codec.safetensors",
+            |e| Error::Weights(e.to_string()),
+            |name, shape, _dtype, data| {
+                let values = upload_values(data)?;
+                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                Ok(())
+            },
+        )?;
+        if weights.len() != expected.len() {
+            return Err(Error::Weights(
+                "runtime tensor inventory size differs".into(),
+            ));
+        }
+        let codebook_norms = (0..config.levels().len())
+            .map(|_| OnceLock::new())
+            .collect();
+        Ok(Self {
+            backend,
+            config,
+            weights,
+            codebook_norms,
+        })
     }
 
     fn from_safetensors_with_limit(

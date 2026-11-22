@@ -174,41 +174,96 @@ impl Wmt14GeneratorInspection {
         validate_pre_tokenizer(&envelope.tokenizer.pre_tokenizer)?;
         let codec = CodecConfig::validate_wmt14(envelope.tokenizer.vqvae)?;
         let shapes = expected_shapes(&codec);
-        let data = artifact
-            .file("generator.safetensors")
-            .map_err(|error| Error::Weights(error.to_string()))?;
-        let tensors =
-            SafeTensors::deserialize(data).map_err(|error| Error::Weights(error.to_string()))?;
-        if tensors.len() != shapes.len() + 2 {
-            return Err(Error::Weights(
-                "WMT14 generator tensor inventory differs".into(),
-            ));
-        }
-        for (name, shape) in &shapes {
-            let tensor = tensors
-                .tensor(name)
-                .map_err(|error| Error::Weights(error.to_string()))?;
-            if tensor.dtype() != Dtype::F32
-                || tensor.shape() != shape
-                || has_nonfinite_f32_le(tensor.data())
-            {
-                return Err(Error::Weights(format!(
-                    "invalid WMT14 generator tensor {name}"
-                )));
-            }
-        }
         let lengths = &codec.levels()[1..];
-        let levels = tensors
-            .tensor("lvl_1L")
-            .map_err(|error| Error::Weights(error.to_string()))?;
-        xsum_generator::validate_levels(&levels, lengths)?;
-        let mask = tensors
-            .tensor("attn_mask_for_masking")
-            .map_err(|error| Error::Weights(error.to_string()))?;
-        xsum_generator::validate_mask(&mask, lengths, envelope.model.prefix_len)?;
-        Ok(Self {
-            tensor_count: tensors.len(),
-        })
+        let tensor_count = if artifact.is_streaming_bundle("generator.safetensors") {
+            if !artifact.bundle_f32_weights_verified_finite("generator.safetensors") {
+                return Err(Error::Weights(
+                    "streaming WMT14 generator missing finite-value preflight".into(),
+                ));
+            }
+            let entries = artifact
+                .bundle_tensors("generator.safetensors")
+                .map_err(|error| Error::Weights(error.to_string()))?;
+            if entries.len() != shapes.len() + 2 {
+                return Err(Error::Weights(
+                    "WMT14 generator tensor inventory differs".into(),
+                ));
+            }
+            let by_name: BTreeMap<_, _> = entries
+                .iter()
+                .map(|entry| (entry.name.as_str(), entry))
+                .collect();
+            for (name, shape) in &shapes {
+                let entry = by_name.get(name.as_str()).ok_or_else(|| {
+                    Error::Weights(format!("invalid WMT14 generator tensor {name}"))
+                })?;
+                if !matches!(entry.dtype, ncm_io::TensorDtype::F32) || entry.shape != *shape {
+                    return Err(Error::Weights(format!(
+                        "invalid WMT14 generator tensor {name}"
+                    )));
+                }
+            }
+            let level_entry = by_name
+                .get("lvl_1L")
+                .ok_or_else(|| Error::Weights("missing generator level buffer".into()))?;
+            let level_bytes = artifact
+                .read_bundle_tensor("generator.safetensors", "lvl_1L")
+                .map_err(|error| Error::Weights(error.to_string()))?;
+            xsum_generator::validate_levels_raw(
+                level_entry.dtype,
+                &level_entry.shape,
+                &level_bytes,
+                lengths,
+            )?;
+            let mask_entry = by_name
+                .get("attn_mask_for_masking")
+                .ok_or_else(|| Error::Weights("missing generator attention mask".into()))?;
+            let mask_bytes = artifact
+                .read_bundle_tensor("generator.safetensors", "attn_mask_for_masking")
+                .map_err(|error| Error::Weights(error.to_string()))?;
+            xsum_generator::validate_mask_raw(
+                mask_entry.dtype,
+                &mask_entry.shape,
+                &mask_bytes,
+                lengths,
+                envelope.model.prefix_len,
+            )?;
+            entries.len()
+        } else {
+            let data = artifact
+                .file("generator.safetensors")
+                .map_err(|error| Error::Weights(error.to_string()))?;
+            let tensors = SafeTensors::deserialize(data)
+                .map_err(|error| Error::Weights(error.to_string()))?;
+            if tensors.len() != shapes.len() + 2 {
+                return Err(Error::Weights(
+                    "WMT14 generator tensor inventory differs".into(),
+                ));
+            }
+            for (name, shape) in &shapes {
+                let tensor = tensors
+                    .tensor(name)
+                    .map_err(|error| Error::Weights(error.to_string()))?;
+                if tensor.dtype() != Dtype::F32
+                    || tensor.shape() != shape
+                    || has_nonfinite_f32_le(tensor.data())
+                {
+                    return Err(Error::Weights(format!(
+                        "invalid WMT14 generator tensor {name}"
+                    )));
+                }
+            }
+            let levels = tensors
+                .tensor("lvl_1L")
+                .map_err(|error| Error::Weights(error.to_string()))?;
+            xsum_generator::validate_levels(&levels, lengths)?;
+            let mask = tensors
+                .tensor("attn_mask_for_masking")
+                .map_err(|error| Error::Weights(error.to_string()))?;
+            xsum_generator::validate_mask(&mask, lengths, envelope.model.prefix_len)?;
+            tensors.len()
+        };
+        Ok(Self { tensor_count })
     }
 }
 

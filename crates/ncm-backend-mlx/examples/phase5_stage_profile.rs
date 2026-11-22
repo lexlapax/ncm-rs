@@ -215,7 +215,7 @@ fn main() -> Result<()> {
         "sudoku-easy" => {
             let tokens = load_sudoku_inputs(extra.ok_or("missing sudoku input")?, batch)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap()?;
             let t1 = Instant::now();
@@ -254,7 +254,7 @@ fn main() -> Result<()> {
         "tinystories" => {
             let prefixes = vec![0_u32; batch];
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap()?;
             let t1 = Instant::now();
@@ -293,7 +293,7 @@ fn main() -> Result<()> {
         "xsum" => {
             let prefixes = load_xsum_inputs(extra.ok_or("missing xsum input")?, batch)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap()?;
             let t1 = Instant::now();
@@ -328,11 +328,11 @@ fn main() -> Result<()> {
         "wmt14" => {
             let prefixes = load_wmt14_inputs(extra.ok_or("missing wmt14 input")?, batch)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_wmt14_inference_reusable(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap()?;
             let t1 = Instant::now();
-            let model = Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
+            let model = Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
                 .with_deferred_head_check_experimental()
                 .with_level_materialization_experimental(5)?;
             weight_upload_ms = t1.elapsed().as_secs_f64() * 1000.0;
@@ -366,7 +366,7 @@ fn main() -> Result<()> {
             let (cosine, sine) = lm1b_small_reference_rope(&rope_bytes)?;
             let prefixes = vec![101_u32; batch];
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference(artifact_path)?;
+            let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap()?;
             let t1 = Instant::now();

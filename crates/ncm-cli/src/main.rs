@@ -311,7 +311,7 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     }
     let prefixes: Vec<_> = inputs.iter().flatten().copied().collect();
     let teacher = if metal_optimized {
-        ncm_model::Wmt14Teacher::from_reusable_artifact(backend.clone(), artifact)?
+        ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
             .with_deferred_head_check_experimental()
     } else {
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
@@ -476,7 +476,7 @@ fn main_impl() -> Result<()> {
         sample::validate_wmt14_alias(&mut args)?;
     }
     if args.len() == 3 && args[1] == "inspect" {
-        let artifact = Artifact::load(&args[2])?;
+        let artifact = Artifact::load_inference_streaming(&args[2])?;
         println!("{}", serde_json::to_string_pretty(artifact.manifest())?);
         return Ok(());
     }
@@ -503,20 +503,7 @@ fn main_impl() -> Result<()> {
     } else {
         None
     };
-    let wmt14_metal = cfg!(all(
-        feature = "wmt14-experimental",
-        feature = "mlx",
-        target_os = "macos",
-        target_arch = "aarch64"
-    )) && args[1] == "sample-wmt14"
-        && matches!(args[3].as_str(), "mlx" | "mlx-retry-padded");
-    let artifact = if wmt14_metal {
-        Artifact::load_wmt14_inference_reusable(&args[2])?
-    } else if sample_seed.is_some() || matches!(args[1].as_str(), "sample-xsum" | "sample-wmt14") {
-        Artifact::load_inference(&args[2])?
-    } else {
-        Artifact::load(&args[2])?
-    };
+    let artifact = Artifact::load_inference_streaming(&args[2])?;
     let decoder = if decode || text {
         Some(decode::Decoder::from_artifact(&artifact)?)
     } else {

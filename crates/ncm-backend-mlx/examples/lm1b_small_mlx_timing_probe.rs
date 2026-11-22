@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("unexpected rotary tables".into());
     }
     let load_start = Instant::now();
-    let artifact = Artifact::load_inference(artifact_path)?;
+    let artifact = Artifact::load_inference_streaming(artifact_path)?;
     let backend = MlxBackend::gpu()?;
     let (cosine, sine) = lm1b_small_reference_rope(&rope_bytes)?;
     let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?
