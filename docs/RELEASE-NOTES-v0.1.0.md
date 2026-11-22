@@ -1,9 +1,8 @@
-# v0.1.0 release notes — ready for tagging
+# v0.1.0 release notes
 
-Release candidate for [Phase 5 step 1](PHASE5.md#step-1--release-candidate-v010-no-numerical-changes)
+Published on 2026-11-20 at commit `de2975a` (`https://github.com/lexlapax/ncm-rs/releases/tag/v0.1.0`, source-only) for [Phase 5 step 1](PHASE5.md#step-1--release-candidate-v010-no-numerical-changes)
 (lean FP32 inference release, no numerical changes). All Step 1 CLI, text/decode, feature-folding,
-and fresh-clone setup checks have passed on both Linux/CUDA and Apple Silicon/MLX. No `v0.1.0` tag
-or GitHub release has been published yet; tagging and source-only release creation await user approval.
+and fresh-clone setup checks passed on both Linux/CUDA and Apple Silicon/MLX.
 
 ## Intended scope
 

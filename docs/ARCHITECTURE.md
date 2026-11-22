@@ -1,149 +1,66 @@
-# Architecture proposal
+# Architecture
 
-Status: [Phase 3 Sudoku quality and performance](results/2026-11-14-phase3-sudoku/README.md)
-are measured on Linux/CUDA and then macOS/MLX. The shared codec, eager greedy
-generator and explicit-device CLI are implemented for the supported Sudoku profiles;
-general sampling and other full-model profiles remain planned. Crate boundaries do
-not imply frozen abstractions.
-Phase 2 is complete with the user-accepted immediate-memory exception under the [approved additional optimization plan](PHASE2-OPTIMIZATION-REVIEW.md).
-The current candidate passes the Linux controlled timing and host-memory audit,
-and its rebuilt Apple executables match the earlier passing control. Linux native
-CUDA-pool snapshots are below 1.05× prior Rust; Apple immediate live-memory
-snapshot is an explicitly accepted 1.058744× exception; the separate B4 encode MLX active-memory peak is 1.20127× prior Rust. See the [final audit](results/2026-11-11-phase2-optimization/phase2-final-audit-v1.md). Experimental fused interpolation is deferred; it is
-not production code.
+Status: **Implemented across Phases 0–5 for all nine released FP32 profiles on Linux/CUDA and Apple Silicon/Metal** (`v0.1.0` published at `de2975a`; Phase 5 Step 3 streaming/parallel model-load optimization verified on both GPUs at `ee8769f`). See [docs/DEVELOPING.md](DEVELOPING.md) for library usage and adding new local models, and [docs/results/2026-11-20-phase5-audit/phase5-final-audit-v1.md](results/2026-11-20-phase5-audit/phase5-final-audit-v1.md) for the complete requirement-to-evidence audit.
 
 ## Decision: one model, two runtime adapters
 
-Keep model semantics in Rust, generic over a small backend interface with an
-associated tensor type. Choose the backend once at the application boundary;
-monomorphize hot model paths rather than dispatch every operator through trait
-objects. The interface covers only operations proven necessary by NCM, not a
-new general-purpose tensor framework.
+Model semantics live once in Rust (`ncm-model`), generic over narrow backend traits (`ncm-core`) with associated tensor and index types. The concrete backend (`CandleBackend` for CUDA/cuDNN or `MlxBackend` for Apple Silicon Metal) is chosen explicitly at the application boundary and monomorphized on hot paths—never dispatched per operator through trait objects and never silently falling back to CPU.
 
 ```text
-ncm-cli
-  ├── ncm-io                 manifests, weights and artifact verification
-  ├── ncm-tokenizers         text IDs, special tokens, byte BPE, Sudoku
-  ├── ncm-model              codec, generator, sampler, request state
-  │     └── ncm-core         validated config, backend contract, typed errors
-  ├── ncm-backend-mlx ──────> ncm-core + mlx-rs -> mlx-c -> MLX/Metal
-  └── ncm-backend-cuda ─────> ncm-core + Candle -> CUDA/cuBLAS/custom kernels
+ncm-cli (unified `ncm sample`, `inspect`, `generate`, `reconstruct`, aliases)
+  ├── ncm-io                 manifest verification, parallel SHA-256, streaming weight I/O
+  ├── ncm-tokenizers         pinned Sudoku, Byte BPE, GPT-2, Qwen3, and BERT tokenizers
+  ├── ncm-model              Codec, Generator, TinyStories/XSum/WMT14/LM1B teachers, TraceSink
+  │     └── ncm-core         validated configs, OwtConfigOnly, backend traits, typed errors
+  ├── ncm-backend-cuda ─────> ncm-core + Candle -> CUDA / cuBLAS / cuDNN / custom CUDA kernels
+  └── ncm-backend-mlx ──────> ncm-core + mlx-rs -> mlx-c -> native MLX / Metal
 ```
 
-This is the intended full dependency graph; codec, Sudoku generator and CLI edges
-are wired, while general sampling and further profiles remain future work. `ncm-io` and tokenizers may depend on core types;
-core never depends on a concrete runtime. A bounded Candle CPU implementation is
-for fixtures and development, **not a third production runtime target**.
+`ncm-core` has zero dependency on any concrete GPU runtime. A bounded Candle CPU backend exists solely for deterministic unit fixtures and offline development, **not** as a third production target.
 
-### Why these choices
+### Why these runtime choices
 
-- **MLX:** satisfies the explicit Apple runtime goal. Candle Metal or generic
-  wgpu are not substitutes. Prefer existing safe `mlx-rs` wrappers; isolate any
-  unavoidable custom FFI in the backend with documented safety invariants.
-- **Candle CUDA:** Rust model/tensor logic without LibTorch; established loading
-  and CUDA primitives. Use its existing CUDA interop rather than layering a
-  second independently owned device/stream stack on top.
-- **Not tch-rs:** would retain LibTorch, contrary to the port's motivation.
-- **Not a new Burn/MLX backend:** excessive framework integration before proving
-  the relatively small NCM operator set. Revisit only if capability spikes fail.
-- **No Python production bridge:** Python is an offline oracle/export tool.
-  A small, reviewed native kernel is preferable to recreating an optimized
-  vendor matmul stack merely to claim 100% Rust.
+- **Apple Silicon (`mlx-rs` → `mlx-c` → MLX):** satisfies the native Apple Silicon goal without Python at runtime. `MlxBackend` uses safe `mlx-rs` bindings over prebuilt native MLX libraries (`MLX_SYS_PREBUILT`) with explicit graph evaluation boundaries.
+- **Linux (`candle` + CUDA/cuDNN + audited custom kernels):** provides Rust tensor execution without LibTorch or Python. Custom CUDA kernels cover exact resampling, stable tie-breaking argmax, masked softmax, QKV split, RMS+RoPE, categorical sampling, and FP64 sequential decoding penalties where composed ops were slower or numerically divergent.
+- **No Python production bridge:** Python is used strictly offline under `tools/reference/` for checkpoint export, reference oracle traces, and official quality evaluation (ROUGE, sacreBLEU/chrF, GPT-2-large perplexity).
 
 ## Core types and invariants
 
-Plan typed `ModelConfig`, `CodecConfig`, `LevelSchedule`, `SamplingConfig`,
-`DTypePolicy`, `ArtifactManifest`, and `CompatibilityProfile`. Use enums for
-level-zero and output-head variants instead of contradictory boolean switches.
-Configurations carry schema and upstream revisions, not an untyped Hydra map.
+- **Strict configuration validation (`ncm-core`):** `CodecConfig`, `GeneratorConfig`, `OwtConfigOnly`, and per-profile model/tokenizer envelopes reject unknown inference-critical fields, invalid level schedules, mismatched head/embed dimensions, invalid vocab/PAD/EOS IDs, and unsupported research branches before any GPU allocation.
+- **Preflight-before-allocation (`ncm-model`):** every model constructor validates the complete manifest profile, tensor inventory, dtypes, shapes, finite FP32 weight values, `lvl_1L`, `attn_mask_for_masking`, head temperature scales, and `inference.safetensors` distributions/RoPE tables on the host **before** invoking `WeightBackend::upload_f32` for the first time.
+- **Verified streaming artifact loading (`ncm-io`):**
+  - `Artifact::load_inference_streaming` opens safetensors bundles with `O_NOFOLLOW`, validates `codec.safetensors`, `generator.safetensors`, and `training.safetensors` concurrently with parallel per-tensor SHA-256 and finite FP32 scanning using bounded 1 MiB scratch buffers (anonymous `mmap`/`munmap` on macOS aarch64), and retains open validated file descriptors for inference bundles (dropping `training.safetensors`).
+  - `Artifact::visit_bundle_tensors` streams tensors sequentially in file-offset order into a single reusable `Scratch` buffer (immediately `munmap`ped on macOS drop) and uploads directly to CUDA or MLX. This eliminates host-RAM double-buffering (~48–49% RSS reduction on Metal, up to -2.8 GiB host HWM on CUDA LM1B-large) and speeds up verified model loading 1.7×–4.6×.
+  - `Artifact::load` and `Artifact::load_inference` remain available for in-memory inspection and fixtures (also benefiting from parallel per-tensor SHA-256).
+- **Immutable weights, request-local state:** loaded models own immutable device weights and precomputed static level geometry (attention masks, RoPE tables, codebook norms). Per-request activations, latent accumulators, and deterministic SplitMix64 RNG state are local to each inference call; shared models serialize requests via an internal `Mutex<()>`.
 
-Validate before device allocation: increasing/nonempty levels, terminal latent
-length, codebook/head counts, dimensions, even RoPE head width, attention head
-ratios, normalization groups, vocab/PAD/EOS/code ranges, convolution divisibility,
-prefix lengths, sampling ranges, checked byte-size arithmetic and memory budgets.
-Upstream compatibility fields are translated explicitly; unknown inference-critical
-fields error out. Unsupported research branches produce actionable errors.
+## Tensor and backend contract
 
-Pure host configuration/I/O uses standard `Send`/`Sync` where appropriate; do not
-impose these bounds on every tensor or add unsafe implementations to force MLX
-arrays into a server design. Use device-owning workers if required by the runtime.
-Keep caches, RNG state, accumulators, cancellation and scratch buffers in a
-request/session object; model weights are immutable after load. Do not reproduce
-upstream's model-global `_cfg` sampling state.
+Defined in [crates/ncm-core/src/lib.rs](../crates/ncm-core/src/lib.rs):
 
-## Tensor contract (to validate before freezing)
+- Logical sequence layout is `BLC`; attention layout is `BHLD`; convolution weights retain PyTorch `OIK` (transposed: `IOK`) layout at the trait boundary.
+- All production inference math is **FP32** (TF32 disabled on CUDA where configurable). Exact sequential final token penalties (XSum, LM1B) use FP64 accumulation on host or CUDA device as qualified.
+- Selection (`select_last`) breaks exact ties by selecting the **first** index.
+- Attention takes an explicit additive broadcast mask (`None` = bidirectional; never implicit causal).
+- Resampling implements exact PyTorch adaptive-area downsampling (`area1d`) and half-pixel `align_corners=False` linear upsampling (`linear1d`).
+- `evaluate(&[Tensor])` provides explicit materialization/synchronization for MLX lazy evaluation and reproducible CUDA/Metal benchmarks.
 
-- Logical activations BLC; attention layout explicit at the adapter boundary.
-- Shape/dtype/device introspection, checked reshape/transpose/slice/broadcast,
-  gather/scatter, embedding lookup, matmul/linear, reductions and activations.
-- LayerNorm/RMSNorm/GroupNorm with explicit epsilon, axes and accumulation dtype.
-- Conv1d/ConvTranspose1d, exact adaptive-area downsample and half-pixel linear
-  upsample. Explicit weight-layout translation, tested with asymmetric kernels.
-- Attention with noncausal target blocks, prefix padding, split-half RoPE, optional
-  GQA; dense correct fallback before fused kernels.
-- Sorting/top-k/cumulative sums and controlled sampling; no undocumented CPU
-  fallback in a GPU adapter. Capability errors identify missing operations.
-- Explicit execution/materialization/synchronization for MLX laziness and CUDA
-  asynchronous launches, memory accounting and reproducible benchmarks.
+## Implemented profiles vs future architectural work
 
-Prefer composed backend operations initially; fused attention/norm/resampling
-are capability-specific overrides retaining the same tested semantics. Avoid
-host-device copies inside the level loop. Precompute static level schedules,
-positions, resampling indices/weights, and head constants at model load.
+| Capability | Current Status (v0.1.0 / v0.2.0-rc) |
+| --- | --- |
+| Sudoku (easy, medium, hard) | Qualified FP32 greedy generation & codec reconstruction on CUDA and Metal |
+| TinyStories | Qualified seeded generation + `--text`/`--decode` (Byte BPE) on CUDA and Metal (with recorded Metal exceptions) |
+| XSum | Qualified top-1 CFG 0 + `--text`/`--decode` (GPT-2) on CUDA and Metal (with recorded exceptions); experimental CFG/stochastic flags gated |
+| WMT14 | Qualified top-1 CFG 0/1 + `--text`/`--decode` (Qwen3) on CUDA and Metal; experimental CFG/padded-retry gated |
+| LM1B (small, medium, large) | Qualified seeded generation (80-seed gate) + empty-only `--text`/`--decode` (BERT) on CUDA and Metal; requires pinned rotary sidecar |
+| OpenWebText (OWT) | Config validation (`OwtConfigOnly`), no-EOS-cut policy, and synthetic operator shapes implemented; runtime execution refused until upstream releases weights |
+| Prefix K/V cache, BF16/FP16, quantization | Deferred past Phase 5; each requires its own equivalence/quality gate |
+| Generic config-driven text model loader | Planned for future extensibility (see [cross-phase gap audit](results/2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md)) |
+| Multi-request serving, streaming, training | Deferred (Phase 6+ / separate approval gate) |
 
-## Correct optimization opportunities
+## Platform, safety, and compatibility policy
 
-**Prefix cache, not token-history cache.** In the released block-diagonal model,
-prefix hidden states do not depend on target levels. Compute per-layer prefix K/V
-once; each level computes its own Q/K/V and attends to prefix + that level.
-Discard target K/V after the level: previous levels are represented by the latent
-accumulator, not an ever-growing autoregressive KV cache. Preserve pad masking,
-RoPE resets, query-level-zero and CFG conditional/null branches. For WMT14,
-prefix prefill also produces the level-zero prediction.
-
-This decomposition also permits noncausal target attention to `[prefix; target]`
-without the asymmetric combined prefix/target mask; padding still needs a correct
-masked or packed variable-length kernel. Prove equivalence against uncached eager
-execution before turning it on. Never silently substitute a causal LLM kernel.
-
-- Keep full-resolution latent accumulator and scratch allocations device-resident.
-- Bound MLX lazy graphs via measured evaluation boundaries; compile per stable
-  level/batch shape only after controlling recompilation and retained graphs.
-- Benchmark CUDA graph capture only with stable addresses/shapes/RNG behavior;
-  graph capture is not required for the initial implementation.
-- Reuse codebook norms and weight transposes; keep GQA K/V compact if enabled.
-- Eliminate full vocabulary sorting when semantics permit (e.g. top-p=1); keep
-  a reference sampler and test tie behavior. Do not equate top-k=1 with greedy
-  without accounting for tied maxima.
-- Preserve final sequential token penalties. CPU f64 may be a compatibility mode;
-  any FP32 device fast path is separately quality-gated and its transfer savings measured.
-- Mixed precision, quantization and custom CUDA/Metal kernels are later, opt-in
-  profiles. Retain FP32 reductions/latent accumulation where parity requires it.
-
-## Platform/build policy
-
-Phase 1 added optional, target-specific backend features `mlx` and `cuda`.
-CLI runtime wiring is still future work. Default CPU-only checks require neither
-a CUDA SDK nor MLX.
-Build each platform separately rather than treating `--all-features` on Linux
-as a valid cross-platform check. Unsupported target/runtime combinations fail
-clearly. A CPU test path must not be mistaken for actual CUDA coverage.
-
-Pin supported Rust crate versions and native runtime tuples after spikes; record
-compiler, SDK, driver, GPU architecture and library versions with results. Start
-CUDA validation on the available Ampere GPU; verify flash kernels' capabilities
-rather than assume an H100-only optimization works there. Apple qualification currently covers macOS 26.7.3 / Xcode 27.2 with prebuilt MLX 0.32.2;
-the selected wheel requires macOS 26.2+, but older tuples have not been tested.
-
-Keep `unsafe_code = deny` by default. Any necessary audited FFI/mmap exception is
-narrowly scoped with lifetime/ownership tests, never a blanket project-wide allow.
-Use `Result`/typed errors, avoid panics on external data, and keep async orchestration
-out of compute kernels. No `panic=abort` profile until deployment needs justify it.
-
-## Compatibility is an architectural concern
-
-Canonical artifact schemas and reference fixtures are versioned independently of
-Rust packages and upstream Git. Upstream-specific import logic is an adapter, not
-scattered conditionals across kernels. Preserve the last validated upstream profile
-while qualifying the next one. See [maintenance policy](UPSTREAM.md); a dependency
-upgrade is not evidence of upstream NCM compatibility.
+- Build each platform separately (`--features cuda-cudnn` or `--features cuda` on Linux; `--features mlx` on Apple Silicon). Default CPU checks require neither CUDA nor MLX.
+- `unsafe_code = deny` is enforced workspace-wide; the only `#[allow(unsafe_code)]` blocks are narrowly audited FFI/CUDA/Darwin-`mmap` wrappers with explicit safety invariants.
+- Canonical artifact schemas and reference fixtures are versioned independently of Rust crates and upstream Git (`docs/UPSTREAM.md`). Upstream pins are never changed silently.

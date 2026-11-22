@@ -1,166 +1,57 @@
-# Canonical artifact contract proposal (v1)
+# Canonical Artifact Contract (v1)
 
-The general contract below remains a proposal. A narrower Phase 1 inspection
-profile is implemented (see the next section); it is not yet a runtime-model schema.
-Canonical runtime files must be portable across both adapters and preserve the
-pinned Python reference without executable serialization.
+Canonical runtime artifacts are non-executable, integrity-checked directories portable across CUDA and Metal/MLX. Python is used strictly offline to convert pinned upstream checkpoints (`torch.load(..., weights_only=True)` wherever supported) into safetensors + versioned JSON; production Rust never executes pickle or Python code.
 
-## Implemented inspection profile
+## Implemented Profiles (Schema Version 1)
 
-`tools/reference/sudoku_artifact.py` exports only the pinned Sudoku-easy pair as
-`sudoku-easy-inspection-v1`: `manifest.json`, `config.json`, `tokenizer.json`,
-`provenance.json`, `codec.safetensors`, `generator.safetensors`, and
-`training.safetensors`. All 238 source tensors retain names, layouts, shapes and
-F32/I64 dtypes; 36 EMA/count/hit buffers are separated, not discarded. This pair
-has no aliases or inference-statistic metadata. Unexpected sharing/metadata is
-rejected; unrestricted pickle is never retried. Input byte sizes and SHA-256 are
-pinned in the exporter. Outputs refuse preexisting destinations; the output parent
-must be trusted and not concurrently mutated.
+All nine released profiles share schema version `1`, pinned upstream commit `c70274273f489abc73832b2b98584a8483b6b203`, and checkpoint repository `hazyresearch/ncm-checkpoints` at revision `d342ce8aaea58830eef3b8ad473664673e41f692`.
 
-`ncm-io::Artifact::load` copies and validates declared file/tensor inventories and
-hashes. Limits: 4 MiB manifest, 256 MiB per payload, 512 MiB summed payloads, tensor
-rank 8. These are input-byte limits, **not peak-RSS guarantees**. It rejects unknown
-manifest fields, duplicate manifest-map keys, malformed hashes, unsupported pins,
-shape overflow, unexpected declared paths and nonregular/symlink leaf files/root.
-It ignores undeclared files on disk. Parent path components and the directory must
-be trusted, with no concurrent mutation; this is not an `openat`/`O_NOFOLLOW`
-sandbox. It never executes Python or downloads anything.
+| Profile | Exporter (`tools/reference/`) | Bundles (`*.safetensors`) | Per-file / Total Budget | Notes |
+| --- | --- | --- | --- | --- |
+| `sudoku-easy-inspection-v1` | `sudoku_artifact.py` | `codec`, `generator`, `training` | 256 / 512 MiB | 238 tensors (36 EMA/training separated) |
+| `sudoku-medium-inspection-v1` | `sudoku_artifact.py` | `codec`, `generator`, `training` | 256 / 512 MiB | Same schema; provenance-only re-export documented in Phase 5 |
+| `sudoku-hard-inspection-v1` | `sudoku_artifact.py` | `codec`, `generator`, `training` | 256 / 512 MiB | Same schema; provenance-only re-export documented in Phase 5 |
+| `tinystories-inference-v1` | `tinystories_artifact.py` | `codec`, `generator`, `training`, `inference` | 384 / 640 MiB | Byte BPE assets + `level0_unigram` in `inference.safetensors` |
+| `xsum-inference-v1`, `xsum-inference-v2` | `xsum_artifact.py` | `codec`, `generator`, `training`, `inference` | 384 / 640 MiB | GPT-2 tokenizer + `token_unigram`; `v2` adds hash-pinned `rope_cos`/`rope_sin` |
+| `wmt14-inference-v1` | `wmt14_artifact.py` | `codec`, `generator`, `training` | 640 / 1,280 MiB | Qwen3 tokenizer; 63 codec + 186 generator + 33 training tensors |
+| `lm1b-small-inference-v1` | `lm1b_small_artifact.py` | `codec`, `generator`, `training`, `inference` | 448 / 1,024 MiB | BERT tokenizer + `level0_unigram`/`token_unigram`; requires sibling rotary sidecar `lm1b-reference-rope-v1.safetensors` |
+| `lm1b-medium-inference-v1` | `lm1b_small_artifact.py` | `codec`, `generator`, `training`, `inference` | 1,280 / 1,920 MiB | 24-layer / 1024-wide generator + shared codec & BERT tokenizer |
+| `lm1b-large-inference-v1` | `lm1b_small_artifact.py` | `codec`, `generator`, `training`, `inference` | 2,944 / 3,584 MiB | 36-layer / 1280-wide generator + shared codec & BERT tokenizer |
+| `owt-inference-v1` / `openwebtext-inference-v1` | — | **Explicitly rejected** | — | Weights unreleased by upstream; loader and CLI refuse execution |
 
-Integrity is relative to the supplied manifest, not authentication of that manifest.
-Config/tokenizer/provenance JSON is syntax-checked but not model-semantically
-validated. A malicious replacement manifest can describe different tensors;
-callers need a trusted manifest digest plus later model-profile checks. The profile
-preserves upstream config rather than pretending all omitted defaults are resolved.
-Nonpersistent buffers are inventoried by the pinned oracle, not runtime-constructed
-by Rust yet. Do not use this inspection loader as a complete inference importer.
+Exact manifest SHA-256 digests and step-by-step export commands for every profile are in [docs/USAGE.md](USAGE.md).
 
-See [reproduction commands](../tools/reference/README.md) and the
-[qualification report](results/2026-11-10-sudoku-artifacts/README.md).
-
-## Phase 3 Sudoku profile extensions
-
-The Phase 3 converter explicitly adds `sudoku-medium-inspection-v1` and
-`sudoku-hard-inspection-v1`, with distinct config and checkpoint SHA-256 values
-in `tools/reference/sudoku_artifact.py`. The easy profile, upstream revision,
-file layout and tensor schema remain unchanged. Runtime loading rejects a task
-that does not match the manifest profile; as before, manifests establish integrity,
-not authenticity. Conversion uses `torch.load(weights_only=True)`, verifies each
-pinned source before loading and requires bit-exact tensor roundtrips.
-
-Evaluation boards are newly pinned to dataset revision
-`6580ba41a4b0a976dde876fbe84d25327617b0e6`; file sizes and SHA-256 values are
-in `tools/reference/sudoku_phase3_data.py`. Conversion restricts pickle opcodes,
-rejects global/persistent references and validates all 2,000 board shapes and
-clues before writing JSON. Weights and datasets remain outside Git.
-
-## TinyStories inspection profile
-
-`tools/reference/tinystories_artifact.py` exports the pinned TinyStories source as
-`tinystories-inference-v1`. Its manifest declares exactly `config.json`,
-`codec.safetensors`, `generator.safetensors`, `training.safetensors`,
-`inference.safetensors`, `tokenizer.json`, `tokenizer-manifest.json`,
-`tokenizer.LICENSE`, and `provenance.json`. The inference bundle preserves the
-checkpoint's level-zero unigram; 36 training buffers remain separately
-available. Conversion verifies the source files and tokenizer lock, rejects
-unexpected tensors, and checks bit-exact tensor roundtrips. The artifact loader
-allows up to 384 MiB per file and 640 MiB total only for this profile; Sudoku
-limits are unchanged. Limits describe input bytes, not runtime memory.
-
-The generator and codec inventory and embedded tokenizer have host-side checks,
-but this is not a claim of working TinyStories inference or GPU parity. Like the
-Sudoku profile, manifest hashes provide integrity rather than authentication;
-use a trusted manifest digest and trusted, stable directory. The pinned local
-export and its digest are recorded in [the Phase 4 contract](PHASE4-TEXT.md).
-
-## XSum inspection profile
-
-`tools/reference/xsum_artifact.py` exports the pinned XSum checkpoint and qualified GPT-2 tokenizer as `xsum-inference-v1`, preserving token allowance metadata and training-only tensors. The separate loader profile permits at most 384 MiB per file and 640 MiB total and enforces the exact nine-file inventory. The pinned export, reproduction and host-only checks are recorded in the [XSum artifact report](results/2026-11-15-phase4-xsum/artifact-export-v1.md). Artifact inspection and tokenizer fixture checks do not imply XSum model inference or GPU support.
-
-An opt-in `xsum-inference-v2` profile additionally carries two hash-pinned rotary reference tensors. Its format and initial table-only quality failure are documented in the [experimental profile report](results/2026-11-15-phase4-xsum/rotary-artifact-profile-v2.md); the subsequent native CUDA implementation is recorded in the [CUDA report](results/2026-11-15-phase4-xsum/cuda-reference-native-v1.md). The v1 profile remains supported; neither artifact profile on its own establishes the XSum runtime gate.
-
-## WMT14 inspection profile
-
-The explicit `wmt14-inference-v1` artifact contains `codec.safetensors`,
-`generator.safetensors`, `training.safetensors`, `config.json`, `tokenizer.json`,
-`tokenizer-manifest.json`, `tokenizer.LICENSE` and `provenance.json`. The
-generation-path codec and generator bundles contain 63 and 186 tensors; the 33
-EMA/hit tensors are retained in the training bundle. There is no inference
-metadata bundle. The separate loader profile permits at most 640 MiB per file
-and 1280 MiB total without widening other profiles. Full and inference-only CPU
-loads and reproducible exports are described in the [artifact record](results/2026-11-16-phase4-wmt14/artifact-plan-v1.md).
-This profile currently supports artifact and host semantic inspection only;
-WMT14 model execution and GPU parity remain explicitly unsupported.
-
-## Proposed general runtime layout
+## Directory Layout
 
 ```text
 <artifact-root>/
-  manifest.json
-  config.json
-  codec.safetensors
-  generator.safetensors
-  inference.safetensors
-  tokenizer.json                  # HF profile, including added tokens/postprocessors
-  byte-bpe.json                    # TinyStories alternative; byte-safe encoding
-  provenance.json
+  manifest.json             # schema_version, profile, pins, files{bytes,sha256}, tensors[{name,shape,dtype,bytes,sha256}]
+  config.json               # pinned upstream config envelope
+  codec.safetensors         # FP32 codec weights (encoder, VQ codebooks, cascade, decoder)
+  generator.safetensors     # FP32 generator weights + lvl_1L (I64) + attn_mask_for_masking (F32)
+  training.safetensors      # separated EMA/count/hit buffers (validated, dropped on inference load)
+  inference.safetensors     # optional profile statistics (unigrams, XSum v2 RoPE tables)
+  tokenizer.json            # pinned tokenizer asset
+  tokenizer-manifest.json   # tokenizer provenance/pin metadata (text profiles)
+  tokenizer.LICENSE         # upstream tokenizer license (text profiles)
+  provenance.json           # export metadata and input checksums
 ```
 
-Large models may shard safetensors with a deterministic tensor index. Trainable
-weights, inference statistics and training/EMA state must be distinguished. A
-future training bundle extends the schema rather than repurposing inference files.
+## Loading Modes & Verification (`ncm-io`)
 
-## Manifest/provenance requirements
+`crates/ncm-io` provides three checked loaders, all enforcing exact flat filename inventories, strict manifest deserialization (no unknown fields, no duplicate keys), rank ≤ 8, checked shape-product arithmetic, per-profile byte budgets, non-symlink roots/files, whole-file SHA-256, and per-tensor SHA-256:
 
-- Schema version, model/task identity and explicit compatibility profile.
-- Upstream repository + commit, checkpoint repository + immutable revision,
-  per-input SHA-256 and output SHA-256, converter Git commit/version.
-- Resolved architecture, level schedule, all defaults, dtype policy, tensor names,
-  shapes, byte counts, canonical layouts, aliases/tied-weight ownership.
-- Tokenizer repository/revision, special token values/IDs, added tokens,
-  normalizer/pretokenizer/postprocessor/decoder and cleanup policy.
-- Generation defaults: level-zero source and unigram, token allowances,
-  temperature/top-k/top-p/CFG, penalties and EOS handling.
-- Code/weights/tokenizer/data licenses and attribution separately.
-- Python/Torch/export dependencies and relevant device/math settings; documented
-  reference patches. No environment secrets or machine-specific absolute paths.
+1. **`Artifact::load_inference_streaming(root)` (default for `ncm-cli` and benchmarks):**
+   - Loads small JSON/tokenizer/`inference.safetensors` payloads into memory.
+   - Opens `codec.safetensors`, `generator.safetensors`, and `training.safetensors` with `O_NOFOLLOW` and verifies them concurrently: for bundles ≥ 4 MiB, one thread hashes the whole file while up to 6 worker threads verify per-tensor SHA-256 digests and finite FP32 values (exempting `attn_mask_for_masking`, whose exact `0.0`/`-inf` values are validated in `ncm-model`) in file-offset order using 1 MiB scratch buffers (anonymous `mmap`/`munmap` on macOS aarch64). Small bundles (< 4 MiB) run in a single sequential pass.
+   - Drops `training.safetensors` after validation and retains open validated file descriptors for `codec.safetensors` and `generator.safetensors`.
+   - `ncm-model` performs complete host preflight (`bundle_tensors`, `bundle_f32_weights_verified_finite`, `read_bundle_tensor` for `lvl_1L`/`attn_mask_for_masking`/`log_inv_T`) before the first GPU allocation, then streams tensors one at a time via `visit_bundle_tensors` into a single reusable `Scratch` buffer (immediately unmapped on macOS on drop).
+2. **`Artifact::load_inference(root)`:** copies `codec.safetensors` and `generator.safetensors` into owned `Vec<u8>` buffers, validates `training.safetensors` via streaming, and parallelizes whole-file + per-tensor SHA-256 verification.
+3. **`Artifact::load(root)`:** retains all declared files (including `training.safetensors`) in owned `Vec<u8>` buffers for inspection and tests.
 
-Store weights in documented canonical (upstream-compatible) layouts. Adapters
-transform once on load to backend layouts; never silently rewrite the shared
-artifact for one device. Recompute nonpersistent derived values (RoPE, tied-head
-codebook norms/scales) under explicitly tested rules or record their exact reference
-forms. Generator/codec association is mandatory: a generator alone is insufficient.
+## Security & Trust Boundaries
 
-## Conversion and loading security
-
-Use trusted, pinned inputs and `torch.load(..., weights_only=True)` wherever
-supported. Never automatically retry with unrestricted pickle. Legacy byte-BPE and
-evaluation pickle conversion requires a separate explicit trusted-input operation
-inside a restricted offline environment, without secrets. Production Rust accepts
-only checked data formats, not pickle, Python config execution or remote model code.
-
-Validate hashes, file sizes/shape products, allowed dtypes, duplicates, missing and
-unexpected tensors, bounds and model/profile agreement before uploading to GPU.
-Reject absolute/escaping paths, unsafe symlinks and unknown schema versions. An
-explicit path resolver must flatten upstream `../tokenizer.pt` into a safe declared
-artifact relationship rather than allow arbitrary manifest traversal.
-
-Maintain an allowlist of intentionally omitted non-inference buffers; no blanket
-`strict=false` equivalent. Report ignored training settings distinctly from
-unsupported inference settings. Normalize tied/shared weights without losing
-aliases or introducing independently mutable copies.
-
-Memory mapping, if used, must retain file ownership for the entire tensor lifetime
-and document mutation/truncation hazards; a safe copied-load path comes first.
-All downloads are explicit user actions with revision/checksum validation and a
-cache-size budget. Never download the entire multi-GB repository in ordinary CI.
-
-## Dataset and result formats
-
-Convert evaluation inputs to bounded JSONL (text/IDs and stable sample IDs) or
-another reviewed non-executable columnar format. Keep shard/sample/seed identity
-explicit to avoid output ordering mistakes. Record raw IDs as well as decoded text
-for FLM and entropy protocols. Generated text/datasets may have redistribution
-limits: publish aggregate metrics and checksums when raw release is inappropriate.
-
-See [UPSTREAM.md](UPSTREAM.md) for schema evolution and [REPORTING.md](REPORTING.md)
-for immutable result/provenance bundles.
+- **Integrity vs authenticity:** manifest SHA-256 hashes prove internal consistency relative to `manifest.json`, not cryptographic authenticity of the manifest itself. Callers must check the expected `manifest.json` SHA-256 (or trust the local artifact directory).
+- **Non-mutating directory assumption:** as with `Artifact::load`, the artifact directory must be trusted and not concurrently mutated by an untrusted process during loading. `load_inference_streaming` opens weight bundles with `O_NOFOLLOW` and reads from the validated open file descriptors.
+- **No silent weakening:** missing/extra tensors, dtype/shape mismatches, nonfinite FP32 weights, corrupted masks/level buffers, path traversal, symlinks, or unknown profiles fail closed before any GPU allocation.
+- **Weights & data stay out of Git:** checkpoints, exported artifacts, and evaluation datasets remain under ignored local paths (`artifacts/`, `reports/`, `.reference/`).

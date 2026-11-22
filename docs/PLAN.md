@@ -213,8 +213,7 @@ checkpoint metadata before advertising support. A blocked artifact stays blocked
 
 ## Phase 5 — optimization and inference release
 
-**Active, narrowed by user decision (2026-11-19):** a lean FP32 release first, then targeted optimization.
-See [PHASE5.md](PHASE5.md).
+**Complete on Linux/CUDA and Apple Silicon/MLX (2026-11-21):** narrowed by user decision (2026-11-19) to a lean FP32 release (`v0.1.0`, published at `de2975a`) followed by stage profiling and targeted optimization (Step 3 `ee8769f`, `v0.2.0` draft awaiting tag approval). See [PHASE5.md](PHASE5.md), [Phase 5 final audit](results/2026-11-20-phase5-audit/phase5-final-audit-v1.md), and [cross-phase gap audit](results/2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md).
 
 Profile real batch/level shapes, then prioritize demonstrated bottlenecks:
 

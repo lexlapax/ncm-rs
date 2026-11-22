@@ -1,16 +1,19 @@
 # Published comparison index
 
-## Phase 5: release candidate in progress
+## Phase 5: lean inference release and targeted optimization (complete)
 
-These reports are development evidence, **not** a Phase 5 completion or release claim. The
-[interim step 1 audit](2026-11-19-phase5-cli/step1-interim-audit-v1.md) records unresolved
-artifact and CLI decisions. Linux qualification, the Mac replay, full quality/performance evidence,
-profiling and the release gates remain pending. The [current context map](../../agent-context-map.md)
-tracks the latest state.
+`v0.1.0` was tagged and published at `de2975a` (source-only); Step 2 stage profiling and Step 3
+model-load SHA-256 / streaming RSS optimization (`ee8769f`) are complete and verified on both CUDA
+and Metal. See the [Phase 5 final audit](2026-11-20-phase5-audit/phase5-final-audit-v1.md), the
+[cross-phase gap audit](2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md), and the
+[current context map](../../agent-context-map.md). Historical Step 1 interim reports below retain
+their original point-in-time status notes.
 
 | Report | Scope | Status and limits |
 | --- | --- | --- |
-| [Phase 5 Step 2 stage profiling (CUDA & Metal)](2026-11-20-phase5-profile/README.md) | Model load, per-level generator, sampling/penalties, codec decode, host readback, RSS and device peaks across all 7 profiles at batch 1 and max batch on RTX 3060 Ti and M1 Ultra | Step 2 complete; ranked bottleneck table published for user selection of Step 3 targets. |
+| [Phase 5 Final Audit](2026-11-20-phase5-audit/phase5-final-audit-v1.md) & [Cross-Phase Gap Audit](2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md) | Requirement-to-evidence audit for Phase 5 Steps 1–4 plus cross-phase implementation, quality, and Rust-vs-Python performance/memory ledger | Phase 5 complete on CUDA and Metal; `v0.2.0` tag awaits user confirmation. |
+| [Phase 5 Step 3 model-load & streaming RSS optimization (CUDA & Metal)](2026-11-20-phase5-optimization/README.md) | Alternating 3-process before/after load latency, host HWM/RSS, warm latency across all 7 profiles on CUDA & Metal, plus direct Metal LM1B vs Python MLX head-to-head and 9-profile byte equivalence | **1.71×–2.37×** CUDA / **1.82×–4.65×** Metal faster model load; up to **-2.8 GiB** CUDA HWM and **-45–49% Metal RSS** (~2× lower than Python MLX); 9/9 byte-identical. |
+| [Phase 5 Step 2 stage profiling (CUDA & Metal)](2026-11-20-phase5-profile/README.md) | Model load, per-level generator, sampling/penalties, codec decode, host readback, RSS and device peaks across all 7 profiles at batch 1 and max batch on RTX 3060 Ti and M1 Ultra | Step 2 complete; ranked bottleneck table published and used to select Step 3 target. |
 | [Apple Silicon / Metal Step 1 CLI](2026-11-19-phase5-cli/mlx-step1-cli-v1.md), [macOS fresh-clone setup](2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md) | `./tools/check.sh --mlx`, 9-profile baseline/alias/unified routing, flag boundaries, LM1B sidecar/`--top-p-fp32`, corpus encode/decode, Metal `--text`/`--decode`, fresh-clone macOS guide replay | Step 1 Metal checks and fresh-clone setup pass; `v0.1.0` tag awaits user confirmation; Steps 2–4 next. |
 | [WMT14 CFG surface audit](2026-11-19-phase5-cli/wmt14-cfg-policy-audit-v1.md) | Unqualified WMT14 scale routing and release policy | Decision pending; no inference or policy change. |
 | [CPU lifecycle mismatch investigation](2026-11-19-phase5-cli/linux-lifecycle-env-investigation-v1.md) | Fake supervised child environment observation | Intermittent mismatch reproduced; fail-closed behavior unchanged, cause not proved. |
