@@ -2,7 +2,7 @@
 use super::Result;
 use std::{fs, io::Read, path::Path};
 
-const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
+const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--precision fp32|bf16|fp16] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
 
 /// Read only enough untrusted metadata to choose a path. The chosen path must
 /// subsequently load and validate the complete artifact before inference.
@@ -117,7 +117,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
     if args.len() < 5 {
         return Err(USAGE.into());
     }
-    let (mut seed, mut cfg, mut rope) = (None, None, None);
+    let (mut seed, mut cfg, mut rope, mut precision) = (None, None, None, None);
     let (mut decode, mut text, mut stochastic, mut positive_cfg, mut top_p, mut host_fp64) =
         (false, false, false, false, false, false);
     let mut wmt14_experimental = false;
@@ -133,6 +133,10 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
                     return Err("CFG scale must be finite and nonnegative".into());
                 }
                 cfg = Some(value);
+            }
+            "--precision" if precision.is_none() => {
+                let value: ncm_core::ComputePrecision = options.next().ok_or(USAGE)?.parse()?;
+                precision = Some(value);
             }
             "--reference-rope" if rope.is_none() => rope = Some(options.next().ok_or(USAGE)?),
             "--decode" if !decode => decode = true,
@@ -496,5 +500,15 @@ mod tests {
         ] {
             assert!(translate_profile(&args(bad), "local-ncm-v1").is_err());
         }
+        assert!(translate_profile(&args(&["--precision", "bf16"]), "xsum-inference-v2").is_ok());
+        assert!(translate_profile(&args(&["--precision", "fp16"]), "local-ncm-v1").is_ok());
+        assert!(translate_profile(&args(&["--precision", "int4"]), "xsum-inference-v2").is_err());
+        assert!(
+            translate_profile(
+                &args(&["--precision", "bf16", "--precision", "fp32"]),
+                "xsum-inference-v2"
+            )
+            .is_err()
+        );
     }
 }

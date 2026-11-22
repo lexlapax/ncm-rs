@@ -5,7 +5,7 @@ use mlx_rs::{
     ops::indexing::{ArrayIndex, TryIndexOp},
     with_stream,
 };
-use ncm_core::{CodecBackend, Error, Result, WeightBackend};
+use ncm_core::{CodecBackend, ComputePrecision, Error, Result, WeightBackend};
 use std::{cell::RefCell, rc::Rc};
 // PyTorch uses an inner-dimension Sklansky scan for multiple rows. Its
 // single-row CUDA path uses CUB instead; retain MLX's scan for that case.
@@ -117,6 +117,7 @@ pub struct MlxTensor(Array);
 #[derive(Clone)]
 pub struct MlxBackend {
     stream: Stream,
+    precision: ComputePrecision,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
     xsum_refined_norm_experimental: bool,
     xsum_reference_projection_experimental: bool,
@@ -161,6 +162,7 @@ impl MlxBackend {
         let stream = Stream::try_default_on_device(&Device::gpu()).map_err(error)?;
         let backend = Self {
             stream,
+            precision: ComputePrecision::Fp32,
             compiled_gelu: Rc::new(RefCell::new(None)),
             xsum_refined_norm_experimental: false,
             xsum_reference_projection_experimental: false,
@@ -180,6 +182,33 @@ impl MlxBackend {
         let one = backend.upload_f32(&[1.], &[1])?;
         backend.evaluate(&[backend.add(&one, &one)?])?;
         Ok(backend)
+    }
+    /// Select explicit compute and weight-storage precision (`fp32`, `bf16`, or `fp16`).
+    pub fn with_precision(mut self, precision: ComputePrecision) -> Result<Self> {
+        self.precision = precision;
+        Ok(self)
+    }
+    fn float_dtype(&self) -> Dtype {
+        match self.precision {
+            ComputePrecision::Fp32 => Dtype::Float32,
+            ComputePrecision::Bf16 => Dtype::Bfloat16,
+            ComputePrecision::Fp16 => Dtype::Float16,
+        }
+    }
+    fn to_f32(&self, x: &Array) -> ops::Result<Array> {
+        if x.dtype() == Dtype::Float32 {
+            Ok(x.clone())
+        } else {
+            Ok(x.as_dtype(Dtype::Float32)?)
+        }
+    }
+    fn cast_from_f32(&self, x: Array) -> ops::Result<Array> {
+        let dtype = self.float_dtype();
+        if x.dtype() == dtype {
+            Ok(x)
+        } else {
+            Ok(x.as_dtype(dtype)?)
+        }
     }
     /// Synchronously materialize a single MLX tensor (FP32 or indices) without copying to host.
     pub fn eval_tensor(&self, x: &MlxTensor) -> Result<()> {
@@ -351,8 +380,9 @@ impl MlxBackend {
             return Err(Error::Input("nonfinite LM1B top-p logits".into()));
         }
         self.array_op(&[logits], || {
-            let order = mlx_rs::ops::argsort_axis(logits.0.negative()?, -1)?;
-            let sorted = logits.0.take_along_axis(&order, -1)?;
+            let logits_f32 = self.to_f32(&logits.0)?;
+            let order = mlx_rs::ops::argsort_axis(logits_f32.negative()?, -1)?;
+            let sorted = logits_f32.take_along_axis(&order, -1)?;
             let probabilities = mlx_rs::ops::softmax_axis(&sorted, -1, true)?;
             let cumulative = lm1b_grouped_scan(&probabilities, batch as usize * length as usize)?;
             let remove = cumulative
@@ -361,7 +391,7 @@ impl MlxBackend {
             let masked = mlx_rs::ops::select(&remove, Array::from_f32(f32::NEG_INFINITY), &sorted)?;
             let inverse = mlx_rs::ops::argsort_axis(&order, -1)?;
             let restored = masked.take_along_axis(&inverse, -1)?;
-            Ok(mlx_rs::ops::softmax_axis(&restored, -1, true)?)
+            self.cast_from_f32(mlx_rs::ops::softmax_axis(&restored, -1, true)?)
         })
     }
 
@@ -370,8 +400,9 @@ impl MlxBackend {
         inputs: &[&MlxTensor],
         f: impl FnOnce() -> ops::Result<Array>,
     ) -> Result<MlxTensor> {
+        let dtype = self.float_dtype();
         for x in inputs {
-            check(x, Dtype::Float32)?;
+            check(x, dtype)?;
         }
         with_stream(&self.stream, f).map(MlxTensor).map_err(error)
     }
@@ -391,9 +422,22 @@ impl MlxBackend {
 }
 impl WeightBackend for MlxBackend {
     type Tensor = MlxTensor;
+    fn precision(&self) -> ComputePrecision {
+        self.precision
+    }
     fn upload_f32(&self, values: &[f32], shape: &[usize]) -> Result<MlxTensor> {
+        if self.precision == ComputePrecision::Fp16
+            && values.iter().any(|&v| v.is_finite() && v.abs() > 65_504.0)
+        {
+            return Err(Error::Weights(
+                "tensor contains values exceeding IEEE 754 FP16 finite range (65504.0); use --precision bf16 or --precision fp32".into(),
+            ));
+        }
         let shape = upload_shape(shape, values.len())?;
-        self.array_op(&[], || Ok(Array::from_slice(values, &shape)))
+        self.array_op(&[], || {
+            let arr = Array::from_slice(values, &shape);
+            self.cast_from_f32(arr)
+        })
     }
 }
 impl CodecBackend for MlxBackend {
@@ -403,18 +447,18 @@ impl CodecBackend for MlxBackend {
         self.array_op(&[], || Ok(Array::from_slice(values, &shape)))
     }
     fn read_f32(&self, x: &MlxTensor) -> Result<Vec<f32>> {
-        check(x, Dtype::Float32)?;
+        check(x, self.float_dtype())?;
         with_stream(&self.stream, || -> ops::Result<_> {
-            let flat = x.0.reshape(&[-1])?.contiguous()?;
+            let flat = self.to_f32(&x.0)?.reshape(&[-1])?.contiguous()?;
             flat.eval()?;
             Ok(flat.try_as_slice::<f32>()?.to_vec())
         })
         .map_err(error)
     }
     fn visit_f32<R>(&self, x: &MlxTensor, f: impl FnOnce(&[f32]) -> R) -> Result<R> {
-        check(x, Dtype::Float32)?;
+        check(x, self.float_dtype())?;
         let flat = with_stream(&self.stream, || -> ops::Result<_> {
-            let flat = x.0.reshape(&[-1])?.contiguous()?;
+            let flat = self.to_f32(&x.0)?.reshape(&[-1])?.contiguous()?;
             flat.eval()?;
             Ok(flat)
         })
@@ -427,7 +471,7 @@ impl CodecBackend for MlxBackend {
         rows: usize,
         mut f: impl FnMut(&[f32]) -> R,
     ) -> Result<Vec<R>> {
-        check(x, Dtype::Float32)?;
+        check(x, self.float_dtype())?;
         let Some(&leading) = x.0.shape().first() else {
             return Err(Error::Input("row visits need a leading axis".into()));
         };
@@ -441,7 +485,10 @@ impl CodecBackend for MlxBackend {
             // Multiplying by one materializes a separate, exactly equal buffer, so the host
             // never touches (and makes resident) the full source tensor.
             let copy = with_stream(&self.stream, || -> ops::Result<_> {
-                let copy = block.0.multiply(Array::from_f32(1.0))?.reshape(&[-1])?;
+                let copy = self
+                    .to_f32(&block.0)?
+                    .multiply(Array::from_f32(1.0))?
+                    .reshape(&[-1])?;
                 copy.eval()?;
                 Ok(copy)
             })
@@ -474,7 +521,7 @@ impl CodecBackend for MlxBackend {
         self.array_op(&[x], || Ok(x.0.transpose_axes(&axes)?))
     }
     fn narrow(&self, x: &MlxTensor, axis: usize, start: usize, len: usize) -> Result<MlxTensor> {
-        check(x, Dtype::Float32)?;
+        check(x, self.float_dtype())?;
         self.slice(x, axis, start, len)
     }
     fn add(&self, x: &MlxTensor, y: &MlxTensor) -> Result<MlxTensor> {
@@ -487,13 +534,28 @@ impl CodecBackend for MlxBackend {
         if !scale.is_finite() || scale.abs() > f32::MAX as f64 {
             return Err(Error::Input("invalid FP32 scale".into()));
         }
-        self.array_op(&[x], || Ok(x.0.multiply(Array::from_f32(scale as f32))?))
+        self.array_op(&[x], || {
+            let factor = self.cast_from_f32(Array::from_f32(scale as f32))?;
+            Ok(x.0.multiply(factor)?)
+        })
     }
     fn square(&self, x: &MlxTensor) -> Result<MlxTensor> {
-        self.array_op(&[x], || Ok(x.0.square()?))
+        self.array_op(&[x], || {
+            if self.precision == ComputePrecision::Fp32 {
+                Ok(x.0.square()?)
+            } else {
+                self.cast_from_f32(self.to_f32(&x.0)?.square()?)
+            }
+        })
     }
     fn sum_last(&self, x: &MlxTensor) -> Result<MlxTensor> {
-        self.array_op(&[x], || Ok(x.0.sum_axis(-1, true)?))
+        self.array_op(&[x], || {
+            if self.precision == ComputePrecision::Fp32 {
+                Ok(x.0.sum_axis(-1, true)?)
+            } else {
+                self.cast_from_f32(self.to_f32(&x.0)?.sum_axis(-1, true)?)
+            }
+        })
     }
     fn project(&self, x: &MlxTensor, weight: &MlxTensor) -> Result<MlxTensor> {
         if self.xsum_head_projection_six_experimental
@@ -655,9 +717,23 @@ impl CodecBackend for MlxBackend {
         eps: f64,
     ) -> Result<MlxTensor> {
         if let Some(b) = bias {
-            check(b, Dtype::Float32)?;
+            check(b, self.float_dtype())?;
         }
         self.array_op(&[x, weight], || {
+            if self.precision != ComputePrecision::Fp32 {
+                if !eps.is_finite() || eps <= 0. || eps > f32::MAX as f64 {
+                    return Err("invalid epsilon".into());
+                }
+                let xf = self.to_f32(&x.0)?;
+                let wf = self.to_f32(&weight.0)?;
+                let bf = bias.map(|b| self.to_f32(&b.0)).transpose()?;
+                let y = ops::layer_norm(&xf, eps)?.multiply(&wf)?;
+                let out = match bf {
+                    Some(b) => y.add(&b)?,
+                    None => y,
+                };
+                return self.cast_from_f32(out);
+            }
             let y = ops::layer_norm(&x.0, eps)?.multiply(&weight.0)?;
             Ok(match bias {
                 Some(b) => y.add(&b.0)?,
@@ -673,11 +749,15 @@ impl CodecBackend for MlxBackend {
         eps: f64,
     ) -> Result<MlxTensor> {
         if let Some(b) = bias {
-            check(b, Dtype::Float32)?;
+            check(b, self.float_dtype())?;
         }
         self.array_op(&[x, weight], || {
             let width = x.0.shape().last().copied();
-            if self.xsum_norm_experimental && width == Some(768) && eps == 1e-6 {
+            if self.precision == ComputePrecision::Fp32
+                && self.xsum_norm_experimental
+                && width == Some(768)
+                && eps == 1e-6
+            {
                 let bias = bias.ok_or("experimental XSum normalization requires bias")?;
                 return crate::xsum_norm_experimental::apply(
                     &x.0,
@@ -700,20 +780,33 @@ impl CodecBackend for MlxBackend {
                     eps as f32,
                 )?);
             }
-            let y = ops::layer_norm_accelerated(&x.0, eps)?.multiply(&weight.0)?;
-            Ok(match bias {
-                Some(b) => y.add(&b.0)?,
+            let xf = self.to_f32(&x.0)?;
+            let wf = self.to_f32(&weight.0)?;
+            let bf = bias.map(|b| self.to_f32(&b.0)).transpose()?;
+            let y = ops::layer_norm_accelerated(&xf, eps)?.multiply(&wf)?;
+            let out = match bf {
+                Some(b) => y.add(&b)?,
                 None => y,
-            })
+            };
+            self.cast_from_f32(out)
         })
     }
     fn rms_norm(&self, x: &MlxTensor, weight: &MlxTensor, eps: f64) -> Result<MlxTensor> {
         self.array_op(&[x, weight], || {
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(&x.0)?;
+                let wf = self.to_f32(&weight.0)?;
+                return self.cast_from_f32(ops::rms_norm(&xf, eps)?.multiply(&wf)?);
+            }
             Ok(ops::rms_norm(&x.0, eps)?.multiply(&weight.0)?)
         })
     }
     fn group_norm(&self, x: &MlxTensor, groups: usize, eps: f64) -> Result<MlxTensor> {
         self.array_op(&[x], || {
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(&x.0)?;
+                return self.cast_from_f32(ops::group_norm(&xf, groups, eps)?);
+            }
             if self.xsum_groupnorm_experimental
                 && matches!(x.0.shape(), [_, 12, 384])
                 && groups == 8
@@ -726,6 +819,14 @@ impl CodecBackend for MlxBackend {
     }
     fn gelu(&self, x: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x], || {
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(&x.0)?;
+                let out = xf.multiply(Array::from_f32(0.5))?.multiply(
+                    mlx_rs::ops::erf(xf.divide(Array::from_f32(std::f32::consts::SQRT_2))?)?
+                        .add(Array::from_f32(1.))?,
+                )?;
+                return self.cast_from_f32(out);
+            }
             if self.xsum_compiled_gelu_experimental {
                 let mut slot = self
                     .compiled_gelu
@@ -790,10 +891,10 @@ impl CodecBackend for MlxBackend {
         mask: Option<&MlxTensor>,
     ) -> Result<MlxTensor> {
         if let Some(m) = mask {
-            check(m, Dtype::Float32)?;
+            check(m, self.float_dtype())?;
         }
         self.array_op(&[q, k, v], || {
-            let zero = Array::from_f32(0.);
+            let zero = self.cast_from_f32(Array::from_f32(0.))?;
             ops::attention(&q.0, &k.0, &v.0, mask.map(|m| &m.0).unwrap_or(&zero))
         })
     }
@@ -855,7 +956,8 @@ impl CodecBackend for MlxBackend {
                     .reshape(&[batch, length, output, kernel])?
                     .transpose_axes(&[0, 1, 3, 2])?
                     .reshape(&[batch, length * kernel, output])?
-            } else if self.xsum_refinement_experimental
+            } else if self.precision == ComputePrecision::Fp32
+                && self.xsum_refinement_experimental
                 && !transposed
                 && length == 48
                 && input == 384
@@ -901,14 +1003,27 @@ impl CodecBackend for MlxBackend {
         })
     }
     fn area1d(&self, x: &MlxTensor, length: usize) -> Result<MlxTensor> {
-        self.array_op(&[x], || ops::area1d(&x.0, length))
+        self.array_op(&[x], || {
+            if self.precision == ComputePrecision::Fp32 {
+                ops::area1d(&x.0, length)
+            } else {
+                self.cast_from_f32(ops::area1d(&self.to_f32(&x.0)?, length)?)
+            }
+        })
     }
     fn linear1d(&self, x: &MlxTensor, length: usize) -> Result<MlxTensor> {
-        self.array_op(&[x], || ops::linear1d(&x.0, length))
+        self.array_op(&[x], || {
+            if self.precision == ComputePrecision::Fp32 {
+                ops::linear1d(&x.0, length)
+            } else {
+                self.cast_from_f32(ops::linear1d(&self.to_f32(&x.0)?, length)?)
+            }
+        })
     }
     fn evaluate(&self, xs: &[MlxTensor]) -> Result<()> {
+        let dtype = self.float_dtype();
         for x in xs {
-            check(x, Dtype::Float32)?;
+            check(x, dtype)?;
         }
         // eval is synchronous; all supplied lazy roots are materialized together.
         with_stream(&self.stream, || {
@@ -929,8 +1044,9 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         logits: &MlxTensor,
         uniforms: &MlxTensor,
     ) -> Result<(MlxTensor, MlxTensor)> {
-        check(logits, Dtype::Float32)?;
-        check(uniforms, Dtype::Float32)?;
+        let dtype = self.float_dtype();
+        check(logits, dtype)?;
+        check(uniforms, dtype)?;
         let &[batch, length, width] = logits.0.shape() else {
             return Err(Error::Input("expected rank-three LM1B logits".into()));
         };
@@ -942,17 +1058,19 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             return Err(Error::Input("invalid LM1B categorical shapes".into()));
         }
         with_stream(&self.stream, || -> ops::Result<(Array, Array)> {
-            let probabilities = mlx_rs::ops::softmax_axis(&logits.0, -1, true)?;
+            let logits_f32 = self.to_f32(&logits.0)?;
+            let uniforms_f32 = self.to_f32(&uniforms.0)?;
+            let probabilities = mlx_rs::ops::softmax_axis(&logits_f32, -1, true)?;
             let cumulative = probabilities.cumsum(-1, false, true)?;
             let total = cumulative.try_index((.., .., 8191..8192))?;
-            let threshold = uniforms.0.expand_dims(-1)?.multiply(&total)?;
+            let threshold = uniforms_f32.expand_dims(-1)?.multiply(&total)?;
             // First index whose cumulative probability exceeds the threshold.
             let index = cumulative
                 .le(&threshold)?
                 .as_type::<u32>()?
                 .sum_axis(-1, false)?;
             let index = mlx_rs::ops::minimum(&index, Array::from_slice(&[8191_u32], &[]))?;
-            let invalid = logits.0.is_finite()?.logical_not()?.any_axis(-1, false)?;
+            let invalid = logits_f32.is_finite()?.logical_not()?.any_axis(-1, false)?;
             let choices = mlx_rs::ops::select(&invalid, Array::from_slice(&[0_u32], &[]), &index)?;
             let count = invalid.as_type::<u32>()?.sum(false)?.reshape(&[1])?;
             Ok((choices, count))
@@ -966,17 +1084,23 @@ impl ncm_core::GeneratorBackend for MlxBackend {
     }
 
     fn unique_max_4096(&self, logits: &MlxTensor) -> Result<MlxTensor> {
-        check(logits, Dtype::Float32)?;
-        with_stream(&self.stream, || crate::xsum_top1::select(&logits.0, true))
-            .map(MlxTensor)
-            .map_err(error)
+        check(logits, self.float_dtype())?;
+        with_stream(&self.stream, || {
+            let logits_f32 = self.to_f32(&logits.0)?;
+            crate::xsum_top1::select(&logits_f32, true)
+        })
+        .map(MlxTensor)
+        .map_err(error)
     }
 
     fn xsum_reference_top1_4096(&self, logits: &MlxTensor) -> Result<MlxTensor> {
-        check(logits, Dtype::Float32)?;
-        with_stream(&self.stream, || crate::xsum_top1::select(&logits.0, false))
-            .map(MlxTensor)
-            .map_err(error)
+        check(logits, self.float_dtype())?;
+        with_stream(&self.stream, || {
+            let logits_f32 = self.to_f32(&logits.0)?;
+            crate::xsum_top1::select(&logits_f32, false)
+        })
+        .map(MlxTensor)
+        .map_err(error)
     }
 
     fn rms_rope(
@@ -987,7 +1111,9 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         sin: &MlxTensor,
         eps: f64,
     ) -> Result<MlxTensor> {
-        if matches!(x.0.shape(), [batch, _, _, 64] if *batch >= 16) {
+        if self.precision == ComputePrecision::Fp32
+            && matches!(x.0.shape(), [batch, _, _, 64] if *batch >= 16)
+        {
             return self.array_op(&[x, weight, cos, sin], || {
                 crate::qk_rope::apply(&x.0, &weight.0, &cos.0, &sin.0, eps)
             });
@@ -995,7 +1121,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         self.rope(&self.rms_norm(x, weight, eps)?, cos, sin)
     }
     fn sampled_embedding_4096(&self, weight: &MlxTensor, indices: &MlxTensor) -> Result<MlxTensor> {
-        check(weight, Dtype::Float32)?;
+        check(weight, self.float_dtype())?;
         check(indices, Dtype::Uint32)?;
         if weight.0.shape().len() != 2 || weight.0.shape().first() != Some(&4096) {
             return Err(Error::Input("sampled codebook must have 4096 rows".into()));
@@ -1008,7 +1134,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         .map_err(error)
     }
     fn sampled_embedding_8192(&self, weight: &MlxTensor, indices: &MlxTensor) -> Result<MlxTensor> {
-        check(weight, Dtype::Float32)?;
+        check(weight, self.float_dtype())?;
         check(indices, Dtype::Uint32)?;
         if weight.0.shape().len() != 2 || weight.0.shape().first() != Some(&8192) {
             return Err(Error::Input("sampled codebook must have 8192 rows".into()));
@@ -1021,20 +1147,22 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         .map_err(error)
     }
     fn xsum_categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
-        check(logits, Dtype::Float32)?;
+        check(logits, self.float_dtype())?;
         check(uniforms, Dtype::Uint32)?;
         with_stream(&self.stream, || {
-            crate::xsum_categorical::draw(&logits.0, &uniforms.0)
+            let logits_f32 = self.to_f32(&logits.0)?;
+            crate::xsum_categorical::draw(&logits_f32, &uniforms.0)
         })
         .map(MlxTensor)
         .map_err(error)
     }
 
     fn categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
-        check(logits, Dtype::Float32)?;
+        check(logits, self.float_dtype())?;
         check(uniforms, Dtype::Uint32)?;
         with_stream(&self.stream, || {
-            crate::categorical::draw(&logits.0, &uniforms.0)
+            let logits_f32 = self.to_f32(&logits.0)?;
+            crate::categorical::draw(&logits_f32, &uniforms.0)
         })
         .map(MlxTensor)
         .map_err(error)
@@ -1084,6 +1212,14 @@ impl ncm_core::GeneratorBackend for MlxBackend {
     }
     fn rope(&self, x: &MlxTensor, cos: &MlxTensor, sin: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x, cos, sin], || {
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(&x.0)?;
+                let cf = self.to_f32(&cos.0)?;
+                let sf = self.to_f32(&sin.0)?;
+                let cosine = mlx_rs::ops::concatenate(&[&cf, &cf], 1)?;
+                let sine = mlx_rs::ops::concatenate(&[&sf, &sf], 1)?;
+                return self.cast_from_f32(ops::rope(&xf, &cosine, &sine)?);
+            }
             let cosine = mlx_rs::ops::concatenate(&[&cos.0, &cos.0], 1)?;
             let sine = mlx_rs::ops::concatenate(&[&sin.0, &sin.0], 1)?;
             ops::rope(&x.0, &cosine, &sine)

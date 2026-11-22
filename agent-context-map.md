@@ -6,6 +6,15 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- **Phase 6 (`v0.3.0`) Milestone 6A (Opt-In `BF16` / `FP16` Half Precision) — Linux/CUDA gate PASSED (2026-11-22), macOS/Metal validation next:**
+  - Plan in [docs/PHASE6.md](docs/PHASE6.md): Milestone 6A (half precision) → Milestone 6B (`ncm serve` OpenAI + Ollama API) → Milestone 6C (newbie quickstart & CLI ergonomics) → `v0.3.0` release.
+  - Added `ComputePrecision::{Fp32, Bf16, Fp16}` + `WeightBackend::precision()` in `ncm-core`, `CandleBackend::with_precision` (rejects CPU half precision, pre-Ampere BF16, and weights exceeding IEEE 754 FP16 finite range `65504.0` on load), `MlxBackend::with_precision`, mixed-precision GEMM/attention with FP32 norm/reduction/sampling/penalty accumulation, `--precision fp32|bf16|fp16` on `ncm sample` (strictly keeping `fp32` default untouched), `NCM_PRECISION` on `phase5_stage_profile`, and `precision.rs` regression tests in both GPU backends.
+  - **Linux/CUDA verified (RTX 3060 Ti, 8 GiB, `llama-server.service` off):**
+    - `./tools/check.sh` passed (all Rust tests, Clippy `-D warnings`, docs, 603/603 Linux report tests), CUDA Clippy (`ncm-backend-cuda` + `ncm-cli --features cuda-cudnn`) passed, `cargo test -p ncm-backend-cuda --features cpu,cuda --test precision` passed (3/3), and release 18-case CUDA operator probe passed (18/18).
+    - **Quality vs FP32:** `sudoku-easy` (128 boards) **128/128 (100.00%)** in both `bf16` and `fp16`; `xsum` (32 rows) `fp16` **29/32 exact texts (97.59% token match)** / `bf16` 16/32 (75.98%); `wmt14` (32 rows) `fp16` **29/32 exact texts (98.93% token match)** / `bf16` 18/32 (87.45%); `tinystories` passes `bf16` and cleanly fails `fp16` on load because upstream `vq.embeddings.0.weight` reaches `2.48 × 10^10`.
+    - **Perf & VRAM** ([cuda-precision-v1.json](docs/results/2026-11-22-phase6-precision-serving/cuda-precision-v1.json)): `lm1b-large` b=1 **246.2 → 167.7 ms (1.47× faster) in `fp16` / 191.1 ms (1.29×) in `bf16`** with **3,215.6 → 1,667.7 MiB VRAM (-48.1%)**; `lm1b-large` **b=16 now fits comfortably in 1,955.1 MiB VRAM** (`90.7 ms/seq` `fp16`, `97.6 ms/seq` `bf16`) on 8 GiB RTX 3060 Ti; `lm1b-medium` 1.26× faster (`-46.4%` VRAM); `xsum` 1.19× faster (`-46.9%` VRAM); `wmt14` 1.10× faster (`-46.7%` VRAM).
+  - **Next:** pull on `macstudio` to validate Milestone 6A on Apple Silicon/Metal (`./tools/check.sh --mlx`, `precision` tests, 7-profile + `lm1b-large` b=16 screen), then implement Milestone 6B (`ncm-serve` + `ncm serve` + `ncm list`).
+
 - **`v0.2.0` release ready & published on Linux/CUDA and Apple Silicon/Metal (2026-11-22):**
   - Bumped workspace version to `0.2.0` (`Cargo.toml` + `Cargo.lock`), finalized `docs/RELEASE-NOTES-v0.2.0.md` and `README.md`, tagging annotated `v0.2.0` and publishing source-only GitHub release with user approval.
   - All five cross-phase gap-audit items from [cross-phase-gap-audit-v1.md](docs/results/2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md) implemented and dual-platform verified:

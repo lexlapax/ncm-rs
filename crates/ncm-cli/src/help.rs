@@ -30,6 +30,7 @@ the verified rotary tables inside inference.safetensors.
 Options:
   --seed N                       Seed TinyStories, LM1B (default 0) or local-ncm-v1.
   --cfg S                        Classifier-free guidance scale (default 0).
+  --precision fp32|bf16|fp16     Compute and weight precision (default fp32).
   --decode                       Include evaluator-decoded text for text profiles.
   --text                         Encode text input; LM1B accepts only empty strings.
   --reference-rope FILE          Override default LM1B rotary table path.

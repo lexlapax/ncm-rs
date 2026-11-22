@@ -148,32 +148,38 @@ fn dispatch_tinystories(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     seed: u64,
+    precision: ncm_core::ComputePrecision,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, seed);
+    let _ = (&artifact, inputs, seed, precision);
     match device {
         #[cfg(feature = "cpu")]
         "cpu" => sample_tinystories(
-            ncm_backend_cuda::CandleBackend::cpu(),
+            ncm_backend_cuda::CandleBackend::cpu().with_precision(precision)?,
             artifact,
             inputs,
             seed,
         ),
         #[cfg(feature = "cuda")]
         "cuda" => sample_tinystories(
-            ncm_backend_cuda::CandleBackend::cuda(0)?,
+            ncm_backend_cuda::CandleBackend::cuda(0)?.with_precision(precision)?,
             artifact,
             inputs,
             seed,
         ),
         #[cfg(feature = "cuda-cudnn")]
         "cuda-cudnn" => sample_tinystories(
-            ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?,
+            ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?.with_precision(precision)?,
             artifact,
             inputs,
             seed,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-        "mlx" => sample_tinystories(ncm_backend_mlx::MlxBackend::gpu()?, artifact, inputs, seed),
+        "mlx" => sample_tinystories(
+            ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision)?,
+            artifact,
+            inputs,
+            seed,
+        ),
         _ => Err("requested device is unavailable in this build; no fallback".into()),
     }
 }
@@ -231,32 +237,38 @@ fn dispatch_local(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     seed: Option<u64>,
+    precision: ncm_core::ComputePrecision,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, seed);
+    let _ = (&artifact, inputs, seed, precision);
     match device {
         #[cfg(feature = "cpu")]
         "cpu" => sample_local(
-            ncm_backend_cuda::CandleBackend::cpu(),
+            ncm_backend_cuda::CandleBackend::cpu().with_precision(precision)?,
             artifact,
             inputs,
             seed,
         ),
         #[cfg(feature = "cuda")]
         "cuda" => sample_local(
-            ncm_backend_cuda::CandleBackend::cuda(0)?,
+            ncm_backend_cuda::CandleBackend::cuda(0)?.with_precision(precision)?,
             artifact,
             inputs,
             seed,
         ),
         #[cfg(feature = "cuda-cudnn")]
         "cuda-cudnn" => sample_local(
-            ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?,
+            ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?.with_precision(precision)?,
             artifact,
             inputs,
             seed,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-        "mlx" => sample_local(ncm_backend_mlx::MlxBackend::gpu()?, artifact, inputs, seed),
+        "mlx" => sample_local(
+            ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision)?,
+            artifact,
+            inputs,
+            seed,
+        ),
         _ => Err("requested device is unavailable in this build; no fallback".into()),
     }
 }
@@ -285,9 +297,10 @@ fn sample_xsum(
     inputs: &[Vec<u32>],
     cfg_scale: f64,
     seed: Option<u64>,
+    precision: ncm_core::ComputePrecision,
 ) -> Result<serde_json::Value> {
     let prefixes = xsum_prefixes(inputs)?;
-    let backend = ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?;
+    let backend = ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?.with_precision(precision)?;
     let model =
         XsumTeacher::from_owned_artifact(backend.clone(), artifact)?.with_prefix_cache(true);
     let generated = if let Some(seed) = seed {
@@ -333,9 +346,10 @@ fn sample_xsum_mlx(
     inputs: &[Vec<u32>],
     cfg_scale: f64,
     seed: Option<u64>,
+    precision: ncm_core::ComputePrecision,
 ) -> Result<serde_json::Value> {
     let prefixes = xsum_prefixes(inputs)?;
-    let backend = ncm_backend_mlx::MlxBackend::gpu()?;
+    let backend = ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision)?;
     let model =
         XsumTeacher::from_owned_artifact(backend.clone(), artifact)?.with_prefix_cache(true);
     let generated = if let Some(seed) = seed {
@@ -352,13 +366,14 @@ fn dispatch_xsum(
     inputs: &[Vec<u32>],
     cfg_scale: f64,
     seed: Option<u64>,
+    precision: ncm_core::ComputePrecision,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, cfg_scale, seed);
+    let _ = (&artifact, inputs, cfg_scale, seed, precision);
     match device {
         #[cfg(feature = "cuda-cudnn")]
-        "cuda-cudnn" => sample_xsum(artifact, inputs, cfg_scale, seed),
+        "cuda-cudnn" => sample_xsum(artifact, inputs, cfg_scale, seed, precision),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-        "mlx" => sample_xsum_mlx(artifact, inputs, cfg_scale, seed),
+        "mlx" => sample_xsum_mlx(artifact, inputs, cfg_scale, seed, precision),
         _ => Err("XSum requested device is unavailable in this build; no fallback".into()),
     }
 }
@@ -460,12 +475,14 @@ fn dispatch_wmt14(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     scale: f64,
+    precision: ncm_core::ComputePrecision,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, scale);
+    let _ = (&artifact, inputs, scale, precision);
     match device {
         #[cfg(all(feature = "wmt14-experimental", feature = "cuda-cudnn"))]
         "cuda" => sample_wmt14(
-            ncm_backend_cuda::CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?,
+            ncm_backend_cuda::CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?
+                .with_precision(precision)?,
             artifact,
             inputs,
             scale,
@@ -479,7 +496,7 @@ fn dispatch_wmt14(
             target_arch = "aarch64"
         ))]
         "mlx" | "mlx-retry-padded" => sample_wmt14(
-            ncm_backend_mlx::MlxBackend::gpu()?,
+            ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision)?,
             artifact,
             inputs,
             scale,
@@ -496,12 +513,13 @@ fn dispatch(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     batch_size: usize,
+    precision: ncm_core::ComputePrecision,
 ) -> Result<serde_json::Value> {
-    let _ = (command, &artifact, inputs, batch_size);
+    let _ = (command, &artifact, inputs, batch_size, precision);
     match device {
         #[cfg(feature = "cpu")]
         "cpu" => run(
-            ncm_backend_cuda::CandleBackend::cpu(),
+            ncm_backend_cuda::CandleBackend::cpu().with_precision(precision)?,
             command,
             artifact,
             inputs,
@@ -509,7 +527,7 @@ fn dispatch(
         ),
         #[cfg(feature = "cuda")]
         "cuda" => run(
-            ncm_backend_cuda::CandleBackend::cuda(0)?,
+            ncm_backend_cuda::CandleBackend::cuda(0)?.with_precision(precision)?,
             command,
             artifact,
             inputs,
@@ -517,7 +535,7 @@ fn dispatch(
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx" => run(
-            ncm_backend_mlx::MlxBackend::gpu()?,
+            ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision)?,
             command,
             artifact,
             inputs,
@@ -552,6 +570,24 @@ fn main_impl() -> Result<()> {
     let unified = args.get(1).is_some_and(|arg| arg == "sample");
     let decode = unified && args.iter().skip(5).any(|arg| arg == "--decode");
     let text = unified && args.iter().skip(5).any(|arg| arg == "--text");
+    let precision = if unified {
+        let mut parsed = ncm_core::ComputePrecision::Fp32;
+        let mut i = 5;
+        while i < args.len() {
+            if args[i] == "--precision" {
+                let raw = args
+                    .get(i + 1)
+                    .ok_or("missing value for --precision (expected fp32, bf16, or fp16)")?;
+                parsed = raw.parse()?;
+                i += 2;
+            } else {
+                i += 1;
+            }
+        }
+        parsed
+    } else {
+        ncm_core::ComputePrecision::Fp32
+    };
     if unified {
         args = sample::translate(&args)?;
     } else if args.get(1).is_some_and(|arg| arg == "sample-xsum") {
@@ -568,7 +604,7 @@ fn main_impl() -> Result<()> {
         .get(1)
         .is_some_and(|arg| arg == "sample-lm1b" || arg == "sample-lm1b-small")
     {
-        let result = lm1b::sample(&args, text)?;
+        let result = lm1b::sample(&args, text, precision)?;
         println!("{}", serde_json::to_string(&result)?);
         return Ok(());
     }
@@ -610,18 +646,18 @@ fn main_impl() -> Result<()> {
     let mut result = if args[1] == "sample-xsum" {
         let cfg_scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
         let seed = args.get(6).map(|s| s.parse::<u64>()).transpose()?;
-        dispatch_xsum(&args[3], artifact, &inputs, cfg_scale, seed)?
+        dispatch_xsum(&args[3], artifact, &inputs, cfg_scale, seed, precision)?
     } else if args[1] == "sample-wmt14" {
         let scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
-        dispatch_wmt14(&args[3], artifact, &inputs, scale)?
+        dispatch_wmt14(&args[3], artifact, &inputs, scale, precision)?
     } else if args[1] == "sample-local" {
         let seed = args.get(5).map(|s| s.parse::<u64>()).transpose()?;
-        dispatch_local(&args[3], artifact, &inputs, seed)?
+        dispatch_local(&args[3], artifact, &inputs, seed, precision)?
     } else if let Some(seed) = sample_seed {
-        dispatch_tinystories(&args[3], artifact, &inputs, seed)?
+        dispatch_tinystories(&args[3], artifact, &inputs, seed, precision)?
     } else {
         let batch_size = args.get(5).map_or(Ok(128), |s| s.parse::<usize>())?;
-        dispatch(&args[3], &args[1], artifact, &inputs, batch_size)?
+        dispatch(&args[3], &args[1], artifact, &inputs, batch_size, precision)?
     };
     if decode {
         decoder.ok_or("missing tokenizer")?.add_texts(&mut result)?;

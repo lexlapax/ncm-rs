@@ -20,7 +20,11 @@ fn text_prefixes(bytes: &[u8]) -> Result<Vec<Vec<u32>>> {
     Ok(vec![vec![101]; texts.len()])
 }
 
-pub(super) fn sample(args: &[String], text: bool) -> Result<serde_json::Value> {
+pub(super) fn sample(
+    args: &[String],
+    text: bool,
+    precision: ncm_core::ComputePrecision,
+) -> Result<serde_json::Value> {
     const USAGE: &str = "usage: ncm sample-lm1b ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32|--host-fp64]";
     let [
         _,
@@ -57,11 +61,20 @@ pub(super) fn sample(args: &[String], text: bool) -> Result<serde_json::Value> {
                     seed.parse()?,
                     reference_rope,
                     decode,
+                    precision,
                 )
             }
             #[cfg(not(all(feature = "lm1b-experimental", target_os = "linux")))]
             {
-                let _ = (artifact, input, seed, reference_rope, decode, text);
+                let _ = (
+                    artifact,
+                    input,
+                    seed,
+                    reference_rope,
+                    decode,
+                    text,
+                    precision,
+                );
                 Err("experimental LM1B-small CUDA is unavailable in this build".into())
             }
         }
@@ -80,6 +93,7 @@ pub(super) fn sample(args: &[String], text: bool) -> Result<serde_json::Value> {
                     decode,
                     top_p,
                     host_fp64,
+                    precision,
                 )
             }
             #[cfg(not(all(
@@ -96,6 +110,7 @@ pub(super) fn sample(args: &[String], text: bool) -> Result<serde_json::Value> {
                     decode,
                     host_fp64,
                     text,
+                    precision,
                 );
                 Err("experimental LM1B-small Metal is unavailable in this build".into())
             }
@@ -158,9 +173,13 @@ mod backend {
         seed: u64,
         reference_rope: &str,
         decode: bool,
+        precision: ncm_core::ComputePrecision,
     ) -> Result<serde_json::Value> {
         sample(
-            || ncm_backend_cuda::CandleBackend::cuda_lm1b_efficient_experimental(0),
+            || {
+                ncm_backend_cuda::CandleBackend::cuda_lm1b_efficient_experimental(0)?
+                    .with_precision(precision)
+            },
             artifact,
             input,
             seed,
@@ -175,6 +194,7 @@ mod backend {
         target_os = "macos",
         target_arch = "aarch64"
     ))]
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn sample_mlx(
         artifact: &str,
         input: (&str, bool),
@@ -183,9 +203,10 @@ mod backend {
         decode: bool,
         top_p: bool,
         host_fp64: bool,
+        precision: ncm_core::ComputePrecision,
     ) -> Result<serde_json::Value> {
         sample(
-            ncm_backend_mlx::MlxBackend::gpu,
+            || ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision),
             artifact,
             input,
             seed,
@@ -370,11 +391,12 @@ mod dispatch_tests {
 
     #[test]
     fn top_p_flag_requires_metal_and_rejects_duplicates() {
+        let p = ncm_core::ComputePrecision::Fp32;
         for flag in ["--top-p-fp32", "--host-fp64"] {
             let mut cuda = args("cuda-cudnn");
             cuda.push(flag.into());
             assert!(
-                sample(&cuda, false)
+                sample(&cuda, false, p)
                     .unwrap_err()
                     .to_string()
                     .contains("require explicit mlx")
@@ -383,7 +405,7 @@ mod dispatch_tests {
         let mut both = args("mlx");
         both.extend(["--top-p-fp32".into(), "--host-fp64".into()]);
         assert!(
-            sample(&both, false)
+            sample(&both, false, p)
                 .unwrap_err()
                 .to_string()
                 .contains("usage:")
@@ -391,7 +413,7 @@ mod dispatch_tests {
         let mut duplicate = args("mlx");
         duplicate.extend(["--top-p-fp32".into(), "--top-p-fp32".into()]);
         assert!(
-            sample(&duplicate, false)
+            sample(&duplicate, false, p)
                 .unwrap_err()
                 .to_string()
                 .contains("usage:")
@@ -472,7 +494,9 @@ mod dispatch_tests {
 
     #[test]
     fn unsupported_device_is_rejected_before_files_are_opened() {
-        let err = sample(&args("cpu"), false).unwrap_err().to_string();
+        let err = sample(&args("cpu"), false, ncm_core::ComputePrecision::Fp32)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("explicit cuda-cudnn or mlx"));
     }
 
@@ -483,11 +507,12 @@ mod dispatch_tests {
     )))]
     #[test]
     fn unavailable_metal_is_not_silently_replaced() {
-        let err = sample(&args("mlx"), false).unwrap_err().to_string();
+        let p = ncm_core::ComputePrecision::Fp32;
+        let err = sample(&args("mlx"), false, p).unwrap_err().to_string();
         assert!(err.contains("Metal is unavailable"));
         let mut top_p = args("mlx");
         top_p.push("--top-p-fp32".into());
-        let err = sample(&top_p, false).unwrap_err().to_string();
+        let err = sample(&top_p, false, p).unwrap_err().to_string();
         assert!(err.contains("Metal is unavailable"));
     }
 }

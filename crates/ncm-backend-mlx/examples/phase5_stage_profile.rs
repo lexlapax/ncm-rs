@@ -211,7 +211,12 @@ fn main() -> Result<()> {
         stage_mem,
     );
 
-    let backend = MlxBackend::gpu()?;
+    let precision: ncm_core::ComputePrecision = std::env::var("NCM_PRECISION")
+        .ok()
+        .as_deref()
+        .unwrap_or("fp32")
+        .parse()?;
+    let backend = MlxBackend::gpu()?.with_precision(precision)?;
     memory::reset_peak_memory()?;
 
     match profile {

@@ -1,0 +1,188 @@
+[
+  {
+    "profile": "sudoku-easy",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 92.3,
+      "warm_med_ms": 25.81,
+      "warm_p95_ms": 30.09,
+      "vram_peak_mib": 168.8,
+      "hwm_mib": 611.7
+    },
+    "bf16": {
+      "load_ms": 94.5,
+      "warm_med_ms": 30.9,
+      "warm_p95_ms": 31.98,
+      "vram_peak_mib": 100.1,
+      "hwm_mib": 873.0
+    },
+    "fp16": {
+      "load_ms": 117.1,
+      "warm_med_ms": 25.24,
+      "warm_p95_ms": 25.29,
+      "vram_peak_mib": 100.1,
+      "hwm_mib": 892.6
+    }
+  },
+  {
+    "profile": "tinystories",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 286.7,
+      "warm_med_ms": 41.05,
+      "warm_p95_ms": 42.44,
+      "vram_peak_mib": 492.9,
+      "hwm_mib": 815.0
+    },
+    "bf16": {
+      "load_ms": 296.9,
+      "warm_med_ms": 42.47,
+      "warm_p95_ms": 43.51,
+      "vram_peak_mib": 253.6,
+      "hwm_mib": 880.0
+    }
+  },
+  {
+    "profile": "xsum",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 351.5,
+      "warm_med_ms": 47.67,
+      "warm_p95_ms": 48.81,
+      "vram_peak_mib": 686.1,
+      "hwm_mib": 896.6
+    },
+    "bf16": {
+      "load_ms": 364.8,
+      "warm_med_ms": 47.14,
+      "warm_p95_ms": 48.13,
+      "vram_peak_mib": 364.6,
+      "hwm_mib": 879.0
+    },
+    "fp16": {
+      "load_ms": 434.4,
+      "warm_med_ms": 40.1,
+      "warm_p95_ms": 41.11,
+      "vram_peak_mib": 364.6,
+      "hwm_mib": 914.7
+    }
+  },
+  {
+    "profile": "wmt14",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 583.7,
+      "warm_med_ms": 36.32,
+      "warm_p95_ms": 37.34,
+      "vram_peak_mib": 1050.2,
+      "hwm_mib": 818.5
+    },
+    "bf16": {
+      "load_ms": 580.3,
+      "warm_med_ms": 38.91,
+      "warm_p95_ms": 39.92,
+      "vram_peak_mib": 559.6,
+      "hwm_mib": 889.4
+    },
+    "fp16": {
+      "load_ms": 712.4,
+      "warm_med_ms": 32.92,
+      "warm_p95_ms": 34.28,
+      "vram_peak_mib": 559.6,
+      "hwm_mib": 928.3
+    }
+  },
+  {
+    "profile": "lm1b-small",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 444.8,
+      "warm_med_ms": 41.68,
+      "warm_p95_ms": 42.82,
+      "vram_peak_mib": 820.2,
+      "hwm_mib": 804.8
+    },
+    "bf16": {
+      "load_ms": 453.5,
+      "warm_med_ms": 50.47,
+      "warm_p95_ms": 50.53,
+      "vram_peak_mib": 470.4,
+      "hwm_mib": 884.3
+    },
+    "fp16": {
+      "load_ms": 557.8,
+      "warm_med_ms": 43.33,
+      "warm_p95_ms": 44.33,
+      "vram_peak_mib": 470.4,
+      "hwm_mib": 934.5
+    }
+  },
+  {
+    "profile": "lm1b-medium",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 1013.8,
+      "warm_med_ms": 117.32,
+      "warm_p95_ms": 118.66,
+      "vram_peak_mib": 1657.3,
+      "hwm_mib": 803.6
+    },
+    "bf16": {
+      "load_ms": 1000.3,
+      "warm_med_ms": 106.91,
+      "warm_p95_ms": 107.98,
+      "vram_peak_mib": 889.0,
+      "hwm_mib": 887.4
+    },
+    "fp16": {
+      "load_ms": 1208.3,
+      "warm_med_ms": 93.2,
+      "warm_p95_ms": 94.21,
+      "vram_peak_mib": 889.0,
+      "hwm_mib": 908.6
+    }
+  },
+  {
+    "profile": "lm1b-large",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 2069.2,
+      "warm_med_ms": 246.18,
+      "warm_p95_ms": 247.52,
+      "vram_peak_mib": 3215.6,
+      "hwm_mib": 804.1
+    },
+    "bf16": {
+      "load_ms": 2103.4,
+      "warm_med_ms": 191.09,
+      "warm_p95_ms": 192.14,
+      "vram_peak_mib": 1667.7,
+      "hwm_mib": 900.8
+    },
+    "fp16": {
+      "load_ms": 2501.0,
+      "warm_med_ms": 167.71,
+      "warm_p95_ms": 168.8,
+      "vram_peak_mib": 1667.7,
+      "hwm_mib": 886.2
+    }
+  },
+  {
+    "profile": "lm1b-large",
+    "batch": 16,
+    "bf16": {
+      "load_ms": 2105.4,
+      "warm_med_ms": 1561.42,
+      "warm_p95_ms": 1563.5,
+      "vram_peak_mib": 1955.1,
+      "hwm_mib": 866.3
+    },
+    "fp16": {
+      "load_ms": 2507.8,
+      "warm_med_ms": 1450.76,
+      "warm_p95_ms": 1452.03,
+      "vram_peak_mib": 1955.1,
+      "hwm_mib": 887.4
+    }
+  }
+]

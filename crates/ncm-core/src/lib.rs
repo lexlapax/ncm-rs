@@ -23,11 +23,55 @@ pub enum Error {
 }
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Explicit compute and weight-storage precision. `Fp32` is the default and
+/// preserves exact qualified parity; `Bf16` and `Fp16` are opt-in mixed-precision
+/// modes (norms, reductions, and sampling remain FP32/FP64).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ComputePrecision {
+    #[default]
+    Fp32,
+    Bf16,
+    Fp16,
+}
+
+impl ComputePrecision {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Fp32 => "fp32",
+            Self::Bf16 => "bf16",
+            Self::Fp16 => "fp16",
+        }
+    }
+}
+
+impl std::fmt::Display for ComputePrecision {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for ComputePrecision {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "fp32" | "f32" => Ok(Self::Fp32),
+            "bf16" => Ok(Self::Bf16),
+            "fp16" | "f16" => Ok(Self::Fp16),
+            _ => Err(Error::Input(format!(
+                "unsupported precision {s:?}; expected fp32, bf16, or fp16"
+            ))),
+        }
+    }
+}
+
 /// Checked model loading only needs FP32 allocation. No implicit device fallback.
 /// Arrays must have immutable value semantics; Clone may share immutable storage.
 /// Neither arrays nor adapters are required to be Send or Sync.
 pub trait WeightBackend {
     type Tensor: Clone;
+    fn precision(&self) -> ComputePrecision {
+        ComputePrecision::Fp32
+    }
     fn upload_f32(&self, values: &[f32], shape: &[usize]) -> Result<Self::Tensor>;
 }
 

@@ -1626,7 +1626,11 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
             let selected = if let Some(codes) = &forced {
                 b.narrow_indices(codes, 1, offset, length)?
             } else {
-                let selected = b.unique_max_4096(&head_logits)?;
+                let selected = if b.precision() == ncm_core::ComputePrecision::Fp32 {
+                    b.unique_max_4096(&head_logits)?
+                } else {
+                    b.xsum_reference_top1_4096(&head_logits)?
+                };
                 if !deferred && b.read_indices(&selected)?.iter().any(|&x| x >= 4096) {
                     return Err(Error::Backend(WMT14_HEAD_REJECTED.into()));
                 }
@@ -2140,8 +2144,14 @@ impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
         for (i, inverse_temperature) in scales.into_iter().enumerate() {
             let book = codec.weight(&format!("vq.embeddings.{}.weight", i + 1))?;
             let norm = backend.sum_last(&backend.square(book)?)?;
-            let total = backend.sum_last(&backend.reshape(&norm, &[1, 4096])?)?;
-            let mean = backend.read_f32(&backend.scale(&total, 1.0 / 4096.0)?)?[0].max(1e-12);
+            let mean = if backend.precision() == ncm_core::ComputePrecision::Fp32 {
+                let total = backend.sum_last(&backend.reshape(&norm, &[1, 4096])?)?;
+                backend.read_f32(&backend.scale(&total, 1.0 / 4096.0)?)?[0].max(1e-12)
+            } else {
+                let vals = backend.read_f32(&norm)?;
+                let sum: f64 = vals.iter().map(|&v| f64::from(v)).sum();
+                ((sum / 4096.0) as f32).max(1e-12)
+            };
             if !mean.is_finite() {
                 return Err(Error::Weights("invalid codebook norm".into()));
             }
@@ -2524,8 +2534,14 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
         for (i, inverse_temperature) in scales.into_iter().enumerate() {
             let book = codec.weight(&format!("vq.embeddings.{i}.weight"))?;
             let norm = backend.sum_last(&backend.square(book)?)?;
-            let total = backend.sum_last(&backend.reshape(&norm, &[1, 4096])?)?;
-            let mean = backend.read_f32(&backend.scale(&total, 1.0 / 4096.0)?)?[0].max(1e-12);
+            let mean = if backend.precision() == ncm_core::ComputePrecision::Fp32 {
+                let total = backend.sum_last(&backend.reshape(&norm, &[1, 4096])?)?;
+                backend.read_f32(&backend.scale(&total, 1.0 / 4096.0)?)?[0].max(1e-12)
+            } else {
+                let vals = backend.read_f32(&norm)?;
+                let sum: f64 = vals.iter().map(|&v| f64::from(v)).sum();
+                ((sum / 4096.0) as f32).max(1e-12)
+            };
             if !mean.is_finite() {
                 return Err(Error::Weights("invalid XSum codebook norm".into()));
             }
@@ -3080,7 +3096,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                         .collect();
                     b.xsum_categorical_4096(scores, &b.upload_indices(&words, &[rows, length])?)?
                 } else {
-                    if self.reference_ties {
+                    if self.reference_ties || b.precision() != ncm_core::ComputePrecision::Fp32 {
                         b.xsum_reference_top1_4096(scores)?
                     } else {
                         b.unique_max_4096(scores)?

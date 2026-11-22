@@ -1,9 +1,10 @@
-use candle_core::{Device, Tensor};
-use ncm_core::{Error, Result, WeightBackend};
+use candle_core::{DType, Device, Tensor};
+use ncm_core::{ComputePrecision, Error, Result, WeightBackend};
 
 /// Explicit native device selection. CPU is a diagnostic path, never a fallback.
 pub struct CandleBackend {
     device: Device,
+    pub(crate) precision: ComputePrecision,
     pub(crate) xsum_reference: bool,
     #[cfg(feature = "cuda")]
     pub(crate) lm1b_qkv_reference: bool,
@@ -34,6 +35,7 @@ impl Clone for CandleBackend {
         #[cfg(feature = "cuda-cudnn")]
         {
             let mut cloned = Self::from_device(self.device.clone());
+            cloned.precision = self.precision;
             cloned.strict_cudnn = self.strict_cudnn;
             #[cfg(feature = "lm1b-experimental")]
             {
@@ -58,6 +60,7 @@ impl Clone for CandleBackend {
         #[cfg(not(feature = "cuda-cudnn"))]
         {
             let mut cloned = Self::from_device(self.device.clone());
+            cloned.precision = self.precision;
             cloned.xsum_reference = self.xsum_reference;
             #[cfg(feature = "cuda")]
             {
@@ -71,6 +74,7 @@ impl CandleBackend {
     fn from_device(device: Device) -> Self {
         Self {
             device,
+            precision: ComputePrecision::Fp32,
             xsum_reference: false,
             #[cfg(feature = "cuda")]
             lm1b_qkv_reference: false,
@@ -224,6 +228,40 @@ impl CandleBackend {
     pub fn device(&self) -> &Device {
         &self.device
     }
+    /// Select explicit compute and weight-storage precision. `Fp32` is the default
+    /// and preserves exact qualified parity; `Bf16` and `Fp16` require CUDA.
+    pub fn with_precision(mut self, precision: ComputePrecision) -> Result<Self> {
+        if precision != ComputePrecision::Fp32 && !self.device.is_cuda() {
+            return Err(Error::Backend(format!(
+                "{precision} precision requires a CUDA device; CPU supports fp32 only"
+            )));
+        }
+        #[cfg(feature = "cuda")]
+        if precision == ComputePrecision::Bf16 {
+            let (major, _) = self
+                .device
+                .as_cuda_device()
+                .map_err(|e| Error::Backend(e.to_string()))?
+                .cuda_stream()
+                .context()
+                .compute_capability()
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            if major < 8 {
+                return Err(Error::Backend(
+                    "bf16 precision requires Ampere (SM 8.0+) CUDA hardware".into(),
+                ));
+            }
+        }
+        self.precision = precision;
+        Ok(self)
+    }
+    pub(crate) fn float_dtype(&self) -> DType {
+        match self.precision {
+            ComputePrecision::Fp32 => DType::F32,
+            ComputePrecision::Bf16 => DType::BF16,
+            ComputePrecision::Fp16 => DType::F16,
+        }
+    }
     #[cfg(feature = "cuda")]
     pub(crate) fn supports_generator_layout_kernel(&self) -> Result<bool> {
         if let Some(&supported) = self.layout_kernel_supported.get() {
@@ -306,8 +344,26 @@ fn configure_pool(device: &Device, retained_bytes: u64) -> Result<()> {
 
 impl WeightBackend for CandleBackend {
     type Tensor = Tensor;
+    fn precision(&self) -> ComputePrecision {
+        self.precision
+    }
     fn upload_f32(&self, values: &[f32], shape: &[usize]) -> Result<Tensor> {
-        Tensor::from_slice(values, shape, &self.device).map_err(|e| Error::Backend(e.to_string()))
+        if self.precision == ComputePrecision::Fp16
+            && values.iter().any(|&v| v.is_finite() && v.abs() > 65_504.0)
+        {
+            return Err(Error::Weights(
+                "tensor contains values exceeding IEEE 754 FP16 finite range (65504.0); use --precision bf16 or --precision fp32".into(),
+            ));
+        }
+        let tensor = Tensor::from_slice(values, shape, &self.device)
+            .map_err(|e| Error::Backend(e.to_string()))?;
+        if self.precision == ComputePrecision::Fp32 {
+            Ok(tensor)
+        } else {
+            tensor
+                .to_dtype(self.float_dtype())
+                .map_err(|e| Error::Backend(e.to_string()))
+        }
     }
 }
 

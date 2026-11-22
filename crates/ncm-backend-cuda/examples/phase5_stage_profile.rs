@@ -222,6 +222,11 @@ fn main() -> Result<()> {
     let artifact_path = args[2].as_str();
     let batch: usize = args[3].parse()?;
     let extra = args.get(4).map(String::as_str);
+    let precision: ncm_core::ComputePrecision = std::env::var("NCM_PRECISION")
+        .ok()
+        .as_deref()
+        .unwrap_or("fp32")
+        .parse()?;
 
     let uninst_warmups = 3usize;
     let uninst_trials = 10usize;
@@ -242,7 +247,7 @@ fn main() -> Result<()> {
     match profile {
         "sudoku-easy" => {
             let tokens = load_sudoku_inputs(extra.ok_or("missing sudoku input")?, batch)?;
-            let backend = CandleBackend::cuda(0)?;
+            let backend = CandleBackend::cuda(0)?.with_precision(precision)?;
             let t0 = Instant::now();
             let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
@@ -286,7 +291,7 @@ fn main() -> Result<()> {
         }
         "tinystories" => {
             let prefixes = vec![0_u32; batch];
-            let backend = CandleBackend::cuda_cudnn(0)?;
+            let backend = CandleBackend::cuda_cudnn(0)?.with_precision(precision)?;
             let t0 = Instant::now();
             let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
@@ -330,7 +335,7 @@ fn main() -> Result<()> {
         }
         "xsum" => {
             let prefixes = load_xsum_inputs(extra.ok_or("missing xsum input")?, batch)?;
-            let backend = CandleBackend::cuda_cudnn(0)?;
+            let backend = CandleBackend::cuda_cudnn(0)?.with_precision(precision)?;
             let t0 = Instant::now();
             let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
@@ -371,7 +376,8 @@ fn main() -> Result<()> {
         }
         "wmt14" => {
             let prefixes = load_wmt14_inputs(extra.ok_or("missing wmt14 input")?, batch)?;
-            let backend = CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?;
+            let backend =
+                CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?.with_precision(precision)?;
             let t0 = Instant::now();
             let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
@@ -417,7 +423,8 @@ fn main() -> Result<()> {
             let rope_bytes = fs::read(extra.ok_or("missing rope path")?)?;
             let (cosine, sine) = lm1b_small_reference_rope(&rope_bytes)?;
             let prefixes = vec![101_u32; batch];
-            let backend = CandleBackend::cuda_lm1b_efficient_experimental(0)?;
+            let backend =
+                CandleBackend::cuda_lm1b_efficient_experimental(0)?.with_precision(precision)?;
             let t0 = Instant::now();
             let artifact = Artifact::load_inference_streaming(artifact_path)?;
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;

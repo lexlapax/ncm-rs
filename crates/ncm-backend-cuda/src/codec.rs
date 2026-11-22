@@ -1,12 +1,12 @@
 //! FP32 native operations for the shared codec; no model-specific scheduling.
 use crate::{CandleBackend, ops};
 use candle_core::{D, DType, Tensor};
-use ncm_core::{CodecBackend, Error, Result};
+use ncm_core::{CodecBackend, ComputePrecision, Error, Result};
 
 macro_rules! op {
     ($backend:expr, [$($input:expr),*], $body:block) => {{
         (|| -> candle_core::Result<_> {
-            $( $backend.check_tensor($input, DType::F32)?; )*
+            $( $backend.check_tensor($input, $backend.float_dtype())?; )*
             $body
         })().map_err(|e| Error::Backend(e.to_string()))
     }};
@@ -18,6 +18,21 @@ impl CandleBackend {
         }
         Ok(())
     }
+    fn to_f32(&self, x: &Tensor) -> candle_core::Result<Tensor> {
+        if x.dtype() == DType::F32 {
+            Ok(x.clone())
+        } else {
+            x.to_dtype(DType::F32)
+        }
+    }
+    fn cast_from_f32(&self, x: Tensor) -> candle_core::Result<Tensor> {
+        let dtype = self.float_dtype();
+        if x.dtype() == dtype {
+            Ok(x)
+        } else {
+            x.to_dtype(dtype)
+        }
+    }
 }
 impl CodecBackend for CandleBackend {
     type Indices = Tensor;
@@ -25,7 +40,7 @@ impl CodecBackend for CandleBackend {
         Tensor::from_slice(values, shape, self.device()).map_err(|e| Error::Backend(e.to_string()))
     }
     fn read_f32(&self, x: &Tensor) -> Result<Vec<f32>> {
-        op!(self, [x], { x.flatten_all()?.to_vec1() })
+        op!(self, [x], { self.to_f32(x)?.flatten_all()?.to_vec1() })
     }
     fn read_indices(&self, x: &Tensor) -> Result<Vec<u32>> {
         op!(self, [], {
@@ -59,10 +74,22 @@ impl CodecBackend for CandleBackend {
         op!(self, [x], { x * scale })
     }
     fn square(&self, x: &Tensor) -> Result<Tensor> {
-        op!(self, [x], { x.sqr() })
+        op!(self, [x], {
+            if self.precision == ComputePrecision::Fp32 {
+                x.sqr()
+            } else {
+                self.cast_from_f32(self.to_f32(x)?.sqr()?)
+            }
+        })
     }
     fn sum_last(&self, x: &Tensor) -> Result<Tensor> {
-        op!(self, [x], { x.sum_keepdim(D::Minus1) })
+        op!(self, [x], {
+            if self.precision == ComputePrecision::Fp32 {
+                x.sum_keepdim(D::Minus1)
+            } else {
+                self.cast_from_f32(self.to_f32(x)?.sum_keepdim(D::Minus1)?)
+            }
+        })
     }
     fn project(&self, x: &Tensor, weight: &Tensor) -> Result<Tensor> {
         op!(self, [x, weight], {
@@ -82,7 +109,8 @@ impl CodecBackend for CandleBackend {
     }
     fn project_bias(&self, x: &Tensor, weight: &Tensor, bias: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
-        if self.device().is_cuda()
+        if self.precision == ComputePrecision::Fp32
+            && self.device().is_cuda()
             && weight.dims().len() == 2
             && weight.dims()[0] > 0
             && x.elem_count() > 0
@@ -151,12 +179,13 @@ impl CodecBackend for CandleBackend {
     }
     fn select_last(&self, x: &Tensor, largest: bool) -> Result<Tensor> {
         op!(self, [x], {
+            let x = self.to_f32(x)?;
             #[cfg(feature = "cuda-cudnn")]
             if self.wmt14_fast_argmax
                 && largest
                 && matches!(x.dims(), [batch, 64, 151680] if (1..=32).contains(batch))
             {
-                return crate::wmt14_argmax::select(self, x);
+                return crate::wmt14_argmax::select(self, &x);
             }
             // Native CUDA argmin/argmax does not guarantee the first tied index.
             // Reduce values, then reduce masked indices, entirely on-device.
@@ -204,6 +233,30 @@ impl CodecBackend for CandleBackend {
         eps: f64,
     ) -> Result<Tensor> {
         op!(self, [x, weight], {
+            let dtype = self.float_dtype();
+            if let Some(b) = bias {
+                self.check_tensor(b, dtype)?;
+            }
+            if self.precision != ComputePrecision::Fp32 {
+                if !eps.is_finite() || eps <= 0.0 {
+                    candle_core::bail!("normalization epsilon must be positive and finite")
+                }
+                let xf = self.to_f32(x)?.contiguous()?;
+                let wf = self.to_f32(weight)?.contiguous()?;
+                let bf = match bias {
+                    Some(b) => self.to_f32(b)?.contiguous()?,
+                    None => Tensor::zeros(wf.shape(), DType::F32, self.device())?,
+                };
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    let out = candle_nn::ops::layer_norm(&xf, &wf, &bf, eps as f32)?;
+                    return self.cast_from_f32(out);
+                }
+                let out = ops::layer_norm(&xf, eps)?
+                    .broadcast_mul(&wf)?
+                    .broadcast_add(&bf)?;
+                return self.cast_from_f32(out);
+            }
             #[cfg(feature = "cuda")]
             if self.device().is_cuda() {
                 if !eps.is_finite() || eps <= 0.0 {
@@ -211,10 +264,7 @@ impl CodecBackend for CandleBackend {
                 }
                 let zero;
                 let bias = match bias {
-                    Some(b) => {
-                        self.check_tensor(b, DType::F32)?;
-                        b
-                    }
+                    Some(b) => b,
                     None => {
                         zero = Tensor::zeros(weight.shape(), DType::F32, self.device())?;
                         &zero
@@ -232,16 +282,27 @@ impl CodecBackend for CandleBackend {
             }
             let value = ops::layer_norm(x, eps)?.broadcast_mul(weight)?;
             match bias {
-                Some(b) => {
-                    self.check_tensor(b, DType::F32)?;
-                    value.broadcast_add(b)
-                }
+                Some(b) => value.broadcast_add(b),
                 None => Ok(value),
             }
         })
     }
     fn rms_norm(&self, x: &Tensor, weight: &Tensor, eps: f64) -> Result<Tensor> {
         op!(self, [x, weight], {
+            if self.precision != ComputePrecision::Fp32 {
+                if !eps.is_finite() || eps <= 0.0 {
+                    candle_core::bail!("normalization epsilon must be positive and finite")
+                }
+                let xf = self.to_f32(x)?.contiguous()?;
+                let wf = self.to_f32(weight)?.contiguous()?;
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    let out = candle_nn::ops::rms_norm(&xf, &wf, eps as f32)?;
+                    return self.cast_from_f32(out);
+                }
+                let out = ops::rms_norm(&xf, eps)?.broadcast_mul(&wf)?;
+                return self.cast_from_f32(out);
+            }
             #[cfg(feature = "cuda")]
             if self.device().is_cuda() {
                 if !eps.is_finite() || eps <= 0.0 {
@@ -261,6 +322,10 @@ impl CodecBackend for CandleBackend {
     }
     fn group_norm(&self, x: &Tensor, groups: usize, eps: f64) -> Result<Tensor> {
         op!(self, [x], {
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(x)?;
+                return self.cast_from_f32(ops::group_norm(&xf, groups, eps)?);
+            }
             #[cfg(feature = "cuda-cudnn")]
             if self.wmt14_reference
                 && x.dims().len() == 3
@@ -287,6 +352,9 @@ impl CodecBackend for CandleBackend {
     }
     fn gelu(&self, x: &Tensor) -> Result<Tensor> {
         op!(self, [x], {
+            if self.precision != ComputePrecision::Fp32 {
+                return self.cast_from_f32(self.to_f32(x)?.gelu_erf()?);
+            }
             #[cfg(feature = "cuda")]
             if self.xsum_reference {
                 return crate::xsum_gelu::apply(self, x);
@@ -302,6 +370,40 @@ impl CodecBackend for CandleBackend {
         mask: Option<&Tensor>,
     ) -> Result<Tensor> {
         op!(self, [q, k, v], {
+            if self.precision != ComputePrecision::Fp32 {
+                let dtype = self.float_dtype();
+                if let Some(m) = mask {
+                    self.check_tensor(m, dtype)?;
+                }
+                let (_, _, _, width) = q.dims4()?;
+                if width == 0 {
+                    candle_core::bail!("attention width is zero")
+                }
+                // Run Q@K^T and probs@V on BF16/FP16 Tensor Cores; keep softmax + mask in FP32.
+                let scores_low = q.contiguous()?.matmul(&k.contiguous()?.transpose(2, 3)?)?;
+                let scores = (scores_low.to_dtype(DType::F32)? / (width as f64).sqrt())?;
+                let scores = match mask {
+                    Some(m) => scores.broadcast_add(&self.to_f32(m)?)?,
+                    None => scores,
+                };
+                #[cfg(feature = "cuda")]
+                let probs_f32 = if self.device().is_cuda() {
+                    candle_nn::ops::softmax_last_dim(&scores.contiguous()?)?
+                } else {
+                    let exps = scores
+                        .broadcast_sub(&scores.max_keepdim(D::Minus1)?)?
+                        .exp()?;
+                    exps.broadcast_div(&exps.sum_keepdim(D::Minus1)?)?
+                };
+                #[cfg(not(feature = "cuda"))]
+                let probs_f32 = {
+                    let exps = scores
+                        .broadcast_sub(&scores.max_keepdim(D::Minus1)?)?
+                        .exp()?;
+                    exps.broadcast_div(&exps.sum_keepdim(D::Minus1)?)?
+                };
+                return probs_f32.to_dtype(dtype)?.matmul(&v.contiguous()?);
+            }
             #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
             if self.lm1b_efficient_attention {
                 if let Some(m) = mask {
@@ -395,6 +497,17 @@ impl CodecBackend for CandleBackend {
             if span.is_none() {
                 candle_core::bail!("convolution output is empty or overflows")
             }
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(x)?.transpose(1, 2)?.contiguous()?;
+                let wf = self.to_f32(weight)?.contiguous()?;
+                let bf = self.to_f32(bias)?.contiguous()?;
+                let value = if transposed {
+                    xf.conv_transpose1d(&wf, padding, 0, stride, 1, 1)?
+                } else {
+                    xf.conv1d(&wf, padding, stride, 1, 1)?
+                };
+                return self.cast_from_f32(value.transpose(1, 2)?.broadcast_add(&bf)?);
+            }
             #[cfg(feature = "cuda-cudnn")]
             if self.strict_cudnn
                 || (self.wmt14_reference
@@ -442,7 +555,7 @@ impl CodecBackend for CandleBackend {
         bias: &Tensor,
     ) -> Result<Tensor> {
         #[cfg(feature = "cuda-cudnn")]
-        if self.wmt14_reference {
+        if self.precision == ComputePrecision::Fp32 && self.wmt14_reference {
             return op!(self, [x, weight, bias], {
                 if x.dims().len() != 3
                     || !(1..=32).contains(&x.dims()[0])
@@ -466,10 +579,21 @@ impl CodecBackend for CandleBackend {
         self.conv1d(x, weight, bias, 1, 1, false)
     }
     fn area1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
-        op!(self, [x], { self.resample(x, length, true) })
+        op!(self, [x], {
+            if self.precision == ComputePrecision::Fp32 {
+                self.resample(x, length, true)
+            } else {
+                let xf = self.to_f32(x)?;
+                self.cast_from_f32(self.resample(&xf, length, true)?)
+            }
+        })
     }
     fn linear1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
         op!(self, [x], {
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(x)?;
+                return self.cast_from_f32(self.resample(&xf, length, false)?);
+            }
             #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
             if self.cudnn_algorithms.graph_forward.is_some()
                 && length == 128
@@ -482,8 +606,9 @@ impl CodecBackend for CandleBackend {
     }
     fn evaluate(&self, xs: &[Tensor]) -> Result<()> {
         op!(self, [], {
+            let dtype = self.float_dtype();
             for x in xs {
-                self.check_tensor(x, DType::F32)?;
+                self.check_tensor(x, dtype)?;
             }
             self.device().synchronize()
         })
@@ -495,7 +620,9 @@ impl ncm_core::GeneratorBackend for CandleBackend {
         #[cfg(feature = "cuda-cudnn")]
         if self.device().is_cuda() && self.strict_cudnn {
             let mut backend = self.clone();
-            backend.xsum_reference = true;
+            if backend.precision == ComputePrecision::Fp32 {
+                backend.xsum_reference = true;
+            }
             return Ok(backend);
         }
         Err(Error::Backend(
@@ -527,7 +654,10 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     fn categorical_4096(&self, logits: &Tensor, uniforms: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {
-            crate::categorical::categorical_from_uniforms(self, logits, uniforms)
+            let logits_f32 = self
+                .to_f32(logits)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            crate::categorical::categorical_from_uniforms(self, &logits_f32, uniforms)
                 .map_err(|e| Error::Backend(e.to_string()))
         }
         #[cfg(not(feature = "cuda"))]
@@ -541,7 +671,10 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     fn categorical_8192(&self, logits: &Tensor, uniforms: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {
-            crate::categorical::categorical_8192_from_uniforms(self, logits, uniforms)
+            let logits_f32 = self
+                .to_f32(logits)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            crate::categorical::categorical_8192_from_uniforms(self, &logits_f32, uniforms)
                 .map_err(|e| Error::Backend(e.to_string()))
         }
         #[cfg(not(feature = "cuda"))]
@@ -558,7 +691,11 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     fn unique_max_4096(&self, logits: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {
-            crate::unique_top1::unique_max(self, logits).map_err(|e| Error::Backend(e.to_string()))
+            let logits_f32 = self
+                .to_f32(logits)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            crate::unique_top1::unique_max(self, &logits_f32)
+                .map_err(|e| Error::Backend(e.to_string()))
         }
         #[cfg(not(feature = "cuda"))]
         {
@@ -571,12 +708,19 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     fn xsum_reference_top1_4096(&self, logits: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {
+            let logits_f32 = self
+                .to_f32(logits)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            if self.precision != ComputePrecision::Fp32 {
+                return crate::unique_top1::xsum_reference_top1(self, &logits_f32)
+                    .map_err(|e| Error::Backend(e.to_string()));
+            }
             if !self.xsum_reference {
                 return Err(Error::Backend(
                     "XSum reference tie selection requires its reference backend".into(),
                 ));
             }
-            crate::unique_top1::xsum_reference_top1(self, logits)
+            crate::unique_top1::xsum_reference_top1(self, &logits_f32)
                 .map_err(|e| Error::Backend(e.to_string()))
         }
         #[cfg(not(feature = "cuda"))]
@@ -590,7 +734,13 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     fn xsum_penalty_fp64(&self, logits: &Tensor, allowance: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {
-            crate::xsum_penalty::select(self, logits, allowance)
+            let logits_f32 = self
+                .to_f32(logits)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            let allowance_f32 = self
+                .to_f32(allowance)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            crate::xsum_penalty::select(self, &logits_f32, &allowance_f32)
                 .map_err(|e| Error::Backend(e.to_string()))
         }
         #[cfg(not(feature = "cuda"))]
@@ -604,7 +754,13 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     fn lm1b_penalty_fp64(&self, logits: &Tensor, allowance: &Tensor) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         {
-            crate::xsum_penalty::select_lm1b(self, logits, allowance)
+            let logits_f32 = self
+                .to_f32(logits)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            let allowance_f32 = self
+                .to_f32(allowance)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            crate::xsum_penalty::select_lm1b(self, &logits_f32, &allowance_f32)
                 .map_err(|e| Error::Backend(e.to_string()))
         }
         #[cfg(not(feature = "cuda"))]
@@ -631,7 +787,8 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             return Err(Error::Input("invalid QKV shape".into()));
         }
         #[cfg(feature = "cuda")]
-        if self.device().is_cuda()
+        if self.precision == ComputePrecision::Fp32
+            && self.device().is_cuda()
             && matches!(heads, 8 | 12)
             && head == 64
             && batch <= 128
@@ -674,7 +831,8 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             return Err(Error::Input("invalid attention shape".into()));
         }
         #[cfg(feature = "cuda")]
-        if self.device().is_cuda()
+        if self.precision == ComputePrecision::Fp32
+            && self.device().is_cuda()
             && matches!(heads, 8 | 12)
             && head == 64
             && batch <= 128
@@ -698,14 +856,27 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     }
     fn concat_f32(&self, xs: &[Tensor], axis: usize) -> Result<Tensor> {
         op!(self, [], {
+            let dtype = self.float_dtype();
             for x in xs {
-                self.check_tensor(x, DType::F32)?;
+                self.check_tensor(x, dtype)?;
             }
             Tensor::cat(xs, axis)
         })
     }
     fn rope(&self, x: &Tensor, cos: &Tensor, sin: &Tensor) -> Result<Tensor> {
         op!(self, [x, cos, sin], {
+            if self.precision != ComputePrecision::Fp32 {
+                let xf = self.to_f32(x)?.contiguous()?;
+                let cf = self.to_f32(cos)?.contiguous()?;
+                let sf = self.to_f32(sin)?.contiguous()?;
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    return self.cast_from_f32(candle_nn::rotary_emb::rope(&xf, &cf, &sf)?);
+                }
+                let cf2 = Tensor::cat(&[&cf, &cf], 1)?;
+                let sf2 = Tensor::cat(&[&sf, &sf], 1)?;
+                return self.cast_from_f32(ops::rope(&xf, &cf2, &sf2)?);
+            }
             #[cfg(feature = "cuda")]
             if self.device().is_cuda() {
                 if self.xsum_reference {
