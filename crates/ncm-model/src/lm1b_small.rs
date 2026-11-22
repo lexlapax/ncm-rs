@@ -306,10 +306,12 @@ fn decode_lm1b_rope_tensor(tensor: &TensorView<'_>, expected_sha256: &str) -> Re
         .collect())
 }
 
+type RopeTables = (Vec<f32>, Vec<f32>);
+
 fn validate_inference_bundle(
     inference: &[u8],
     expect_rope: bool,
-) -> Result<(usize, Option<(Vec<f32>, Vec<f32>)>)> {
+) -> Result<(usize, Option<RopeTables>)> {
     let tensors_inference =
         SafeTensors::deserialize(inference).map_err(|e| Error::Weights(e.to_string()))?;
     let expected_count = if expect_rope { 4 } else { 2 };
