@@ -33,6 +33,30 @@ use ncm_core::{CodecConfig, Error, Result, WeightBackend};
 use ncm_io::Artifact;
 use safetensors::{Dtype, SafeTensors};
 use serde::{Deserialize, de::IgnoredAny};
+
+pub(crate) fn is_linear_projection_weight(name: &str, shape: &[usize]) -> bool {
+    shape.len() == 2
+        && name.ends_with(".weight")
+        && !name.starts_with("encoder.wte")
+        && !name.contains(".wpe.")
+        && !name.contains(".wle.")
+        && !name.contains("vq.embeddings.")
+        && !name.contains(".ln_")
+        && !name.contains("_norm.")
+}
+
+pub(crate) fn upload_named_weight<B: WeightBackend>(
+    backend: &B,
+    name: &str,
+    values: &[f32],
+    shape: &[usize],
+) -> Result<B::Tensor> {
+    if is_linear_projection_weight(name, shape) {
+        backend.upload_linear_weight_f32(values, shape)
+    } else {
+        backend.upload_f32(values, shape)
+    }
+}
 use std::{borrow::Cow, collections::BTreeMap, sync::OnceLock};
 
 // IEEE-754 infinities and NaNs are exactly the values with an all-one exponent.
@@ -187,7 +211,10 @@ impl<B: WeightBackend> Codec<B> {
             |e| Error::Weights(e.to_string()),
             |name, shape, _dtype, data| {
                 let values = upload_values(data)?;
-                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                weights.insert(
+                    name.to_owned(),
+                    upload_named_weight(&backend, name, &values, shape)?,
+                );
                 Ok(())
             },
         )?;
@@ -245,7 +272,8 @@ impl<B: WeightBackend> Codec<B> {
                 .map_err(|e| Error::Weights(e.to_string()))?;
             // The checked borrowed view avoids a temporary copy when aligned.
             let values = upload_values(t.data())?;
-            weights.insert(name, backend.upload_f32(&values, &shape)?);
+            let uploaded = upload_named_weight(&backend, &name, &values, &shape)?;
+            weights.insert(name, uploaded);
         }
         let codebook_norms = (0..config.levels().len())
             .map(|_| OnceLock::new())

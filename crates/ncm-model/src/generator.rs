@@ -231,7 +231,10 @@ impl<B: WeightBackend> GeneratorWeights<B> {
                     return Ok(());
                 }
                 let values = upload_values(data)?;
-                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                weights.insert(
+                    name.to_owned(),
+                    crate::upload_named_weight(&backend, name, &values, shape)?,
+                );
                 Ok(())
             },
         )?;
@@ -315,7 +318,8 @@ impl<B: WeightBackend> GeneratorWeights<B> {
                 .tensor(&name)
                 .map_err(|e| Error::Weights(e.to_string()))?;
             let values = upload_values(tensor.data())?;
-            weights.insert(name, backend.upload_f32(&values, &shape)?);
+            let uploaded = crate::upload_named_weight(&backend, &name, &values, &shape)?;
+            weights.insert(name, uploaded);
         }
         Self::from_uploaded_weights(backend, config, weights, tensor_count)
     }
@@ -951,7 +955,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
                 }
                 weights.insert(
                     name.to_owned(),
-                    backend.upload_f32(&upload_values(data)?, shape)?,
+                    crate::upload_named_weight(&backend, name, &upload_values(data)?, shape)?,
                 );
                 Ok(())
             },
@@ -2115,7 +2119,10 @@ impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
                     return Ok(());
                 }
                 let values = upload_values(data)?;
-                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                weights.insert(
+                    name.to_owned(),
+                    crate::upload_named_weight(&backend, name, &values, shape)?,
+                );
                 Ok(())
             },
         )?;
@@ -2504,7 +2511,10 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
                     return Ok(());
                 }
                 let values = upload_values(data)?;
-                weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                weights.insert(
+                    name.to_owned(),
+                    crate::upload_named_weight(&backend, name, &values, shape)?,
+                );
                 Ok(())
             },
         )?;
@@ -3644,7 +3654,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
                 }
                 weights.insert(
                     name.to_owned(),
-                    backend.upload_f32(&upload_values(data)?, shape)?,
+                    crate::upload_named_weight(&backend, name, &upload_values(data)?, shape)?,
                 );
                 Ok(())
             },

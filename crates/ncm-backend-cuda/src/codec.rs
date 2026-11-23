@@ -49,6 +49,9 @@ impl CodecBackend for CandleBackend {
         })
     }
     fn shape(&self, x: &Tensor) -> Vec<usize> {
+        if let Some((shape, _)) = self.lookup_quantized(x) {
+            return shape.to_vec();
+        }
         x.dims().to_vec()
     }
     fn indices_shape(&self, x: &Tensor) -> Vec<usize> {
@@ -93,6 +96,21 @@ impl CodecBackend for CandleBackend {
     }
     fn project(&self, x: &Tensor, weight: &Tensor) -> Result<Tensor> {
         op!(self, [x, weight], {
+            if let Some(([output, input], qmatmul)) = self.lookup_quantized(weight) {
+                if input == 0 || x.dim(D::Minus1)? != input {
+                    candle_core::bail!("invalid quantized projection shape")
+                }
+                let mut shape = x.dims().to_vec();
+                *shape
+                    .last_mut()
+                    .ok_or_else(|| candle_core::Error::Msg("scalar projection".into()))? = output;
+                let x_2d = self
+                    .to_f32(x)?
+                    .contiguous()?
+                    .reshape((x.elem_count() / input, input))?;
+                let y_2d = candle_core::Module::forward(qmatmul.as_ref(), &x_2d)?;
+                return self.cast_from_f32(y_2d.reshape(shape)?);
+            }
             let (output, input) = weight.dims2()?;
             if input == 0 || x.dim(D::Minus1)? != input {
                 candle_core::bail!("invalid projection shape")

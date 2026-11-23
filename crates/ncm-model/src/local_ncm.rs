@@ -86,7 +86,10 @@ impl<B: GeneratorBackend + Clone> LocalNcmModel<B> {
                         return Ok(());
                     }
                     let values = upload_values(data)?;
-                    weights.insert(name.to_owned(), backend.upload_f32(&values, shape)?);
+                    weights.insert(
+                        name.to_owned(),
+                        crate::upload_named_weight(&backend, name, &values, shape)?,
+                    );
                     Ok(())
                 },
             )?;
@@ -101,7 +104,10 @@ impl<B: GeneratorBackend + Clone> LocalNcmModel<B> {
                     .tensor(name)
                     .map_err(|e| Error::Weights(e.to_string()))?;
                 let values = upload_values(t.data())?;
-                weights.insert(name.clone(), backend.upload_f32(&values, shape)?);
+                weights.insert(
+                    name.clone(),
+                    crate::upload_named_weight(&backend, name, &values, shape)?,
+                );
             }
         }
 

@@ -1,10 +1,20 @@
-use candle_core::{DType, Device, Tensor};
+use candle_core::{DType, Device, Tensor, TensorId, quantized::QMatMul};
 use ncm_core::{ComputePrecision, Error, Result, WeightBackend};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
+
+pub(crate) struct QuantizedWeight {
+    pub(crate) shape: [usize; 2],
+    pub(crate) matmul: Arc<QMatMul>,
+}
 
 /// Explicit native device selection. CPU is a diagnostic path, never a fallback.
 pub struct CandleBackend {
     device: Device,
     pub(crate) precision: ComputePrecision,
+    pub(crate) quantized_weights: Arc<Mutex<HashMap<TensorId, QuantizedWeight>>>,
     pub(crate) xsum_reference: bool,
     #[cfg(feature = "cuda")]
     pub(crate) lm1b_qkv_reference: bool,
@@ -36,6 +46,7 @@ impl Clone for CandleBackend {
         {
             let mut cloned = Self::from_device(self.device.clone());
             cloned.precision = self.precision;
+            cloned.quantized_weights = Arc::clone(&self.quantized_weights);
             cloned.strict_cudnn = self.strict_cudnn;
             #[cfg(feature = "lm1b-experimental")]
             {
@@ -61,6 +72,7 @@ impl Clone for CandleBackend {
         {
             let mut cloned = Self::from_device(self.device.clone());
             cloned.precision = self.precision;
+            cloned.quantized_weights = Arc::clone(&self.quantized_weights);
             cloned.xsum_reference = self.xsum_reference;
             #[cfg(feature = "cuda")]
             {
@@ -75,6 +87,7 @@ impl CandleBackend {
         Self {
             device,
             precision: ComputePrecision::Fp32,
+            quantized_weights: Arc::new(Mutex::new(HashMap::new())),
             xsum_reference: false,
             #[cfg(feature = "cuda")]
             lm1b_qkv_reference: false,
@@ -229,7 +242,7 @@ impl CandleBackend {
         &self.device
     }
     /// Select explicit compute and weight-storage precision. `Fp32` is the default
-    /// and preserves exact qualified parity; `Bf16` and `Fp16` require CUDA.
+    /// and preserves exact qualified parity; `Bf16`, `Fp16`, `Q8`, and `Q4` require CUDA.
     pub fn with_precision(mut self, precision: ComputePrecision) -> Result<Self> {
         if precision != ComputePrecision::Fp32 && !self.device.is_cuda() {
             return Err(Error::Backend(format!(
@@ -237,7 +250,10 @@ impl CandleBackend {
             )));
         }
         #[cfg(feature = "cuda")]
-        if precision == ComputePrecision::Bf16 {
+        if matches!(
+            precision,
+            ComputePrecision::Bf16 | ComputePrecision::Q8 | ComputePrecision::Q4
+        ) {
             let (major, _) = self
                 .device
                 .as_cuda_device()
@@ -247,9 +263,9 @@ impl CandleBackend {
                 .compute_capability()
                 .map_err(|e| Error::Backend(e.to_string()))?;
             if major < 8 {
-                return Err(Error::Backend(
-                    "bf16 precision requires Ampere (SM 8.0+) CUDA hardware".into(),
-                ));
+                return Err(Error::Backend(format!(
+                    "{precision} precision requires Ampere (SM 8.0+) CUDA hardware"
+                )));
             }
         }
         self.precision = precision;
@@ -258,9 +274,18 @@ impl CandleBackend {
     pub(crate) fn float_dtype(&self) -> DType {
         match self.precision {
             ComputePrecision::Fp32 => DType::F32,
-            ComputePrecision::Bf16 => DType::BF16,
+            ComputePrecision::Bf16 | ComputePrecision::Q8 | ComputePrecision::Q4 => DType::BF16,
             ComputePrecision::Fp16 => DType::F16,
         }
+    }
+    pub(crate) fn lookup_quantized(&self, weight: &Tensor) -> Option<([usize; 2], Arc<QMatMul>)> {
+        if !self.precision.is_quantized() {
+            return None;
+        }
+        let guard = self.quantized_weights.lock().ok()?;
+        guard
+            .get(&weight.id())
+            .map(|entry| (entry.shape, Arc::clone(&entry.matmul)))
     }
     #[cfg(feature = "cuda")]
     pub(crate) fn supports_generator_layout_kernel(&self) -> Result<bool> {
@@ -364,6 +389,43 @@ impl WeightBackend for CandleBackend {
                 .to_dtype(self.float_dtype())
                 .map_err(|e| Error::Backend(e.to_string()))
         }
+    }
+    fn upload_linear_weight_f32(&self, values: &[f32], shape: &[usize]) -> Result<Tensor> {
+        let ggml_dtype = match self.precision {
+            ComputePrecision::Q8 => Some(candle_core::quantized::GgmlDType::Q8_0),
+            ComputePrecision::Q4 => Some(candle_core::quantized::GgmlDType::Q4_0),
+            _ => None,
+        };
+        if let (Some(qdtype), &[out_dim, in_dim]) = (ggml_dtype, shape)
+            && out_dim > 0
+            && in_dim > 0
+            && in_dim.is_multiple_of(32)
+            && !values.iter().any(|&v| !v.is_finite() || v.abs() > 65_504.0)
+        {
+            let cpu_t = Tensor::from_slice(values, shape, &Device::Cpu)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            let qtensor =
+                candle_core::quantized::QTensor::quantize_onto(&cpu_t, qdtype, &self.device)
+                    .map_err(|e| Error::Backend(e.to_string()))?;
+            let matmul = Arc::new(
+                QMatMul::from_qtensor(qtensor).map_err(|e| Error::Backend(e.to_string()))?,
+            );
+            // Tiny 1-element device sentinel carries the TensorId; actual weights live in QMatMul.
+            let sentinel = Tensor::zeros((1,), self.float_dtype(), &self.device)
+                .map_err(|e| Error::Backend(e.to_string()))?;
+            self.quantized_weights
+                .lock()
+                .map_err(|_| Error::Backend("quantized weights lock poisoned".into()))?
+                .insert(
+                    sentinel.id(),
+                    QuantizedWeight {
+                        shape: [out_dim, in_dim],
+                        matmul,
+                    },
+                );
+            return Ok(sentinel);
+        }
+        self.upload_f32(values, shape)
     }
 }
 

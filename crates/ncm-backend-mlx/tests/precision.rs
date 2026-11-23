@@ -105,3 +105,37 @@ fn mlx_bf16_and_fp16_operators_track_fp32() {
         assert!(max_abs_diff(&attn32, &be.read_f32(&attn).unwrap()) <= tol);
     }
 }
+
+#[test]
+fn mlx_q8_and_q4_linear_projections_track_fp32() {
+    let fp32 = MlxBackend::gpu().expect("Metal FP32");
+    let x_data = synthetic(2 * 4 * 64, 1.0);
+    let w_data = synthetic(128 * 64, 0.25);
+    let b_data = synthetic(128, 0.1);
+
+    let x32 = fp32.upload_f32(&x_data, &[2, 4, 64]).unwrap();
+    let w32 = fp32.upload_linear_weight_f32(&w_data, &[128, 64]).unwrap();
+    let b32 = fp32.upload_f32(&b_data, &[128]).unwrap();
+    let y32 = fp32
+        .read_f32(&fp32.project_bias(&x32, &w32, &b32).unwrap())
+        .unwrap();
+
+    for (precision, tol) in [
+        (ComputePrecision::Q8, 0.15f32),
+        (ComputePrecision::Q4, 0.65f32),
+    ] {
+        let be = MlxBackend::gpu()
+            .unwrap()
+            .with_precision(precision)
+            .unwrap();
+        assert_eq!(be.precision(), precision);
+        let x = be.upload_f32(&x_data, &[2, 4, 64]).unwrap();
+        let w = be.upload_linear_weight_f32(&w_data, &[128, 64]).unwrap();
+        assert_eq!(be.shape(&w), vec![128, 64]);
+        let b = be.upload_f32(&b_data, &[128]).unwrap();
+        let y = be.project_bias(&x, &w, &b).unwrap();
+        assert_eq!(be.shape(&y), vec![2, 4, 128]);
+        let diff = max_abs_diff(&y32, &be.read_f32(&y).unwrap());
+        assert!(diff <= tol, "{precision} max_abs_diff={diff} > {tol}");
+    }
+}

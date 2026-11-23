@@ -13,7 +13,7 @@ Options:
   --models-dir DIR           Directory containing NCM artifacts (default: artifacts/canonical or .)
   --model NAME=PATH          Register a model artifact under NAME (repeatable)
   --device DEV               Explicit device: cuda-cudnn, cuda, mlx, or cpu (default: compiled best)
-  --precision fp32|bf16|fp16 Compute/weight precision (default: fp32)
+  --precision fp32|bf16|fp16|q8|q4 Compute/weight precision (default: fp32)
   --host ADDR                Bind host (default: 127.0.0.1)
   --port PORT                Bind port (default: 11434)
   --preload NAME             Load and warm-cache one model before accepting requests

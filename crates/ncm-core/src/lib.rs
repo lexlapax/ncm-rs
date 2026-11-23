@@ -25,13 +25,16 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Explicit compute and weight-storage precision. `Fp32` is the default and
 /// preserves exact qualified parity; `Bf16` and `Fp16` are opt-in mixed-precision
-/// modes (norms, reductions, and sampling remain FP32/FP64).
+/// modes; `Q8` and `Q4` store 2D linear projection weights in compact 8-bit/4-bit
+/// group-quantized device buffers (norms, reductions, and sampling remain FP32/FP64).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ComputePrecision {
     #[default]
     Fp32,
     Bf16,
     Fp16,
+    Q8,
+    Q4,
 }
 
 impl ComputePrecision {
@@ -40,7 +43,13 @@ impl ComputePrecision {
             Self::Fp32 => "fp32",
             Self::Bf16 => "bf16",
             Self::Fp16 => "fp16",
+            Self::Q8 => "q8",
+            Self::Q4 => "q4",
         }
+    }
+
+    pub fn is_quantized(self) -> bool {
+        matches!(self, Self::Q8 | Self::Q4)
     }
 }
 
@@ -57,8 +66,10 @@ impl std::str::FromStr for ComputePrecision {
             "fp32" | "f32" => Ok(Self::Fp32),
             "bf16" => Ok(Self::Bf16),
             "fp16" | "f16" => Ok(Self::Fp16),
+            "q8" | "q8_0" => Ok(Self::Q8),
+            "q4" | "q4_0" => Ok(Self::Q4),
             _ => Err(Error::Input(format!(
-                "unsupported precision {s:?}; expected fp32, bf16, or fp16"
+                "unsupported precision {s:?}; expected fp32, bf16, fp16, q8, or q4"
             ))),
         }
     }
@@ -73,6 +84,12 @@ pub trait WeightBackend {
         ComputePrecision::Fp32
     }
     fn upload_f32(&self, values: &[f32], shape: &[usize]) -> Result<Self::Tensor>;
+    /// Upload a 2D linear projection weight `[out_dim, in_dim]`. Quantized backends (`q8`, `q4`)
+    /// pack qualifying linear weights directly into compact device storage; dense backends
+    /// forward to [`Self::upload_f32`].
+    fn upload_linear_weight_f32(&self, values: &[f32], shape: &[usize]) -> Result<Self::Tensor> {
+        self.upload_f32(values, shape)
+    }
 }
 
 /// Minimal codec operations. Logical sequence layout is BLC, attention is BHLD;

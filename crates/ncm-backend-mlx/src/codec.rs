@@ -108,9 +108,25 @@ mod compiler_init_tests {
     }
 }
 
+#[derive(Clone)]
+struct MlxQuantized {
+    weights: Array,
+    scales: Array,
+    biases: Array,
+    shape: [i32; 2],
+    bits: i32,
+    group_size: i32,
+}
+
 /// Opaque immutable array: callers cannot inject foreign-device graphs or mutate storage.
 #[derive(Clone)]
-pub struct MlxTensor(Array);
+pub struct MlxTensor(Array, Option<Box<MlxQuantized>>);
+
+impl MlxTensor {
+    fn dense(array: Array) -> Self {
+        Self(array, None)
+    }
+}
 
 /// One explicit GPU stream, independent of the caller's default device/stream.
 /// Neither this wrapper nor its arrays impose unsafe Send/Sync implementations.
@@ -183,7 +199,7 @@ impl MlxBackend {
         backend.evaluate(&[backend.add(&one, &one)?])?;
         Ok(backend)
     }
-    /// Select explicit compute and weight-storage precision (`fp32`, `bf16`, or `fp16`).
+    /// Select explicit compute and weight-storage precision (`fp32`, `bf16`, `fp16`, `q8`, or `q4`).
     pub fn with_precision(mut self, precision: ComputePrecision) -> Result<Self> {
         self.precision = precision;
         Ok(self)
@@ -191,7 +207,7 @@ impl MlxBackend {
     fn float_dtype(&self) -> Dtype {
         match self.precision {
             ComputePrecision::Fp32 => Dtype::Float32,
-            ComputePrecision::Bf16 => Dtype::Bfloat16,
+            ComputePrecision::Bf16 | ComputePrecision::Q8 | ComputePrecision::Q4 => Dtype::Bfloat16,
             ComputePrecision::Fp16 => Dtype::Float16,
         }
     }
@@ -210,8 +226,14 @@ impl MlxBackend {
             Ok(x.as_dtype(dtype)?)
         }
     }
-    /// Synchronously materialize a single MLX tensor (FP32 or indices) without copying to host.
+    /// Synchronously materialize a single MLX tensor without copying to host.
     pub fn eval_tensor(&self, x: &MlxTensor) -> Result<()> {
+        if let Some(q) = &x.1 {
+            return with_stream(&self.stream, || {
+                mlx_rs::transforms::eval([&q.weights, &q.scales, &q.biases])
+            })
+            .map_err(error);
+        }
         with_stream(&self.stream, || mlx_rs::transforms::eval([&x.0])).map_err(error)
     }
     /// Use nonoverlapping projection layouts for the three WMT14 cascade strides.
@@ -404,7 +426,9 @@ impl MlxBackend {
         for x in inputs {
             check(x, dtype)?;
         }
-        with_stream(&self.stream, f).map(MlxTensor).map_err(error)
+        with_stream(&self.stream, f)
+            .map(MlxTensor::dense)
+            .map_err(error)
     }
     fn slice(&self, x: &MlxTensor, axis: usize, start: usize, len: usize) -> Result<MlxTensor> {
         let shape = x.0.shape();
@@ -444,6 +468,46 @@ impl WeightBackend for MlxBackend {
             }
             Ok(out)
         })
+    }
+    fn upload_linear_weight_f32(&self, values: &[f32], shape: &[usize]) -> Result<MlxTensor> {
+        let bits = match self.precision {
+            ComputePrecision::Q8 => Some(8i32),
+            ComputePrecision::Q4 => Some(4i32),
+            _ => None,
+        };
+        if let (Some(bits), &[out_dim, in_dim]) = (bits, shape)
+            && out_dim > 0
+            && in_dim > 0
+            && in_dim.is_multiple_of(64)
+            && !values.iter().any(|&v| !v.is_finite())
+        {
+            let dims = upload_shape(shape, values.len())?;
+            let q = with_stream(&self.stream, || -> ops::Result<MlxQuantized> {
+                let arr = self.cast_from_f32(Array::from_slice(values, &dims))?;
+                let (weights, scales, biases) = mlx_rs::ops::quantize(
+                    &arr,
+                    mlx_rs::ops::QuantizeOptions {
+                        group_size: Some(64),
+                        bits: Some(bits),
+                        ..Default::default()
+                    },
+                )?;
+                let biases = biases.ok_or("expected affine quantization biases")?;
+                mlx_rs::transforms::eval([&weights, &scales, &biases])?;
+                Ok(MlxQuantized {
+                    weights,
+                    scales,
+                    biases,
+                    shape: [dims[0], dims[1]],
+                    bits,
+                    group_size: 64,
+                })
+            })
+            .map_err(error)?;
+            let sentinel = self.array_op(&[], || self.cast_from_f32(Array::from_f32(0.0)))?;
+            return Ok(MlxTensor(sentinel.0, Some(Box::new(q))));
+        }
+        self.upload_f32(values, shape)
     }
 }
 impl CodecBackend for MlxBackend {
@@ -513,6 +577,9 @@ impl CodecBackend for MlxBackend {
         .map_err(error)
     }
     fn shape(&self, x: &MlxTensor) -> Vec<usize> {
+        if let Some(q) = &x.1 {
+            return vec![q.shape[0] as usize, q.shape[1] as usize];
+        }
         x.0.shape().iter().map(|&d| d as usize).collect()
     }
     fn indices_shape(&self, x: &MlxTensor) -> Vec<usize> {
@@ -564,6 +631,29 @@ impl CodecBackend for MlxBackend {
         })
     }
     fn project(&self, x: &MlxTensor, weight: &MlxTensor) -> Result<MlxTensor> {
+        if let Some(q) = &weight.1 {
+            let [output, input] = q.shape;
+            return self.array_op(&[x], || {
+                if input <= 0 || x.0.shape().last() != Some(&input) {
+                    return Err("invalid quantized projection shape".into());
+                }
+                let mut shape = x.0.shape().to_vec();
+                *shape.last_mut().ok_or("scalar projection")? = output;
+                let y = mlx_rs::ops::quantized_matmul(
+                    x.0.reshape(&[-1, input])?,
+                    &q.weights,
+                    &q.scales,
+                    Some(&q.biases),
+                    mlx_rs::ops::QuantizedMatmulOptions {
+                        transpose: true,
+                        group_size: Some(q.group_size),
+                        bits: Some(q.bits),
+                        ..Default::default()
+                    },
+                )?;
+                Ok(y.reshape(&shape)?)
+            });
+        }
         if self.xsum_head_projection_six_experimental
             && weight.0.shape() == [384, 768]
             && matches!(x.0.shape(), [_, _, 768])
@@ -652,7 +742,10 @@ impl CodecBackend for MlxBackend {
             }
             return self.add(&value, bias);
         }
-        if weight.0.shape().len() != 2 || bias.0.shape() != [weight.0.shape()[0]] {
+        if weight.1.is_some()
+            || weight.0.shape().len() != 2
+            || bias.0.shape() != [weight.0.shape()[0]]
+        {
             return self.add(&self.project(x, weight)?, bias);
         }
         self.array_op(&[x, weight, bias], || {
@@ -1081,7 +1174,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             let count = invalid.as_type::<u32>()?.sum(false)?.reshape(&[1])?;
             Ok((choices, count))
         })
-        .map(|(choices, count)| (MlxTensor(choices), MlxTensor(count)))
+        .map(|(choices, count)| (MlxTensor::dense(choices), MlxTensor::dense(count)))
         .map_err(error)
     }
 

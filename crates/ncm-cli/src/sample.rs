@@ -2,7 +2,7 @@
 use super::Result;
 use std::{fs, io::Read, path::Path};
 
-const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [--seed N] [--cfg S] [--precision fp32|bf16|fp16] [--decode] [--plain] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
+const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [--seed N] [--cfg S] [--precision fp32|bf16|fp16|q8|q4] [--decode] [--plain] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
 
 /// Read only enough untrusted metadata to choose a path. The chosen path must
 /// subsequently load and validate the complete artifact before inference.
