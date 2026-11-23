@@ -104,13 +104,25 @@ fn default_short_name(profile: &str, dir_name: &str) -> String {
     }
 }
 
-fn profile_priority(profile: &str) -> u8 {
-    // Prefer self-contained v2 LM1B artifacts over v1 when both exist in the same directory.
-    if profile.ends_with("-inference-v2") {
+fn entry_priority(profile: &str, path: &Path) -> (u8, u8) {
+    // Prefer self-contained v2 artifacts over v1, and primary artifact directories over
+    // historical replay/repro snapshots when choosing the short canonical alias.
+    let version = if profile.ends_with("-inference-v2") {
         2
     } else {
         1
-    }
+    };
+    let dir = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or_default();
+    let primary =
+        if dir.starts_with("phase5-") || dir.contains("-repro-") || dir.contains("-replay") {
+            0
+        } else {
+            1
+        };
+    (version, primary)
 }
 
 /// Inspect a single artifact directory and construct a `ModelEntry` if its `manifest.json`
@@ -234,8 +246,8 @@ impl ModelRegistry {
     fn insert_discovered(&mut self, entry: ModelEntry) {
         let canonical = entry.name.clone();
         if let Some(existing) = self.entries.get(&canonical) {
-            let new_prio = profile_priority(&entry.profile);
-            let old_prio = profile_priority(&existing.profile);
+            let new_prio = entry_priority(&entry.profile, &entry.path);
+            let old_prio = entry_priority(&existing.profile, &existing.path);
             if new_prio > old_prio {
                 // Keep previous entry reachable by its directory basename while promoting v2.
                 let demoted_name = existing

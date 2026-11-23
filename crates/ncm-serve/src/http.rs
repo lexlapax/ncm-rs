@@ -221,7 +221,8 @@ pub fn write_text(stream: &mut TcpStream, status: u16, body: &str) -> io::Result
 }
 
 pub fn write_json(stream: &mut TcpStream, status: u16, value: &Value) -> io::Result<()> {
-    let body = serde_json::to_vec(value).unwrap_or_else(|_| b"{}".to_vec());
+    let mut body = serde_json::to_vec(value).unwrap_or_else(|_| b"{}".to_vec());
+    body.push(b'\n');
     let head = format!(
         "HTTP/1.1 {status} {}\r\n{CORS_HEADERS}Content-Type: application/json; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         reason_phrase(status),

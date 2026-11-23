@@ -6,7 +6,8 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
-- **Phase 6 (`v0.3.0-rc`) COMPLETE on Linux/CUDA AND Apple Silicon/Metal (2026-11-22) — ready for `v0.3.0` tag/release upon user approval:**
+- **`v0.3.0` (Phase 6) released on Linux/CUDA and Apple Silicon/Metal (2026-11-22):**
+  - Bumped workspace version to `0.3.0` (`Cargo.toml` + `Cargo.lock`), incorporated live newbie walkthrough UX polish (bind-before-preload with actionable port-in-use hint on `ncm serve`, dynamic column alignment on `ncm list`, primary alias priority over replay directories in `ModelRegistry`, `--plain` flag on `ncm sample`, trailing newline on HTTP JSON responses, and refreshed [docs/QUICKSTART.md](docs/QUICKSTART.md)), and finalized [docs/RELEASE-NOTES-v0.3.0.md](docs/RELEASE-NOTES-v0.3.0.md).
   - Plan in [docs/PHASE6.md](docs/PHASE6.md); full dual-platform results published in [docs/results/2026-11-22-phase6-precision-serving/README.md](docs/results/2026-11-22-phase6-precision-serving/README.md).
   - **Milestone 6A (`BF16`/`FP16` half precision) — COMPLETE on CUDA & Metal:**
     - `ComputePrecision::{Fp32, Bf16, Fp16}` + `WeightBackend::precision()`, `--precision` on `ncm sample`/`ncm serve`, strict FP32 default preserved, load-time FP16 range check (`> 65504.0`, cleanly rejecting TinyStories `vq.embeddings.0.weight` up to `2.48e10`), and eager MLX half-precision upload materialization.
@@ -18,7 +19,7 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
     - **Apple Silicon/Metal ([mlx-serve-e2e-v1.json](docs/results/2026-11-22-phase6-precision-serving/mlx-serve-e2e-v1.json)):** `./tools/check.sh --mlx` + `ncm-cli --features mlx` clippy/tests passed; warm XSum SSE **101.4 ms**, warm WMT14 Ollama chat **87.9 ms**, LRU switches, 4× concurrent requests all `200 OK`.
   - **Milestone 6C (Newbie Quickstart & Docs) — COMPLETE:**
     - Added [docs/QUICKSTART.md](docs/QUICKSTART.md), `tools/reference/quickstart_export.py` (+ `test_quickstart_export.py` wired into `tools/check.sh`), [Phase 6 report](docs/results/2026-11-22-phase6-precision-serving/README.md), and draft [docs/RELEASE-NOTES-v0.3.0.md](docs/RELEASE-NOTES-v0.3.0.md); refreshed `README.md`, `docs/USAGE.md`, `docs/ARCHITECTURE.md`, `docs/DEVELOPING.md`, `docs/PLAN.md`, and `docs/results/README.md`. Verified 210 relative markdown links (0 broken) and full `./tools/check.sh`.
-  - **Pending user approval:** confirm bumping workspace version to `0.3.0`, tagging annotated `v0.3.0`, and publishing the source-only GitHub release.
+  - **Released:** annotated tag `v0.3.0` and source-only GitHub release published after dual-platform verification (`./tools/check.sh`, CUDA Clippy + release build, `./tools/check.sh --mlx`, and `ncm-cli --features mlx` Clippy/tests).
 
 - **`v0.2.0` release ready & published on Linux/CUDA and Apple Silicon/Metal (2026-11-22):**
   - Bumped workspace version to `0.2.0` (`Cargo.toml` + `Cargo.lock`), finalized `docs/RELEASE-NOTES-v0.2.0.md` and `README.md`, tagging annotated `v0.2.0` and publishing source-only GitHub release with user approval.

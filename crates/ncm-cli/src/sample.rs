@@ -2,7 +2,7 @@
 use super::Result;
 use std::{fs, io::Read, path::Path};
 
-const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [--seed N] [--cfg S] [--precision fp32|bf16|fp16] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
+const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [--seed N] [--cfg S] [--precision fp32|bf16|fp16] [--decode] [--plain] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
 
 /// Read only enough untrusted metadata to choose a path. The chosen path must
 /// subsequently load and validate the complete artifact before inference.
@@ -155,8 +155,15 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
         return Err(USAGE.into());
     }
     let (mut seed, mut cfg, mut rope, mut precision) = (None, None, None, None);
-    let (mut decode, mut text, mut stochastic, mut positive_cfg, mut top_p, mut host_fp64) =
-        (false, false, false, false, false, false);
+    let (
+        mut decode,
+        mut plain,
+        mut text,
+        mut stochastic,
+        mut positive_cfg,
+        mut top_p,
+        mut host_fp64,
+    ) = (false, false, false, false, false, false, false);
     let mut wmt14_experimental = false;
     let mut options = args[5..].iter();
     while let Some(option) = options.next() {
@@ -177,6 +184,10 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             }
             "--reference-rope" if rope.is_none() => rope = Some(options.next().ok_or(USAGE)?),
             "--decode" if !decode => decode = true,
+            "--plain" if !plain => {
+                plain = true;
+                decode = true;
+            }
             "--text" if !text => text = true,
             "--experimental-stochastic-xsum" if !stochastic => stochastic = true,
             "--experimental-positive-cfg-xsum" if !positive_cfg => positive_cfg = true,

@@ -582,7 +582,8 @@ fn main_impl() -> Result<()> {
     } else {
         None
     };
-    let decode = unified && args.iter().skip(5).any(|arg| arg == "--decode");
+    let plain = unified && args.iter().skip(5).any(|arg| arg == "--plain");
+    let decode = unified && (plain || args.iter().skip(5).any(|arg| arg == "--decode"));
     let text = unified && args.iter().skip(5).any(|arg| arg == "--text");
     let precision = if unified {
         let mut parsed = ncm_core::ComputePrecision::Fp32;
@@ -619,7 +620,7 @@ fn main_impl() -> Result<()> {
         .is_some_and(|arg| arg == "sample-lm1b" || arg == "sample-lm1b-small")
     {
         let result = lm1b::sample(&args, text, inline_prompt.as_deref(), precision)?;
-        println!("{}", serde_json::to_string(&result)?);
+        print_output(&result, plain)?;
         return Ok(());
     }
     if !(5..=7).contains(&args.len())
@@ -681,7 +682,22 @@ fn main_impl() -> Result<()> {
     if decode {
         decoder.ok_or("missing tokenizer")?.add_texts(&mut result)?;
     }
-    println!("{}", serde_json::to_string(&result)?);
+    print_output(&result, plain)?;
+    Ok(())
+}
+
+fn print_output(result: &serde_json::Value, plain: bool) -> Result<()> {
+    if plain {
+        let texts = result
+            .get("texts")
+            .and_then(serde_json::Value::as_array)
+            .ok_or("missing decoded texts for --plain output")?;
+        for entry in texts {
+            println!("{}", entry.as_str().unwrap_or_default());
+        }
+    } else {
+        println!("{}", serde_json::to_string(result)?);
+    }
     Ok(())
 }
 fn main() {

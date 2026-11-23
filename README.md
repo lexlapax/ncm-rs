@@ -2,8 +2,8 @@
 
 A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified foundation for running and serving local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production inference and HTTP serving use native CUDA/cuDNN or native MLX; Python is used strictly offline for checkpoint conversion, references, and evaluation.
 
-**Status: Phase 6 (`v0.3.0-rc`) complete and verified on Linux/CUDA and Apple Silicon/MLX (`v0.2.0` published).**
-- **New in Phase 6 (`v0.3.0` candidate):**
+**Status: `v0.3.0` released on Linux/CUDA and Apple Silicon/MLX.**
+- **`v0.3.0` published** (source-only):
   - **Opt-in `BF16` / `FP16` half precision (`--precision fp32|bf16|fp16`):** cuts CUDA VRAM **40.7%–48.5%** and MLX peak **36.4%–47.3%** (host RSS up to **-90.2%**), runs up to **1.47× faster** on CUDA (`lm1b-large`: `246.2 → 167.7 ms`) and **1.15× faster** on Metal (`lm1b-large` b=16), and fits **`lm1b-large` batch 16 in 1,955.1 MiB VRAM** on an 8 GiB RTX 3060 Ti — while keeping default `--precision fp32` 100% untouched.
   - **Drop-in OpenAI & Ollama local HTTP server (`ncm serve`, `crates/ncm-serve`):** zero new external crate dependencies; exposes OpenAI (`/v1/models`, `/v1/completions`, `/v1/chat/completions` + SSE streaming) and Ollama (`/`, `/health`, `/api/tags`, `/api/show`, `/api/generate`, `/api/chat` + NDJSON streaming) on `127.0.0.1:11434` with auto-discovered models and an LRU GPU worker cache.
   - **Newbie ergonomics:** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md), one-command `tools/reference/quickstart_export.py`, `ncm list`, and inline `--prompt "..."` on `ncm sample`.
@@ -15,7 +15,7 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
 - **New users (5-minute build → export → `--prompt` → OpenAI/Ollama `ncm serve`):** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
 - **Full CLI & reproducible exact-hash setup:** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
 - **Developers (Rust library embedding, backend traits, `ncm-serve`, adding local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
-- **Release notes:** [v0.3.0 (draft)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
+- **Release notes:** [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
 
 ## Profile and evidence matrix
 

@@ -1045,7 +1045,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-backend-cuda"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "candle-core",
  "candle-nn",
@@ -1062,7 +1062,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-backend-mlx"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "libc",
  "mlx-rs",
@@ -1078,7 +1078,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ncm-backend-cuda",
  "ncm-backend-mlx",
@@ -1092,7 +1092,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1101,7 +1101,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-io"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "libc",
  "safetensors",
@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-model"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bytemuck",
  "ncm-core",
@@ -1126,7 +1126,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-serve"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -1135,7 +1135,7 @@ dependencies = [
 
 [[package]]
 name = "ncm-tokenizers"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "fancy-regex",
  "libc",

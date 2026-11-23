@@ -36,6 +36,7 @@ Options:
   --cfg S                        Classifier-free guidance scale (default 0).
   --precision fp32|bf16|fp16     Compute and weight precision (default fp32).
   --decode                       Include evaluator-decoded text for text profiles.
+  --plain                        Print decoded text lines directly instead of JSON (implies --decode).
   --text                         Encode text input; LM1B accepts only empty strings.
   --reference-rope FILE          Override default LM1B rotary table path.
   --host-fp64                    LM1B Metal host FP64 sampling.

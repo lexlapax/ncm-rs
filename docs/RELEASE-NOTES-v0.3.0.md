@@ -28,8 +28,9 @@ Strict FP32 remains the default everywhere with zero behavioral or numerical cha
 - Verified live end-to-end on both RTX 3060 Ti (`52.5 ms` warm XSum SSE, `42.0 ms` warm WMT14 Ollama chat, 4× concurrent clients) and M1 Ultra (`101.4 ms` warm XSum SSE, `87.9 ms` warm WMT14 Ollama chat, 4× concurrent clients).
 
 ### 3. Newbie 5-Minute Quickstart & CLI Ergonomics
-- New inline `--prompt "Your text"` flag on `ncm sample` (no temporary JSON files required; automatically encodes and decodes text).
-- New `ncm list [--models-dir DIR] [--json]` subcommand.
+- New inline `--prompt "Your text"` and `--plain` flags on `ncm sample` (no temporary JSON files required; `--plain` prints clean decoded text directly).
+- New `ncm list [--models-dir DIR] [--json]` subcommand with dynamically aligned columns and primary alias selection.
+- `ncm serve` binds its TCP port before preloading weights, returns an actionable port-in-use hint (e.g., `--port 11435` if Ollama is on `11434`), and terminates JSON responses with a trailing newline for clean `curl` output.
 - New [docs/QUICKSTART.md](QUICKSTART.md) 5-minute guide and `tools/reference/quickstart_export.py` one-command wrapper (no CPython source build required; historical exact-hash reproducibility recipes preserved in [docs/USAGE.md](USAGE.md)).
 
 ## Full Evidence

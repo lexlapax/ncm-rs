@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Implemented across Phases 0–6 on Linux/CUDA and Apple Silicon/Metal** (`v0.2.0` published; Phase 6 `v0.3.0` candidate verified on both GPUs). See [docs/QUICKSTART.md](QUICKSTART.md) for 5-minute usage, [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-22-phase6-precision-serving/README.md](results/2026-11-22-phase6-precision-serving/README.md) for Phase 6 precision and serving evidence.
+Status: **Implemented across Phases 0–6 on Linux/CUDA and Apple Silicon/Metal** (`v0.3.0` published). See [docs/QUICKSTART.md](QUICKSTART.md) for 5-minute usage, [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-22-phase6-precision-serving/README.md](results/2026-11-22-phase6-precision-serving/README.md) for Phase 6 precision and serving evidence.
 
 ## Decision: one model, two runtime adapters
 

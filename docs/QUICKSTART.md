@@ -18,7 +18,7 @@ cd ncm-rs
 cargo build --release --locked -p ncm-cli --features cuda-cudnn --bin ncm
 ```
 
-*(If `libcudnn.so` lives inside a Python wheel or custom directory, set `LD_LIBRARY_PATH` when running `ncm`.)*
+*(If CUDA or cuDNN libraries are in non-default locations such as `/opt/cuda/lib64` or a Python venv's `nvidia/cudnn/lib`, either export `LD_LIBRARY_PATH` before running `ncm` or bake them in at build time with `RUSTFLAGS="-C link-arg=-Wl,-rpath,/opt/cuda/lib64 -C link-arg=-Wl,-rpath,/path/to/cudnn/lib"`.)*
 
 ### Option B: macOS with Apple Silicon (Metal / MLX)
 
@@ -101,14 +101,16 @@ Pass `--prompt "..."` directly to `ncm sample`. Add `--precision fp16` for ~2× 
 # Linux CUDA (use `mlx` instead of `cuda` / `cuda-cudnn` on Apple Silicon):
 ./target/release/ncm sample artifacts/canonical/wmt14-inference-v1-final cuda \
   --prompt "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen." \
-  --precision fp16
+  --precision fp16 --plain
 ```
 
 Output:
 
-```json
-{"codes":[[...]],"ids":[[...]],"texts":["The research shows a significant progress in local models."]}
+```text
+The research shows a significant progress in local models.
 ```
+
+*(Omit `--plain` to receive the full structured JSON object `{"codes": ..., "ids": ..., "texts": [...]}`.)*
 
 **Precision guide:**
 - `--precision fp32` (default): strict reference FP32, byte-identical to upstream parity baselines.
@@ -119,10 +121,12 @@ Output:
 
 ## 5. Serve as a Drop-In OpenAI & Ollama Endpoint
 
-Start the built-in, zero-dependency Rust HTTP/1.1 server on the default Ollama port (`127.0.0.1:11434`):
+Start the built-in, zero-dependency Rust HTTP/1.1 server on the default Ollama port (`127.0.0.1:11434`). If Ollama is already running on `11434`, pass `--port 11435`:
 
 ```bash
 ./target/release/ncm serve --precision fp16 --preload xsum
+# Or if port 11434 is already in use:
+# ./target/release/ncm serve --precision fp16 --preload xsum --port 11435
 ```
 
 Optional flags:
@@ -168,14 +172,14 @@ curl http://127.0.0.1:11434/v1/models
 # OpenAI chat completion (SSE streaming)
 curl -N http://127.0.0.1:11434/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"xsum","messages":[{"role":"user","content":"Local AI models ran twice as fast after switching to FP16."}],"stream":true}'
+  -d '{"model":"wmt14","messages":[{"role":"user","content":"Guten Morgen!"}],"stream":true}'
 
 # Ollama model list
 curl http://127.0.0.1:11434/api/tags
 
 # Ollama generate (NDJSON streaming by default; pass "stream": false for single JSON)
 curl http://127.0.0.1:11434/api/generate \
-  -d '{"model":"wmt14","prompt":"Die Forschung zeigt deutliche Fortschritte.","stream":false}'
+  -d '{"model":"wmt14","prompt":"Guten Morgen!","stream":false}'
 
 # Ollama chat
 curl http://127.0.0.1:11434/api/chat \

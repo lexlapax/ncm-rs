@@ -135,13 +135,27 @@ pub(super) fn run_list(args: &[String]) -> Result<()> {
         );
         return Ok(());
     }
+    let name_w = models
+        .iter()
+        .map(|m| m.name.len())
+        .max()
+        .unwrap_or(4)
+        .max(4)
+        + 2;
+    let prof_w = models
+        .iter()
+        .map(|m| m.profile.len())
+        .max()
+        .unwrap_or(7)
+        .max(7)
+        + 2;
     println!(
-        "{:<24} {:<26} {:>10}  {:<5} PATH",
+        "{:<name_w$}{:<prof_w$}{:>10}  {:<5} PATH",
         "NAME", "PROFILE", "SIZE", "TEXT"
     );
     for m in &models {
         println!(
-            "{:<24} {:<26} {:>10}  {:<5} {}",
+            "{:<name_w$}{:<prof_w$}{:>10}  {:<5} {}",
             m.name,
             m.profile,
             format_size(m.size_bytes),
@@ -410,6 +424,26 @@ mod worker {
             );
         });
 
+        let bind_addr = format!("{}:{}", cfg.host, cfg.port);
+        let engine = LocalEngine {
+            registry: Arc::clone(&registry),
+            tx: tx.clone(),
+        };
+        let server = Server::bind(&bind_addr, engine).map_err(|e| {
+            if e.kind() == std::io::ErrorKind::AddrInUse {
+                format!(
+                    "port {} on {} is already in use (another server such as Ollama may be running); pass --port <PORT>, e.g. --port {}",
+                    cfg.port,
+                    cfg.host,
+                    cfg.port.saturating_add(1)
+                )
+                .into()
+            } else {
+                Box::<dyn std::error::Error>::from(e)
+            }
+        })?;
+        let actual = server.local_addr()?;
+
         if let Some(preload_name) = &cfg.preload {
             eprintln!("ncm serve: preloading `{preload_name}` ...");
             let (reply_tx, reply_rx) = mpsc::channel();
@@ -423,14 +457,6 @@ mod worker {
                 .map_err(|_| "worker dropped preload response")?
                 .map_err(|e| format!("preload failed: {e}"))?;
         }
-
-        let bind_addr = format!("{}:{}", cfg.host, cfg.port);
-        let engine = LocalEngine {
-            registry: Arc::clone(&registry),
-            tx,
-        };
-        let server = Server::bind(&bind_addr, engine)?;
-        let actual = server.local_addr()?;
 
         eprintln!("ncm serve listening on http://{actual}");
         eprintln!(
@@ -729,6 +755,14 @@ mod worker {
     ))]
     type RopeTables = (Vec<f32>, Vec<f32>);
 
+    #[cfg(any(
+        all(feature = "lm1b-experimental", target_os = "linux"),
+        all(
+            feature = "lm1b-mlx-experimental",
+            target_os = "macos",
+            target_arch = "aarch64"
+        )
+    ))]
     fn load_lm1b_external_rope(
         entry: &ModelEntry,
     ) -> std::result::Result<Option<RopeTables>, EngineError> {
