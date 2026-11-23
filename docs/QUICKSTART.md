@@ -38,7 +38,7 @@ cargo build --release --locked -p ncm-cli --features mlx --bin ncm
 
 ## 2. Get a Model
 
-### Option A: Export an Upstream NCM Model (1 Command)
+### Option A: Export an Upstream NCM Model (`ncm pull`)
 
 Any modern Python 3.10+ virtual environment with `torch`, `safetensors`, `pyyaml`, and `tokenizers` works:
 
@@ -47,13 +47,13 @@ python3 -m venv .venv
 .venv/bin/pip install torch safetensors pyyaml tokenizers
 
 # See available starter models:
-python3 tools/reference/quickstart_export.py --list
+./target/release/ncm pull --list
 
 # Preview the exact commands without downloading:
-python3 tools/reference/quickstart_export.py --model wmt14 --python .venv/bin/python --dry-run
+./target/release/ncm pull wmt14 --python .venv/bin/python --dry-run
 
 # Fetch & export WMT14 German->English (~1.06 GiB) or XSum news summarizer (~627 MiB):
-python3 tools/reference/quickstart_export.py --model wmt14 --python .venv/bin/python
+./target/release/ncm pull wmt14 --python .venv/bin/python
 ```
 
 *(For self-contained `lm1b-*-inference-v2` without a sibling rotary file, pass `--reference-rope artifacts/canonical/lm1b-reference-rope-v1.safetensors`.)*
@@ -93,9 +93,19 @@ xsum                     xsum-inference-v2           627.4 MiB  yes   artifacts/
 
 ---
 
-## 4. Run Your First Prompt (No Temp Files Needed)
+## 4. Run Prompts Interactively (`ncm run`) or One-Shot
 
-Pass `--prompt "..."` directly to `ncm sample`. Add `--precision fp16` for ~2× lower GPU memory and faster inference (or keep the default `--precision fp32` for exact parity with upstream):
+Use Ollama-style `ncm run` for either a one-shot prompt or an interactive REPL that keeps the model hot in GPU memory across turns:
+
+```bash
+# One-shot prompt with 8-bit quantization (~68% less VRAM, works on CUDA & Apple Silicon):
+./target/release/ncm run wmt14 "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen." --precision q8
+
+# Interactive REPL (type /bye or Ctrl-D to exit; /seed N or /cfg S to adjust):
+./target/release/ncm run wmt14 --precision fp16
+```
+
+You can also use `ncm sample` directly with explicit artifact paths and `--prompt` / `--plain`:
 
 ```bash
 # Linux CUDA (use `mlx` instead of `cuda` / `cuda-cudnn` on Apple Silicon):
@@ -116,6 +126,7 @@ The research shows a significant progress in local models.
 - `--precision fp32` (default): strict reference FP32, byte-identical to upstream parity baselines.
 - `--precision fp16`: recommended for `wmt14`, `xsum`, `lm1b-{small,medium,large}`, and `sudoku-*` — cuts VRAM/MLX memory nearly in half (~47–48% reduction) and runs up to **1.47× faster** on Ampere+ Tensor Cores.
 - `--precision bf16`: wide dynamic range (`±3.39 × 10^38`); required for `tinystories` half precision (whose upstream `vq.embeddings.0.weight` exceeds FP16's `65,504` range, which `ncm` explicitly catches on load).
+- `--precision q8` / `--precision q4`: native 8-bit (`Q8_0` / MLX 8-bit) and 4-bit (`Q4_0` / MLX 4-bit) weight quantization cutting VRAM up to **-79%** (`lm1b-large` fits in **673 MiB** VRAM, and `tinystories` works cleanly in both `q8` and `q4`). For translation (`wmt14`), prefer `fp16` or `q8`.
 
 ---
 
@@ -134,6 +145,7 @@ Optional flags:
 - `--model myname=/path/to/artifact` — register an explicit model alias (repeatable)
 - `--device cuda-cudnn|cuda|mlx|cpu` — select backend explicitly (defaults to compiled best GPU)
 - `--max-loaded N` — number of models kept hot in GPU memory via LRU eviction (default: `1`, ideal for 8 GiB GPUs; increase to `2–4` on 24 GiB+ GPUs or Mac Studio)
+- `--max-batch N` — max concurrent requests dynamically coalesced into one GPU forward pass (default: `8`; up to **2.21×** CUDA / **1.97×** Metal concurrent throughput)
 - `--host 127.0.0.1 --port 11434` — bind address (localhost-only by default)
 
 ### Drop-In OpenAI Python SDK
@@ -174,8 +186,9 @@ curl -N http://127.0.0.1:11434/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model":"wmt14","messages":[{"role":"user","content":"Guten Morgen!"}],"stream":true}'
 
-# Ollama model list
+# Ollama model list & currently loaded models
 curl http://127.0.0.1:11434/api/tags
+curl http://127.0.0.1:11434/api/ps
 
 # Ollama generate (NDJSON streaming by default; pass "stream": false for single JSON)
 curl http://127.0.0.1:11434/api/generate \
@@ -188,8 +201,39 @@ curl http://127.0.0.1:11434/api/chat \
 
 ---
 
+## 6. Train or Fine-Tune a Local NCM Model Natively in Rust (`ncm train`)
+
+Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or generator directly on **CUDA**, **Apple Silicon Metal**, or **CPU** — zero Python required — and immediately run or serve the verified exported artifact:
+
+```bash
+# Train codec + generator from scratch and export verified local-ncm-v1 artifact:
+./target/release/ncm train \
+  --config my_config.json \
+  --data train.json \
+  --output artifacts/canonical/my-trained-ncm \
+  --device cuda \
+  --stage all --steps 200 --batch 8 --lr 0.005 --overwrite
+
+# Fine-tune an existing verified local-ncm-v1 artifact (frozen codec):
+./target/release/ncm train \
+  --init-from artifacts/canonical/my-trained-ncm \
+  --data finetune.json \
+  --output artifacts/canonical/my-finetuned-ncm \
+  --device cuda \
+  --steps 100 --lr 0.001 --overwrite
+
+# Immediately inspect, run, or serve the trained model:
+./target/release/ncm inspect artifacts/canonical/my-finetuned-ncm
+./target/release/ncm serve --model custom=artifacts/canonical/my-finetuned-ncm --port 11435
+```
+
+*(Replace `--device cuda` with `--device mlx` on Apple Silicon, or `--device cpu` for small tests.)*
+
+---
+
 ## Next Steps
 
 - [docs/USAGE.md](USAGE.md) — full CLI reference, pinned exact-hash export workflows, and platform env setup.
 - [docs/DEVELOPING.md](DEVELOPING.md) — extending `ncm-rs`, adding custom `local-ncm-v1` models, and backend internals.
+- [docs/results/2026-11-23-phase7/README.md](results/2026-11-23-phase7/README.md) — measured CUDA & Apple Silicon `Q8`/`Q4` quantization, Serving v2 micro-batching, and native Rust training results.
 - [docs/results/2026-11-22-phase6-precision-serving/README.md](results/2026-11-22-phase6-precision-serving/README.md) — measured CUDA & Apple Silicon FP32/BF16/FP16 quality, latency, VRAM/RSS, and serving results.

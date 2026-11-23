@@ -267,6 +267,14 @@ Approved 2026-11-22 ([docs/PHASE6.md](PHASE6.md)); completed and verified on Lin
 2. **Milestone 6B (`ncm-serve` + `ncm serve` + `ncm list`):** zero-new-dep HTTP/1.1 + SSE/NDJSON drop-in OpenAI & Ollama server with local artifact discovery, bounded LRU GPU worker cache, and live dual-platform verification.
 3. **Milestone 6C (quickstart & CLI ergonomics):** inline `--prompt` on `ncm sample`, `tools/reference/quickstart_export.py`, [docs/QUICKSTART.md](QUICKSTART.md), and published dual-platform [Phase 6 report](results/2026-11-22-phase6-precision-serving/README.md).
 
+## Phase 7 — weight quantization (`Q8`/`Q4`), Serving v2, & native Rust training (complete)
+
+Approved 2026-11-22 ([docs/PHASE7.md](PHASE7.md)); completed and verified on Linux/CUDA first, then Apple Silicon/Metal:
+
+1. **Milestone 7A (`Q8`/`Q4` quantization):** `ComputePrecision::{Q8, Q4}` + `WeightBackend::upload_linear_weight_f32` (`GGML Q8_0`/`Q4_0` on CUDA, group-64 affine `mlx_rs::ops::quantize` on Metal) cutting `lm1b-large` VRAM up to -79.1% (CUDA) / -77.2% (Metal) while preserving strict FP32 defaults.
+2. **Milestone 7B (Ollama-class CLI & Serving v2):** `ncm run` (one-shot & hot-GPU REPL), `ncm pull`, `GET /api/ps`, and dynamic micro-batching (`--max-batch`, default `8`) achieving up to 2.21× CUDA / 1.97× Metal concurrent throughput.
+3. **Milestone 7C (Native Rust training & fine-tuning):** `crates/ncm-train` + `ncm train` (zero new external deps) with Candle CPU/CUDA and MLX Metal autodiff for RVQ/STE/EMA codec training, frozen-codec generator training & `--init-from` fine-tuning, finite-difference gradient checks, deterministic checkpoint save/resume, and direct verified `local-ncm-v1` export. Published in [Phase 7 report](results/2026-11-23-phase7/README.md).
+
 ## Continuous lane — upstream parity and published comparisons
 
 Runs alongside every phase, not merely after the first release:

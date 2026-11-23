@@ -1,20 +1,21 @@
 # Architecture
 
-Status: **Implemented across Phases 0–6 on Linux/CUDA and Apple Silicon/Metal** (`v0.3.0` published). See [docs/QUICKSTART.md](QUICKSTART.md) for 5-minute usage, [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-22-phase6-precision-serving/README.md](results/2026-11-22-phase6-precision-serving/README.md) for Phase 6 precision and serving evidence.
+Status: **Implemented across Phases 0–7 on Linux/CUDA and Apple Silicon/Metal** (`v0.4.0` candidate; `v0.3.0` published). See [docs/QUICKSTART.md](QUICKSTART.md) for 5-minute usage, [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-23-phase7/README.md](results/2026-11-23-phase7/README.md) for Phase 7 quantization, Serving v2, and native Rust training evidence.
 
 ## Decision: one model, two runtime adapters
 
 Model semantics live once in Rust (`ncm-model`), generic over narrow backend traits (`ncm-core`) with associated tensor and index types. The concrete backend (`CandleBackend` for CUDA/cuDNN or `MlxBackend` for Apple Silicon Metal) is chosen explicitly at the application boundary and monomorphized on hot paths—never dispatched per operator through trait objects and never silently falling back to CPU.
 
 ```text
-ncm-cli (unified `ncm sample`, `serve`, `list`, `inspect`, `generate`, `reconstruct`, aliases)
-  ├── ncm-serve              zero-new-dep HTTP/1.1 + SSE/NDJSON OpenAI & Ollama server + registry
+ncm-cli (`ncm run`, `pull`, `serve`, `train`, `sample`, `list`, `inspect`, `generate`, `reconstruct`)
+  ├── ncm-serve              zero-new-dep HTTP/1.1 + SSE/NDJSON OpenAI & Ollama server (`/api/ps`, dynamic batching)
+  ├── ncm-train              native Rust RVQ/EMA codec + frozen-codec generator training & fine-tuning (Candle + MLX)
   ├── ncm-io                 manifest verification, parallel SHA-256, streaming weight I/O
   ├── ncm-tokenizers         pinned Sudoku, Byte BPE, GPT-2, Qwen3, BERT & offline LocalTokenizer
   ├── ncm-model              Codec, Generator, TinyStories/XSum/WMT14/LM1B/LocalNcmModel, TraceSink
-  │     └── ncm-core         validated configs, ComputePrecision, OwtConfigOnly, backend traits
-  ├── ncm-backend-cuda ─────> ncm-core + Candle -> CUDA / cuBLAS / cuDNN / custom CUDA kernels
-  └── ncm-backend-mlx ──────> ncm-core + mlx-rs -> mlx-c -> native MLX / Metal
+  │     └── ncm-core         validated configs, ComputePrecision (fp32/bf16/fp16/q8/q4), OwtConfigOnly, backend traits
+  ├── ncm-backend-cuda ─────> ncm-core + Candle -> CUDA / cuBLAS / cuDNN / GGML Q8_0/Q4_0 / custom CUDA kernels
+  └── ncm-backend-mlx ──────> ncm-core + mlx-rs -> mlx-c -> native MLX / Metal (FP32/BF16/FP16/Q8/Q4)
 ```
 
 `ncm-core` has zero dependency on any concrete GPU runtime. A bounded Candle CPU backend exists solely for deterministic unit fixtures and offline development, **not** as a third production target.
@@ -58,8 +59,9 @@ Defined in [crates/ncm-core/src/lib.rs](../crates/ncm-core/src/lib.rs):
 | Custom local NCM (`local-ncm-v1`) | Generic config-driven `LocalNcmModel` + offline `LocalTokenizer` + FP32 prefix K/V cache + stdlib exporter (`tools/reference/export_local_ncm.py`) on CPU, CUDA, and Metal |
 | OpenWebText (OWT) | Config validation (`OwtConfigOnly`), no-EOS-cut policy, and synthetic operator shapes implemented; runtime execution refused until upstream releases weights |
 | BF16/FP16 mixed precision | Implemented & dual-platform verified (`ComputePrecision::{Fp32, Bf16, Fp16}` via `--precision`); strict FP32 remains default, FP16 out-of-range weights fail explicitly on load |
-| OpenAI & Ollama local HTTP serving | Implemented & dual-platform verified (`crates/ncm-serve` + `ncm serve` + `ncm list`); zero-new-dep HTTP/1.1 + SSE/NDJSON + serialized GPU worker LRU cache |
-| Quantization (INT8/INT4) & training | Deferred (Phase 7 / separate approval gate) |
+| OpenAI & Ollama local HTTP serving | Implemented & dual-platform verified (`crates/ncm-serve` + `ncm serve` + `ncm run` + `ncm pull` + `ncm list`); zero-new-dep HTTP/1.1 + SSE/NDJSON + `GET /api/ps` + dynamic micro-batching (`--max-batch`) + LRU GPU worker cache |
+| Weight quantization (`Q8`/`Q4`) | Implemented & dual-platform verified (`--precision q8|q4` via `GGML Q8_0`/`Q4_0` on CUDA and group-64 affine `mlx_rs::ops::quantize` on Metal; embeddings/norms/convs stay in `BF16`, strict `FP32` default preserved) |
+| Native Rust training & fine-tuning | Implemented & dual-platform verified (`crates/ncm-train` + `ncm train`); RVQ/STE/EMA codec + frozen-codec generator training & fine-tuning via Candle (CPU/CUDA) and MLX `value_and_grad` (Metal), atomic checkpoint resume, and direct verified `local-ncm-v1` export |
 
 ## Platform, safety, and compatibility policy
 

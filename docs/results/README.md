@@ -1,5 +1,13 @@
 # Published comparison index
 
+## Phase 7: weight quantization (`Q8`/`Q4`), Serving v2, & native Rust training (complete)
+
+Phase 7 (`v0.4.0` candidate, [docs/PHASE7.md](../PHASE7.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra).
+
+| Report | Scope | Status and highlights |
+| --- | --- | --- |
+| [Phase 7 quantization, Serving v2 & training report (CUDA & Metal)](2026-11-23-phase7/README.md) | Dual-platform `Q8`/`Q4` weight quantization across all 7 profiles + `lm1b-large` b=16, 8-client dynamic micro-batching (`--max-batch 8` vs `1`) + `ncm run`/`ncm pull`/`/api/ps`, and native Rust `ncm train` (RVQ/EMA codec + frozen-codec generator + `--init-from` fine-tuning + inference/serve roundtrip) | `lm1b-large` b=1 VRAM **-68.1% (`q8`) / -79.1% (`q4`, 673 MiB)** CUDA & **-66.9% / -77.2%** MLX (**b=16 in 975 MiB CUDA**); concurrent serving **2.21× CUDA / 1.85× Metal** on `wmt14` & **1.64× / 1.97×** on `lm1b-large` Q8; native Rust training matches to 4 decimal places across CUDA & Metal with **100% (8/8)** roundtrip recovery through `ncm sample` and `ncm serve`. |
+
 ## Phase 6: opt-in half precision (`BF16`/`FP16`) & OpenAI/Ollama local serving (complete)
 
 Phase 6 (`v0.3.0` candidate, [docs/PHASE6.md](../PHASE6.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra).
