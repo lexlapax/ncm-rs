@@ -1,0 +1,195 @@
+[
+  {
+    "profile": "sudoku-easy",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 89.0,
+      "warm_med_ms": 54.17,
+      "warm_p95_ms": 54.38,
+      "mlx_peak_mib": 261.7,
+      "rss_peak_mib": 197.0
+    },
+    "bf16": {
+      "load_ms": 154.6,
+      "warm_med_ms": 61.06,
+      "warm_p95_ms": 61.17,
+      "mlx_peak_mib": 191.9,
+      "rss_peak_mib": 76.4
+    },
+    "fp16": {
+      "load_ms": 173.0,
+      "warm_med_ms": 56.88,
+      "warm_p95_ms": 57.15,
+      "mlx_peak_mib": 192.3,
+      "rss_peak_mib": 76.2
+    }
+  },
+  {
+    "profile": "tinystories",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 284.5,
+      "warm_med_ms": 93.42,
+      "warm_p95_ms": 93.93,
+      "mlx_peak_mib": 606.6,
+      "rss_peak_mib": 526.6
+    },
+    "bf16": {
+      "load_ms": 338.1,
+      "warm_med_ms": 97.5,
+      "warm_p95_ms": 97.87,
+      "mlx_peak_mib": 359.1,
+      "rss_peak_mib": 93.4
+    }
+  },
+  {
+    "profile": "xsum",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 331.1,
+      "warm_med_ms": 86.59,
+      "warm_p95_ms": 87.33,
+      "mlx_peak_mib": 930.6,
+      "rss_peak_mib": 1015.9
+    },
+    "bf16": {
+      "load_ms": 383.5,
+      "warm_med_ms": 96.2,
+      "warm_p95_ms": 96.49,
+      "mlx_peak_mib": 566.9,
+      "rss_peak_mib": 555.7
+    },
+    "fp16": {
+      "load_ms": 451.6,
+      "warm_med_ms": 84.17,
+      "warm_p95_ms": 84.36,
+      "mlx_peak_mib": 566.9,
+      "rss_peak_mib": 555.1
+    }
+  },
+  {
+    "profile": "wmt14",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 556.1,
+      "warm_med_ms": 79.15,
+      "warm_p95_ms": 79.74,
+      "mlx_peak_mib": 1104.2,
+      "rss_peak_mib": 1121.4
+    },
+    "bf16": {
+      "load_ms": 624.1,
+      "warm_med_ms": 86.48,
+      "warm_p95_ms": 86.76,
+      "mlx_peak_mib": 592.0,
+      "rss_peak_mib": 550.2
+    },
+    "fp16": {
+      "load_ms": 747.9,
+      "warm_med_ms": 79.82,
+      "warm_p95_ms": 80.21,
+      "mlx_peak_mib": 592.0,
+      "rss_peak_mib": 550.3
+    }
+  },
+  {
+    "profile": "lm1b-small",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 382.1,
+      "warm_med_ms": 96.33,
+      "warm_p95_ms": 96.82,
+      "mlx_peak_mib": 926.7,
+      "rss_peak_mib": 878.9
+    },
+    "bf16": {
+      "load_ms": 479.9,
+      "warm_med_ms": 101.71,
+      "warm_p95_ms": 102.32,
+      "mlx_peak_mib": 518.2,
+      "rss_peak_mib": 244.0
+    },
+    "fp16": {
+      "load_ms": 576.3,
+      "warm_med_ms": 94.14,
+      "warm_p95_ms": 94.61,
+      "mlx_peak_mib": 518.2,
+      "rss_peak_mib": 243.8
+    }
+  },
+  {
+    "profile": "lm1b-medium",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 923.0,
+      "warm_med_ms": 203.22,
+      "warm_p95_ms": 204.4,
+      "mlx_peak_mib": 1806.4,
+      "rss_peak_mib": 1726.4
+    },
+    "bf16": {
+      "load_ms": 1049.9,
+      "warm_med_ms": 219.79,
+      "warm_p95_ms": 220.91,
+      "mlx_peak_mib": 982.6,
+      "rss_peak_mib": 269.4
+    },
+    "fp16": {
+      "load_ms": 1245.7,
+      "warm_med_ms": 194.44,
+      "warm_p95_ms": 195.57,
+      "mlx_peak_mib": 982.6,
+      "rss_peak_mib": 269.1
+    }
+  },
+  {
+    "profile": "lm1b-large",
+    "batch": 1,
+    "fp32": {
+      "load_ms": 1988.5,
+      "warm_med_ms": 380.38,
+      "warm_p95_ms": 382.42,
+      "mlx_peak_mib": 3414.4,
+      "rss_peak_mib": 3297.8
+    },
+    "bf16": {
+      "load_ms": 2139.9,
+      "warm_med_ms": 422.84,
+      "warm_p95_ms": 428.26,
+      "mlx_peak_mib": 1799.1,
+      "rss_peak_mib": 323.0
+    },
+    "fp16": {
+      "load_ms": 2508.5,
+      "warm_med_ms": 362.35,
+      "warm_p95_ms": 371.64,
+      "mlx_peak_mib": 1798.4,
+      "rss_peak_mib": 323.4
+    }
+  },
+  {
+    "profile": "lm1b-large",
+    "batch": 16,
+    "fp32": {
+      "load_ms": 1982.9,
+      "warm_med_ms": 2113.3,
+      "warm_p95_ms": 2140.36,
+      "mlx_peak_mib": 4683.1,
+      "rss_peak_mib": 3329.0
+    },
+    "bf16": {
+      "load_ms": 2158.5,
+      "warm_med_ms": 2137.34,
+      "warm_p95_ms": 2164.87,
+      "mlx_peak_mib": 2978.1,
+      "rss_peak_mib": 360.9
+    },
+    "fp16": {
+      "load_ms": 2623.2,
+      "warm_med_ms": 1838.34,
+      "warm_p95_ms": 1899.3,
+      "mlx_peak_mib": 2978.1,
+      "rss_peak_mib": 362.6
+    }
+  }
+]

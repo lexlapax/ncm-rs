@@ -1,0 +1,32 @@
+{
+  "platform": "linux-cuda",
+  "device": "cuda-cudnn",
+  "precision": "fp16",
+  "models_discovered_count": 34,
+  "xsum_warm_http_ms": 197.1,
+  "xsum_sse_http_ms": 52.5,
+  "wmt14_cold_switch_ms": 1244.3,
+  "wmt14_warm_http_ms": 42.0,
+  "lm1b_small_cold_switch_ms": 651.5,
+  "lm1b_small_4x_concurrent_ms": [
+    132.0,
+    48.4,
+    89.8,
+    173.0
+  ],
+  "xsum_sample": " sights memory - a typical smartphone of using a digital technology using your computer - can measure your own by switching your own knees.",
+  "wmt14_sample": "The research shows a significant progress in local models.",
+  "lm1b_small_sample": "[CLS] - checkpoints in the region. [CLS] his meeting. [CLS] since there has been held the first coun",
+  "checks": [
+    "GET /",
+    "GET /health",
+    "GET /v1/models",
+    "GET /api/tags",
+    "POST /v1/chat/completions (non-stream + SSE)",
+    "POST /api/generate (NDJSON + LRU switch)",
+    "POST /api/chat (non-stream)",
+    "POST /v1/completions (LRU switch + 4x concurrent)",
+    "404 unknown model",
+    "ncm sample --prompt"
+  ]
+}

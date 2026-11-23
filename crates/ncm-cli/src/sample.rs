@@ -2,7 +2,7 @@
 use super::Result;
 use std::{fs, io::Read, path::Path};
 
-const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--precision fp32|bf16|fp16] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
+const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [--seed N] [--cfg S] [--precision fp32|bf16|fp16] [--decode] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
 
 /// Read only enough untrusted metadata to choose a path. The chosen path must
 /// subsequently load and validate the complete artifact before inference.
@@ -104,6 +104,43 @@ pub(super) fn validate_wmt14_alias(args: &mut Vec<String>) -> Result<()> {
     args.truncate(5);
     args.extend(scale);
     Ok(())
+}
+
+/// Normalize inline `--prompt TEXT` into the sentinel `--inline-prompt` + `--text` + `--decode`
+/// so all downstream profile validation rules apply identically.
+pub(super) fn extract_inline_prompt(args: &[String]) -> Result<(Vec<String>, Option<String>)> {
+    if args.len() < 5 {
+        return Ok((args.to_vec(), None));
+    }
+    if args[4] == "--prompt" {
+        let Some(prompt_text) = args.get(5) else {
+            return Err("missing text after --prompt".into());
+        };
+        let rest = &args[6..];
+        if rest.iter().any(|a| a == "--prompt") {
+            return Err("duplicate --prompt option".into());
+        }
+        if rest.iter().any(|a| a == "--text") {
+            return Err("--prompt already encodes text; do not combine with --text".into());
+        }
+        let mut normalized = vec![
+            args[0].clone(),
+            args[1].clone(),
+            args[2].clone(),
+            args[3].clone(),
+            "--inline-prompt".to_owned(),
+            "--text".to_owned(),
+        ];
+        if !rest.iter().any(|a| a == "--decode") {
+            normalized.push("--decode".to_owned());
+        }
+        normalized.extend_from_slice(rest);
+        return Ok((normalized, Some(prompt_text.clone())));
+    }
+    if args[5..].iter().any(|a| a == "--prompt") {
+        return Err("cannot combine INPUT_JSON with --prompt".into());
+    }
+    Ok((args.to_vec(), None))
 }
 
 pub(super) fn translate(args: &[String]) -> Result<Vec<String>> {
@@ -510,5 +547,44 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn inline_prompt_normalizes_and_rejects_conflicts() {
+        let raw: Vec<String> = [
+            "ncm",
+            "sample",
+            "artifact",
+            "cuda-cudnn",
+            "--prompt",
+            "Hello world",
+            "--precision",
+            "fp16",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+        let (norm, prompt) = super::extract_inline_prompt(&raw).unwrap();
+        assert_eq!(prompt.as_deref(), Some("Hello world"));
+        assert!(norm.contains(&"--text".to_owned()));
+        assert!(norm.contains(&"--decode".to_owned()));
+        assert!(translate_profile(&norm, "xsum-inference-v1").is_ok());
+
+        // Reject combining --prompt with --text or INPUT_JSON
+        let with_text: Vec<String> = [
+            "ncm", "sample", "artifact", "cuda", "--prompt", "hi", "--text",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+        assert!(super::extract_inline_prompt(&with_text).is_err());
+
+        let with_file: Vec<String> = [
+            "ncm", "sample", "artifact", "cuda", "in.json", "--prompt", "hi",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+        assert!(super::extract_inline_prompt(&with_file).is_err());
     }
 }

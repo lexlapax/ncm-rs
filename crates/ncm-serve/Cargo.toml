@@ -1,0 +1,19 @@
+[package]
+name = "ncm-serve"
+description = "Zero-dependency OpenAI- and Ollama-compatible HTTP/1.1 serving layer for local NCM models"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

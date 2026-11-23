@@ -165,39 +165,37 @@ impl Decoder {
         }
     }
 
+    pub(super) fn decode_ids(&self, row: &[u32]) -> Result<String> {
+        match &self.0 {
+            DecoderInner::Pinned { tokenizer, policy } => {
+                let selected = evaluator_ids(row, policy, tokenizer.metadata().total_vocab_size)?;
+                Ok(tokenizer.decode(&selected, true)?)
+            }
+            DecoderInner::Local { tokenizer, policy } => {
+                if row.iter().any(|&id| id >= policy.model_vocab) {
+                    return Err("generated ID exceeds model vocabulary".into());
+                }
+                let end = policy
+                    .eos
+                    .and_then(|eos| row.iter().position(|&id| id == eos))
+                    .unwrap_or(row.len());
+                let selected: Vec<u32> = row[..end]
+                    .iter()
+                    .copied()
+                    .filter(|&id| Some(id) != policy.pad && (id as usize) < tokenizer.vocab_size())
+                    .collect();
+                Ok(tokenizer.decode(&selected, true)?)
+            }
+        }
+    }
+
     pub(super) fn add_texts(&self, result: &mut serde_json::Value) -> Result<()> {
         let ids: Vec<Vec<u32>> =
             serde_json::from_value(result.get("ids").ok_or("missing generated IDs")?.clone())?;
-        let texts: Vec<String> = match &self.0 {
-            DecoderInner::Pinned { tokenizer, policy } => ids
-                .iter()
-                .map(|row| {
-                    let selected =
-                        evaluator_ids(row, policy, tokenizer.metadata().total_vocab_size)?;
-                    Ok(tokenizer.decode(&selected, true)?)
-                })
-                .collect::<Result<_>>()?,
-            DecoderInner::Local { tokenizer, policy } => ids
-                .iter()
-                .map(|row| {
-                    if row.iter().any(|&id| id >= policy.model_vocab) {
-                        return Err("generated ID exceeds model vocabulary".into());
-                    }
-                    let end = policy
-                        .eos
-                        .and_then(|eos| row.iter().position(|&id| id == eos))
-                        .unwrap_or(row.len());
-                    let selected: Vec<u32> = row[..end]
-                        .iter()
-                        .copied()
-                        .filter(|&id| {
-                            Some(id) != policy.pad && (id as usize) < tokenizer.vocab_size()
-                        })
-                        .collect();
-                    Ok(tokenizer.decode(&selected, true)?)
-                })
-                .collect::<Result<_>>()?,
-        };
+        let texts: Vec<String> = ids
+            .iter()
+            .map(|row| self.decode_ids(row))
+            .collect::<Result<_>>()?;
         result["texts"] = serde_json::json!(texts);
         Ok(())
     }

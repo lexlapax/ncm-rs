@@ -22,6 +22,7 @@ lm1b-mlx-experimental = ["mlx", "ncm-backend-mlx/lm1b-experimental", "ncm-model/
 ncm-core = { path = "../ncm-core" }
 ncm-io = { path = "../ncm-io" }
 ncm-model = { path = "../ncm-model", optional = true }
+ncm-serve = { path = "../ncm-serve" }
 ncm-tokenizers = { path = "../ncm-tokenizers" }
 serde_json = "1"
 ncm-backend-cuda = { path = "../ncm-backend-cuda", optional = true }

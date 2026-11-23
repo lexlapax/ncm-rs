@@ -3,6 +3,7 @@ mod decode;
 mod help;
 mod lm1b;
 mod sample;
+mod serve;
 
 #[cfg(any(
     feature = "cpu",
@@ -567,7 +568,20 @@ fn main_impl() -> Result<()> {
         print!("{message}");
         return Ok(());
     }
+    if args.get(1).is_some_and(|arg| arg == "list") {
+        return serve::run_list(&args);
+    }
+    if args.get(1).is_some_and(|arg| arg == "serve") {
+        return serve::run_serve(&args);
+    }
     let unified = args.get(1).is_some_and(|arg| arg == "sample");
+    let inline_prompt = if unified {
+        let (normalized, prompt) = sample::extract_inline_prompt(&args)?;
+        args = normalized;
+        prompt
+    } else {
+        None
+    };
     let decode = unified && args.iter().skip(5).any(|arg| arg == "--decode");
     let text = unified && args.iter().skip(5).any(|arg| arg == "--text");
     let precision = if unified {
@@ -604,7 +618,7 @@ fn main_impl() -> Result<()> {
         .get(1)
         .is_some_and(|arg| arg == "sample-lm1b" || arg == "sample-lm1b-small")
     {
-        let result = lm1b::sample(&args, text, precision)?;
+        let result = lm1b::sample(&args, text, inline_prompt.as_deref(), precision)?;
         println!("{}", serde_json::to_string(&result)?);
         return Ok(());
     }
@@ -634,7 +648,12 @@ fn main_impl() -> Result<()> {
     } else {
         None
     };
-    let inputs = if text {
+    let inputs = if let Some(prompt) = inline_prompt {
+        decoder
+            .as_ref()
+            .ok_or("missing tokenizer")?
+            .encode_texts(&[prompt])?
+    } else if text {
         let texts: Vec<String> = serde_json::from_slice(&read_input_bytes(Path::new(&args[4]))?)?;
         decoder
             .as_ref()

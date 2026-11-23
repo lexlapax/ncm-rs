@@ -5,21 +5,24 @@ NCM inference (explicit device; no fallback)
 
 Usage:
   ncm inspect ARTIFACT
-  ncm sample ARTIFACT DEVICE INPUT_JSON [OPTIONS]
+  ncm list [--models-dir DIR] [--model NAME=PATH]... [--json]
+  ncm serve [OPTIONS]
+  ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [OPTIONS]
   ncm generate|reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]
   ncm sample-tinystories|sample-xsum|sample-wmt14|sample-lm1b ...
 
-Run `ncm sample --help` for profiles, options and experimental paths.
+Run `ncm sample --help`, `ncm serve --help`, or `ncm list --help` for details.
 Profile-specific sample commands remain available. The XSum alias requires explicit
 experimental flags for positive CFG and stochastic sampling. WMT14 CFG scales other
 than 0 or 1 require --experimental-cfg-wmt14 on both commands.
 ";
 
 pub(super) const SAMPLE: &str = "\
-Usage: ncm sample ARTIFACT DEVICE INPUT_JSON [OPTIONS]
+Usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [OPTIONS]
 
 The artifact manifest selects Sudoku, TinyStories, XSum, WMT14, LM1B or local-ncm-v1.
 INPUT_JSON contains token-ID rows; with --text it contains an array of strings.
+--prompt TEXT passes one UTF-8 prompt string inline (implies --text and --decode).
 --text supports TinyStories (one non-padding token), XSum, WMT14 and local-ncm-v1
 (when tokenizer.json is bundled). LM1B accepts only empty strings, mapped to [101];
 nonempty prompts are unsupported.
@@ -28,6 +31,7 @@ beside the artifact directory, or an explicit --reference-rope FILE. LM1B v2 bun
 the verified rotary tables inside inference.safetensors.
 
 Options:
+  --prompt TEXT                  Pass one text prompt inline (implies --text --decode).
   --seed N                       Seed TinyStories, LM1B (default 0) or local-ncm-v1.
   --cfg S                        Classifier-free guidance scale (default 0).
   --precision fp32|bf16|fp16     Compute and weight precision (default fp32).
@@ -51,6 +55,12 @@ pub(super) fn requested(args: &[String]) -> Option<&'static str> {
         [_, flag] if flag == "--help" || flag == "-h" => Some(GENERAL),
         [_, command, flag] if command == "sample" && (flag == "--help" || flag == "-h") => {
             Some(SAMPLE)
+        }
+        [_, command, flag] if command == "serve" && (flag == "--help" || flag == "-h") => {
+            Some(crate::serve::SERVE_HELP)
+        }
+        [_, command, flag] if command == "list" && (flag == "--help" || flag == "-h") => {
+            Some(crate::serve::LIST_HELP)
         }
         _ => None,
     }

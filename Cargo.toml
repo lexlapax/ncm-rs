@@ -5,6 +5,7 @@ members = [
     "crates/ncm-model",
     "crates/ncm-tokenizers",
     "crates/ncm-io",
+    "crates/ncm-serve",
     "crates/ncm-backend-cuda",
     "crates/ncm-backend-mlx",
     "crates/ncm-cli",
