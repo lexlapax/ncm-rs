@@ -167,17 +167,16 @@ fn conv1d_k3_p1(x: &Array, w: &Array, b: &Array) -> std::result::Result<Array, E
     let c_out = w.shape()[0];
     let zeros = ops::zeros::<f32>(&[bsz, 1, c_in])?;
     let x_left = if seq > 1 {
-        ops::concatenate_axis(&[&zeros, &x.try_index((.., 0..seq - 1, ..))?], 1)?
+        ops::concatenate(&[&zeros, &x.try_index((.., 0..seq - 1, ..))?], 1)?
     } else {
         zeros.clone()
     };
     let x_right = if seq > 1 {
-        ops::concatenate_axis(&[&x.try_index((.., 1..seq, ..))?, &zeros], 1)?
+        ops::concatenate(&[&x.try_index((.., 1..seq, ..))?, &zeros], 1)?
     } else {
         zeros
     };
-    let x_cat =
-        ops::concatenate_axis(&[&x_left, x, &x_right], 2)?.reshape(&[bsz * seq, 3 * c_in])?;
+    let x_cat = ops::concatenate(&[&x_left, x, &x_right], 2)?.reshape(&[bsz * seq, 3 * c_in])?;
     let w_col = w.transpose_axes(&[0, 2, 1])?.reshape(&[c_out, 3 * c_in])?;
     ops::matmul(&x_cat, &w_col.transpose_axes(&[1, 0])?)?
         .reshape(&[bsz, seq, c_out])?
@@ -194,7 +193,7 @@ fn apply_rope(x: &Array, cos: &Array, sin: &Array) -> std::result::Result<Array,
     let s = sin.reshape(&[1, 1, seq, half])?;
     let o1 = x1.multiply(&c)?.subtract(&x2.multiply(&s)?)?;
     let o2 = x2.multiply(&c)?.add(&x1.multiply(&s)?)?;
-    ops::concatenate_axis(&[&o1, &o2], 3)
+    ops::concatenate(&[&o1, &o2], 3)
 }
 
 fn attention(
@@ -216,7 +215,7 @@ fn attention(
 fn embedding_gather(table: &Array, ids: &Array) -> std::result::Result<Array, Exception> {
     let ids_shape = ids.shape();
     let flat = ids.reshape(&[-1])?;
-    let gathered = ops::take_axis(table, &flat, 0)?;
+    let gathered = ops::indexing::take_axis(table, &flat, 0)?;
     let d = table.shape()[1];
     let mut out_shape = ids_shape.to_vec();
     out_shape.push(d);
@@ -237,12 +236,12 @@ fn cross_entropy_loss(
     let log_probs = mlx_rs::nn::log_softmax(logits_2d, -1)?;
     let n = targets_1d.shape()[0];
     let idx = targets_1d.reshape(&[n, 1])?;
-    let gathered = ops::take_along_axis(&log_probs, &idx, -1)?;
-    ops::mean_all(&gathered.negative()?)
+    let gathered = ops::indexing::take_along_axis(&log_probs, &idx, -1)?;
+    ops::mean(&gathered.negative()?, false)
 }
 
 fn stop_grad(x: &Array) -> std::result::Result<Array, Exception> {
-    x.stop_gradient_device(&Stream::gpu())
+    mlx_rs::stop_gradient(x)
 }
 
 // ---------------------------------------------------------------------------
@@ -344,7 +343,7 @@ impl MlxParamStore {
             {
                 continue;
             }
-            let s = ops::sum_all(&ops::square(g).map_err(m_err)?).map_err(m_err)?;
+            let s = ops::sum(&ops::square(g).map_err(m_err)?, false).map_err(m_err)?;
             sq_sum_arr = sq_sum_arr.add(&s).map_err(m_err)?;
         }
         sq_sum_arr.eval().map_err(m_err)?;
@@ -590,12 +589,16 @@ fn codec_loss_functional(
         let flat_ze = down.reshape(&[bsz * (level_len as i32), width])?;
         let book = stop_grad(&get(&format!("vq.embeddings.{level}.weight"))?)?;
         let dists = squared_distances(&stop_grad(&flat_ze)?, &book)?;
-        let code_ids = stop_grad(&ops::argmin_axis(&dists, 1, false)?)?;
-        let z_q = ops::take_axis(&book, &code_ids, 0)?.reshape(&[bsz, level_len as i32, width])?;
+        let code_ids = stop_grad(&ops::indexing::argmin_axis(&dists, 1, false)?)?;
+        let z_q = ops::indexing::take_axis(&book, &code_ids, 0)?.reshape(&[
+            bsz,
+            level_len as i32,
+            width,
+        ])?;
 
         ema_pairs.push((stop_grad(&flat_ze)?, code_ids));
 
-        let commit = ops::mean_all(&ops::square(&down.subtract(&z_q)?)?)?;
+        let commit = ops::mean(&ops::square(&down.subtract(&z_q)?)?, false)?;
         total_commit = Some(match total_commit {
             Some(prev) => prev.add(&commit)?,
             None => commit,
@@ -1087,10 +1090,13 @@ pub fn train_generator(
                     .reshape(&[bsz * (len as i32), width_c as i32])
                     .map_err(m_err)?;
                 let book = get_frozen(&format!("vq.embeddings.{level}.weight")).map_err(m_err)?;
-                let code_ids =
-                    ops::argmin_axis(&squared_distances(&flat, &book).map_err(m_err)?, 1, false)
-                        .map_err(m_err)?;
-                let z_q = ops::take_axis(&book, &code_ids, 0)
+                let code_ids = ops::indexing::argmin_axis(
+                    &squared_distances(&flat, &book).map_err(m_err)?,
+                    1,
+                    false,
+                )
+                .map_err(m_err)?;
+                let z_q = ops::indexing::take_axis(&book, &code_ids, 0)
                     .map_err(m_err)?
                     .reshape(&[bsz, len as i32, width_c as i32])
                     .map_err(m_err)?;
@@ -1172,7 +1178,7 @@ pub fn train_generator(
                         };
                         let lvl_emb = wle.try_index((l as i32..l as i32 + 1, ..))?;
                         let target_h = linear_3d(&latent, &wte_w, Some(&wte_b))?.add(&lvl_emb)?;
-                        let mut x = ops::concatenate_axis(&[&prefix_h, &target_h], 1)?;
+                        let mut x = ops::concatenate(&[&prefix_h, &target_h], 1)?;
                         for layer in 0..gen_cfg.n_layer {
                             x = generator_block(gen_cfg, &get, &x, cos, sin, mask, layer)?;
                         }
