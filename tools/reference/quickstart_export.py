@@ -18,9 +18,19 @@ from pathlib import Path
 MODELS = {
     "tinystories": {
         "tokenizer": "tinystories",
+        "fetch_profile": "tinystories-15k-ema",
+        "tinystories_release": "15k-ema",
         "budget_bytes": 1_200_000_000,
         "output_name": "tinystories-quickstart",
-        "description": "TinyStories text generator (~552 MiB exported; use --precision bf16 or fp32)",
+        "description": "TinyStories 15k EMA text generator (~552 MiB exported; use --precision bf16, q8, q4, or fp32)",
+    },
+    "tinystories-legacy": {
+        "tokenizer": "tinystories",
+        "fetch_profile": "tinystories",
+        "tinystories_release": "v1",
+        "budget_bytes": 1_200_000_000,
+        "output_name": "tinystories-legacy-quickstart",
+        "description": "TinyStories legacy d342ce8a text generator (~552 MiB exported; use --precision bf16, q8, q4, or fp32)",
     },
     "xsum": {
         "tokenizer": "gpt2",
@@ -73,7 +83,8 @@ def build_plan(
         raise ValueError(f"unsupported quickstart model `{model}`; choose from {', '.join(MODELS)}")
     spec = MODELS[model]
     ref = repo_root / "tools/reference"
-    ckpt_dir = upstream_dir / model
+    fetch_profile = spec.get("fetch_profile", model)
+    ckpt_dir = upstream_dir / fetch_profile
     tok_raw = upstream_dir / "tokenizers-v2"
     tok_out = models_dir / "tokenizers-qualified"
     out_dir = models_dir / spec["output_name"]
@@ -108,7 +119,7 @@ def build_plan(
                 python_exe,
                 str(ref / "fetch_checkpoints.py"),
                 "--profile",
-                model,
+                fetch_profile,
                 "--output",
                 str(ckpt_dir),
                 "--budget-bytes",
@@ -127,11 +138,13 @@ def build_plan(
                 str(out_dir),
             ]
         )
-    elif model == "tinystories":
+    elif model in ("tinystories", "tinystories-legacy"):
         steps.append(
             [
                 python_exe,
                 str(ref / "tinystories_artifact.py"),
+                "--release",
+                spec["tinystories_release"],
                 "--source",
                 str(ckpt_dir),
                 "--tokenizer-asset",

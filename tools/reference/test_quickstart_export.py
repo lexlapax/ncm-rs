@@ -58,6 +58,30 @@ class TestQuickstartExport(unittest.TestCase):
             self.assertEqual(out_sud, models_dir / "sudoku-easy-quickstart")
             self.assertEqual(len(steps_sud), 2)
 
+            # TinyStories defaults to 15k EMA; legacy remains explicitly selectable
+            out_ts, steps_ts = qe.build_plan(
+                model="tinystories",
+                python_exe="/usr/bin/python3",
+                models_dir=models_dir,
+                upstream_dir=upstream_dir,
+                repo_root=repo_root,
+            )
+            self.assertEqual(out_ts, models_dir / "tinystories-quickstart")
+            self.assertIn("tinystories-15k-ema", steps_ts[2])
+            self.assertIn("--release", steps_ts[3])
+            self.assertIn("15k-ema", steps_ts[3])
+
+            out_ts_old, steps_ts_old = qe.build_plan(
+                model="tinystories-legacy",
+                python_exe="/usr/bin/python3",
+                models_dir=models_dir,
+                upstream_dir=upstream_dir,
+                repo_root=repo_root,
+            )
+            self.assertEqual(out_ts_old, models_dir / "tinystories-legacy-quickstart")
+            self.assertIn("tinystories", steps_ts_old[2])
+            self.assertIn("v1", steps_ts_old[3])
+
     def test_dry_run_and_list_do_not_touch_filesystem(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             models_dir = Path(tmp) / "nonexistent-models"

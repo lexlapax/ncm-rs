@@ -15,9 +15,14 @@ from pathlib import Path, PurePosixPath
 
 REPOSITORY = 'hazyresearch/ncm-checkpoints'
 REVISION = 'd342ce8aaea58830eef3b8ad473664673e41f692'
-PROFILES = ('sudoku-easy', 'sudoku-medium', 'sudoku-hard', 'tinystories', 'xsum', 'wmt14',
-            'lm1b-small', 'lm1b-medium', 'lm1b-large')
+REVISION_15K_EMA = 'e34c3fab451ddbe7cf474cc97c44ab23321f2219'
+PROFILES = ('sudoku-easy', 'sudoku-medium', 'sudoku-hard', 'tinystories', 'tinystories-15k-ema',
+            'xsum', 'wmt14', 'lm1b-small', 'lm1b-medium', 'lm1b-large')
 BLOCK = 1024 * 1024
+
+
+def profile_revision(profile):
+    return REVISION_15K_EMA if profile == 'tinystories-15k-ema' else REVISION
 
 
 def specs(profile):
@@ -29,7 +34,8 @@ def specs(profile):
     import lm1b_inventory as lm1b
     import lm1b_export_preparation as lm1b_export
 
-    if sudoku.REVISION != REVISION or tiny.REVISION != REVISION:
+    if (sudoku.REVISION != REVISION or tiny.REVISION != REVISION
+            or tiny.REVISION_15K_EMA != REVISION_15K_EMA):
         raise ValueError('checkpoint revision differs from the reviewed pin')
     if profile.startswith('sudoku-'):
         difficulty = profile.removeprefix('sudoku-')
@@ -37,6 +43,9 @@ def specs(profile):
         sizes = sudoku.INPUT_SIZES if difficulty == 'easy' else sudoku.PHASE3_SIZES[difficulty]
         files = {name: (sizes[name], sha) for name, sha in hashes.items()}
         prefix = f'sudoku/{difficulty}'
+    elif profile == 'tinystories-15k-ema':
+        files = tiny.INPUTS_15K_EMA
+        prefix = 'tinystories'
     elif profile in ('tinystories', 'xsum', 'wmt14'):
         files = {'tinystories': tiny.INPUTS, 'xsum': xsum.INPUTS, 'wmt14': wmt14.INPUTS}[profile]
         prefix = profile
@@ -80,7 +89,7 @@ def write_verified(response, destination, expected_size, expected_hash):
         raise ValueError('checkpoint size or SHA-256 differs')
 
 
-def fetch(output, records, budget):
+def fetch(output, records, budget, revision=REVISION):
     if output.exists() or output.is_symlink():
         raise ValueError('output already exists')
     parent = output.parent
@@ -95,7 +104,7 @@ def fetch(output, records, budget):
     for record in records:
         target = output.joinpath(*PurePosixPath(record['output']).parts)
         target.parent.mkdir(parents=True, exist_ok=True)
-        url = f"https://huggingface.co/{REPOSITORY}/resolve/{REVISION}/{record['remote']}"
+        url = f"https://huggingface.co/{REPOSITORY}/resolve/{revision}/{record['remote']}"
         with urllib.request.urlopen(url, timeout=90) as response:
             write_verified(response, target, record['bytes'], record['sha256'])
         print(record['remote'], record['bytes'], record['sha256'], flush=True)
@@ -134,15 +143,16 @@ def main():
     parser.add_argument('--budget-bytes', type=int, help='required maximum total bytes for download')
     args = parser.parse_args()
     records = specs(args.profile)
+    revision = profile_revision(args.profile)
     total = sum(record['bytes'] for record in records)
     if args.plan:
-        print(json.dumps({'profile': args.profile, 'repository': REPOSITORY, 'revision': REVISION,
+        print(json.dumps({'profile': args.profile, 'repository': REPOSITORY, 'revision': revision,
                           'total_bytes': total, 'files': records}, indent=2, sort_keys=True))
     elif args.verify:
         verify(args.output, records)
         print(json.dumps({'profile': args.profile, 'verified_files': len(records), 'total_bytes': total}, sort_keys=True))
     else:
-        fetch(args.output, records, args.budget_bytes)
+        fetch(args.output, records, args.budget_bytes, revision=revision)
         verify(args.output, records)
         print(json.dumps({'profile': args.profile, 'verified_files': len(records), 'total_bytes': total}, sort_keys=True))
 

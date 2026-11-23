@@ -105,6 +105,15 @@ class FetchTests(unittest.TestCase):
                     tool.fetch(root / 'link' / 'out', [record()], 3)
                 request.assert_not_called()
 
+    def test_tinystories_15k_ema_uses_updated_revision(self):
+        self.assertEqual(tool.profile_revision('tinystories'), tool.REVISION)
+        self.assertEqual(tool.profile_revision('tinystories-15k-ema'), tool.REVISION_15K_EMA)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'out'
+            with patch.object(tool.urllib.request, 'urlopen', return_value=Response(b'abc')) as request:
+                tool.fetch(output, [record()], 3, revision=tool.REVISION_15K_EMA)
+            self.assertIn(tool.REVISION_15K_EMA, request.call_args.args[0])
+
 
 if __name__ == '__main__':
     unittest.main()

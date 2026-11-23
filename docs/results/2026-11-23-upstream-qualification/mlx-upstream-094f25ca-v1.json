@@ -1,0 +1,48 @@
+{
+  "schema": "ncm-upstream-094f25ca-mlx-v1",
+  "hardware": "Apple M1 Ultra (macstudio)",
+  "upstream_code": "094f25ca5fd8fe2bc7f0ff77bf3f860c3a34e7e8",
+  "upstream_checkpoints": "e34c3fab451ddbe7cf474cc97c44ab23321f2219",
+  "check_sh_mlx_passed": true,
+  "ncm_cli_mlx_clippy_and_tests_passed": true,
+  "tinystories_15k_ema": {
+    "manifest_sha256": "a044b20c15c85a352d2760068e477df17b2deb6b240e10dc008d1960263c9b0e",
+    "codec_reconstruct_total_codes": 2564,
+    "codec_reconstruct_total_ids": 512,
+    "codec_reconstruct_code_diffs_vs_cuda": 0,
+    "codec_reconstruct_id_diffs_vs_cuda": 0,
+    "fp16_rejected_explicitly": true,
+    "fp16_rejection_error": "ncm: invalid codec weights: tensor contains values exceeding IEEE 754 FP16 finite range (65504.0); use --precision bf16 or --precision fp32",
+    "legacy_tinystories_phase4_v1_ok": true,
+    "rust_mlx": {
+      "fp32": {
+        "load_ms": 295.0,
+        "warm_med_ms": 90.4,
+        "warm_p95_ms": 91.16,
+        "mlx_peak_mib": 606.6,
+        "rss_peak_mib": 527.0
+      },
+      "bf16": {
+        "load_ms": 353.4,
+        "warm_med_ms": 97.31,
+        "warm_p95_ms": 97.59,
+        "mlx_peak_mib": 359.1,
+        "rss_peak_mib": 93.8
+      },
+      "q8": {
+        "load_ms": 407.4,
+        "warm_med_ms": 98.33,
+        "warm_p95_ms": 98.86,
+        "mlx_peak_mib": 271.2,
+        "rss_peak_mib": 118.1
+      },
+      "q4": {
+        "load_ms": 414.8,
+        "warm_med_ms": 100.08,
+        "warm_p95_ms": 100.6,
+        "mlx_peak_mib": 226.7,
+        "rss_peak_mib": 94.2
+      }
+    }
+  }
+}

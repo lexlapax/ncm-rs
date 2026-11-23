@@ -1,15 +1,17 @@
-# Research pins, NOT a declaration of implemented or validated compatibility.
+# Qualified upstream pins (dual-platform Linux/CUDA and Apple Silicon/MLX).
+# Legacy pin pair (c70274273f489abc73832b2b98584a8483b6b203 / d342ce8aaea58830eef3b8ad473664673e41f692)
+# remains backward-compatibly supported by ncm-io for existing exported artifacts.
 schema_version = 1
 
 [reference]
-status = "researched-not-validated"
+status = "qualified-dual-platform"
 repository = "HazyResearch/ncm"
 branch = "main"
-commit = "c70274273f489abc73832b2b98584a8483b6b203"
+commit = "094f25ca5fd8fe2bc7f0ff77bf3f860c3a34e7e8"
 checkpoint_repository = "hazyresearch/ncm-checkpoints"
-checkpoint_revision = "d342ce8aaea58830eef3b8ad473664673e41f692"
+checkpoint_revision = "e34c3fab451ddbe7cf474cc97c44ab23321f2219"
 paper = "https://arxiv.org/html/2610.14162v1"
-inspected_on = "2026-11-09"
+inspected_on = "2026-11-23"
 
 [maintenance]
 watch = "weekly"
