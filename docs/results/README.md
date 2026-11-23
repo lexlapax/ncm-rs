@@ -6,6 +6,7 @@ Phase 7 (`v0.4.0` released, [docs/PHASE7.md](../PHASE7.md)) is complete and veri
 
 | Report | Scope | Status and highlights |
 | --- | --- | --- |
+| [Upstream triage (2026-11-23)](2026-11-23-upstream-triage/README.md) | Metadata & diff audit of `HazyResearch/ncm` (`c7027427 → 094f25ca`, +14 commits) and `hazyresearch/ncm-checkpoints` (`d342ce8a → e34c3fab`) | OWT still unreleased (`owt/TODO.md`); Sudoku/XSum/WMT14/LM1B checkpoints unchanged; TinyStories updated to 15k EMA release with trimmed inference `config.yaml`; upstream Python added prefix KV cache, resize matmul, Triton FP64 penalized argmax, BF16 default, and CUDA graphs. Pins intentionally unchanged pending qualification. |
 | [Phase 7 quantization, Serving v2 & training report (CUDA & Metal)](2026-11-23-phase7/README.md) | Dual-platform `Q8`/`Q4` weight quantization across all 7 profiles + `lm1b-large` b=16, 8-client dynamic micro-batching (`--max-batch 8` vs `1`) + `ncm run`/`ncm pull`/`/api/ps`, and native Rust `ncm train` (RVQ/EMA codec + frozen-codec generator + `--init-from` fine-tuning + inference/serve roundtrip) | `lm1b-large` b=1 VRAM **-68.1% (`q8`) / -79.1% (`q4`, 673 MiB)** CUDA & **-66.9% / -77.2%** MLX (**b=16 in 975 MiB CUDA**); concurrent serving **2.21× CUDA / 1.85× Metal** on `wmt14` & **1.64× / 1.97×** on `lm1b-large` Q8; native Rust training matches to 4 decimal places across CUDA & Metal with **100% (8/8)** roundtrip recovery through `ncm sample` and `ncm serve`. |
 
 ## Phase 6: opt-in half precision (`BF16`/`FP16`) & OpenAI/Ollama local serving (complete)

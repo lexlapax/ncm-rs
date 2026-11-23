@@ -6,6 +6,10 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- **Upstream triage (2026-11-23, [report](docs/results/2026-11-23-upstream-triage/README.md)) — pins intentionally unchanged pending review:**
+  - `HazyResearch/ncm` moved `c7027427 → 094f25ca` (+14 commits, latest `2026-11-23T03:32Z`): added prefix KV cache, resize matmul, CUDA graphs, BF16 default, Triton FP64 penalized argmax, `z_hat` aliasing fix, `weights_only=True`, and quadratic schedule fix (manual schedules unchanged).
+  - `hazyresearch/ncm-checkpoints` moved `d342ce8a → e34c3fab` (`2026-11-23T06:21Z`): **OpenWebText still unreleased (`owt/TODO.md`)**; Sudoku/XSum/WMT14/LM1B unchanged; **TinyStories updated to 15k EMA release** with a trimmed inference-only `config.yaml` (omits training-only `pre_quant_dropout`, `decay`, `epsilon`, `commitment_cost`, `aux`, `ema_scale_by_world_size`, and disabled `ctx_encoder.{n_layer,vocab_size}`).
+
 - **`v0.4.0` (Phase 7, [docs/PHASE7.md](docs/PHASE7.md)) released on BOTH Linux/CUDA and Apple Silicon/Metal (2026-11-23):**
   - **Milestone 7A (`Q8`/`Q4` weight quantization) — COMPLETE on CUDA & Metal:**
     - `ComputePrecision::{Q8, Q4}` (`--precision q8|q4`) + `WeightBackend::upload_linear_weight_f32` (`ncm-core`/`ncm-model`), native `QTensor`/`QMatMul` (`Q8_0`/`Q4_0`) on CUDA and `mlx_rs::ops::quantize`+`quantized_matmul` (group-64 affine) on Metal; embeddings/norms/convs stay in BF16 (strict FP32 default preserved).
