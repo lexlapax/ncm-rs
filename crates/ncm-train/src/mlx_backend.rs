@@ -81,7 +81,7 @@ fn layer_norm(
     let mean = ops::mean_axis(x, -1, true)?;
     let xc = x.subtract(&mean)?;
     let var = ops::mean_axis(&ops::square(&xc)?, -1, true)?;
-    let inv = ops::sqrt(&var.add(&f32_scalar(eps))?)?;
+    let inv = ops::sqrt(&var.add(f32_scalar(eps))?)?;
     let normed = xc.divide(&inv)?.multiply(w)?;
     match b {
         Some(bias) => normed.add(bias),
@@ -91,7 +91,7 @@ fn layer_norm(
 
 fn rms_norm(x: &Array, w: &Array, eps: f32) -> std::result::Result<Array, Exception> {
     let ms = ops::mean_axis(&ops::square(x)?, -1, true)?;
-    let inv = ops::sqrt(&ms.add(&f32_scalar(eps))?)?;
+    let inv = ops::sqrt(&ms.add(f32_scalar(eps))?)?;
     x.divide(&inv)?.multiply(w)
 }
 
@@ -107,7 +107,7 @@ fn group_norm_nlc(x: &Array, groups: usize, eps: f32) -> std::result::Result<Arr
     let mean = ops::mean_axis(&gx, -1, true)?;
     let gc = gx.subtract(&mean)?;
     let var = ops::mean_axis(&ops::square(&gc)?, -1, true)?;
-    let normed = gc.divide(&ops::sqrt(&var.add(&f32_scalar(eps))?)?)?;
+    let normed = gc.divide(&ops::sqrt(&var.add(f32_scalar(eps))?)?)?;
     normed
         .reshape(&[bsz, g, seq, cpg])?
         .transpose_axes(&[0, 2, 1, 3])?
@@ -225,7 +225,7 @@ fn embedding_gather(table: &Array, ids: &Array) -> std::result::Result<Array, Ex
 fn squared_distances(x: &Array, book: &Array) -> std::result::Result<Array, Exception> {
     let xx = ops::sum_axis(&ops::square(x)?, 1, true)?;
     let ee = ops::sum_axis(&ops::square(book)?, 1, true)?.transpose_axes(&[1, 0])?;
-    let dot = ops::matmul(x, &book.transpose_axes(&[1, 0])?)?.multiply(&f32_scalar(2.0))?;
+    let dot = ops::matmul(x, &book.transpose_axes(&[1, 0])?)?.multiply(f32_scalar(2.0))?;
     xx.add(&ee)?.subtract(&dot)
 }
 
@@ -359,42 +359,42 @@ impl MlxParamStore {
         let lr_f = lr as f32;
         let wd_f = weight_decay as f32;
 
-        for i in 0..self.params.len() {
+        for (i, g_ref) in grads.iter().enumerate().take(self.params.len()) {
             if let Some(pfx) = skip_prefix
                 && self.names[i].starts_with(pfx)
             {
                 continue;
             }
             let g = if clip_scale < 1.0 {
-                grads[i].multiply(&f32_scalar(clip_scale)).map_err(m_err)?
+                g_ref.multiply(f32_scalar(clip_scale)).map_err(m_err)?
             } else {
-                grads[i].clone()
+                g_ref.clone()
             };
             let m_new = self.m[i]
-                .multiply(&f32_scalar(beta1))
+                .multiply(f32_scalar(beta1))
                 .map_err(m_err)?
-                .add(&g.multiply(&f32_scalar(1.0 - beta1)).map_err(m_err)?)
+                .add(&g.multiply(f32_scalar(1.0 - beta1)).map_err(m_err)?)
                 .map_err(m_err)?;
             let v_new = self.v[i]
-                .multiply(&f32_scalar(beta2))
+                .multiply(f32_scalar(beta2))
                 .map_err(m_err)?
                 .add(
                     &ops::square(&g)
                         .map_err(m_err)?
-                        .multiply(&f32_scalar(1.0 - beta2))
+                        .multiply(f32_scalar(1.0 - beta2))
                         .map_err(m_err)?,
                 )
                 .map_err(m_err)?;
-            let m_hat = m_new.divide(&f32_scalar(bc1)).map_err(m_err)?;
-            let v_hat = v_new.divide(&f32_scalar(bc2)).map_err(m_err)?;
+            let m_hat = m_new.divide(f32_scalar(bc1)).map_err(m_err)?;
+            let v_hat = v_new.divide(f32_scalar(bc2)).map_err(m_err)?;
             let denom = ops::sqrt(&v_hat)
                 .map_err(m_err)?
-                .add(&f32_scalar(eps))
+                .add(f32_scalar(eps))
                 .map_err(m_err)?;
             let update = m_hat
                 .divide(&denom)
                 .map_err(m_err)?
-                .multiply(&f32_scalar(lr_f))
+                .multiply(f32_scalar(lr_f))
                 .map_err(m_err)?;
 
             let name = &self.names[i];
@@ -405,7 +405,7 @@ impl MlxParamStore {
                 && !name.contains("k_norm");
             let base = if apply_wd {
                 self.params[i]
-                    .multiply(&f32_scalar(1.0 - lr_f * wd_f))
+                    .multiply(f32_scalar(1.0 - lr_f * wd_f))
                     .map_err(m_err)?
             } else {
                 self.params[i].clone()
@@ -472,8 +472,8 @@ fn codec_refine(
         &get(&format!("{name}.weight"))?,
         &get(&format!("{name}.bias"))?,
     )?;
-    x.multiply(&f32_scalar(1.0 - ratio))?
-        .add(&conv.multiply(&f32_scalar(ratio))?)
+    x.multiply(f32_scalar(1.0 - ratio))?
+        .add(&conv.multiply(f32_scalar(ratio))?)
 }
 
 fn codec_decoder_layer(
@@ -542,6 +542,8 @@ fn codec_decoder_layer(
     res.add(&mlp)
 }
 
+type CodecFuncOut = (Array, Array, Array, Vec<(Array, Array)>);
+
 #[allow(clippy::too_many_arguments)]
 fn codec_loss_functional(
     codec_cfg: &CodecConfig,
@@ -553,7 +555,7 @@ fn codec_loss_functional(
     batch: usize,
     commitment_weight: f32,
     args: &[Array],
-) -> std::result::Result<(Array, Array, Array, Vec<(Array, Array)>), Exception> {
+) -> std::result::Result<CodecFuncOut, Exception> {
     let raw = codec_cfg.raw();
     let ctx = raw.context_length as i32;
     let width = raw.embed_dim as i32;
@@ -641,7 +643,7 @@ fn codec_loss_functional(
     let targets_1d = ids.reshape(&[bsz * ctx])?;
     let recon = cross_entropy_loss(&logits_2d, &targets_1d)?;
     let commit = total_commit.expect("nonempty levels");
-    let total = recon.add(&commit.multiply(&f32_scalar(commitment_weight))?)?;
+    let total = recon.add(&commit.multiply(f32_scalar(commitment_weight))?)?;
     Ok((total, recon, commit, ema_pairs))
 }
 
@@ -1210,7 +1212,7 @@ pub fn train_generator(
                     }
                     let mean_loss = total
                         .expect("nonempty levels")
-                        .divide(&f32_scalar(n_levels as f32))?;
+                        .divide(f32_scalar(n_levels as f32))?;
                     Ok(vec![mean_loss])
                 },
                 &argnums[..],
