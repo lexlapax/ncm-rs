@@ -6,6 +6,7 @@ members = [
     "crates/ncm-tokenizers",
     "crates/ncm-io",
     "crates/ncm-serve",
+    "crates/ncm-train",
     "crates/ncm-backend-cuda",
     "crates/ncm-backend-mlx",
     "crates/ncm-cli",

@@ -60,10 +60,10 @@ if command -v shellcheck >/dev/null 2>&1; then
 fi
 cargo fmt --all -- --check
 cargo check --workspace --locked
-cargo clippy --workspace --all-targets --features ncm-backend-cuda/cpu --locked -- -D warnings
-cargo test --workspace --features ncm-backend-cuda/cpu --locked
+cargo clippy --workspace --all-targets --features ncm-backend-cuda/cpu,ncm-train/cpu --locked -- -D warnings
+cargo test --workspace --features ncm-backend-cuda/cpu,ncm-train/cpu --locked
 RUSTDOCFLAGS="${RUSTDOCFLAGS:-} -D warnings" \
-    cargo doc --workspace --features ncm-backend-cuda/cpu --no-deps --locked
+    cargo doc --workspace --features ncm-backend-cuda/cpu,ncm-train/cpu --no-deps --locked
 if [[ "$(uname -s)" == Darwin ]]; then
     python3 tools/bench/run_macos_report_tests.py
 elif [[ "$(uname -s)" == Linux ]]; then

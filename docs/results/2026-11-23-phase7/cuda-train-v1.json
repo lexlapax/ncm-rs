@@ -1,0 +1,55 @@
+{
+  "schema": "ncm-phase7c-train-v1",
+  "device": "cuda",
+  "sample_device": "cuda-cudnn",
+  "model_spec": {
+    "in_vocab_size": 64,
+    "context_length": 16,
+    "embed_dim": 64,
+    "levels": [
+      2,
+      4,
+      8,
+      16
+    ],
+    "vqvae_vocab_size": [
+      32,
+      32,
+      32,
+      32
+    ],
+    "n_embd": 128,
+    "n_head": 4,
+    "n_layer": 2,
+    "batch_size": 8
+  },
+  "scratch_train": {
+    "codec_steps": 100,
+    "codec_initial_loss": 4.5654,
+    "codec_final_loss": 0.0426,
+    "codec_mean_step_ms": 8.76,
+    "generator_steps": 100,
+    "generator_initial_loss": 3.4622,
+    "generator_final_loss": 0.0011,
+    "generator_mean_step_ms": 17.97,
+    "total_seconds": 3.128,
+    "checkpoint_written": true
+  },
+  "finetune": {
+    "steps": 40,
+    "initial_loss": 0.0011,
+    "final_loss": 0.0002,
+    "mean_step_ms": 19.3,
+    "total_seconds": 0.936
+  },
+  "roundtrip_verification": {
+    "inspect_profile": "local-ncm-v1",
+    "exact_rows_recovered": 8,
+    "total_rows": 8,
+    "exact_tokens_recovered": 128,
+    "total_tokens": 128,
+    "token_accuracy_pct": 100.0,
+    "serve_ps_loaded": true,
+    "serve_matches_sample": true
+  }
+}

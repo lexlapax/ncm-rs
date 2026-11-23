@@ -1087,6 +1087,7 @@ dependencies = [
  "ncm-model",
  "ncm-serve",
  "ncm-tokenizers",
+ "ncm-train",
  "serde_json",
 ]
 
@@ -1145,6 +1146,25 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tokenizers 0.22.2",
+]
+
+[[package]]
+name = "ncm-train"
+version = "0.3.0"
+dependencies = [
+ "candle-core",
+ "candle-nn",
+ "mlx-rs",
+ "ncm-backend-cuda",
+ "ncm-backend-mlx",
+ "ncm-core",
+ "ncm-io",
+ "ncm-model",
+ "ncm-tokenizers",
+ "safetensors",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]

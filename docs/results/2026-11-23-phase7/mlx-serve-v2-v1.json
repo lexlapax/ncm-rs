@@ -1,0 +1,356 @@
+{
+  "schema": "ncm-phase7b-serve-v2-v1",
+  "device": "mlx",
+  "cli_checks": {
+    "pull_list_lines": 7,
+    "pull_dry_run_ok": true,
+    "run_oneshot_wmt14_q8": {
+      "output": "Good morning, how do you do you today?",
+      "total_ms": 932.1
+    },
+    "run_repl_wmt14_q8": {
+      "outputs": [
+        "Good morning!",
+        "Research shows clear progress."
+      ],
+      "total_ms": 1012.9
+    }
+  },
+  "benchmarks": {
+    "wmt14_fp16": {
+      "max_batch_1": {
+        "model": "wmt14",
+        "precision": "fp16",
+        "max_batch": 1,
+        "concurrency": 8,
+        "rounds": 3,
+        "total_requests": 24,
+        "total_eval_tokens": 1536,
+        "wall_seconds": 1.9399,
+        "requests_per_second": 12.37,
+        "tokens_per_second": 791.8,
+        "client_latency_ms_p50": 639.46,
+        "client_latency_ms_max": 654.64,
+        "sample_outputs": [
+          {
+            "prompt": "Guten Morgen, wie geht es dir heute?",
+            "response": "Good morning, how do do you do today?"
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          },
+          {
+            "prompt": "Das Wetter in Berlin ist heute sonnig und warm.",
+            "response": "The weather in Berlin is sunny and warm today."
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:45:02Z",
+              "loaded_at": "2026-11-23T05:45:02Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 0,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:45:04Z",
+              "loaded_at": "2026-11-23T05:45:02Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 25,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        }
+      },
+      "max_batch_8": {
+        "model": "wmt14",
+        "precision": "fp16",
+        "max_batch": 8,
+        "concurrency": 8,
+        "rounds": 3,
+        "total_requests": 24,
+        "total_eval_tokens": 1536,
+        "wall_seconds": 1.0477,
+        "requests_per_second": 22.91,
+        "tokens_per_second": 1466.0,
+        "client_latency_ms_p50": 237.21,
+        "client_latency_ms_max": 583.99,
+        "sample_outputs": [
+          {
+            "prompt": "Guten Morgen, wie geht es dir heute?",
+            "response": "Good morning, how do do you do today?"
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          },
+          {
+            "prompt": "Das Wetter in Berlin ist heute sonnig und warm.",
+            "response": "The weather in Berlin is sunny and warm today."
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:45:05Z",
+              "loaded_at": "2026-11-23T05:45:05Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 0,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:45:06Z",
+              "loaded_at": "2026-11-23T05:45:05Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 25,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        }
+      },
+      "throughput_speedup_x": 1.85,
+      "deterministic_match": true
+    },
+    "lm1b_large_q8": {
+      "max_batch_1": {
+        "model": "lm1b-large",
+        "precision": "q8",
+        "max_batch": 1,
+        "concurrency": 8,
+        "rounds": 2,
+        "total_requests": 16,
+        "total_eval_tokens": 2048,
+        "wall_seconds": 6.9358,
+        "requests_per_second": 2.31,
+        "tokens_per_second": 295.3,
+        "client_latency_ms_p50": 3471.61,
+        "client_latency_ms_max": 3485.82,
+        "sample_outputs": [
+          {
+            "prompt": "",
+            "response": "[CLS], south korea, the union, china, japan and the other middle eastern countries met tuesday on sanctions in economic state and global issues. [CLS] but his party complained to compromise within the legislation, which only one of them did not repeal under the measure. [CLS] 22 ( upi ) - - evidence from u. s. district court federal transit administration officials says one of her boyfriend died when another american where he crashed on a rocky mountain in the remote nation ' s northern hemisphere side. [CLS] it ' s a change. [CLS] huckabee says he was transported by sixth grade to man ' old harbler\u02bc \" clothes, [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] while continuing to increase prices all up for food and safety. [CLS] but it is almost as smooth, the weather is in the right. [CLS] china ' s second biggest export industry has lost out another $ 1. 2 billion caused by asia ' s financial meltdown in the united states, which are the world ' s third - largest surplus of economy. [CLS] berlusconi, 46, a former turkish prime minister, has predicted that annual operating income may fall between with 15. 5 9 per cent and 10. 8 per barrel, and highest pre - tax loss for 2008. [CLS] i don\u02bc t think that? n [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] as newcastle started their 1 - 2, 0 win the second leg of the barclays title league. [CLS] the uk remaining behind scotland in next month ' s european elections, and that referendum expected to remain in place the run - up to last general election needed in the city centre. [CLS] we ' ll be very happy with people out there and women and children who have a problem know what never ever considered. [CLS] the hospital had been resolved again. [CLS] good must be said a virgin is a horrible thing, but opinion over the last two years i ' ve already enjoyed and you cannot best i don\u02bc t drink it. [CLS] as [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] i was talking to a balloon, as well. [CLS] one of the things you have to work out of your money is health insurance such as employer, medical funds and prescription pension parts companies and or contract. [CLS] \" know they just want to make sure we are not used to pay them back, \" she added. [CLS] he said they would likely should have been put together for only over several weeks. [CLS] at the end of the year. [CLS] pakistani president aliif za shardari ' s high - profile negotia members - - two of the tibetan pakistan people islamic party - who were among nine top four suspected foreign militants [CLS]"
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:45:09Z",
+              "loaded_at": "2026-11-23T05:45:09Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 0,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:45:16Z",
+              "loaded_at": "2026-11-23T05:45:09Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 17,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        }
+      },
+      "max_batch_8": {
+        "model": "lm1b-large",
+        "precision": "q8",
+        "max_batch": 8,
+        "concurrency": 8,
+        "rounds": 2,
+        "total_requests": 16,
+        "total_eval_tokens": 2048,
+        "wall_seconds": 3.5134,
+        "requests_per_second": 4.55,
+        "tokens_per_second": 582.9,
+        "client_latency_ms_p50": 1779.68,
+        "client_latency_ms_max": 1787.74,
+        "sample_outputs": [
+          {
+            "prompt": "",
+            "response": "[CLS] merits of the playoffs last season. [CLS] with less than six minutes left in the quarter -, mileer wideed a 56 - yard run by jason childe to the finish at 22 with a 24 - yard field pass from half time, garrigues put himself another chance to be britain ' best slim opportunity of the seventh consecutive title of the tournament. [CLS] at least only 20 were reported to died next month : official figures released tuesday in washington showed obama ' s trade deficit, now on 7 percent in china, compared between 6 percent a year ago, the lowest level since he took office in 10 years throughout may. [CLS] after [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] but he, not say that the squad did now beat pakistan, which seems to become stronger than the past two weeks. [CLS] iran has been under control of the u. s. military in iraq. [CLS] new data from the centers for disease control and prevention cdc estimates that the number of pediatrics killed near or injured with chronic depression have increased 74 percent last year from an 372, 000 in 2006 to nearly 24, 50, according to last month ' s report by the former ballet bureau. [CLS] the australian who was arrested first on suspicion of drugs offences has since been released on bail. [CLS] and far right, euro zone markets [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] as newcastle started their 1 - 2, 0 win the second leg of the barclays title league. [CLS] the uk remaining behind scotland in next month ' s european elections, and that referendum expected to remain in place the run - up to last general election needed in the city centre. [CLS] we ' ll be very happy with people out there and women and children who have a problem know what never ever considered. [CLS] the hospital had been resolved again. [CLS] good must be said a virgin is a horrible thing, but opinion over the last two years i ' ve already enjoyed and you cannot best i don\u02bc t drink it. [CLS] as [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS], south korea, the union, china, japan and the other middle eastern countries met tuesday on sanctions in economic state and global issues. [CLS] but his party complained to compromise within the legislation, which only one of them did not repeal under the measure. [CLS] 22 ( upi ) - - evidence from u. s. district court federal transit administration officials says one of her boyfriend died when another american where he crashed on a rocky mountain in the remote nation ' s northern hemisphere side. [CLS] it ' s a change. [CLS] huckabee says he was transported by sixth grade to man ' old harbler\u02bc \" clothes, [CLS]"
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:45:19Z",
+              "loaded_at": "2026-11-23T05:45:19Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 0,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:45:23Z",
+              "loaded_at": "2026-11-23T05:45:19Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 17,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        }
+      },
+      "throughput_speedup_x": 1.97
+    }
+  }
+}

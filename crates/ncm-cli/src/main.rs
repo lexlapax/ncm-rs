@@ -4,6 +4,7 @@ mod help;
 mod lm1b;
 mod sample;
 mod serve;
+mod train;
 
 #[cfg(any(
     feature = "cpu",
@@ -579,6 +580,9 @@ fn main_impl() -> Result<()> {
     }
     if args.get(1).is_some_and(|arg| arg == "serve") {
         return serve::run_serve(&args);
+    }
+    if args.get(1).is_some_and(|arg| arg == "train") {
+        return train::run_train(&args);
     }
     let unified = args.get(1).is_some_and(|arg| arg == "sample");
     let inline_prompt = if unified {
