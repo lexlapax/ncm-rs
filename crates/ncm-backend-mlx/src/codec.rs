@@ -1188,7 +1188,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             let logits_f32 = self.to_f32(&logits.0)?;
             crate::xsum_top1::select(&logits_f32, true)
         })
-        .map(MlxTensor)
+        .map(MlxTensor::dense)
         .map_err(error)
     }
 
@@ -1198,7 +1198,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             let logits_f32 = self.to_f32(&logits.0)?;
             crate::xsum_top1::select(&logits_f32, false)
         })
-        .map(MlxTensor)
+        .map(MlxTensor::dense)
         .map_err(error)
     }
 
@@ -1229,7 +1229,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             let safe = mlx_rs::ops::minimum(&indices.0, Array::from_slice(&[4095u32], &[1]))?;
             Ok(weight.0.take_axis(&safe, 0)?)
         })
-        .map(MlxTensor)
+        .map(MlxTensor::dense)
         .map_err(error)
     }
     fn sampled_embedding_8192(&self, weight: &MlxTensor, indices: &MlxTensor) -> Result<MlxTensor> {
@@ -1242,7 +1242,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             let safe = mlx_rs::ops::minimum(&indices.0, Array::from_slice(&[8191u32], &[1]))?;
             Ok(weight.0.take_axis(&safe, 0)?)
         })
-        .map(MlxTensor)
+        .map(MlxTensor::dense)
         .map_err(error)
     }
     fn xsum_categorical_4096(&self, logits: &MlxTensor, uniforms: &MlxTensor) -> Result<MlxTensor> {
@@ -1252,7 +1252,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             let logits_f32 = self.to_f32(&logits.0)?;
             crate::xsum_categorical::draw(&logits_f32, &uniforms.0)
         })
-        .map(MlxTensor)
+        .map(MlxTensor::dense)
         .map_err(error)
     }
 
@@ -1263,7 +1263,7 @@ impl ncm_core::GeneratorBackend for MlxBackend {
             let logits_f32 = self.to_f32(&logits.0)?;
             crate::categorical::draw(&logits_f32, &uniforms.0)
         })
-        .map(MlxTensor)
+        .map(MlxTensor::dense)
         .map_err(error)
     }
 
