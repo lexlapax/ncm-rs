@@ -1,0 +1,31 @@
+{
+  "platform": "macos-mlx",
+  "device": "mlx",
+  "precision": "fp16",
+  "models_discovered_count": 10,
+  "xsum_warm_http_ms": 148.2,
+  "xsum_sse_http_ms": 101.4,
+  "wmt14_cold_load_ms": 883.7,
+  "wmt14_warm_http_ms": 87.9,
+  "lm1b_small_cold_switch_ms": 688.3,
+  "lm1b_small_4x_concurrent_ms": [
+    288.4,
+    99.5,
+    193.4,
+    382.2
+  ],
+  "xsum_sample": " sights memory - a typical smartphone of using a digital technology using your computer - can measure your own by switching your own knees.",
+  "wmt14_sample": "The research shows a significant progress in local models.",
+  "lm1b_small_sample": "[CLS] down the debt in the country. [CLS] just 90 minutes away from a bit of 22 ' s rubbish a half a",
+  "checks": [
+    "GET /",
+    "GET /health",
+    "GET /v1/models",
+    "GET /api/tags",
+    "POST /v1/chat/completions (non-stream + SSE)",
+    "POST /api/generate (NDJSON)",
+    "POST /api/chat (non-stream)",
+    "POST /v1/completions (LRU switch + 4x concurrent)",
+    "ncm sample --prompt"
+  ]
+}

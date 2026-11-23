@@ -1,5 +1,13 @@
 # Published comparison index
 
+## Phase 6: opt-in half precision (`BF16`/`FP16`) & OpenAI/Ollama local serving (complete)
+
+Phase 6 (`v0.3.0` candidate, [docs/PHASE6.md](../PHASE6.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra).
+
+| Report | Scope | Status and highlights |
+| --- | --- | --- |
+| [Phase 6 precision & serving report (CUDA & Metal)](2026-11-22-phase6-precision-serving/README.md) | Dual-platform FP32 vs BF16 vs FP16 quality, warm latency, VRAM/MLX peak & RSS across all 7 profiles + `lm1b-large` batch 16, plus live OpenAI & Ollama HTTP/SSE/NDJSON serving verification | CUDA VRAM **-40.7% to -48.5%**, up to **1.47× faster** (`lm1b-large` b=16 in **1,955.1 MiB** on 8 GiB GPU); Metal MLX peak **-36.4% to -47.3%**, RSS up to **-90.2%**; live OpenAI + Ollama serving passed on both GPUs (`52.5 ms` CUDA / `101.4 ms` Metal warm XSum SSE). |
+
 ## Phase 5: lean inference release and targeted optimization (complete)
 
 `v0.1.0` was tagged and published at `de2975a` (source-only); Step 2 stage profiling and Step 3

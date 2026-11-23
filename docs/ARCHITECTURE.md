@@ -1,17 +1,18 @@
 # Architecture
 
-Status: **Implemented across Phases 0–5 plus the pre-`v0.2.0` gap-audit bundle on Linux/CUDA and Apple Silicon/Metal** (`v0.1.0` published at `de2975a`; `v0.2.0` candidate verified on both GPUs at `e7b8cfa`). See [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-20-phase5-audit/phase5-final-audit-v1.md](results/2026-11-20-phase5-audit/phase5-final-audit-v1.md) for the requirement-to-evidence audit.
+Status: **Implemented across Phases 0–6 on Linux/CUDA and Apple Silicon/Metal** (`v0.2.0` published; Phase 6 `v0.3.0` candidate verified on both GPUs). See [docs/QUICKSTART.md](QUICKSTART.md) for 5-minute usage, [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-22-phase6-precision-serving/README.md](results/2026-11-22-phase6-precision-serving/README.md) for Phase 6 precision and serving evidence.
 
 ## Decision: one model, two runtime adapters
 
 Model semantics live once in Rust (`ncm-model`), generic over narrow backend traits (`ncm-core`) with associated tensor and index types. The concrete backend (`CandleBackend` for CUDA/cuDNN or `MlxBackend` for Apple Silicon Metal) is chosen explicitly at the application boundary and monomorphized on hot paths—never dispatched per operator through trait objects and never silently falling back to CPU.
 
 ```text
-ncm-cli (unified `ncm sample`, `inspect`, `generate`, `reconstruct`, aliases)
+ncm-cli (unified `ncm sample`, `serve`, `list`, `inspect`, `generate`, `reconstruct`, aliases)
+  ├── ncm-serve              zero-new-dep HTTP/1.1 + SSE/NDJSON OpenAI & Ollama server + registry
   ├── ncm-io                 manifest verification, parallel SHA-256, streaming weight I/O
-  ├── ncm-tokenizers         pinned Sudoku, Byte BPE, GPT-2, Qwen3, and BERT tokenizers
-  ├── ncm-model              Codec, Generator, TinyStories/XSum/WMT14/LM1B teachers, TraceSink
-  │     └── ncm-core         validated configs, OwtConfigOnly, backend traits, typed errors
+  ├── ncm-tokenizers         pinned Sudoku, Byte BPE, GPT-2, Qwen3, BERT & offline LocalTokenizer
+  ├── ncm-model              Codec, Generator, TinyStories/XSum/WMT14/LM1B/LocalNcmModel, TraceSink
+  │     └── ncm-core         validated configs, ComputePrecision, OwtConfigOnly, backend traits
   ├── ncm-backend-cuda ─────> ncm-core + Candle -> CUDA / cuBLAS / cuDNN / custom CUDA kernels
   └── ncm-backend-mlx ──────> ncm-core + mlx-rs -> mlx-c -> native MLX / Metal
 ```
@@ -56,8 +57,9 @@ Defined in [crates/ncm-core/src/lib.rs](../crates/ncm-core/src/lib.rs):
 | LM1B (small, medium, large) | Qualified seeded generation (80-seed gate) + empty-only `--text`/`--decode` (BERT) on CUDA and Metal; `v1` uses sibling rotary sidecar, `v2` bundles hash-pinned RoPE tables in `inference.safetensors` |
 | Custom local NCM (`local-ncm-v1`) | Generic config-driven `LocalNcmModel` + offline `LocalTokenizer` + FP32 prefix K/V cache + stdlib exporter (`tools/reference/export_local_ncm.py`) on CPU, CUDA, and Metal |
 | OpenWebText (OWT) | Config validation (`OwtConfigOnly`), no-EOS-cut policy, and synthetic operator shapes implemented; runtime execution refused until upstream releases weights |
-| BF16/FP16, quantization | Deferred past Phase 5; each requires its own equivalence/quality gate |
-| Multi-request serving, streaming, training | Deferred (Phase 6+ / separate approval gate) |
+| BF16/FP16 mixed precision | Implemented & dual-platform verified (`ComputePrecision::{Fp32, Bf16, Fp16}` via `--precision`); strict FP32 remains default, FP16 out-of-range weights fail explicitly on load |
+| OpenAI & Ollama local HTTP serving | Implemented & dual-platform verified (`crates/ncm-serve` + `ncm serve` + `ncm list`); zero-new-dep HTTP/1.1 + SSE/NDJSON + serialized GPU worker LRU cache |
+| Quantization (INT8/INT4) & training | Deferred (Phase 7 / separate approval gate) |
 
 ## Platform, safety, and compatibility policy
 

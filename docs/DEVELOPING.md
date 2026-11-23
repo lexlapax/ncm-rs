@@ -21,8 +21,10 @@ crates/
   ncm-backend-cuda/  Candle + CUDA/cuDNN backend (CandleBackend), custom CUDA
                      kernels (sampling, resampling, penalties, argmax, RoPE/norms).
   ncm-backend-mlx/   Native Apple Silicon MLX backend (MlxBackend) via mlx-rs/mlx-c.
-  ncm-cli/           Unified CLI (`ncm sample`, `ncm inspect`, `ncm generate`,
-                     `ncm reconstruct`, and legacy `sample-*` aliases).
+  ncm-serve/         Zero-new-dependency HTTP/1.1 + SSE/NDJSON OpenAI & Ollama API server
+                     (`Server`, `InferenceEngine`, `ModelRegistry`).
+  ncm-cli/           Unified CLI (`ncm sample`, `ncm serve`, `ncm list`, `ncm inspect`,
+                     `ncm generate`, `ncm reconstruct`, and legacy `sample-*` aliases).
 
 tools/
   check.sh           Local validation entrypoint (CPU default, opt-in --cuda / --mlx).

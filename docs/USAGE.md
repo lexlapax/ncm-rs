@@ -653,3 +653,18 @@ PY
 - **Self-contained LM1B v2 (`lm1b-{small,medium,large}-inference-v2`):** pass `--reference-rope artifacts/canonical/lm1b-reference-rope-v1.safetensors` to `tools/reference/lm1b_small_runtime_artifact.py` to bundle the hash-pinned `rope_cos` and `rope_sin` tensors directly inside `inference.safetensors`. `ncm sample` automatically uses the embedded tables when `--reference-rope` is omitted, producing byte-identical outputs to `v1` + sidecar without requiring a sibling file.
 - **XSum seeded + positive CFG on Metal:** both CUDA and Metal now accept `--cfg S --experimental-positive-cfg-xsum --seed N --experimental-stochastic-xsum`.
 - **Custom local NCM checkpoints (`local-ncm-v1`):** export local `.safetensors` or `.pt` codec/generator weights plus `config.json` (and optional HuggingFace `tokenizer.json`) using `tools/reference/export_local_ncm.py`, then run `ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--text] [--decode]` on `cuda-cudnn`, `cuda`, or `mlx`. See [docs/DEVELOPING.md](DEVELOPING.md#4-running-your-own-local-ncm-model-local-ncm-v1) and [docs/ARTIFACTS.md](ARTIFACTS.md).
+
+## Phase 6 additions: quickstart, half precision (`--precision`), `--prompt`, `ncm list`, and `ncm serve`
+
+For a streamlined 5-minute walkthrough (without compiling CPython 3.14.9 from source), see [docs/QUICKSTART.md](QUICKSTART.md) and `tools/reference/quickstart_export.py`.
+
+- **Opt-in half precision:** pass `--precision bf16` or `--precision fp16` to `ncm sample` or `ncm serve` (default `fp32` is unchanged). Works directly on existing verified FP32 safetensors artifacts. Checkpoints containing weights outside IEEE 754 FP16 range (`> 65504.0`, such as upstream `tinystories-phase4-v1`) fail explicitly on `--precision fp16` load; use `--precision bf16` or `--precision fp32`.
+- **Inline text prompts:** `ncm sample ARTIFACT DEVICE --prompt "Your prompt" [--precision fp16]` encodes the prompt inline and returns decoded `texts` without creating a temporary JSON file.
+- **Model discovery (`ncm list`):** scans `--models-dir` (default `artifacts/canonical`) for verified `manifest.json` profiles (`--json` supported).
+- **Drop-in OpenAI & Ollama local server (`ncm serve`):**
+
+```sh
+./target/release/ncm serve --models-dir artifacts/canonical --precision fp16 --port 11434 --max-loaded 1
+```
+
+Exposes OpenAI (`/v1/models`, `/v1/completions`, `/v1/chat/completions`, streaming SSE & non-streaming) and Ollama (`/`, `/health`, `/api/tags`, `/api/version`, `/api/show`, `/api/generate`, `/api/chat`, streaming NDJSON & non-streaming) on localhost by default, serialized safely through one GPU worker thread with bounded LRU eviction. See [docs/QUICKSTART.md](QUICKSTART.md#5-serve-as-a-drop-in-openai--ollama-endpoint) for `curl` and OpenAI Python SDK examples.

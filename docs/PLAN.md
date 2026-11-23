@@ -259,6 +259,14 @@ Label any reconstructed recipe distinctly from an upstream reproduction.
 budget-matched learning curves. Publish quality AND compute/memory cost, including
 negative results. Do not claim paper-scale reproduction from toy overfit.
 
+## Phase 6 — opt-in half precision (`BF16`/`FP16`), OpenAI/Ollama serving & newbie quickstart (complete)
+
+Approved 2026-11-22 ([docs/PHASE6.md](PHASE6.md)); completed and verified on Linux/CUDA first, then Apple Silicon/Metal:
+
+1. **Milestone 6A (`BF16`/`FP16`):** shared `ComputePrecision` trait extension in `ncm-core`, mixed-precision GEMM/attention with FP32 norm/reduction/sampling/penalty accumulation on CUDA and MLX, load-time FP16 range check (`> 65504.0`), eager MLX half-precision upload materialization, and strict FP32 default preservation.
+2. **Milestone 6B (`ncm-serve` + `ncm serve` + `ncm list`):** zero-new-dep HTTP/1.1 + SSE/NDJSON drop-in OpenAI & Ollama server with local artifact discovery, bounded LRU GPU worker cache, and live dual-platform verification.
+3. **Milestone 6C (quickstart & CLI ergonomics):** inline `--prompt` on `ncm sample`, `tools/reference/quickstart_export.py`, [docs/QUICKSTART.md](QUICKSTART.md), and published dual-platform [Phase 6 report](results/2026-11-22-phase6-precision-serving/README.md).
+
 ## Continuous lane — upstream parity and published comparisons
 
 Runs alongside every phase, not merely after the first release:

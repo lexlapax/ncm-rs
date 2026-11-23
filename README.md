@@ -1,19 +1,21 @@
 # ncm-rs
 
-A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified FP32 foundation for running local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production inference uses native CUDA/cuDNN or native MLX; Python is used strictly offline for checkpoint conversion, references, and evaluation.
+A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified foundation for running and serving local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production inference and HTTP serving use native CUDA/cuDNN or native MLX; Python is used strictly offline for checkpoint conversion, references, and evaluation.
 
-**Status: `v0.2.0` released on Linux/CUDA and Apple Silicon/MLX.**
-- **`v0.2.0` published** (source-only):
-  - **Streaming verified weight loading + pipelined SHA-256:** **2.05×–2.46× faster load** and up to **-2.8 GiB (0.22×) host HWM** on CUDA; **1.93×–3.63× faster load** and **48–49% lower peak RSS** vs Python MLX on Metal (`lm1b-large`: 3,298 vs 6,495 MiB).
-  - **FP32 prefix K/V caching (zero corpus diffs):** **3.24× faster XSum** (`155.8 → 48.1 ms`) and **1.54× faster WMT14** (`58.5 → 38.0 ms`) on CUDA; **2.42× faster XSum** (`204.6 → 84.6 ms`, `-187 MiB` MLX peak) and **1.20× faster WMT14** (`-59 MiB` MLX peak) on Metal.
-  - **Local NCM model foundation & parity fixes:** config-driven `local-ncm-v1` artifacts + stdlib exporter (`tools/reference/export_local_ncm.py`), self-contained `lm1b-*-inference-v2` option, XSum Metal seeded + positive CFG support, and **9/9 byte-identical CLI outputs** on both GPUs.
-- See the [Phase 5 final audit](docs/results/2026-11-20-phase5-audit/phase5-final-audit-v1.md), [v0.2.0 dual-platform optimization report](docs/results/2026-11-20-phase5-optimization/README.md), [cross-phase gap audit](docs/results/2026-11-20-phase5-audit/cross-phase-gap-audit-v1.md), and [current state](agent-context-map.md).
+**Status: Phase 6 (`v0.3.0-rc`) complete and verified on Linux/CUDA and Apple Silicon/MLX (`v0.2.0` published).**
+- **New in Phase 6 (`v0.3.0` candidate):**
+  - **Opt-in `BF16` / `FP16` half precision (`--precision fp32|bf16|fp16`):** cuts CUDA VRAM **40.7%–48.5%** and MLX peak **36.4%–47.3%** (host RSS up to **-90.2%**), runs up to **1.47× faster** on CUDA (`lm1b-large`: `246.2 → 167.7 ms`) and **1.15× faster** on Metal (`lm1b-large` b=16), and fits **`lm1b-large` batch 16 in 1,955.1 MiB VRAM** on an 8 GiB RTX 3060 Ti — while keeping default `--precision fp32` 100% untouched.
+  - **Drop-in OpenAI & Ollama local HTTP server (`ncm serve`, `crates/ncm-serve`):** zero new external crate dependencies; exposes OpenAI (`/v1/models`, `/v1/completions`, `/v1/chat/completions` + SSE streaming) and Ollama (`/`, `/health`, `/api/tags`, `/api/show`, `/api/generate`, `/api/chat` + NDJSON streaming) on `127.0.0.1:11434` with auto-discovered models and an LRU GPU worker cache.
+  - **Newbie ergonomics:** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md), one-command `tools/reference/quickstart_export.py`, `ncm list`, and inline `--prompt "..."` on `ncm sample`.
+- **`v0.2.0` published baseline:** streaming verified loading + pipelined SHA-256 (**2.05×–2.46×** CUDA / **1.93×–3.63×** Metal faster load, **48–49% lower peak RSS** than Python MLX), FP32 prefix K/V caching (**3.24×** CUDA / **2.42×** Metal faster XSum, **0** corpus diffs), self-contained `lm1b-*-inference-v2`, and config-driven `local-ncm-v1`.
+- See the [Phase 6 precision & serving report](docs/results/2026-11-22-phase6-precision-serving/README.md), [v0.2.0 optimization report](docs/results/2026-11-20-phase5-optimization/README.md), [Phase 5 final audit](docs/results/2026-11-20-phase5-audit/phase5-final-audit-v1.md), and [current state](agent-context-map.md).
 
 ## Quick Navigation
 
-- **Users (install, build, fetch/export checkpoints, run inference):** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
-- **Developers (Rust library embedding, backend traits, adding local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
-- **Release notes:** [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
+- **New users (5-minute build → export → `--prompt` → OpenAI/Ollama `ncm serve`):** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
+- **Full CLI & reproducible exact-hash setup:** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
+- **Developers (Rust library embedding, backend traits, `ncm-serve`, adding local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
+- **Release notes:** [v0.3.0 (draft)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
 
 ## Profile and evidence matrix
 
@@ -21,36 +23,37 @@ Results below apply to the tested hardware (RTX 3060 Ti on Linux, M1 Ultra on ma
 
 | Profile | Qualified scope | Quality and performance evidence |
 | --- | --- | --- |
-| Sudoku easy, medium, hard | FP32 greedy, CUDA and Metal | [6,000-board quality and timing](docs/results/2026-11-14-phase3-sudoku/README.md); CUDA has one intermediate near-tie code difference, with no final-ID difference. |
-| TinyStories | Seeded sampling, CUDA and Metal; scoped exceptions | [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md#per-profile-disposition); [accepted Metal numerical and latency-tail exceptions](docs/results/2026-11-15-phase4-tinystories/user-accepted-exceptions-v1.md). |
-| XSum | Top-1, CFG 0, CUDA and Metal; scoped exceptions | [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md#per-profile-disposition); [Metal output differences](docs/results/2026-11-15-phase4-xsum/user-accepted-exception-v1.md) and [CUDA stochastic exceptions](docs/results/2026-11-15-phase4-xsum/user-accepted-exceptions-v1.md). |
-| WMT14 | Scoped top-1 (CFG 0 and 1), CUDA and Metal | [CLI and profile qualification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification), including quality, timing, memory and retained Metal intermediate differences. |
-| LM1B small, medium, large | Seeded generation, CUDA and Metal; approved 80-seed gate (`v1` + self-contained `v2`) | [Quality campaign](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md), [CUDA timing](docs/results/2026-11-16-phase4-lm1b/medium-large-cuda-timing-v1.md), [Metal timing](docs/results/2026-11-16-phase4-lm1b/medium-large-metal-v1.md#latency-and-memory-against-python-mlx), [v0.2.0 load, warm & RSS vs Python MLX](docs/results/2026-11-20-phase5-optimization/README.md), and [scoped user decisions](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md). |
-| Custom local NCM (`local-ncm-v1`) | Config-driven FP32 greedy & seeded, CUDA and Metal | End-to-end verified on CPU, CUDA, and Metal; see [docs/DEVELOPING.md](docs/DEVELOPING.md#4-running-your-own-local-ncm-model-local-ncm-v1) and [docs/ARTIFACTS.md](docs/ARTIFACTS.md). |
+| Sudoku easy, medium, hard | FP32 greedy + opt-in BF16/FP16, CUDA and Metal | [6,000-board quality and timing](docs/results/2026-11-14-phase3-sudoku/README.md); [Phase 6 half precision](docs/results/2026-11-22-phase6-precision-serving/README.md) (128/128 exact in BF16/FP16 on both GPUs). |
+| TinyStories | Seeded sampling (FP32 + BF16), CUDA and Metal; scoped exceptions | [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md#per-profile-disposition); [Phase 6 precision](docs/results/2026-11-22-phase6-precision-serving/README.md) (FP16 explicitly rejected at load due to `2.48e10` codebook entry). |
+| XSum | Top-1, CFG 0 + opt-in BF16/FP16 + serving, CUDA and Metal | [Phase 4 audit](docs/results/2026-11-19-phase4-audit/phase4-final-audit-v1.md#per-profile-disposition), [v0.2.0 prefix cache](docs/results/2026-11-20-phase5-optimization/README.md), and [Phase 6 precision & serving](docs/results/2026-11-22-phase6-precision-serving/README.md). |
+| WMT14 | Scoped top-1 (CFG 0 and 1) + opt-in BF16/FP16 + serving, CUDA and Metal | [CLI qualification](docs/results/2026-11-16-phase4-wmt14/mlx-corpus-retry-v1.md#cli-and-profile-qualification), [v0.2.0 prefix cache](docs/results/2026-11-20-phase5-optimization/README.md), and [Phase 6 precision & serving](docs/results/2026-11-22-phase6-precision-serving/README.md). |
+| LM1B small, medium, large | Seeded generation (`v1` + self-contained `v2`) + opt-in BF16/FP16 + serving, CUDA and Metal | [Quality campaign](docs/results/2026-11-16-phase4-lm1b/cohort-campaign-v1.md), [v0.2.0 vs Python MLX](docs/results/2026-11-20-phase5-optimization/README.md), and [Phase 6 precision & serving](docs/results/2026-11-22-phase6-precision-serving/README.md) (`lm1b-large` b=16 in 1.96 GiB CUDA VRAM). |
+| Custom local NCM (`local-ncm-v1`) | Config-driven greedy & seeded + serving, CPU, CUDA, and Metal | End-to-end verified on CPU, CUDA, and Metal; see [docs/DEVELOPING.md](docs/DEVELOPING.md#4-running-your-own-local-ncm-model-local-ncm-v1) and [docs/ARTIFACTS.md](docs/ARTIFACTS.md). |
 | OpenWebText | Config and synthetic operators only | [Coverage](docs/results/2026-11-19-phase4-owt/config-operator-coverage-v1.md); weights are unreleased and inference is refused. |
 
-## CLI and current limitations
+## CLI and local serving
 
-The explicit-device CLI accepts JSON arrays of token-ID rows or `--text` string arrays. `ncm sample` dispatches on the artifact manifest's profile; legacy `sample-*` commands remain as aliases. Run `ncm --help` or `ncm sample --help` for full syntax and explicitly gated experimental options.
+Run `ncm --help`, `ncm sample --help`, `ncm serve --help`, or `ncm list --help` for full syntax and explicitly gated experimental options.
 
 ```sh
+ncm list [--models-dir DIR] [--json]
 ncm inspect ARTIFACT
-ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--decode]
+ncm sample ARTIFACT DEVICE --prompt "Hello world" [--precision fp32|bf16|fp16]
+ncm sample ARTIFACT DEVICE INPUT_JSON [--seed N] [--cfg S] [--precision fp32|bf16|fp16] [--decode]
 ncm sample ARTIFACT DEVICE TEXT_JSON --text [--decode]  # LM1B accepts empty strings only
-ncm generate ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]     # Sudoku
-ncm reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]  # Sudoku codec
+ncm serve [--models-dir DIR] [--device DEV] [--precision fp32|bf16|fp16] [--port 11434] [--preload MODEL]
+ncm generate|reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]  # Sudoku
 ```
 
-- **Byte-identical across all 9 profiles** (`baseline == alias == sample`) on both CUDA and Metal (`v0.2.0` candidate `e7b8cfa`).
-- **Text input & decode:** `--decode` works across all text profiles and `local-ncm-v1` (when `tokenizer.json` is bundled). TinyStories `--text` requires strings encoding to exactly one non-padding token; XSum and WMT14 truncate/pad to 512 and 96 tokens respectively; LM1B accepts `[101]` ID rows or 1–32 empty strings under `--text`. LM1B `v1` requires the sibling rotary sidecar (`lm1b-reference-rope-v1.safetensors`) or `--reference-rope FILE`; LM1B `v2` bundles the verified rotary tables inside `inference.safetensors`.
-- **Precision & scope:** FP32 only in v0.1/v0.2 (BF16/FP16 and quantization are deferred). OWT inference is refused. No serving API, streaming, cancellation, or concurrent-request throughput is qualified.
-- **RNG & experimental flags:** neither runtime reproduces PyTorch's RNG stream (Metal/CUDA draw-level differences are a [scoped LM1B exception](docs/results/2026-11-16-phase4-lm1b/user-decisions-v1.md#2-metal-stochastic-draw-differences-scoped-exception)). XSum stochastic sampling and positive CFG, WMT14 CFG scales other than 0/1 (`--experimental-cfg-wmt14`), LM1B Metal `--top-p-fp32`, and WMT14 `mlx-retry-padded` require explicit opt-in flags/device names.
-- **Memory & batch limits:** on the tested 8 GiB CUDA card, pinned Python LM1B-large OOMed at batch 16 (Rust was timed at batches 1/4/8 alongside Python). CLI argument limits do not guarantee that a batch fits in available VRAM.
-- **Provenance note:** the historical Sudoku medium/hard exporter script is unresolved; provenance-only re-exports produce identical weights and 2,000-board outputs ([export investigation](docs/results/2026-11-19-phase5-cli/linux-export-repro-v1.md)). No model weights, evaluation datasets, or prebuilt binaries are committed to Git.
+- **Default FP32 byte-identity:** `--precision fp32` (default) preserves exact parity across all 9 profiles on both CUDA and Metal.
+- **Opt-in half precision:** `--precision fp16` (recommended for XSum, WMT14, LM1B, Sudoku) and `--precision bf16` (recommended for TinyStories or wide-range weights) work directly on existing FP32 artifacts; out-of-range FP16 weights (`> 65504.0`) fail explicitly on load.
+- **Local HTTP serving (`ncm serve`):** localhost-only by default (`127.0.0.1:11434`), serving both OpenAI (`/v1/models`, `/v1/completions`, `/v1/chat/completions`) and Ollama (`/`, `/health`, `/api/tags`, `/api/show`, `/api/generate`, `/api/chat`) clients with SSE/NDJSON streaming, bounded 4 MiB request bodies, and a serialized GPU worker thread with bounded LRU cache (`--max-loaded`).
+- **RNG & experimental flags:** neither runtime reproduces PyTorch's RNG stream. Experimental flags (`--experimental-stochastic-xsum`, `--experimental-positive-cfg-xsum`, `--experimental-cfg-wmt14`, LM1B Metal `--top-p-fp32`, WMT14 `mlx-retry-padded`) require explicit opt-in. OWT inference is refused.
+- **Provenance note:** no model weights, evaluation datasets, or prebuilt binaries are committed to Git.
 
 ## Build and local checks
 
-Rust **1.99.1+** (edition 2024), `rustfmt`, `clippy`, and Python 3 are required for local checks. Default CPU checks require no GPU SDK. For full CUDA/cuDNN and Apple Silicon MLX setup steps, follow [docs/USAGE.md](docs/USAGE.md).
+Rust **1.99.1+** (edition 2024), `rustfmt`, `clippy`, and Python 3 are required for local checks. Default CPU checks require no GPU SDK. For quickstart or full CUDA/cuDNN and Apple Silicon MLX setup steps, follow [docs/QUICKSTART.md](docs/QUICKSTART.md) or [docs/USAGE.md](docs/USAGE.md).
 
 ```sh
 ./tools/check.sh
@@ -66,13 +69,14 @@ Checks never download weights or launch SSH jobs. Build CI is intentionally disa
 
 | Path | Responsibility |
 | --- | --- |
-| `crates/ncm-core`, `crates/ncm-model` | Validated configs, backend traits, shared FP32 codec & generators |
-| `crates/ncm-tokenizers`, `crates/ncm-io` | Pinned tokenizers, parallel SHA-256 & streaming verified artifact I/O |
-| `crates/ncm-backend-cuda`, `crates/ncm-backend-mlx` | Explicit CUDA/cuDNN and native MLX/Metal runtime adapters |
-| `crates/ncm-cli` | Unified `ncm sample` / `inspect` / `generate` / `reconstruct` CLI |
-| `tools/reference`, `tests/fixtures`, `tools/bench` | Offline conversion, pinned oracles, equivalence & benchmark suites |
+| `crates/ncm-core`, `crates/ncm-model` | Validated configs, `ComputePrecision`, backend traits, shared codec & generators |
+| `crates/ncm-tokenizers`, `crates/ncm-io` | Pinned & offline `local-ncm-v1` tokenizers, parallel SHA-256 & streaming verified I/O |
+| `crates/ncm-serve` | Zero-new-dep HTTP/1.1 + SSE/NDJSON OpenAI & Ollama server and model registry |
+| `crates/ncm-backend-cuda`, `crates/ncm-backend-mlx` | Explicit CUDA/cuDNN and native MLX/Metal runtime adapters (`fp32`, `bf16`, `fp16`) |
+| `crates/ncm-cli` | Unified `ncm sample` / `serve` / `list` / `inspect` / `generate` / `reconstruct` CLI |
+| `tools/reference`, `tests/fixtures`, `tools/bench` | Offline conversion, quickstart wrapper, pinned oracles, equivalence & benchmark suites |
 
-Docs: [usage guide](docs/USAGE.md), [developer guide](docs/DEVELOPING.md), [architecture](docs/ARCHITECTURE.md), [artifact contract](docs/ARTIFACTS.md), [testing](docs/TESTING.md), [reporting](docs/REPORTING.md), [upstream policy](docs/UPSTREAM.md), [results index](docs/results/README.md), and [plan](docs/PLAN.md). Agents start with [AGENTS.md](AGENTS.md) and [agent-context-map.md](agent-context-map.md).
+Docs: [5-minute quickstart](docs/QUICKSTART.md), [usage guide](docs/USAGE.md), [developer guide](docs/DEVELOPING.md), [architecture](docs/ARCHITECTURE.md), [artifact contract](docs/ARTIFACTS.md), [testing](docs/TESTING.md), [reporting](docs/REPORTING.md), [upstream policy](docs/UPSTREAM.md), [results index](docs/results/README.md), and [plan](docs/PLAN.md). Agents start with [AGENTS.md](AGENTS.md) and [agent-context-map.md](agent-context-map.md).
 
 ## Provenance and license
 
