@@ -2,7 +2,8 @@
 
 A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified foundation for running and serving local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production inference and HTTP serving use native CUDA/cuDNN or native MLX; Python is used strictly offline for checkpoint conversion, references, and evaluation.
 
-**Status: `v0.4.0` released on Linux/CUDA and Apple Silicon/MLX.**
+**Status: `v0.4.1` released on Linux/CUDA and Apple Silicon/MLX.**
+- **`v0.4.1` published** (source-only, [upstream `094f25ca` / `e34c3fab` qualification](docs/results/2026-11-23-upstream-qualification/README.md)): dual-platform qualified TinyStories 15k EMA release (`0/2,564` code diffs, `0/512` ID diffs on CUDA & Metal), trimmed inference config support, explicit dual pin-pair verification (legacy `c7027427`/`d342ce8a` preserved), and updated `ncm pull tinystories` / `upstream.toml`.
 - **`v0.4.0` published** (source-only, [Phase 7 report](docs/results/2026-11-23-phase7/README.md)):
   - **Native Weight Quantization (`--precision q8|q4`):** native `GGML Q8_0`/`Q4_0` on CUDA (`QTensor`/`QMatMul`) and group-64 affine `8-bit`/`4-bit` on Metal (`mlx_rs::ops::quantize`/`quantized_matmul`). Cuts `lm1b-large` b=1 VRAM **-68.1% (`q8`, 1,025 MiB, 1.24× faster)** / **-79.1% (`q4`, 673 MiB, 1.27× faster)** on RTX 3060 Ti (**b=16 in 975 MiB**!) and **-66.9% / -77.2% MLX peak** (-90.2% RSS) on M1 Ultra; `sudoku-easy` **128/128 `q8`** / **126–127/128 `q4`**; TinyStories fluent in both `q8` & `q4`.
   - **Ollama-Class CLI & Serving v2:** `ncm run MODEL [PROMPT]` (one-shot or hot-GPU interactive REPL), `ncm pull (--list | MODEL)`, `GET /api/ps` resident model inspection, and dynamic micro-batching (`ncm serve --max-batch 8`) delivering **2.21× CUDA / 1.85× Metal** concurrent throughput on `wmt14` (`3,560.8 tok/s` CUDA) and **1.64× CUDA / 1.97× Metal** on `lm1b-large` Q8.
@@ -16,7 +17,7 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
 - **New users (5-minute build → `ncm pull` → `ncm run` → OpenAI/Ollama `ncm serve` → `ncm train`):** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
 - **Full CLI & reproducible exact-hash setup:** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
 - **Developers (Rust library embedding, backend traits, `ncm-serve`, `ncm-train`, custom local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
-- **Release notes:** [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
+- **Release notes:** [v0.4.1 (published)](docs/RELEASE-NOTES-v0.4.1.md) | [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
 
 ## Profile and evidence matrix
 
