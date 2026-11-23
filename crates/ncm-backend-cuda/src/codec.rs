@@ -104,6 +104,17 @@ impl CodecBackend for CandleBackend {
                 *shape
                     .last_mut()
                     .ok_or_else(|| candle_core::Error::Msg("scalar projection".into()))? = output;
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    let x_2d = x.contiguous()?.reshape((x.elem_count() / input, input))?;
+                    let y_2d = candle_core::Module::forward(qmatmul.as_ref(), &x_2d)?;
+                    let y = y_2d.reshape(shape)?;
+                    return if y.dtype() == self.float_dtype() {
+                        Ok(y)
+                    } else {
+                        self.cast_from_f32(y)
+                    };
+                }
                 let x_2d = self
                     .to_f32(x)?
                     .contiguous()?
@@ -259,17 +270,30 @@ impl CodecBackend for CandleBackend {
                 if !eps.is_finite() || eps <= 0.0 {
                     candle_core::bail!("normalization epsilon must be positive and finite")
                 }
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    let width = weight.dims1()?;
+                    let zero;
+                    let bias_t = match bias {
+                        Some(b) => b,
+                        None => {
+                            zero = self.zero_bias(width, dtype)?;
+                            &zero
+                        }
+                    };
+                    return candle_nn::ops::layer_norm(
+                        &x.contiguous()?,
+                        &weight.contiguous()?,
+                        &bias_t.contiguous()?,
+                        eps as f32,
+                    );
+                }
                 let xf = self.to_f32(x)?.contiguous()?;
                 let wf = self.to_f32(weight)?.contiguous()?;
                 let bf = match bias {
                     Some(b) => self.to_f32(b)?.contiguous()?,
                     None => Tensor::zeros(wf.shape(), DType::F32, self.device())?,
                 };
-                #[cfg(feature = "cuda")]
-                if self.device().is_cuda() {
-                    let out = candle_nn::ops::layer_norm(&xf, &wf, &bf, eps as f32)?;
-                    return self.cast_from_f32(out);
-                }
                 let out = ops::layer_norm(&xf, eps)?
                     .broadcast_mul(&wf)?
                     .broadcast_add(&bf)?;
@@ -311,13 +335,16 @@ impl CodecBackend for CandleBackend {
                 if !eps.is_finite() || eps <= 0.0 {
                     candle_core::bail!("normalization epsilon must be positive and finite")
                 }
-                let xf = self.to_f32(x)?.contiguous()?;
-                let wf = self.to_f32(weight)?.contiguous()?;
                 #[cfg(feature = "cuda")]
                 if self.device().is_cuda() {
-                    let out = candle_nn::ops::rms_norm(&xf, &wf, eps as f32)?;
-                    return self.cast_from_f32(out);
+                    return candle_nn::ops::rms_norm(
+                        &x.contiguous()?,
+                        &weight.contiguous()?,
+                        eps as f32,
+                    );
                 }
+                let xf = self.to_f32(x)?.contiguous()?;
+                let wf = self.to_f32(weight)?.contiguous()?;
                 let out = ops::rms_norm(&xf, eps)?.broadcast_mul(&wf)?;
                 return self.cast_from_f32(out);
             }
@@ -371,6 +398,10 @@ impl CodecBackend for CandleBackend {
     fn gelu(&self, x: &Tensor) -> Result<Tensor> {
         op!(self, [x], {
             if self.precision != ComputePrecision::Fp32 {
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    return x.gelu_erf();
+                }
                 return self.cast_from_f32(self.to_f32(x)?.gelu_erf()?);
             }
             #[cfg(feature = "cuda")]
@@ -397,29 +428,26 @@ impl CodecBackend for CandleBackend {
                 if width == 0 {
                     candle_core::bail!("attention width is zero")
                 }
-                // Run Q@K^T and probs@V on BF16/FP16 Tensor Cores; keep softmax + mask in FP32.
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    // Run Q@K^T and probs@V on BF16/FP16 Tensor Cores, fusing scale + optional
+                    // mask + FP32-accumulating warp softmax into one pass with zero FP32 staging.
+                    let scores = q.contiguous()?.matmul(&k.contiguous()?.transpose(2, 3)?)?;
+                    let scale = (1.0 / (width as f64).sqrt()) as f32;
+                    let probs =
+                        crate::masked_softmax::apply_low_precision(self, &scores, mask, scale)?;
+                    return probs.matmul(&v.contiguous()?);
+                }
                 let scores_low = q.contiguous()?.matmul(&k.contiguous()?.transpose(2, 3)?)?;
                 let scores = (scores_low.to_dtype(DType::F32)? / (width as f64).sqrt())?;
                 let scores = match mask {
                     Some(m) => scores.broadcast_add(&self.to_f32(m)?)?,
                     None => scores,
                 };
-                #[cfg(feature = "cuda")]
-                let probs_f32 = if self.device().is_cuda() {
-                    candle_nn::ops::softmax_last_dim(&scores.contiguous()?)?
-                } else {
-                    let exps = scores
-                        .broadcast_sub(&scores.max_keepdim(D::Minus1)?)?
-                        .exp()?;
-                    exps.broadcast_div(&exps.sum_keepdim(D::Minus1)?)?
-                };
-                #[cfg(not(feature = "cuda"))]
-                let probs_f32 = {
-                    let exps = scores
-                        .broadcast_sub(&scores.max_keepdim(D::Minus1)?)?
-                        .exp()?;
-                    exps.broadcast_div(&exps.sum_keepdim(D::Minus1)?)?
-                };
+                let exps = scores
+                    .broadcast_sub(&scores.max_keepdim(D::Minus1)?)?
+                    .exp()?;
+                let probs_f32 = exps.broadcast_div(&exps.sum_keepdim(D::Minus1)?)?;
                 return probs_f32.to_dtype(dtype)?.matmul(&v.contiguous()?);
             }
             #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
@@ -601,16 +629,14 @@ impl CodecBackend for CandleBackend {
             if self.precision == ComputePrecision::Fp32 {
                 self.resample(x, length, true)
             } else {
-                let xf = self.to_f32(x)?;
-                self.cast_from_f32(self.resample(&xf, length, true)?)
+                self.resample_low_precision(x, length, true)
             }
         })
     }
     fn linear1d(&self, x: &Tensor, length: usize) -> Result<Tensor> {
         op!(self, [x], {
             if self.precision != ComputePrecision::Fp32 {
-                let xf = self.to_f32(x)?;
-                return self.cast_from_f32(self.resample(&xf, length, false)?);
+                return self.resample_low_precision(x, length, false);
             }
             #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
             if self.cudnn_algorithms.graph_forward.is_some()
@@ -805,6 +831,26 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             return Err(Error::Input("invalid QKV shape".into()));
         }
         #[cfg(feature = "cuda")]
+        if self.precision != ComputePrecision::Fp32
+            && self.device().is_cuda()
+            && batch
+                .checked_mul(3)
+                .and_then(|n| n.checked_mul(heads))
+                .is_some_and(|n| n <= 65535)
+            && self.supports_generator_layout_kernel()?
+        {
+            let function = self.generator_layout_function(4)?;
+            return op!(self, [x], {
+                x.contiguous()?
+                    .apply_op1_no_bwd(&crate::generator_layout::LayoutCopyU16 {
+                        kind: crate::generator_layout::LayoutKind::Pack,
+                        heads,
+                        head,
+                        function,
+                    })
+            });
+        }
+        #[cfg(feature = "cuda")]
         if self.precision == ComputePrecision::Fp32
             && self.device().is_cuda()
             && matches!(heads, 8 | 12)
@@ -849,6 +895,23 @@ impl ncm_core::GeneratorBackend for CandleBackend {
             return Err(Error::Input("invalid attention shape".into()));
         }
         #[cfg(feature = "cuda")]
+        if self.precision != ComputePrecision::Fp32
+            && self.device().is_cuda()
+            && batch.checked_mul(seq).is_some_and(|n| n <= 65535)
+            && self.supports_generator_layout_kernel()?
+        {
+            let function = self.generator_layout_function(5)?;
+            return op!(self, [x], {
+                x.contiguous()?
+                    .apply_op1_no_bwd(&crate::generator_layout::LayoutCopyU16 {
+                        kind: crate::generator_layout::LayoutKind::Merge,
+                        heads,
+                        head,
+                        function,
+                    })
+            });
+        }
+        #[cfg(feature = "cuda")]
         if self.precision == ComputePrecision::Fp32
             && self.device().is_cuda()
             && matches!(heads, 8 | 12)
@@ -884,13 +947,17 @@ impl ncm_core::GeneratorBackend for CandleBackend {
     fn rope(&self, x: &Tensor, cos: &Tensor, sin: &Tensor) -> Result<Tensor> {
         op!(self, [x, cos, sin], {
             if self.precision != ComputePrecision::Fp32 {
+                #[cfg(feature = "cuda")]
+                if self.device().is_cuda() {
+                    return candle_nn::rotary_emb::rope(
+                        &x.contiguous()?,
+                        &cos.contiguous()?,
+                        &sin.contiguous()?,
+                    );
+                }
                 let xf = self.to_f32(x)?.contiguous()?;
                 let cf = self.to_f32(cos)?.contiguous()?;
                 let sf = self.to_f32(sin)?.contiguous()?;
-                #[cfg(feature = "cuda")]
-                if self.device().is_cuda() {
-                    return self.cast_from_f32(candle_nn::rotary_emb::rope(&xf, &cf, &sf)?);
-                }
                 let cf2 = Tensor::cat(&[&cf, &cf], 1)?;
                 let sf2 = Tensor::cat(&[&sf, &sf], 1)?;
                 return self.cast_from_f32(ops::rope(&xf, &cf2, &sf2)?);

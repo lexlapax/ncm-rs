@@ -34,10 +34,12 @@ pub struct CandleBackend {
     >,
     resampling: std::sync::Mutex<crate::resample::Cache>,
     #[cfg(feature = "cuda")]
+    zero_biases: std::sync::Mutex<HashMap<(usize, DType), Tensor>>,
+    #[cfg(feature = "cuda")]
     layout_kernel_supported: std::sync::OnceLock<bool>,
     #[cfg(feature = "cuda")]
     layout_functions:
-        std::sync::Mutex<Option<[candle_core::cuda_backend::cudarc::driver::CudaFunction; 4]>>,
+        std::sync::Mutex<Option<[candle_core::cuda_backend::cudarc::driver::CudaFunction; 6]>>,
 }
 impl Clone for CandleBackend {
     fn clone(&self) -> Self {
@@ -105,6 +107,8 @@ impl CandleBackend {
             fused: Default::default(),
             resampling: Default::default(),
             #[cfg(feature = "cuda")]
+            zero_biases: Default::default(),
+            #[cfg(feature = "cuda")]
             layout_kernel_supported: Default::default(),
             #[cfg(feature = "cuda")]
             layout_functions: Default::default(),
@@ -139,6 +143,8 @@ impl CandleBackend {
                 load("ncm_merge_heads_8x64")?,
                 load("ncm_pack_qkv_12x64")?,
                 load("ncm_merge_heads_12x64")?,
+                load("ncm_pack_qkv_u16")?,
+                load("ncm_merge_heads_u16")?,
             ]);
         }
         Ok(functions.as_ref().expect("initialized layout functions")[index].clone())
@@ -332,6 +338,45 @@ impl CandleBackend {
             }
             Some(plan) => plan.apply(x),
             None => x.contiguous(),
+        }
+    }
+    #[cfg(feature = "cuda")]
+    pub(crate) fn zero_bias(&self, width: usize, dtype: DType) -> candle_core::Result<Tensor> {
+        let key = (width, dtype);
+        if let Ok(guard) = self.zero_biases.lock()
+            && let Some(tensor) = guard.get(&key)
+        {
+            return Ok(tensor.clone());
+        }
+        let zeros = Tensor::zeros((width,), dtype, &self.device)?;
+        if let Ok(mut guard) = self.zero_biases.lock()
+            && guard.len() < 64
+        {
+            guard.insert(key, zeros.clone());
+        }
+        Ok(zeros)
+    }
+    pub(crate) fn resample_low_precision(
+        &self,
+        x: &Tensor,
+        output: usize,
+        area: bool,
+    ) -> candle_core::Result<Tensor> {
+        let plan = self
+            .resampling
+            .lock()
+            .map_err(|_| candle_core::Error::Msg("resampling cache lock poisoned".into()))?
+            .prepare_matrix(x, output, area)?;
+        match plan {
+            crate::resample::MatrixPlan::Identity => x.contiguous(),
+            crate::resample::MatrixPlan::Gemm(matrix) => {
+                crate::resample::apply_resample_matrix(&matrix, x)
+            }
+            crate::resample::MatrixPlan::Oversized => {
+                let dtype = x.dtype();
+                let xf = x.to_dtype(DType::F32)?;
+                self.resample(&xf, output, area)?.to_dtype(dtype)
+            }
         }
     }
 }

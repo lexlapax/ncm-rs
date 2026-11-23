@@ -1,3 +1,4 @@
+#include <cuda_fp16.h>
 #include <math_constants.h>
 
 // Unique finite maximum per 4096-way row. Exact ties and nonfinite values are
@@ -634,4 +635,168 @@ extern "C" __global__ void ncm_lm1b_linear_fma(const float* input, float* output
     float b = input[(row * length + right) * channels + channel];
     float first = __fmul_rn(1.0f - weight, a);
     output[i] = fmaf(weight, b, first);
+}
+
+// Generic 16-bit (BF16/FP16) layout copies: no arithmetic on tensor values.
+extern "C" __global__ void ncm_pack_qkv_u16(const unsigned short* input, unsigned short* output,
+                                            unsigned int batch, unsigned int seq,
+                                            unsigned int heads, unsigned int head) {
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int group = blockIdx.y;
+    const unsigned int per_head = seq * head;
+    const unsigned int q_heads = 3 * heads;
+    if (idx >= per_head || group >= batch * q_heads) return;
+    const unsigned int t = idx / head, d = idx % head;
+    const unsigned int h = group % heads, q = (group / heads) % 3, b = group / q_heads;
+    const unsigned int src = ((b * seq + t) * q_heads + q * heads + h) * head + d;
+    const unsigned int dst = (((q * batch + b) * heads + h) * seq + t) * head + d;
+    output[dst] = input[src];
+}
+
+extern "C" __global__ void ncm_merge_heads_u16(const unsigned short* input, unsigned short* output,
+                                               unsigned int batch, unsigned int seq,
+                                               unsigned int heads, unsigned int head) {
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int group = blockIdx.y;
+    const unsigned int width = heads * head;
+    if (idx >= width || group >= batch * seq) return;
+    const unsigned int h = idx / head, d = idx % head, b = group / seq, t = group % seq;
+    const unsigned int src = ((b * heads + h) * seq + t) * head + d;
+    const unsigned int dst = (b * seq + t) * width + idx;
+    output[dst] = input[src];
+}
+
+__device__ __forceinline__ float ncm_bf16_to_f32(unsigned short bits) {
+    return __uint_as_float(((unsigned int)bits) << 16);
+}
+
+__device__ __forceinline__ unsigned short ncm_f32_to_bf16(float value) {
+    unsigned int bits = __float_as_uint(value);
+    if ((bits & 0x7fffffffU) > 0x7f800000U) {
+        return (unsigned short)((bits >> 16) | 0x0040U);
+    }
+    unsigned int lsb = (bits >> 16) & 1U;
+    return (unsigned short)((bits + 0x7fffU + lsb) >> 16);
+}
+
+__device__ __forceinline__ float ncm_f16_to_f32(unsigned short bits) {
+    return __half2float(__ushort_as_half(bits));
+}
+
+__device__ __forceinline__ unsigned short ncm_f32_to_f16(float value) {
+    return __half_as_ushort(__float2half_rn(value));
+}
+
+// Fused scale + optional additive mask + FP32-accumulating warp softmax for BF16/FP16.
+// Eliminates [B, H, Q, K] FP32 staging tensors and per-layer mask casts while preserving
+// full FP32 softmax precision.
+template <bool IsBf16>
+__device__ void ncm_fused_softmax_16(const unsigned short* scores, const unsigned short* mask,
+                                     unsigned short* output, float scale,
+                                     unsigned int total_rows, unsigned int heads,
+                                     unsigned int q_len, unsigned int k_len,
+                                     unsigned int mask_b, unsigned int mask_q,
+                                     unsigned int has_mask) {
+    const unsigned int row = blockIdx.x * 4U + (threadIdx.x >> 5);
+    const unsigned int lane = threadIdx.x & 31U;
+    if (row >= total_rows) return;
+    const unsigned int q_idx = row % q_len;
+    const unsigned int b_idx = row / (heads * q_len);
+    const size_t score_row = (size_t)row * (size_t)k_len;
+    const size_t mask_row = has_mask
+        ? ((size_t)(mask_b == 1U ? 0U : b_idx) * (size_t)mask_q + (size_t)(mask_q == 1U ? 0U : q_idx)) * (size_t)k_len
+        : 0;
+    auto load_f32 = [](unsigned short v) -> float {
+        return IsBf16 ? ncm_bf16_to_f32(v) : ncm_f16_to_f32(v);
+    };
+    auto store_16 = [](float v) -> unsigned short {
+        return IsBf16 ? ncm_f32_to_bf16(v) : ncm_f32_to_f16(v);
+    };
+
+    if (k_len <= 768U) {
+        float vals[24];
+        float maximum = -CUDART_INF_F;
+        #pragma unroll
+        for (unsigned int i = 0; i < 24U; ++i) {
+            const unsigned int col = lane + i * 32U;
+            if (col < k_len) {
+                float v = load_f32(scores[score_row + col]) * scale;
+                if (has_mask) v += load_f32(mask[mask_row + col]);
+                vals[i] = v;
+                maximum = fmaxf(maximum, v);
+            }
+        }
+        #pragma unroll
+        for (int shift = 16; shift > 0; shift >>= 1) {
+            maximum = fmaxf(maximum, __shfl_xor_sync(0xffffffffU, maximum, shift, 32));
+        }
+        float sum = 0.0f;
+        #pragma unroll
+        for (unsigned int i = 0; i < 24U; ++i) {
+            if (lane + i * 32U < k_len) {
+                vals[i] = expf(vals[i] - maximum);
+                sum += vals[i];
+            }
+        }
+        #pragma unroll
+        for (int shift = 16; shift > 0; shift >>= 1) {
+            sum += __shfl_xor_sync(0xffffffffU, sum, shift, 32);
+        }
+        const float inv_sum = 1.0f / sum;
+        #pragma unroll
+        for (unsigned int i = 0; i < 24U; ++i) {
+            const unsigned int col = lane + i * 32U;
+            if (col < k_len) {
+                output[score_row + col] = store_16(vals[i] * inv_sum);
+            }
+        }
+        return;
+    }
+
+    float maximum = -CUDART_INF_F;
+    for (unsigned int col = lane; col < k_len; col += 32U) {
+        float v = load_f32(scores[score_row + col]) * scale;
+        if (has_mask) v += load_f32(mask[mask_row + col]);
+        maximum = fmaxf(maximum, v);
+    }
+    for (int shift = 16; shift > 0; shift >>= 1) {
+        maximum = fmaxf(maximum, __shfl_xor_sync(0xffffffffU, maximum, shift, 32));
+    }
+    float sum = 0.0f;
+    for (unsigned int col = lane; col < k_len; col += 32U) {
+        float v = load_f32(scores[score_row + col]) * scale;
+        if (has_mask) v += load_f32(mask[mask_row + col]);
+        sum += expf(v - maximum);
+    }
+    for (int shift = 16; shift > 0; shift >>= 1) {
+        sum += __shfl_xor_sync(0xffffffffU, sum, shift, 32);
+    }
+    const float inv_sum = 1.0f / sum;
+    for (unsigned int col = lane; col < k_len; col += 32U) {
+        float v = load_f32(scores[score_row + col]) * scale;
+        if (has_mask) v += load_f32(mask[mask_row + col]);
+        output[score_row + col] = store_16(expf(v - maximum) * inv_sum);
+    }
+}
+
+extern "C" __global__ void ncm_fused_softmax_bf16(const unsigned short* scores,
+                                                  const unsigned short* mask,
+                                                  unsigned short* output, float scale,
+                                                  unsigned int total_rows, unsigned int heads,
+                                                  unsigned int q_len, unsigned int k_len,
+                                                  unsigned int mask_b, unsigned int mask_q,
+                                                  unsigned int has_mask) {
+    ncm_fused_softmax_16<true>(scores, mask, output, scale, total_rows, heads, q_len, k_len,
+                               mask_b, mask_q, has_mask);
+}
+
+extern "C" __global__ void ncm_fused_softmax_f16(const unsigned short* scores,
+                                                 const unsigned short* mask,
+                                                 unsigned short* output, float scale,
+                                                 unsigned int total_rows, unsigned int heads,
+                                                 unsigned int q_len, unsigned int k_len,
+                                                 unsigned int mask_b, unsigned int mask_q,
+                                                 unsigned int has_mask) {
+    ncm_fused_softmax_16<false>(scores, mask, output, scale, total_rows, heads, q_len, k_len,
+                                mask_b, mask_q, has_mask);
 }

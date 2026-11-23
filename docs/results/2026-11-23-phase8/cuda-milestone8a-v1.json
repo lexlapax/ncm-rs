@@ -1,0 +1,350 @@
+{
+  "schema": "ncm-phase8-milestone8a-cuda-v1",
+  "hardware": "NVIDIA GeForce RTX 3060 Ti (8 GiB)",
+  "optimizations": [
+    "native candle_nn layernorm_{bf16,f16} with cached zero bias and internal FP32 accumulation",
+    "native candle_nn rmsnorm_{bf16,f16} with internal FP32 accumulation",
+    "native ugelu_erf_{bf16,f16} and rope_{bf16,f16}",
+    "native BF16 activation path into QMatMul::forward (fast_mmvq/fast_mmq)",
+    "fused FP32-accumulating ncm_fused_softmax_{bf16,f16} CUDA kernel (scale + optional mask + softmax)",
+    "generic 16-bit ncm_pack_qkv_u16 / ncm_merge_heads_u16 CUDA layout kernels",
+    "cached fixed-matrix resampling GEMMs for area1d/linear1d (non-FP32)"
+  ],
+  "cuda_graph_evaluation": {
+    "decision": "skipped",
+    "rationale": "Eager Rust CUDA bf16 b=1 (27.45 ms, 253.6 MiB) already beats upstream Python 094f25ca with torch.compile + CUDA graphs (31.28 ms, 647.9 MiB) by 1.14x and 2.55x less VRAM, with zero JIT warmup and dynamic batching compatibility."
+  },
+  "fp32_cli_equivalence_9_of_9": {
+    "lm1b-large": "bbdc24f6d0bd2150c41af25fb4a37835e9a191fcce5fe181461863421b9bfbf9",
+    "lm1b-medium": "d9c1c40663e66cf472846e3781ca4995bab998b5bc86ec0c675fe0b29c506488",
+    "lm1b-small": "520ae6b5372b2013bda8235dfec40c85265716014ac4a9ba58fec03419be5d71",
+    "sudoku-easy": "bd2a86aa8d3c626178bfd1d07bd2bbbdfee2a98643298c02c189e59bb2a06212",
+    "sudoku-hard": "655dbfdb50d1210923246a730a08332156df64418365328d55a2f20af8b7caf0",
+    "sudoku-medium": "b5a22993f2df60ece95b6b188e009a55cf10ad59a2591e69e478a025125d104d",
+    "tiny": "7c828e7bcf538bd65a60762429e4df318c6d71a52e3d8cb20210bfaf14eb6837",
+    "wmt14": "17257d936f55b159c8cdc8ce9a465bf9d0498a446d544215c171eae82f2a604a",
+    "xsum": "87be072a79210d62215efaa82f801c64612f6868cf545a3fb888ca14aee6cdca"
+  },
+  "quality_vs_fp32": {
+    "sudoku_easy_128": {
+      "bf16": "128/128",
+      "fp16": "128/128",
+      "q8": "128/128",
+      "q4": "126/128"
+    },
+    "wmt14_32_rows": {
+      "bf16_tok_pct": 87.94,
+      "fp16_tok_pct": 96.14,
+      "fp16_exact": "27/32",
+      "q8_tok_pct": 83.89,
+      "q4_tok_pct": 57.32
+    },
+    "xsum_32_rows": {
+      "bf16_tok_pct": 78.32,
+      "bf16_exact": "19/32",
+      "fp16_tok_pct": 95.57,
+      "fp16_exact": "28/32",
+      "q8_tok_pct": 77.28,
+      "q4_tok_pct": 47.4
+    },
+    "tinystories_15k_ema": "fluent coherent stories across fp32/bf16/q8/q4"
+  },
+  "paired_before_after_cuda": [
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "fp32",
+      "before_ms": 40.83,
+      "after_ms": 40.7,
+      "speedup": 1.003,
+      "before_vram_mib": 492.9,
+      "after_vram_mib": 492.9
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 42.83,
+      "after_ms": 27.45,
+      "speedup": 1.56,
+      "before_vram_mib": 253.6,
+      "after_vram_mib": 253.6
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 51.82,
+      "after_ms": 36.35,
+      "speedup": 1.426,
+      "before_vram_mib": 183.2,
+      "after_vram_mib": 183.4
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 50.9,
+      "after_ms": 35.7,
+      "speedup": 1.426,
+      "before_vram_mib": 138.7,
+      "after_vram_mib": 138.9
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "bf16",
+      "before_ms": 158.9,
+      "after_ms": 104.93,
+      "speedup": 1.514,
+      "before_vram_mib": 329.9,
+      "after_vram_mib": 330.1
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "q8",
+      "before_ms": 174.66,
+      "after_ms": 122.4,
+      "speedup": 1.427,
+      "before_vram_mib": 265.9,
+      "after_vram_mib": 266.1
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "q4",
+      "before_ms": 174.57,
+      "after_ms": 122.05,
+      "speedup": 1.43,
+      "before_vram_mib": 221.3,
+      "after_vram_mib": 221.5
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 30.99,
+      "after_ms": 17.55,
+      "speedup": 1.766,
+      "before_vram_mib": 100.1,
+      "after_vram_mib": 100.2
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 25.36,
+      "after_ms": 17.09,
+      "speedup": 1.484,
+      "before_vram_mib": 100.1,
+      "after_vram_mib": 100.2
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 40.42,
+      "after_ms": 26.73,
+      "speedup": 1.512,
+      "before_vram_mib": 93.1,
+      "after_vram_mib": 93.2
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 40.73,
+      "after_ms": 27.06,
+      "speedup": 1.505,
+      "before_vram_mib": 80.6,
+      "after_vram_mib": 80.7
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 39.1,
+      "after_ms": 25.5,
+      "speedup": 1.533,
+      "before_vram_mib": 559.6,
+      "after_vram_mib": 559.6
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 32.87,
+      "after_ms": 24.77,
+      "speedup": 1.327,
+      "before_vram_mib": 559.6,
+      "after_vram_mib": 559.6
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 46.15,
+      "after_ms": 32.14,
+      "speedup": 1.436,
+      "before_vram_mib": 415.3,
+      "after_vram_mib": 415.4
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 45.3,
+      "after_ms": 31.29,
+      "speedup": 1.448,
+      "before_vram_mib": 365.5,
+      "after_vram_mib": 365.5
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 47.44,
+      "after_ms": 30.34,
+      "speedup": 1.564,
+      "before_vram_mib": 364.6,
+      "after_vram_mib": 340.6
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 40.17,
+      "after_ms": 29.58,
+      "speedup": 1.358,
+      "before_vram_mib": 364.6,
+      "after_vram_mib": 340.6
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 54.74,
+      "after_ms": 36.45,
+      "speedup": 1.502,
+      "before_vram_mib": 284.9,
+      "after_vram_mib": 261.7
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 54.88,
+      "after_ms": 35.76,
+      "speedup": 1.535,
+      "before_vram_mib": 232.9,
+      "after_vram_mib": 209.7
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 190.52,
+      "after_ms": 131.77,
+      "speedup": 1.446,
+      "before_vram_mib": 1667.7,
+      "after_vram_mib": 1667.9
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 167.3,
+      "after_ms": 128.31,
+      "speedup": 1.304,
+      "before_vram_mib": 1667.7,
+      "after_vram_mib": 1667.9
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 199.75,
+      "after_ms": 141.99,
+      "speedup": 1.407,
+      "before_vram_mib": 1025.1,
+      "after_vram_mib": 1025.3
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 194.1,
+      "after_ms": 136.96,
+      "speedup": 1.417,
+      "before_vram_mib": 673.3,
+      "after_vram_mib": 673.6
+    }
+  ],
+  "upstream_python_094f25ca_tinystories": [
+    {
+      "mode": "py_eager_fp32",
+      "batch": 1,
+      "load_ms": 951.9,
+      "warm_med_ms": 42.96,
+      "warm_p95_ms": 46.23,
+      "vram_peak_mib": 645.0
+    },
+    {
+      "mode": "py_bf16_kv_resize",
+      "batch": 1,
+      "load_ms": 922.7,
+      "warm_med_ms": 49.85,
+      "warm_p95_ms": 51.85,
+      "vram_peak_mib": 647.9
+    },
+    {
+      "mode": "py_bf16_graphs",
+      "batch": 1,
+      "load_ms": 927.6,
+      "warm_med_ms": 39.91,
+      "warm_p95_ms": 40.05,
+      "vram_peak_mib": 647.9
+    },
+    {
+      "mode": "py_bf16_compile_graphs",
+      "batch": 1,
+      "load_ms": 1443.6,
+      "warm_med_ms": 31.28,
+      "warm_p95_ms": 31.29,
+      "vram_peak_mib": 647.9
+    },
+    {
+      "mode": "py_eager_fp32",
+      "batch": 8,
+      "load_ms": 924.0,
+      "warm_med_ms": 165.91,
+      "warm_p95_ms": 166.66,
+      "vram_peak_mib": 702.5
+    },
+    {
+      "mode": "py_bf16_kv_resize",
+      "batch": 8,
+      "load_ms": 901.5,
+      "warm_med_ms": 106.32,
+      "warm_p95_ms": 106.63,
+      "vram_peak_mib": 703.8
+    },
+    {
+      "mode": "py_bf16_graphs",
+      "batch": 8,
+      "load_ms": 924.8,
+      "warm_med_ms": 97.17,
+      "warm_p95_ms": 97.33,
+      "vram_peak_mib": 704.2
+    },
+    {
+      "mode": "py_bf16_compile_graphs",
+      "batch": 8,
+      "load_ms": 1411.8,
+      "warm_med_ms": 73.66,
+      "warm_p95_ms": 73.68,
+      "vram_peak_mib": 704.9
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 #![cfg(feature = "mlx")]
 
 use ncm_backend_mlx::MlxBackend;
-use ncm_core::{CodecBackend, ComputePrecision, WeightBackend};
+use ncm_core::{CodecBackend, ComputePrecision, GeneratorBackend, WeightBackend};
 
 fn synthetic(len: usize, scale: f32) -> Vec<f32> {
     (0..len)
@@ -67,12 +67,47 @@ fn mlx_bf16_and_fp16_operators_track_fp32() {
     let ln32 = fp32
         .read_f32(&fp32.layer_norm(&x32, &g32, Some(&beta32), 1e-5).unwrap())
         .unwrap();
+    let ln_nb32 = fp32
+        .read_f32(&fp32.layer_norm(&x32, &g32, None, 1e-5).unwrap())
+        .unwrap();
     let rms32 = fp32
         .read_f32(&fp32.rms_norm(&x32, &g32, 1e-6).unwrap())
         .unwrap();
+    let gn32 = fp32
+        .read_f32(&fp32.group_norm(&x32, 4, 1e-5).unwrap())
+        .unwrap();
+    let gelu32 = fp32.read_f32(&fp32.gelu(&x32).unwrap()).unwrap();
     let attn32 = fp32
         .read_f32(&fp32.attention(&q32, &q32, &q32, Some(&m32)).unwrap())
         .unwrap();
+    let cos_data: Vec<f32> = (0..6 * 4).map(|i| (i as f32 * 0.1).cos()).collect();
+    let sin_data: Vec<f32> = (0..6 * 4).map(|i| (i as f32 * 0.1).sin()).collect();
+    let cos32 = fp32.upload_f32(&cos_data, &[6, 4]).unwrap();
+    let sin32 = fp32.upload_f32(&sin_data, &[6, 4]).unwrap();
+    let rope32 = fp32
+        .read_f32(&fp32.rope(&q32, &cos32, &sin32).unwrap())
+        .unwrap();
+    // Fused width-64 QK RMSNorm + RoPE path (used by all released NCM generators).
+    let q64_data = synthetic(2 * 2 * 6 * 64, 1.0);
+    let g64_data: Vec<f32> = (0..64).map(|i| 1.0 + 0.01 * i as f32).collect();
+    let cos64_data: Vec<f32> = (0..6 * 32).map(|i| (i as f32 * 0.07).cos()).collect();
+    let sin64_data: Vec<f32> = (0..6 * 32).map(|i| (i as f32 * 0.07).sin()).collect();
+    let q64_32 = fp32.upload_f32(&q64_data, &[2, 2, 6, 64]).unwrap();
+    let g64_32 = fp32.upload_f32(&g64_data, &[64]).unwrap();
+    let cos64_32 = fp32.upload_f32(&cos64_data, &[6, 32]).unwrap();
+    let sin64_32 = fp32.upload_f32(&sin64_data, &[6, 32]).unwrap();
+    let rms_rope32 = fp32
+        .read_f32(
+            &fp32
+                .rms_rope(&q64_32, &g64_32, &cos64_32, &sin64_32, 1e-6)
+                .unwrap(),
+        )
+        .unwrap();
+    let lin_up32 = fp32.read_f32(&fp32.linear1d(&x32, 12).unwrap()).unwrap();
+    let area_dn32 = fp32.read_f32(&fp32.area1d(&x32, 4).unwrap()).unwrap();
+    let x32_b1 = fp32.upload_f32(&x_data[..6 * 16], &[1, 6, 16]).unwrap();
+    let lin_b1_32 = fp32.read_f32(&fp32.linear1d(&x32_b1, 12).unwrap()).unwrap();
+    let area_b1_32 = fp32.read_f32(&fp32.area1d(&x32_b1, 4).unwrap()).unwrap();
 
     for (precision, tol) in [
         (ComputePrecision::Bf16, 5e-2f32),
@@ -91,6 +126,13 @@ fn mlx_bf16_and_fp16_operators_track_fp32() {
         let beta = be.upload_f32(&beta_data, &[16]).unwrap();
         let q = be.upload_f32(&qkv_data, &[2, 2, 6, 8]).unwrap();
         let m = be.upload_f32(&mask_data, &[1, 1, 6, 6]).unwrap();
+        let cos = be.upload_f32(&cos_data, &[6, 4]).unwrap();
+        let sin = be.upload_f32(&sin_data, &[6, 4]).unwrap();
+        let q64 = be.upload_f32(&q64_data, &[2, 2, 6, 64]).unwrap();
+        let g64 = be.upload_f32(&g64_data, &[64]).unwrap();
+        let cos64 = be.upload_f32(&cos64_data, &[6, 32]).unwrap();
+        let sin64 = be.upload_f32(&sin64_data, &[6, 32]).unwrap();
+        let x_b1 = be.upload_f32(&x_data[..6 * 16], &[1, 6, 16]).unwrap();
 
         let proj = be.project_bias(&x, &w, &b).unwrap();
         assert!(max_abs_diff(&proj32, &be.read_f32(&proj).unwrap()) <= tol);
@@ -98,11 +140,38 @@ fn mlx_bf16_and_fp16_operators_track_fp32() {
         let ln = be.layer_norm(&x, &g, Some(&beta), 1e-5).unwrap();
         assert!(max_abs_diff(&ln32, &be.read_f32(&ln).unwrap()) <= tol);
 
+        let ln_nb = be.layer_norm(&x, &g, None, 1e-5).unwrap();
+        assert!(max_abs_diff(&ln_nb32, &be.read_f32(&ln_nb).unwrap()) <= tol);
+
         let rms = be.rms_norm(&x, &g, 1e-6).unwrap();
         assert!(max_abs_diff(&rms32, &be.read_f32(&rms).unwrap()) <= tol);
 
+        let gn = be.group_norm(&x, 4, 1e-5).unwrap();
+        assert!(max_abs_diff(&gn32, &be.read_f32(&gn).unwrap()) <= tol);
+
+        let gelu = be.gelu(&x).unwrap();
+        assert!(max_abs_diff(&gelu32, &be.read_f32(&gelu).unwrap()) <= tol);
+
         let attn = be.attention(&q, &q, &q, Some(&m)).unwrap();
         assert!(max_abs_diff(&attn32, &be.read_f32(&attn).unwrap()) <= tol);
+
+        let rope = be.rope(&q, &cos, &sin).unwrap();
+        assert!(max_abs_diff(&rope32, &be.read_f32(&rope).unwrap()) <= tol);
+
+        let rms_rope = be.rms_rope(&q64, &g64, &cos64, &sin64, 1e-6).unwrap();
+        assert!(max_abs_diff(&rms_rope32, &be.read_f32(&rms_rope).unwrap()) <= tol);
+
+        let lin_up = be.linear1d(&x, 12).unwrap();
+        assert!(max_abs_diff(&lin_up32, &be.read_f32(&lin_up).unwrap()) <= tol);
+
+        let area_dn = be.area1d(&x, 4).unwrap();
+        assert!(max_abs_diff(&area_dn32, &be.read_f32(&area_dn).unwrap()) <= tol);
+
+        let lin_b1 = be.linear1d(&x_b1, 12).unwrap();
+        assert!(max_abs_diff(&lin_b1_32, &be.read_f32(&lin_b1).unwrap()) <= tol);
+
+        let area_b1 = be.area1d(&x_b1, 4).unwrap();
+        assert!(max_abs_diff(&area_b1_32, &be.read_f32(&area_b1).unwrap()) <= tol);
     }
 }
 

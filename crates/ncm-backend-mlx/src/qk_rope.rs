@@ -41,6 +41,128 @@ pub(crate) fn apply(
     apply_inner(x, weight, cos, sin, eps, false)
 }
 
+const SOURCE_BF16: &str = r#"
+    uint tid = thread_position_in_grid.x;
+    uint row = tid / 32u;
+    uint lane = tid % 32u;
+    if (row >= params[0]) return;
+    uint pos = row % params[1];
+    uint base = row * 64u;
+    float a = float(x[base + lane]);
+    float b = float(x[base + lane + 32u]);
+    float sum = 0.0f;
+    if (threads_per_simdgroup == 32u) {
+        sum = simd_sum(a * a + b * b);
+    } else {
+        for (uint i = 0u; i < 64u; ++i) {
+            float v = float(x[base + i]);
+            sum += v * v;
+        }
+    }
+    float inv = rsqrt(sum / 64.0f + epsilon[0]);
+    float lo = (a * inv) * float(weight[lane]);
+    float hi = (b * inv) * float(weight[lane + 32u]);
+    float c = float(cosine[pos * 32u + lane]);
+    float s = float(sine[pos * 32u + lane]);
+    output[base + lane] = bfloat(lo * c - hi * s);
+    output[base + lane + 32u] = bfloat(hi * c + lo * s);
+"#;
+
+const SOURCE_F16: &str = r#"
+    uint tid = thread_position_in_grid.x;
+    uint row = tid / 32u;
+    uint lane = tid % 32u;
+    if (row >= params[0]) return;
+    uint pos = row % params[1];
+    uint base = row * 64u;
+    float a = float(x[base + lane]);
+    float b = float(x[base + lane + 32u]);
+    float sum = 0.0f;
+    if (threads_per_simdgroup == 32u) {
+        sum = simd_sum(a * a + b * b);
+    } else {
+        for (uint i = 0u; i < 64u; ++i) {
+            float v = float(x[base + i]);
+            sum += v * v;
+        }
+    }
+    float inv = rsqrt(sum / 64.0f + epsilon[0]);
+    float lo = (a * inv) * float(weight[lane]);
+    float hi = (b * inv) * float(weight[lane + 32u]);
+    float c = float(cosine[pos * 32u + lane]);
+    float s = float(sine[pos * 32u + lane]);
+    output[base + lane] = half(lo * c - hi * s);
+    output[base + lane + 32u] = half(hi * c + lo * s);
+"#;
+
+#[allow(unsafe_code)]
+pub(crate) fn apply_low_precision(
+    x: &Array,
+    weight: &Array,
+    cos: &Array,
+    sin: &Array,
+    eps: f64,
+) -> crate::ops::Result<Array> {
+    let [batch, heads, seq, width] = x.shape() else {
+        return Err("RMS RoPE requires rank four".into());
+    };
+    let dtype = x.dtype();
+    let (name, source) = match dtype {
+        Dtype::Bfloat16 => ("ncm_qk_rms_rope_bf16", SOURCE_BF16),
+        Dtype::Float16 => ("ncm_qk_rms_rope_f16", SOURCE_F16),
+        other => return Err(format!("unsupported low-precision RMS RoPE dtype {other:?}").into()),
+    };
+    if *batch <= 0
+        || *heads <= 0
+        || *seq <= 0
+        || *width != 64
+        || weight.shape() != [64]
+        || cos.shape() != [*seq, 32]
+        || sin.shape() != [*seq, 32]
+        || [weight, cos, sin].iter().any(|a| a.dtype() != dtype)
+        || !eps.is_finite()
+        || eps <= 0.
+        || eps > f32::MAX as f64
+    {
+        return Err("invalid low-precision RMS RoPE input".into());
+    }
+    let rows = usize::try_from(*batch)?
+        .checked_mul(usize::try_from(*heads)?)
+        .and_then(|v| v.checked_mul(usize::try_from(*seq).ok()?))
+        .ok_or("RMS RoPE size overflow")?;
+    let threads = i32::try_from(rows.checked_mul(32).ok_or("RMS RoPE size overflow")?)?;
+    let params = Array::from_slice(&[u32::try_from(rows)?, u32::try_from(*seq)?], &[2]);
+    let epsilon = Array::from_slice(&[eps as f32], &[1]);
+    let kernel = MetalKernel::new(
+        name,
+        &["x", "weight", "cosine", "sine", "params", "epsilon"],
+        &["output"],
+        source,
+        MetalKernelOptions {
+            ensure_row_contiguous: true,
+            ..Default::default()
+        },
+    )?;
+    // SAFETY: checked dimensions bound all reads and writes; one 32-thread
+    // threadgroup handles a distinct width-64 row.
+    let mut output = unsafe {
+        kernel.apply(
+            &[x, weight, cos, sin, &params, &epsilon],
+            &[MetalKernelOutput {
+                shape: x.shape().to_vec(),
+                dtype,
+            }],
+            (threads, 1, 1),
+            (32, 1, 1),
+            MetalKernelApplyOptions::default(),
+        )?
+    };
+    if output.len() != 1 {
+        return Err("unexpected RMS RoPE output count".into());
+    }
+    Ok(output.remove(0))
+}
+
 #[allow(unsafe_code)]
 fn apply_inner(
     x: &Array,

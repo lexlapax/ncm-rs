@@ -6,7 +6,7 @@ use mlx_rs::{
     with_stream,
 };
 use ncm_core::{CodecBackend, ComputePrecision, Error, Result, WeightBackend};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 // PyTorch uses an inner-dimension Sklansky scan for multiple rows. Its
 // single-row CUDA path uses CUB instead; retain MLX's scan for that case.
 #[cfg(feature = "lm1b-experimental")]
@@ -96,6 +96,136 @@ fn new_gelu_multiply_compiler() -> ops::Result<CompiledGelu> {
     }
 }
 
+#[cfg(panic = "unwind")]
+fn gelu_low_prec_graph(
+    inputs: &[Array],
+) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception> {
+    let (x, half, inv_sqrt_two, one) = (&inputs[0], &inputs[1], &inputs[2], &inputs[3]);
+    let dtype = x.dtype();
+    let xf = x.as_dtype(Dtype::Float32)?;
+    let out = xf
+        .multiply(half)?
+        .multiply(mlx_rs::ops::erf(xf.multiply(inv_sqrt_two)?)?.add(one)?)?
+        .as_dtype(dtype)?;
+    Ok(vec![out])
+}
+
+#[cfg(panic = "unwind")]
+fn rope_low_prec_graph(
+    inputs: &[Array],
+) -> std::result::Result<Vec<Array>, mlx_rs::error::Exception> {
+    let (x, cos, sin) = (&inputs[0], &inputs[1], &inputs[2]);
+    let dtype = x.dtype();
+    let half = *x.shape().last().unwrap_or(&0) / 2;
+    let xf = x.as_dtype(Dtype::Float32)?;
+    let cf = cos.as_dtype(Dtype::Float32)?;
+    let sf = sin.as_dtype(Dtype::Float32)?;
+    let x1 = xf.try_index((mlx_rs::ops::indexing::Ellipsis, ..half))?;
+    let x2 = xf.try_index((mlx_rs::ops::indexing::Ellipsis, half..))?;
+    let y1 = x1.multiply(&cf)?.subtract(x2.multiply(&sf)?)?;
+    let y2 = x1.multiply(&sf)?.add(x2.multiply(&cf)?)?;
+    Ok(vec![
+        mlx_rs::ops::concatenate(&[&y1, &y2], -1)?.as_dtype(dtype)?,
+    ])
+}
+
+fn new_gelu_low_prec_compiler() -> ops::Result<CompiledGelu> {
+    #[cfg(panic = "unwind")]
+    {
+        guarded_compiler_init(|| {
+            Box::new(mlx_rs::transforms::compile::compile(
+                gelu_low_prec_graph,
+                Some(true),
+            )) as CompiledGelu
+        })
+    }
+    #[cfg(not(panic = "unwind"))]
+    {
+        Err("compiled GELU requires panic unwinding".into())
+    }
+}
+
+fn new_rope_low_prec_compiler() -> ops::Result<CompiledGelu> {
+    #[cfg(panic = "unwind")]
+    {
+        guarded_compiler_init(|| {
+            Box::new(mlx_rs::transforms::compile::compile(
+                rope_low_prec_graph,
+                Some(false),
+            )) as CompiledGelu
+        })
+    }
+    #[cfg(not(panic = "unwind"))]
+    {
+        Err("compiled RoPE requires panic unwinding".into())
+    }
+}
+
+#[derive(Default)]
+struct ResampleMatrixCache {
+    entries: BTreeMap<(bool, usize, usize, u8), Array>,
+    bytes: usize,
+}
+
+impl ResampleMatrixCache {
+    const MAX_ENTRIES: usize = 64;
+    const MAX_BYTES: usize = 4 * 1024 * 1024;
+
+    fn get_or_build(
+        &mut self,
+        input: usize,
+        output: usize,
+        area: bool,
+        dtype: Dtype,
+    ) -> ops::Result<Option<Array>> {
+        let dtype_tag = match dtype {
+            Dtype::Bfloat16 => 1u8,
+            Dtype::Float16 => 2u8,
+            _ => return Err("fixed-matrix resampling requires BF16 or FP16".into()),
+        };
+        let Some(bytes) = input.checked_mul(output).and_then(|n| n.checked_mul(2)) else {
+            return Ok(None);
+        };
+        if bytes > Self::MAX_BYTES {
+            return Ok(None);
+        }
+        let key = (area, input, output, dtype_tag);
+        if let Some(matrix) = self.entries.get(&key) {
+            return Ok(Some(matrix.clone()));
+        }
+        let mut weights = vec![0.0f32; output * input];
+        if !area {
+            let scale = input as f64 / output as f64;
+            for i in 0..output {
+                let position = ((i as f64 + 0.5) * scale - 0.5).max(0.0);
+                let lo = (position.floor() as usize).min(input - 1);
+                let hi = (lo + 1).min(input - 1);
+                let w = (position - lo as f64).clamp(0.0, 1.0) as f32;
+                weights[i * input + lo] += 1.0 - w;
+                weights[i * input + hi] += w;
+            }
+        } else {
+            for i in 0..output {
+                let start = i * input / output;
+                let end = ((i + 1) * input).div_ceil(output);
+                let inv = 1.0f32 / (end - start) as f32;
+                for j in start..end {
+                    weights[i * input + j] = inv;
+                }
+            }
+        }
+        let mat = Array::from_slice(&weights, &[i32::try_from(output)?, i32::try_from(input)?])
+            .as_dtype(dtype)?;
+        // Eagerly materialize so the temporary FP32 upload buffer is released.
+        mat.eval()?;
+        if self.entries.len() < Self::MAX_ENTRIES && bytes <= Self::MAX_BYTES - self.bytes {
+            self.bytes += bytes;
+            self.entries.insert(key, mat.clone());
+        }
+        Ok(Some(mat))
+    }
+}
+
 #[cfg(all(test, panic = "unwind"))]
 mod compiler_init_tests {
     use super::guarded_compiler_init;
@@ -135,6 +265,9 @@ pub struct MlxBackend {
     stream: Stream,
     precision: ComputePrecision,
     compiled_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+    compiled_low_prec_gelu: Rc<RefCell<Option<CompiledGelu>>>,
+    compiled_low_prec_rope: Rc<RefCell<Option<CompiledGelu>>>,
+    resample_matrices: Rc<RefCell<ResampleMatrixCache>>,
     xsum_refined_norm_experimental: bool,
     xsum_reference_projection_experimental: bool,
     xsum_target_projection_experimental: bool,
@@ -180,6 +313,9 @@ impl MlxBackend {
             stream,
             precision: ComputePrecision::Fp32,
             compiled_gelu: Rc::new(RefCell::new(None)),
+            compiled_low_prec_gelu: Rc::new(RefCell::new(None)),
+            compiled_low_prec_rope: Rc::new(RefCell::new(None)),
+            resample_matrices: Rc::new(RefCell::new(ResampleMatrixCache::default())),
             xsum_refined_norm_experimental: false,
             xsum_reference_projection_experimental: false,
             xsum_target_projection_experimental: false,
@@ -224,6 +360,37 @@ impl MlxBackend {
             Ok(x)
         } else {
             Ok(x.as_dtype(dtype)?)
+        }
+    }
+    fn resample_low_precision(&self, x: &Array, length: usize, area: bool) -> ops::Result<Array> {
+        let &[_, input, _] = x.shape() else {
+            return Err("invalid BLC resampling shape".into());
+        };
+        if input <= 0 || length == 0 || length > 1_000_000 {
+            return Err("invalid BLC resampling shape/length".into());
+        }
+        let input = input as usize;
+        if input == length {
+            return Ok(x.clone());
+        }
+        let matrix = {
+            let mut cache = self
+                .resample_matrices
+                .try_borrow_mut()
+                .map_err(|_| "resampling matrix cache reentered")?;
+            cache.get_or_build(input, length, area, self.float_dtype())?
+        };
+        match matrix {
+            Some(m) => Ok(m.matmul(x)?),
+            None => {
+                let xf = self.to_f32(x)?;
+                let y = if area {
+                    ops::area1d(&xf, length)?
+                } else {
+                    ops::linear1d(&xf, length)?
+                };
+                self.cast_from_f32(y)
+            }
         }
     }
     /// Synchronously materialize a single MLX tensor without copying to host.
@@ -823,6 +990,18 @@ impl CodecBackend for MlxBackend {
                 if !eps.is_finite() || eps <= 0. || eps > f32::MAX as f64 {
                     return Err("invalid epsilon".into());
                 }
+                let width = x.0.shape().last().copied();
+                let affine_shape = weight.0.shape().len() == 1
+                    && weight.0.shape().first().copied() == width
+                    && bias.is_none_or(|b| b.0.shape() == weight.0.shape());
+                if affine_shape {
+                    return Ok(mlx_rs::fast::layer_norm(
+                        &x.0,
+                        Some(&weight.0),
+                        bias.map(|b| &b.0),
+                        eps as f32,
+                    )?);
+                }
                 let xf = self.to_f32(&x.0)?;
                 let wf = self.to_f32(&weight.0)?;
                 let bf = bias.map(|b| self.to_f32(&b.0)).transpose()?;
@@ -893,6 +1072,13 @@ impl CodecBackend for MlxBackend {
     fn rms_norm(&self, x: &MlxTensor, weight: &MlxTensor, eps: f64) -> Result<MlxTensor> {
         self.array_op(&[x, weight], || {
             if self.precision != ComputePrecision::Fp32 {
+                if !eps.is_finite() || eps <= 0. || eps > f32::MAX as f64 {
+                    return Err("invalid epsilon".into());
+                }
+                let width = x.0.shape().last().copied();
+                if weight.0.shape().len() == 1 && weight.0.shape().first().copied() == width {
+                    return Ok(mlx_rs::fast::rms_norm(&x.0, Some(&weight.0), eps as f32)?);
+                }
                 let xf = self.to_f32(&x.0)?;
                 let wf = self.to_f32(&weight.0)?;
                 return self.cast_from_f32(ops::rms_norm(&xf, eps)?.multiply(&wf)?);
@@ -903,8 +1089,24 @@ impl CodecBackend for MlxBackend {
     fn group_norm(&self, x: &MlxTensor, groups: usize, eps: f64) -> Result<MlxTensor> {
         self.array_op(&[x], || {
             if self.precision != ComputePrecision::Fp32 {
-                let xf = self.to_f32(&x.0)?;
-                return self.cast_from_f32(ops::group_norm(&xf, groups, eps)?);
+                if !eps.is_finite() || eps <= 0. || eps > f32::MAX as f64 {
+                    return Err("invalid epsilon".into());
+                }
+                let &[b, l, c] = x.0.shape() else {
+                    return Err("GroupNorm requires BLC".into());
+                };
+                let g = i32::try_from(groups)?;
+                if g <= 0 || c % g != 0 {
+                    return Err("invalid normalization groups".into());
+                }
+                let flat = x.0.swap_axes(1, 2)?.reshape(&[
+                    b,
+                    g,
+                    (c / g).checked_mul(l).ok_or("shape overflow")?,
+                ])?;
+                return Ok(mlx_rs::fast::layer_norm(&flat, None, None, eps as f32)?
+                    .reshape(&[b, c, l])?
+                    .swap_axes(1, 2)?);
             }
             if self.xsum_groupnorm_experimental
                 && matches!(x.0.shape(), [_, 12, 384])
@@ -919,12 +1121,25 @@ impl CodecBackend for MlxBackend {
     fn gelu(&self, x: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x], || {
             if self.precision != ComputePrecision::Fp32 {
-                let xf = self.to_f32(&x.0)?;
-                let out = xf.multiply(Array::from_f32(0.5))?.multiply(
-                    mlx_rs::ops::erf(xf.divide(Array::from_f32(std::f32::consts::SQRT_2))?)?
-                        .add(Array::from_f32(1.))?,
-                )?;
-                return self.cast_from_f32(out);
+                let mut slot = self
+                    .compiled_low_prec_gelu
+                    .try_borrow_mut()
+                    .map_err(|_| "low-precision GELU compiler reentered")?;
+                if slot.is_none() {
+                    *slot = Some(new_gelu_low_prec_compiler()?);
+                }
+                let compiled = slot.as_mut().ok_or("GELU compiler unavailable")?;
+                let inputs = [
+                    x.0.clone(),
+                    Array::from_f32(0.5),
+                    Array::from_f32(std::f32::consts::FRAC_1_SQRT_2),
+                    Array::from_f32(1.),
+                ];
+                let mut result = compiled(&inputs)?;
+                if result.len() != 1 {
+                    return Err("invalid compiled GELU result".into());
+                }
+                return Ok(result.remove(0));
             }
             if self.xsum_compiled_gelu_experimental {
                 let mut slot = self
@@ -1106,7 +1321,7 @@ impl CodecBackend for MlxBackend {
             if self.precision == ComputePrecision::Fp32 {
                 ops::area1d(&x.0, length)
             } else {
-                self.cast_from_f32(ops::area1d(&self.to_f32(&x.0)?, length)?)
+                self.resample_low_precision(&x.0, length, true)
             }
         })
     }
@@ -1115,7 +1330,7 @@ impl CodecBackend for MlxBackend {
             if self.precision == ComputePrecision::Fp32 {
                 ops::linear1d(&x.0, length)
             } else {
-                self.cast_from_f32(ops::linear1d(&self.to_f32(&x.0)?, length)?)
+                self.resample_low_precision(&x.0, length, false)
             }
         })
     }
@@ -1210,6 +1425,16 @@ impl ncm_core::GeneratorBackend for MlxBackend {
         sin: &MlxTensor,
         eps: f64,
     ) -> Result<MlxTensor> {
+        if self.precision != ComputePrecision::Fp32
+            && matches!(x.0.shape(), [batch, heads, seq, 64] if *batch > 0 && *heads > 0 && *seq > 0)
+            && weight.0.shape() == [64]
+            && cos.0.shape() == [x.0.shape()[2], 32]
+            && sin.0.shape() == [x.0.shape()[2], 32]
+        {
+            return self.array_op(&[x, weight, cos, sin], || {
+                crate::qk_rope::apply_low_precision(&x.0, &weight.0, &cos.0, &sin.0, eps)
+            });
+        }
         if self.precision == ComputePrecision::Fp32
             && matches!(x.0.shape(), [batch, _, _, 64] if *batch >= 16)
         {
@@ -1312,12 +1537,24 @@ impl ncm_core::GeneratorBackend for MlxBackend {
     fn rope(&self, x: &MlxTensor, cos: &MlxTensor, sin: &MlxTensor) -> Result<MlxTensor> {
         self.array_op(&[x, cos, sin], || {
             if self.precision != ComputePrecision::Fp32 {
-                let xf = self.to_f32(&x.0)?;
-                let cf = self.to_f32(&cos.0)?;
-                let sf = self.to_f32(&sin.0)?;
-                let cosine = mlx_rs::ops::concatenate(&[&cf, &cf], 1)?;
-                let sine = mlx_rs::ops::concatenate(&[&sf, &sf], 1)?;
-                return self.cast_from_f32(ops::rope(&xf, &cosine, &sine)?);
+                let width = *x.0.shape().last().ok_or("empty RoPE shape")?;
+                if width <= 0 || width % 2 != 0 {
+                    return Err("RoPE needs even positive head width".into());
+                }
+                let mut slot = self
+                    .compiled_low_prec_rope
+                    .try_borrow_mut()
+                    .map_err(|_| "low-precision RoPE compiler reentered")?;
+                if slot.is_none() {
+                    *slot = Some(new_rope_low_prec_compiler()?);
+                }
+                let compiled = slot.as_mut().ok_or("RoPE compiler unavailable")?;
+                let inputs = [x.0.clone(), cos.0.clone(), sin.0.clone()];
+                let mut result = compiled(&inputs)?;
+                if result.len() != 1 {
+                    return Err("invalid compiled RoPE result".into());
+                }
+                return Ok(result.remove(0));
             }
             let cosine = mlx_rs::ops::concatenate(&[&cos.0, &cos.0], 1)?;
             let sine = mlx_rs::ops::concatenate(&[&sin.0, &sin.0], 1)?;

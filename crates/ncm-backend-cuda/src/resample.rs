@@ -148,13 +148,85 @@ impl Prepared {
 pub(crate) struct Cache {
     entries: BTreeMap<(bool, usize, usize), Prepared>,
     bytes: usize,
+    matrix_entries: BTreeMap<(bool, usize, usize, u8), Tensor>,
+    matrix_bytes: usize,
+}
+pub(crate) enum MatrixPlan {
+    Identity,
+    Gemm(Tensor),
+    Oversized,
+}
+fn matrix_dtype_tag(dtype: candle_core::DType) -> Result<u8> {
+    match dtype {
+        candle_core::DType::F32 => Ok(0),
+        candle_core::DType::BF16 => Ok(1),
+        candle_core::DType::F16 => Ok(2),
+        other => candle_core::bail!("unsupported dtype {other:?} for fixed-matrix resampling"),
+    }
+}
+fn build_resample_matrix(
+    input: usize,
+    output: usize,
+    area: bool,
+    dtype: candle_core::DType,
+    device: &Device,
+) -> Result<Tensor> {
+    let mut weights = vec![0.0f32; output * input];
+    if !area {
+        let scale = input as f32 / output as f32;
+        for i in 0..output {
+            let source = (scale * (i as f32 + 0.5) - 0.5).max(0.0);
+            let left = (source.floor() as usize).min(input - 1);
+            let right = (left + 1).min(input - 1);
+            let w = (source - left as f32).clamp(0.0, 1.0);
+            weights[i * input + left] += 1.0 - w;
+            weights[i * input + right] += w;
+        }
+    } else {
+        for i in 0..output {
+            let start = i * input / output;
+            let end = ((i + 1) * input).div_ceil(output);
+            let inv = 1.0f32 / (end - start) as f32;
+            for j in start..end {
+                weights[i * input + j] = inv;
+            }
+        }
+    }
+    let mat = Tensor::from_vec(weights, (output, input), device)?;
+    if dtype == candle_core::DType::F32 {
+        Ok(mat)
+    } else {
+        mat.to_dtype(dtype)
+    }
+}
+pub(crate) fn apply_resample_matrix(matrix: &Tensor, x: &Tensor) -> Result<Tensor> {
+    let (batch, input, channels) = x.dims3()?;
+    let (output, mat_in) = matrix.dims2()?;
+    if mat_in != input {
+        candle_core::bail!("resampling matrix input mismatch: {mat_in} != {input}")
+    }
+    let x = x.contiguous()?;
+    if batch == 1 {
+        let x2d = x.reshape((input, channels))?;
+        matrix.matmul(&x2d)?.reshape((1, output, channels))
+    } else if x.device().is_cuda() {
+        // cuBLAS gemm_strided_batched accepts batch stride 0 on LHS without copying `matrix`.
+        matrix.broadcast_as((batch, output, input))?.matmul(&x)
+    } else {
+        matrix
+            .broadcast_as((batch, output, input))?
+            .contiguous()?
+            .matmul(&x)
+    }
 }
 impl Cache {
     const MAX_ENTRIES: usize = 64;
     const MAX_BYTES: usize = 1024 * 1024;
+    const MAX_MATRIX_ENTRIES: usize = 64;
+    const MAX_MATRIX_BYTES: usize = 4 * 1024 * 1024;
     #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+        self.entries.is_empty() && self.matrix_entries.is_empty()
     }
     pub(crate) fn prepare(
         &mut self,
@@ -178,6 +250,43 @@ impl Cache {
         // Oversized/new shapes still execute the same native operator, uncached.
         // The budget bounds logical metadata, not allocator rounding or process RSS.
         Ok(Some(value))
+    }
+    pub(crate) fn prepare_matrix(
+        &mut self,
+        x: &Tensor,
+        output: usize,
+        area: bool,
+    ) -> Result<MatrixPlan> {
+        let (_, input, _) = x.dims3()?;
+        if input == 0 || output == 0 {
+            candle_core::bail!("resampling requires nonempty input and output")
+        }
+        if input == output {
+            return Ok(MatrixPlan::Identity);
+        }
+        let dtype = x.dtype();
+        let dtype_tag = matrix_dtype_tag(dtype)?;
+        let Some(bytes) = input
+            .checked_mul(output)
+            .and_then(|n| n.checked_mul(dtype.size_in_bytes()))
+        else {
+            return Ok(MatrixPlan::Oversized);
+        };
+        if bytes > Self::MAX_MATRIX_BYTES {
+            return Ok(MatrixPlan::Oversized);
+        }
+        let key = (area, input, output, dtype_tag);
+        if let Some(matrix) = self.matrix_entries.get(&key) {
+            return Ok(MatrixPlan::Gemm(matrix.clone()));
+        }
+        let matrix = build_resample_matrix(input, output, area, dtype, x.device())?;
+        if self.matrix_entries.len() < Self::MAX_MATRIX_ENTRIES
+            && bytes <= Self::MAX_MATRIX_BYTES - self.matrix_bytes
+        {
+            self.matrix_bytes += bytes;
+            self.matrix_entries.insert(key, matrix.clone());
+        }
+        Ok(MatrixPlan::Gemm(matrix))
     }
 }
 
@@ -249,5 +358,42 @@ mod tests {
         assert!(empty.prepare(&x, 0, false).is_err());
         assert!(empty.prepare(&x, usize::MAX, false).is_err());
         assert!(empty.entries.is_empty());
+    }
+    #[test]
+    fn fixed_matrix_resampling_matches_reference_linear_and_area() {
+        let mut cache = Cache::default();
+        for (input, output) in [(7, 5), (5, 11), (16, 4), (4, 16), (8, 8)] {
+            for batch in [1, 3] {
+                let x = Tensor::arange(0f32, (batch * input * 4) as f32, &Device::Cpu)
+                    .unwrap()
+                    .reshape((batch, input, 4))
+                    .unwrap();
+                for area in [false, true] {
+                    let result = match cache.prepare_matrix(&x, output, area).unwrap() {
+                        MatrixPlan::Identity => x.contiguous().unwrap(),
+                        MatrixPlan::Gemm(m) => apply_resample_matrix(&m, &x).unwrap(),
+                        MatrixPlan::Oversized => panic!("unexpected oversized"),
+                    };
+                    let expected = if area {
+                        area1d(&x, output)
+                    } else {
+                        linear1d(&x, output)
+                    }
+                    .unwrap();
+                    let a = result.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+                    let b = expected.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+                    let max_diff = a
+                        .iter()
+                        .zip(b.iter())
+                        .map(|(u, v)| (u - v).abs())
+                        .fold(0.0f32, f32::max);
+                    assert!(
+                        max_diff <= 1e-4,
+                        "area={area} {input}->{output} batch={batch}: max_diff={max_diff}"
+                    );
+                }
+            }
+        }
+        assert_eq!(cache.matrix_entries.len(), 8);
     }
 }
