@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Implemented across Phases 0–7 on Linux/CUDA and Apple Silicon/Metal** (`v0.4.0` candidate; `v0.3.0` published). See [docs/QUICKSTART.md](QUICKSTART.md) for 5-minute usage, [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-23-phase7/README.md](results/2026-11-23-phase7/README.md) for Phase 7 quantization, Serving v2, and native Rust training evidence.
+Status: **Implemented across Phases 0–7 on Linux/CUDA and Apple Silicon/Metal** (`v0.4.0` published). See [docs/QUICKSTART.md](QUICKSTART.md) for 5-minute usage, [docs/DEVELOPING.md](DEVELOPING.md) for library usage and running custom local NCM models (`local-ncm-v1`), and [docs/results/2026-11-23-phase7/README.md](results/2026-11-23-phase7/README.md) for Phase 7 quantization, Serving v2, and native Rust training evidence.
 
 ## Decision: one model, two runtime adapters
 

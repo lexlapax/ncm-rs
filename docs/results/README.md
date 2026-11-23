@@ -2,7 +2,7 @@
 
 ## Phase 7: weight quantization (`Q8`/`Q4`), Serving v2, & native Rust training (complete)
 
-Phase 7 (`v0.4.0` candidate, [docs/PHASE7.md](../PHASE7.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra).
+Phase 7 (`v0.4.0` released, [docs/PHASE7.md](../PHASE7.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra).
 
 | Report | Scope | Status and highlights |
 | --- | --- | --- |
