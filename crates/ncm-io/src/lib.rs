@@ -17,6 +17,8 @@ use std::{
 
 pub const UPSTREAM: &str = "c70274273f489abc73832b2b98584a8483b6b203";
 pub const CHECKPOINT_REVISION: &str = "d342ce8aaea58830eef3b8ad473664673e41f692";
+pub const UPSTREAM_2026_11_23: &str = "094f25ca5fd8fe2bc7f0ff77bf3f860c3a34e7e8";
+pub const CHECKPOINT_REVISION_2026_11_23: &str = "e34c3fab451ddbe7cf474cc97c44ab23321f2219";
 const MAX_MANIFEST: u64 = 4 * 1024 * 1024;
 const MAX_FILE: u64 = 256 * 1024 * 1024;
 const MAX_TOTAL: u64 = 512 * 1024 * 1024;
@@ -770,9 +772,15 @@ impl Artifact {
             {
                 return Err(invalid("invalid local-ncm-v1 manifest provenance fields"));
             }
-        } else if manifest.upstream_commit != UPSTREAM
-            || manifest.checkpoint_revision != CHECKPOINT_REVISION
-            || manifest.checkpoint_repository != "hazyresearch/ncm-checkpoints"
+        } else if manifest.checkpoint_repository != "hazyresearch/ncm-checkpoints"
+            || !matches!(
+                (
+                    manifest.upstream_commit.as_str(),
+                    manifest.checkpoint_revision.as_str(),
+                ),
+                (UPSTREAM, CHECKPOINT_REVISION)
+                    | (UPSTREAM_2026_11_23, CHECKPOINT_REVISION_2026_11_23)
+            )
         {
             return Err(invalid("unsupported schema, profile or source pins"));
         }

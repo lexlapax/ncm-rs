@@ -32,6 +32,29 @@ fn tinystories_codec_is_explicit_and_does_not_widen_sudoku() {
     let mut bad = config.raw().clone();
     bad.embed_dim = 256;
     assert!(CodecConfig::validate_tinystories(bad).is_err());
+
+    // Upstream e34c3fab (15k EMA) inference config omits training-only keys.
+    let mut trimmed = fixture["tokenizer"]["vqvae"].clone();
+    let obj = trimmed.as_object_mut().unwrap();
+    obj.remove("pre_quant_dropout");
+    obj.insert("dropout".into(), json!(0.0));
+    let vq = obj
+        .get_mut("vector_quantizer_config")
+        .unwrap()
+        .as_object_mut()
+        .unwrap();
+    for key in [
+        "decay",
+        "epsilon",
+        "commitment_cost",
+        "aux",
+        "ema_scale_by_world_size",
+    ] {
+        vq.remove(key);
+    }
+    let raw_trimmed = serde_json::from_value(trimmed).unwrap();
+    let trimmed_cfg = CodecConfig::validate_tinystories(raw_trimmed).unwrap();
+    assert_eq!(trimmed_cfg.weight_shapes().len(), 70);
 }
 
 #[test]

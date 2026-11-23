@@ -27,6 +27,15 @@ INPUTS = {
     'bpe_vocab_8192.pickle': (95122, 'fb176b4c68108e4b5ef61b9ff2af3731600124e3e160970a6bd78cd0a5d3ff6c'),
     'bpe_merges_8192.pickle': (108277, '0d4cab13f2e7b684b75eaa290a52e596ba87744ef13d943cf3a50a5a8e080ec1'),
 }
+UPSTREAM_15K_EMA = '094f25ca5fd8fe2bc7f0ff77bf3f860c3a34e7e8'
+REVISION_15K_EMA = 'e34c3fab451ddbe7cf474cc97c44ab23321f2219'
+INPUTS_15K_EMA = {
+    'generator.pt': (356150923, '9d66ab61de9223a5229175fea730747d03acdb1794a37038e7a0d771a45ca875'),
+    'tokenizer.pt': (221863115, '85ce688e0161f6e1a785d549e57d8da65ea67a40543a8fc7a67934b68550eac5'),
+    'config.yaml': (2242, 'efdd98b675a24f956e9b832d03a2a2e88db05931d434090ef65f0f34bcb2cd9c'),
+    'bpe_vocab_8192.pickle': (95122, 'fb176b4c68108e4b5ef61b9ff2af3731600124e3e160970a6bd78cd0a5d3ff6c'),
+    'bpe_merges_8192.pickle': (108277, '0d4cab13f2e7b684b75eaa290a52e596ba87744ef13d943cf3a50a5a8e080ec1'),
+}
 TRAINING = re.compile(r'vq\.(ema_cluster_size|ema_w|codebook_hit)_\d+$')
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -66,13 +75,14 @@ def tensor_map(value, expected_count):
 def checkpoint_parts(generator, tokenizer):
     if not isinstance(generator, dict) or set(generator) != {'model', 'inference'}:
         raise ValueError('unexpected generator checkpoint metadata')
-    if not isinstance(tokenizer, dict) or set(tokenizer) != {'model'}:
+    if not isinstance(tokenizer, dict) or set(tokenizer) not in ({'model'}, {'model', 'inference'}):
         raise ValueError('unexpected tokenizer checkpoint metadata')
     model = tensor_map(generator['model'], 197)
     codec = tensor_map(tokenizer['model'], 106)
-    inference = tensor_map(generator['inference'], 1)
-    if set(inference) != {'level0_unigram'}:
+    gen_inf = generator['inference']
+    if not isinstance(gen_inf, dict) or set(gen_inf) not in ({'level0_unigram'}, {'level0_unigram', 'config'}):
         raise ValueError('unexpected inference metadata')
+    inference = tensor_map({'level0_unigram': gen_inf['level0_unigram']}, 1)
     unigram = inference['level0_unigram']
     if (unigram.dtype != torch.float32 or tuple(unigram.shape) != (4096,)
             or not bool(torch.isfinite(unigram).all()) or bool((unigram < 0).any())
@@ -92,10 +102,16 @@ def json_file(path, value):
         output.write('\n')
 
 
-def export(source, tokenizer_asset, output):
+def export(source, tokenizer_asset, output, release='v1'):
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
-    for name, (size, expected) in INPUTS.items():
+    if release == 'v1':
+        upstream_commit, revision, inputs = UPSTREAM, REVISION, INPUTS
+    elif release == '15k-ema':
+        upstream_commit, revision, inputs = UPSTREAM_15K_EMA, REVISION_15K_EMA, INPUTS_15K_EMA
+    else:
+        raise ValueError(f'unsupported TinyStories release selector: {release}')
+    for name, (size, expected) in inputs.items():
         verify_input(source / name, size, expected)
     lock = json.loads((ROOT / 'tools/reference/tokenizers-v1.lock.json').read_bytes())['profiles']['tinystories']
     tokenizer_manifest = tokenizer_asset / 'manifest.json'
@@ -140,7 +156,7 @@ def export(source, tokenizer_asset, output):
             'converter_sha256': digest_file(Path(__file__)),
             'converter_base_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
             'python': platform.python_version(), 'torch': torch.__version__,
-            'source_sha256': {name: sha for name, (_, sha) in INPUTS.items()},
+            'source_sha256': {name: sha for name, (_, sha) in inputs.items()},
             'source_loading': 'torch.load(weights_only=True, mmap=True); no unrestricted retry',
             'code_license': 'MIT', 'weights_license': 'MIT', 'aliases': [],
             'inference_metadata': ['level0_unigram'],
@@ -149,11 +165,11 @@ def export(source, tokenizer_asset, output):
         })
         files = {p.name: {'bytes': p.stat().st_size, 'sha256': digest_file(p)} for p in sorted(temporary.iterdir())}
         json_file(temporary / 'manifest.json', {
-            'schema_version': 1, 'profile': 'tinystories-inference-v1', 'upstream_commit': UPSTREAM,
-            'checkpoint_repository': 'hazyresearch/ncm-checkpoints', 'checkpoint_revision': REVISION,
+            'schema_version': 1, 'profile': 'tinystories-inference-v1', 'upstream_commit': upstream_commit,
+            'checkpoint_repository': 'hazyresearch/ncm-checkpoints', 'checkpoint_revision': revision,
             'files': files, 'tensors': inventory,
         })
-        for name, (size, expected) in INPUTS.items():
+        for name, (size, expected) in inputs.items():
             verify_input(source / name, size, expected)
         if output.exists() or output.is_symlink():
             raise FileExistsError(output)
@@ -172,10 +188,11 @@ def main():
     parser.add_argument('--tokenizer-asset', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--report', type=Path, required=True)
+    parser.add_argument('--release', choices=('v1', '15k-ema'), default='v1')
     args = parser.parse_args()
     if args.report.exists() or args.report.is_symlink():
         parser.error('report already exists')
-    report = export(args.source, args.tokenizer_asset, args.output)
+    report = export(args.source, args.tokenizer_asset, args.output, release=args.release)
     json_file(args.report, report)
     print(json.dumps(report, sort_keys=True))
 

@@ -6,9 +6,10 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
-- **Upstream triage (2026-11-23, [report](docs/results/2026-11-23-upstream-triage/README.md)) — pins intentionally unchanged pending review:**
-  - `HazyResearch/ncm` moved `c7027427 → 094f25ca` (+14 commits, latest `2026-11-23T03:32Z`): added prefix KV cache, resize matmul, CUDA graphs, BF16 default, Triton FP64 penalized argmax, `z_hat` aliasing fix, `weights_only=True`, and quadratic schedule fix (manual schedules unchanged).
-  - `hazyresearch/ncm-checkpoints` moved `d342ce8a → e34c3fab` (`2026-11-23T06:21Z`): **OpenWebText still unreleased (`owt/TODO.md`)**; Sudoku/XSum/WMT14/LM1B unchanged; **TinyStories updated to 15k EMA release** with a trimmed inference-only `config.yaml` (omits training-only `pre_quant_dropout`, `decay`, `epsilon`, `commitment_cost`, `aux`, `ema_scale_by_world_size`, and disabled `ctx_encoder.{n_layer,vocab_size}`).
+- **Upstream qualification (`094f25ca` / `e34c3fab`, [triage](docs/results/2026-11-23-upstream-triage/README.md)) — Linux/CUDA gate PASSED (2026-11-23), macOS/Metal validation next:**
+  - Added backward-compatible support for upstream `094f25ca` / `e34c3fab` (TinyStories 15k EMA release + trimmed inference-only `config.yaml`) in `ncm-core`, `ncm-io` (explicit reviewed pin pair alongside legacy `c7027427`/`d342ce8a`), `ncm-model`, and `tools/reference/tinystories_artifact.py --release 15k-ema`.
+  - **Linux/CUDA verified ([cuda-upstream-094f25ca-v1.json](docs/results/2026-11-23-upstream-qualification/cuda-upstream-094f25ca-v1.json)):** `./tools/check.sh` passed; TinyStories 15k EMA exported (`bit_exact_roundtrip=true`, manifest `a044b20c...`); exact `reconstruct` & sample-decode parity vs upstream Python `094f25ca` (**0/2,564 code diffs, 0/512 + 0/512 ID diffs**); legacy `tinystories-phase4-v1` preserved; `fp16` explicitly rejected (`max_abs_codebook=4.37e10`). RTX 3060 Ti b=1: Rust `fp32` **41.14 ms / 492.9 MiB** & `bf16` **42.81 ms / 253.6 MiB** (`q8` 183.2 MiB, `q4` 138.7 MiB) vs upstream Python `094f25ca` eager FP32 **43.22 ms / 644.9 MiB** and BF16+KV+resize **50.57 ms / 647.9 MiB**.
+  - **Next:** run Apple Silicon/Metal qualification gate on `macstudio`, then advance `upstream.toml` and publish dual-platform qualification report.
 
 - **`v0.4.0` (Phase 7, [docs/PHASE7.md](docs/PHASE7.md)) released on BOTH Linux/CUDA and Apple Silicon/Metal (2026-11-23):**
   - **Milestone 7A (`Q8`/`Q4` weight quantization) — COMPLETE on CUDA & Metal:**

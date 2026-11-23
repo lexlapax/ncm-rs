@@ -14,7 +14,9 @@ pub struct RawCodecConfig {
     /// Historical upstream name: this is attention head count, NOT depth.
     pub n_layers: usize,
     pub compression_factor: usize,
+    #[serde(default)]
     pub dropout: f64,
+    #[serde(default)]
     pub pre_quant_dropout: f64,
     pub pre_quant_groupnorm: usize,
     #[serde(default = "group")]
@@ -48,13 +50,19 @@ fn group() -> String {
 fn yes() -> bool {
     true
 }
+fn default_epsilon() -> f64 {
+    1e-5
+}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct QuantizerConfig {
     pub clss: String,
+    #[serde(default)]
     pub commitment_cost: f64,
+    #[serde(default)]
     pub decay: f64,
+    #[serde(default = "default_epsilon")]
     pub epsilon: f64,
     pub learned_all_sampling: bool,
     pub learned_l1_sampling: bool,
@@ -67,6 +75,7 @@ pub struct QuantizerConfig {
     pub ema_scale_by_world_size: bool,
     pub levels: Levels,
     pub quant_resi: Residual,
+    #[serde(default)]
     pub aux: Auxiliary,
 }
 #[derive(Clone, Debug, Deserialize)]
@@ -83,7 +92,7 @@ pub struct Residual {
     pub ratio: f64,
     pub share_mode: usize,
 }
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Auxiliary {
     pub fine_drop: FineDrop,
@@ -93,6 +102,14 @@ pub struct Auxiliary {
 pub struct FineDrop {
     pub min_keep: usize,
     pub prob: f64,
+}
+impl Default for FineDrop {
+    fn default() -> Self {
+        Self {
+            min_keep: 1,
+            prob: 0.0,
+        }
+    }
 }
 
 /// Validated, immutable configuration for the initial uncompressed codec family.
@@ -112,12 +129,15 @@ impl CodecConfig {
         // admit TinyStories' training-only EMA flag. Keep that boundary even
         // though the shared wire struct also represents TinyStories defaults.
         let value: serde_json::Value = serde_json::from_slice(bytes)?;
+        let q = value.get("vector_quantizer_config");
         if value.get("pre_quant_norm_type").is_none()
             || value.get("dec_layers").is_none()
-            || value
-                .get("vector_quantizer_config")
-                .and_then(|q| q.get("ema_scale_by_world_size"))
-                .is_some()
+            || value.get("pre_quant_dropout").is_none()
+            || q.and_then(|q| q.get("commitment_cost")).is_none()
+            || q.and_then(|q| q.get("decay")).is_none()
+            || q.and_then(|q| q.get("epsilon")).is_none()
+            || q.and_then(|q| q.get("aux")).is_none()
+            || q.and_then(|q| q.get("ema_scale_by_world_size")).is_some()
         {
             return Err(Error::Config("unsupported Sudoku codec JSON schema".into()));
         }

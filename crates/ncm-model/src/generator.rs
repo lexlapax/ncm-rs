@@ -3221,7 +3221,14 @@ impl TinyStoriesGeneratorInspection {
         let reference: serde_json::Value = serde_json::from_str(include_str!(
             "../../../tests/fixtures/tinystories-config-phase4.json"
         ))?;
-        if config["model"] != reference["model"] || config["task"] != "tinystories" {
+        let mut reference_15k = reference["model"].clone();
+        if let Some(obj) = reference_15k.as_object_mut() {
+            obj.insert("dropout".into(), serde_json::json!(0.0));
+            obj.insert("ctx_encoder".into(), serde_json::json!({"enabled": false}));
+        }
+        if (config["model"] != reference["model"] && config["model"] != reference_15k)
+            || config["task"] != "tinystories"
+        {
             return Err(Error::Config(
                 "unsupported TinyStories generator configuration".into(),
             ));
