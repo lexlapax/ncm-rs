@@ -571,6 +571,12 @@ fn main_impl() -> Result<()> {
     if args.get(1).is_some_and(|arg| arg == "list") {
         return serve::run_list(&args);
     }
+    if args.get(1).is_some_and(|arg| arg == "pull") {
+        return serve::run_pull(&args);
+    }
+    if args.get(1).is_some_and(|arg| arg == "run") {
+        return serve::run_repl(&args);
+    }
     if args.get(1).is_some_and(|arg| arg == "serve") {
         return serve::run_serve(&args);
     }

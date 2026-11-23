@@ -55,9 +55,26 @@ impl std::fmt::Display for EngineError {
 
 impl std::error::Error for EngineError {}
 
+/// Runtime metadata for one model currently resident in device memory (`GET /api/ps`).
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct LoadedModelInfo {
+    pub name: String,
+    pub profile: String,
+    pub precision: String,
+    pub size_bytes: u64,
+    pub vram_estimate_bytes: u64,
+    pub digest: String,
+    pub loaded_at_unix: u64,
+    pub last_used_unix: u64,
+    pub requests_served: u64,
+}
+
 /// Backend-agnostic inference contract served by [`Server`].
 pub trait InferenceEngine: Send + Sync + 'static {
     fn list_models(&self) -> Vec<ModelEntry>;
     fn get_model(&self, name: &str) -> Option<ModelEntry>;
+    fn loaded_models(&self) -> Vec<LoadedModelInfo> {
+        Vec::new()
+    }
     fn generate(&self, req: GenerateRequest) -> Result<GenerateResponse, EngineError>;
 }

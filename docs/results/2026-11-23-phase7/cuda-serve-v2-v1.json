@@ -1,0 +1,356 @@
+{
+  "schema": "ncm-phase7b-serve-v2-v1",
+  "device": "cuda-cudnn",
+  "cli_checks": {
+    "pull_list_lines": 7,
+    "pull_dry_run_ok": true,
+    "run_oneshot_wmt14_q8": {
+      "output": "Good morning, how do you do you today?",
+      "total_ms": 2034.3
+    },
+    "run_repl_wmt14_q8": {
+      "outputs": [
+        "Good morning!",
+        "Research shows clear progress."
+      ],
+      "total_ms": 2030.3
+    }
+  },
+  "benchmarks": {
+    "wmt14_fp16": {
+      "max_batch_1": {
+        "model": "wmt14",
+        "precision": "fp16",
+        "max_batch": 1,
+        "concurrency": 8,
+        "rounds": 3,
+        "total_requests": 24,
+        "total_eval_tokens": 1536,
+        "wall_seconds": 0.9515,
+        "requests_per_second": 25.22,
+        "tokens_per_second": 1614.4,
+        "client_latency_ms_p50": 306.42,
+        "client_latency_ms_max": 328.86,
+        "sample_outputs": [
+          {
+            "prompt": "Guten Morgen, wie geht es dir heute?",
+            "response": "Good morning, how do you do you today?"
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          },
+          {
+            "prompt": "Das Wetter in Berlin ist heute sonnig und warm.",
+            "response": "The weather in Berlin is sunny and warm today."
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:41:52Z",
+              "loaded_at": "2026-11-23T05:41:52Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 0,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:41:53Z",
+              "loaded_at": "2026-11-23T05:41:52Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 25,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        }
+      },
+      "max_batch_8": {
+        "model": "wmt14",
+        "precision": "fp16",
+        "max_batch": 8,
+        "concurrency": 8,
+        "rounds": 3,
+        "total_requests": 24,
+        "total_eval_tokens": 1536,
+        "wall_seconds": 0.4314,
+        "requests_per_second": 55.64,
+        "tokens_per_second": 3560.8,
+        "client_latency_ms_p50": 141.08,
+        "client_latency_ms_max": 147.85,
+        "sample_outputs": [
+          {
+            "prompt": "Guten Morgen, wie geht es dir heute?",
+            "response": "Good morning, how do do you do today?"
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          },
+          {
+            "prompt": "Das Wetter in Berlin ist heute sonnig und warm.",
+            "response": "The weather in Berlin is sunny and warm today."
+          },
+          {
+            "prompt": "Die Forschung zeigt deutliche Fortschritte bei lokalen KI-Modellen.",
+            "response": "The research shows a significant progress in local models."
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:41:54Z",
+              "loaded_at": "2026-11-23T05:41:54Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 0,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "wmt14-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "FP16"
+              },
+              "digest": "166a487d35fb2ab9969f28677d33d004b4b712c2713db6be1fecec972d6aed1a",
+              "last_used_at": "2026-11-23T05:41:54Z",
+              "loaded_at": "2026-11-23T05:41:54Z",
+              "model": "wmt14",
+              "name": "wmt14",
+              "requests_served": 25,
+              "size": 1140898537,
+              "size_vram": 570449268
+            }
+          ]
+        }
+      },
+      "throughput_speedup_x": 2.21,
+      "deterministic_match": false
+    },
+    "lm1b_large_q8": {
+      "max_batch_1": {
+        "model": "lm1b-large",
+        "precision": "q8",
+        "max_batch": 1,
+        "concurrency": 8,
+        "rounds": 2,
+        "total_requests": 16,
+        "total_eval_tokens": 2048,
+        "wall_seconds": 3.2375,
+        "requests_per_second": 4.94,
+        "tokens_per_second": 632.6,
+        "client_latency_ms_p50": 1604.47,
+        "client_latency_ms_max": 1628.47,
+        "sample_outputs": [
+          {
+            "prompt": "",
+            "response": "[CLS]. [CLS] or someone have an interest in getting it wrong? [CLS] in late morning afternoon trading, the dow jones industrial average rose 33. 69 and 3 percent, to 10, 841. 41. [CLS] allen has been found out since the day went off. [CLS] the company has sold the home to the stock market in five years, which had seen almost built up since its price fell more than 7 per last year. [CLS] as being leader on front of us he is held down and then again he for did whatever i took for standing back. [CLS] but it ' been with weeks, as she struggles to become the first public speaker [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] can ' t do anything. [CLS] there ' s nothing hard to find it for them. [CLS] felte the only starter in double for the second - quarter game. [CLS] we never going ahead. [CLS] some customers are opted in, however will not show up with their own g8wg brand. [CLS] del, zals, who has been sidelined by eight years because work record to defend his contract against the lexiconies, said : \" hearts spurs both all are coming down on the same start of style this season but they ' re willing to let both men have better out of what that they eat. [CLS] \" [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] [CLS] the full - time charges, also says its profit rose 42 per cent for the second fiscal year ending.. [CLS]. [CLS] who would like to say no. stop at the top if you can be back in the store? [CLS] it has ran number one in the top of the world tour album singles chart - and has surpassed 22 consecutive seasons, breaking one record of his 19 pga test career. [CLS] the new york yankees had a busy game on saturday night and apparently had to spend monday ground with home. [CLS] in a 20th century england ' s history was at an end because they were not to return to a squad for spring [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] - 94 win on sunday. [CLS] by cutting that amount, the company represents more than double the $ 5 billion a year it saved. [CLS]reisand, manhattan. [CLS] 9 ( upi ) - the u. s. president barack obama has been invited to attend in next week ' s democratic presidential contest, said friday. [CLS] sw flu outbreak : of ahmadinejad virus? [CLS] she told reporters that this was her husband to put on a television show she never had. [CLS] as part of this problem, he said, took early claims of time! [CLS] hollywood is not far from the city ' \" because it ' s \u2022"
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:42:00Z",
+              "loaded_at": "2026-11-23T05:42:00Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 0,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:42:03Z",
+              "loaded_at": "2026-11-23T05:42:00Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 17,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        }
+      },
+      "max_batch_8": {
+        "model": "lm1b-large",
+        "precision": "q8",
+        "max_batch": 8,
+        "concurrency": 8,
+        "rounds": 2,
+        "total_requests": 16,
+        "total_eval_tokens": 2048,
+        "wall_seconds": 1.9742,
+        "requests_per_second": 8.1,
+        "tokens_per_second": 1037.4,
+        "client_latency_ms_p50": 986.72,
+        "client_latency_ms_max": 988.17,
+        "sample_outputs": [
+          {
+            "prompt": "",
+            "response": "[CLS] companies soon be apply for up to \u00a355. 5 billion including the common stock, the mortgage - backed securities, and future capital needs - - the main reasons the funds are required to pay aside. - in the top end of their equity, which are received after closing of the transaction. [CLS] the shares traded thursday at about $ 4. 18, despite 3 percent late off its worst week close for almost 15 months. [CLS] march 30 10, 2010 | 8 : 00 a. m. [CLS] they also were found in a middle of an hotel in less than four hours later, [CLS] instead, they focus on declining sales? [CLS] [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS]back. [CLS] these workers could be published on groups of community - paying staff, \" he added. [CLS] many schools said they were closed while schools had been finished. [CLS] in the memphis valley, when the morning standard of january 29, there before two detectives were killed, raja ' s brother was attacked at west virginia, including a 34 - year - old daughter, who stayed behind australia. [CLS] new product sales will also be announced by apple inc. com now said the h1n flu vaccine to develop a new virus against the h1ns2 viruses may have far more serious than the seasonal strain. [CLS] ford prices would likely [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] high blood pressure, and you do the money they don ' t work. [CLS] and it said earnings, increased fiscal in the second half of the year. [CLS] net sales were $ 1. 9 million, or 7 2. 8 % of net profit, or 23. 3bn, compared with 2008 versus. 20 % and $ 693 in 2009. [CLS] the bank was criticised the new sanctions by mortgage lenders last week, arguing that they may have increased the result of subprime - related to [CLS] civil rights servants want more human court plans - nearly 649 - 480 per share with gay service services? [CLS] the [CLS]"
+          },
+          {
+            "prompt": "",
+            "response": "[CLS] it. [CLS] fritzl who murdered his father had been jailed for five years after being convicted of murder in the home, on friday. [CLS] people were killed in the second blast of a car that crashed near sadr city, a police spokesman. [CLS] he did not know how fast the gunmen was. [CLS] the flag was carrying the wrong anyone and the crew reflected in the cars, he said. [CLS] they maintained of an conflict blames a new bombings on their powerful shiite taliban. [CLS] turkey - earlier last week iran has told several media journalists from tehran had traveled from brazil to u. s, president george w h - bush [CLS]"
+          }
+        ],
+        "ps_before": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:42:08Z",
+              "loaded_at": "2026-11-23T05:42:08Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 0,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        },
+        "ps_after": {
+          "models": [
+            {
+              "details": {
+                "families": [
+                  "ncm",
+                  "lm1b-large-inference-v1"
+                ],
+                "family": "ncm",
+                "format": "safetensors",
+                "parameter_size": "",
+                "parent_model": "",
+                "quantization_level": "Q8"
+              },
+              "digest": "934248e4cdb056f0da9cbe50fb94107eef82eab6d39991e6eabb6de08a04429e",
+              "last_used_at": "2026-11-23T05:42:11Z",
+              "loaded_at": "2026-11-23T05:42:08Z",
+              "model": "lm1b-large",
+              "name": "lm1b-large",
+              "requests_served": 17,
+              "size": 3499613607,
+              "size_vram": 1049884082
+            }
+          ]
+        }
+      },
+      "throughput_speedup_x": 1.64
+    }
+  }
+}

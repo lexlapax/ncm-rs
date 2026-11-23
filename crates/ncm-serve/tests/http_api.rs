@@ -1,7 +1,7 @@
 //! End-to-end loopback TCP tests for OpenAI (`/v1/*`) and Ollama (`/api/*`) HTTP endpoints.
 use ncm_serve::{
-    EngineError, GenerateRequest, GenerateResponse, InferenceEngine, ModelEntry, ModelRegistry,
-    Server,
+    EngineError, GenerateRequest, GenerateResponse, InferenceEngine, LoadedModelInfo, ModelEntry,
+    ModelRegistry, Server,
 };
 use serde_json::{Value, json};
 use std::{
@@ -58,6 +58,20 @@ impl InferenceEngine for MockEngine {
             .iter()
             .find(|m| m.name == key || m.aliases.iter().any(|a| a == key))
             .cloned()
+    }
+    fn loaded_models(&self) -> Vec<LoadedModelInfo> {
+        let m = &self.models[0];
+        vec![LoadedModelInfo {
+            name: m.name.clone(),
+            profile: m.profile.clone(),
+            precision: m.precision.clone(),
+            size_bytes: m.size_bytes,
+            vram_estimate_bytes: m.size_bytes / 2,
+            digest: m.digest.clone(),
+            loaded_at_unix: 1_700_000_000,
+            last_used_unix: 1_700_000_010,
+            requests_served: self.calls.load(Ordering::SeqCst) as u64,
+        }]
     }
     fn generate(&self, req: GenerateRequest) -> Result<GenerateResponse, EngineError> {
         self.calls.fetch_add(1, Ordering::SeqCst);
@@ -255,13 +269,25 @@ fn openai_and_ollama_endpoints_work_end_to_end() {
     assert!(saw_done);
     assert_eq!(reassembled, "Summary of: Brief news. DONE.");
 
-    // Ollama /api/tags and /api/show
+    // Ollama /api/tags, /api/ps and /api/show
     let (st, _, body) = http_req(addr, "GET", "/api/tags", None);
     assert_eq!(st, 200);
     let tags: Value = serde_json::from_str(&body).unwrap();
     assert_eq!(tags["models"][0]["name"], "xsum");
     assert!(
         tags["models"][0]["modified_at"]
+            .as_str()
+            .unwrap()
+            .ends_with('Z')
+    );
+
+    let (st, _, body) = http_req(addr, "GET", "/api/ps", None);
+    assert_eq!(st, 200);
+    let ps: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(ps["models"][0]["name"], "xsum");
+    assert_eq!(ps["models"][0]["size_vram"], 256_000_000);
+    assert!(
+        ps["models"][0]["loaded_at"]
             .as_str()
             .unwrap()
             .ends_with('Z')

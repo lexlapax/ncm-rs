@@ -317,6 +317,33 @@ pub fn dispatch<E: InferenceEngine>(
                 .collect();
             write_json(stream, 200, &json!({ "models": models }))
         }
+        ("GET", "/api/ps") => {
+            let models: Vec<Value> = engine
+                .loaded_models()
+                .iter()
+                .map(|m| {
+                    json!({
+                        "name": m.name,
+                        "model": m.name,
+                        "size": m.size_bytes,
+                        "size_vram": m.vram_estimate_bytes,
+                        "digest": m.digest,
+                        "details": {
+                            "parent_model": "",
+                            "format": "safetensors",
+                            "family": "ncm",
+                            "families": ["ncm", m.profile],
+                            "parameter_size": "",
+                            "quantization_level": m.precision.to_ascii_uppercase(),
+                        },
+                        "loaded_at": format_rfc3339_utc(m.loaded_at_unix),
+                        "last_used_at": format_rfc3339_utc(m.last_used_unix),
+                        "requests_served": m.requests_served,
+                    })
+                })
+                .collect();
+            write_json(stream, 200, &json!({ "models": models }))
+        }
         ("POST", "/api/show") => handle_ollama_show(engine, &req.body, stream),
         ("POST", "/v1/completions") => handle_openai_completions(engine, &req.body, stream),
         ("POST", "/v1/chat/completions") => handle_openai_chat(engine, &req.body, stream),
