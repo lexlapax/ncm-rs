@@ -1,0 +1,29 @@
+{
+  "milestone": "10A",
+  "platform": "macos-mlx",
+  "hardware": "Apple M1 Ultra, 64 GiB unified, macOS 26.7.4",
+  "zero_python_verified": true,
+  "zero_python_env": "PATH restricted to curl symlink only",
+  "hf_tokenizers_bit_exact_test_passed": [
+    "gpt2",
+    "qwen3",
+    "bert"
+  ],
+  "live_https_pull_models": {
+    "sudoku-easy": {
+      "profile": "sudoku-easy-inspection-v1",
+      "live_https_plus_export_seconds": 5.167,
+      "bit_exact_tensors_verified": 238,
+      "config_exact_match": true,
+      "metal_inference_check": "byte-identical Metal sample JSON"
+    },
+    "tinystories": {
+      "profile": "tinystories-inference-v1",
+      "live_https_plus_export_seconds": 14.947,
+      "bit_exact_tensors_verified": 304,
+      "config_exact_match": true,
+      "tokenizer_bit_exact_match": true,
+      "metal_inference_check": "byte-identical Metal decoded output"
+    }
+  }
+}
