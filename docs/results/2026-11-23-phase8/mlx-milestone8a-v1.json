@@ -1,0 +1,350 @@
+{
+  "schema": "ncm-phase8-milestone8a-mlx-v1",
+  "hardware": "Apple Silicon M1 Ultra (macstudio)",
+  "optimizations": [
+    "cached fixed-matrix resampling GEMMs for area1d/linear1d (non-FP32)",
+    "native mlx_rs::fast::{layer_norm,rms_norm} on BF16/FP16",
+    "fused 32-lane SIMD Metal kernel ncm_qk_rms_rope_{bf16,f16} across all batch >= 1 (head_dim == 64)",
+    "compiled MLX graphs for low-precision GELU and general RoPE",
+    "native mlx_rs::fast::layer_norm inside low-precision group_norm"
+  ],
+  "fp32_cli_equivalence_9_of_9": {
+    "lm1b-large": "12af7a2fe810deca255c46f01f5ede7fd33e43f1ac61aeac53372c7231c6803b",
+    "lm1b-medium": "21cd2625d4caa3559b28e5ab490d363314afc8b0fb0af61d840efc1a938cac18",
+    "lm1b-small": "103f054a4f8a201867c24397e7c14aecb1d6e0fb91fec51568f177b00220152d",
+    "sudoku-easy": "bd2a86aa8d3c626178bfd1d07bd2bbbdfee2a98643298c02c189e59bb2a06212",
+    "sudoku-hard": "655dbfdb50d1210923246a730a08332156df64418365328d55a2f20af8b7caf0",
+    "sudoku-medium": "b5a22993f2df60ece95b6b188e009a55cf10ad59a2591e69e478a025125d104d",
+    "tiny": "7c828e7bcf538bd65a60762429e4df318c6d71a52e3d8cb20210bfaf14eb6837",
+    "wmt14": "17257d936f55b159c8cdc8ce9a465bf9d0498a446d544215c171eae82f2a604a",
+    "xsum": "87be072a79210d62215efaa82f801c64612f6868cf545a3fb888ca14aee6cdca"
+  },
+  "quality_vs_fp32": {
+    "sudoku_easy_128": {
+      "bf16": "128/128",
+      "fp16": "128/128",
+      "q8": "128/128",
+      "q4": "127/128"
+    },
+    "wmt14_32_rows": {
+      "bf16": {
+        "exact": "19/32",
+        "tok_pct": 90.87
+      },
+      "fp16": {
+        "exact": "28/32",
+        "tok_pct": 98.58
+      },
+      "q8": {
+        "exact": "13/32",
+        "tok_pct": 84.91
+      },
+      "q4": {
+        "exact": "0/32",
+        "tok_pct": 56.79
+      }
+    },
+    "xsum_32_rows": {
+      "bf16": {
+        "exact": "15/32",
+        "tok_pct": 81.18
+      },
+      "fp16": {
+        "exact": "28/32",
+        "tok_pct": 94.99
+      },
+      "q8": {
+        "exact": "13/32",
+        "tok_pct": 76.17
+      },
+      "q4": {
+        "exact": "1/32",
+        "tok_pct": 47.46
+      }
+    },
+    "tinystories_15k_ema": {
+      "fp32": " Once upon a time, in a small garden, there lived a little bird. The bird lived in a big tree. The bird had a ",
+      "bf16": " Once upon a time, in a small house, there lived a smart cat. The cat lived in a big house. The family cat was",
+      "q8": " Once upon a time, in a small house, there was a boy named Tim. He lived in a house with a nice family. The ho",
+      "q4": " Once upon a time, in a small house, there was a nice big house. The nice house made a happy family. The famil"
+    }
+  },
+  "paired_before_after_mlx": [
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "fp32",
+      "before_ms": 91.37,
+      "after_ms": 93.56,
+      "speedup": 0.977,
+      "before_mlx_peak_mib": 607.4,
+      "after_mlx_peak_mib": 607.4,
+      "before_rss_mib": 526.9,
+      "after_rss_mib": 527.1
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 99.93,
+      "after_ms": 78.58,
+      "speedup": 1.272,
+      "before_mlx_peak_mib": 359.1,
+      "after_mlx_peak_mib": 382.1,
+      "before_rss_mib": 93.7,
+      "after_rss_mib": 87.8
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 101.12,
+      "after_ms": 76.54,
+      "speedup": 1.321,
+      "before_mlx_peak_mib": 271.2,
+      "after_mlx_peak_mib": 280.1,
+      "before_rss_mib": 117.3,
+      "after_rss_mib": 111.7
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 103.1,
+      "after_ms": 79.22,
+      "speedup": 1.301,
+      "before_mlx_peak_mib": 226.7,
+      "after_mlx_peak_mib": 235.5,
+      "before_rss_mib": 93.8,
+      "after_rss_mib": 89.0
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "bf16",
+      "before_ms": 247.77,
+      "after_ms": 195.12,
+      "speedup": 1.27,
+      "before_mlx_peak_mib": 1145.2,
+      "after_mlx_peak_mib": 932.3,
+      "before_rss_mib": 95.0,
+      "after_rss_mib": 89.3
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "q8",
+      "before_ms": 265.8,
+      "after_ms": 211.62,
+      "speedup": 1.256,
+      "before_mlx_peak_mib": 1034.9,
+      "after_mlx_peak_mib": 825.3,
+      "before_rss_mib": 118.5,
+      "after_rss_mib": 112.7
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "q4",
+      "before_ms": 267.4,
+      "after_ms": 212.94,
+      "speedup": 1.256,
+      "before_mlx_peak_mib": 990.3,
+      "after_mlx_peak_mib": 780.8,
+      "before_rss_mib": 94.7,
+      "after_rss_mib": 88.6
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 61.12,
+      "after_ms": 38.89,
+      "speedup": 1.572,
+      "before_mlx_peak_mib": 191.9,
+      "after_mlx_peak_mib": 191.2,
+      "before_rss_mib": 76.4,
+      "after_rss_mib": 71.9
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 57.05,
+      "after_ms": 33.24,
+      "speedup": 1.716,
+      "before_mlx_peak_mib": 192.3,
+      "after_mlx_peak_mib": 192.4,
+      "before_rss_mib": 76.5,
+      "after_rss_mib": 71.8
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 63.7,
+      "after_ms": 41.18,
+      "speedup": 1.547,
+      "before_mlx_peak_mib": 162.4,
+      "after_mlx_peak_mib": 183.1,
+      "before_rss_mib": 84.2,
+      "after_rss_mib": 79.2
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 64.1,
+      "after_ms": 41.49,
+      "speedup": 1.545,
+      "before_mlx_peak_mib": 149.3,
+      "after_mlx_peak_mib": 171.0,
+      "before_rss_mib": 76.7,
+      "after_rss_mib": 72.1
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 86.48,
+      "after_ms": 65.21,
+      "speedup": 1.326,
+      "before_mlx_peak_mib": 592.0,
+      "after_mlx_peak_mib": 594.8,
+      "before_rss_mib": 377.1,
+      "after_rss_mib": 375.5
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 80.13,
+      "after_ms": 54.82,
+      "speedup": 1.462,
+      "before_mlx_peak_mib": 592.0,
+      "after_mlx_peak_mib": 594.9,
+      "before_rss_mib": 376.4,
+      "after_rss_mib": 373.8
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 82.51,
+      "after_ms": 59.07,
+      "speedup": 1.397,
+      "before_mlx_peak_mib": 437.3,
+      "after_mlx_peak_mib": 455.2,
+      "before_rss_mib": 401.9,
+      "after_rss_mib": 399.4
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 84.47,
+      "after_ms": 61.84,
+      "speedup": 1.366,
+      "before_mlx_peak_mib": 365.6,
+      "after_mlx_peak_mib": 369.5,
+      "before_rss_mib": 376.9,
+      "after_rss_mib": 374.5
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 96.68,
+      "after_ms": 78.09,
+      "speedup": 1.238,
+      "before_mlx_peak_mib": 566.9,
+      "after_mlx_peak_mib": 589.0,
+      "before_rss_mib": 550.5,
+      "after_rss_mib": 546.5
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 84.58,
+      "after_ms": 62.76,
+      "speedup": 1.348,
+      "before_mlx_peak_mib": 566.9,
+      "after_mlx_peak_mib": 589.0,
+      "before_rss_mib": 550.7,
+      "after_rss_mib": 546.6
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 89.68,
+      "after_ms": 70.45,
+      "speedup": 1.273,
+      "before_mlx_peak_mib": 443.8,
+      "after_mlx_peak_mib": 419.8,
+      "before_rss_mib": 574.0,
+      "after_rss_mib": 570.9
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 92.41,
+      "after_ms": 73.91,
+      "speedup": 1.25,
+      "before_mlx_peak_mib": 391.9,
+      "after_mlx_peak_mib": 367.8,
+      "before_rss_mib": 550.7,
+      "after_rss_mib": 547.1
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 423.81,
+      "after_ms": 341.68,
+      "speedup": 1.24,
+      "before_mlx_peak_mib": 1799.1,
+      "after_mlx_peak_mib": 1806.1,
+      "before_rss_mib": 323.2,
+      "after_rss_mib": 312.2
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 364.34,
+      "after_ms": 297.58,
+      "speedup": 1.224,
+      "before_mlx_peak_mib": 1799.1,
+      "after_mlx_peak_mib": 1806.1,
+      "before_rss_mib": 323.1,
+      "after_rss_mib": 312.0
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 436.0,
+      "after_ms": 354.31,
+      "speedup": 1.231,
+      "before_mlx_peak_mib": 1131.7,
+      "after_mlx_peak_mib": 1132.1,
+      "before_rss_mib": 544.4,
+      "after_rss_mib": 533.3
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 453.62,
+      "after_ms": 359.55,
+      "speedup": 1.262,
+      "before_mlx_peak_mib": 780.0,
+      "after_mlx_peak_mib": 780.5,
+      "before_rss_mib": 323.8,
+      "after_rss_mib": 313.8
+    }
+  ]
+}
