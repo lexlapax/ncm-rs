@@ -208,3 +208,59 @@ fn mlx_q8_and_q4_linear_projections_track_fp32() {
         assert!(diff <= tol, "{precision} max_abs_diff={diff} > {tol}");
     }
 }
+
+#[test]
+fn mlx_prequant_upload_matches_on_the_fly_bit_exactly() {
+    use ncm_core::{PrequantFormat, PrequantPayload};
+    let x_data = synthetic(2 * 4 * 64, 1.0);
+    let w_data = synthetic(128 * 64, 0.25);
+    let b_data = synthetic(128, 0.1);
+    let b_le: Vec<u8> = b_data.iter().flat_map(|v| v.to_le_bytes()).collect();
+    let b_bf16 = ncm_io::f32_bytes_to_bf16_bytes(&b_le).unwrap();
+
+    for precision in [ComputePrecision::Q8, ComputePrecision::Q4] {
+        let be = MlxBackend::gpu()
+            .unwrap()
+            .with_precision(precision)
+            .unwrap();
+        assert_eq!(be.prequant_format(), Some(PrequantFormat::Mlx));
+
+        let x = be.upload_f32(&x_data, &[2, 4, 64]).unwrap();
+        let w_otf = be.upload_linear_weight_f32(&w_data, &[128, 64]).unwrap();
+        let b_otf = be.upload_f32(&b_data, &[128]).unwrap();
+        let y_otf = be
+            .read_f32(&be.project_bias(&x, &w_otf, &b_otf).unwrap())
+            .unwrap();
+
+        let raw = be
+            .quantize_linear_raw(&w_data, &[128, 64])
+            .unwrap()
+            .expect("shape [128, 64] must quantize");
+        let w_pq = be
+            .upload_prequant(
+                PrequantPayload::MlxAffine {
+                    precision,
+                    group_size: 64,
+                    weights_u32: &raw.weights_u32,
+                    weights_shape: &raw.weights_shape,
+                    scales_bf16: &raw.scales_bf16,
+                    scales_shape: &raw.scales_shape,
+                    biases_bf16: &raw.biases_bf16,
+                    biases_shape: &raw.biases_shape,
+                },
+                &[128, 64],
+            )
+            .unwrap();
+        let b_pq = be
+            .upload_prequant(PrequantPayload::Bf16(&b_bf16), &[128])
+            .unwrap();
+        let y_pq = be
+            .read_f32(&be.project_bias(&x, &w_pq, &b_pq).unwrap())
+            .unwrap();
+
+        assert_eq!(
+            y_otf, y_pq,
+            "{precision} prequant output must be bit-identical"
+        );
+    }
+}

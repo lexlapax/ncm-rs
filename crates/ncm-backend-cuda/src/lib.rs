@@ -49,4 +49,4 @@ mod xsum_rmsnorm;
 #[cfg(feature = "cuda")]
 mod xsum_rope;
 #[cfg(feature = "cpu")]
-pub use runtime::CandleBackend;
+pub use runtime::{CandleBackend, quantize_linear_ggml_bytes};

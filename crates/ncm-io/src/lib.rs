@@ -3,7 +3,15 @@
 //! Verifies integrity relative to a manifest, not authenticity of that manifest.
 //! No pickle execution, artifact file mapping, model construction, or implicit downloads.
 
+mod prequant;
 mod wmt14_scratch;
+
+pub use prequant::{
+    PrequantKind, PrequantManifest, PrequantSummary, PrequantTensorRecord, PrequantTensorView,
+    PrequantWriteEntry, f32_bytes_to_bf16_bytes, f32_to_bf16_bits, sidecar_filenames,
+    write_prequant_sidecar,
+};
+pub use safetensors::Dtype as SafetensorsDtype;
 
 use safetensors::{Dtype, SafeTensors};
 use serde::{Deserialize, Serialize};
@@ -336,6 +344,7 @@ pub struct Artifact {
     payloads: BTreeMap<String, Vec<u8>>,
     reusable_wmt14: Option<ReusableWmt14>,
     streaming: BTreeMap<String, StreamedBundle>,
+    prequant: Option<prequant::VerifiedPrequant>,
 }
 
 struct ReusableWmt14 {
@@ -722,7 +731,7 @@ impl Artifact {
     /// Inference payloads remain owned and immutable; `file("training.safetensors")`
     /// explicitly fails on this reduced view. `load` retains the full artifact.
     pub fn load_inference(root: impl AsRef<Path>) -> Result<Self> {
-        Self::load_impl(root.as_ref(), true, false, false)
+        Self::load_impl(root.as_ref(), true, false, false, None)
     }
 
     /// Validate the complete artifact using bounded streaming buffers (~4 MiB per worker)
@@ -730,11 +739,29 @@ impl Artifact {
     /// `generator.safetensors`) stay on open validated file descriptors and are streamed
     /// one tensor at a time via `visit_bundle_tensors`, cutting both load time and peak RSS.
     pub fn load_inference_streaming(root: impl AsRef<Path>) -> Result<Self> {
-        Self::load_impl(root.as_ref(), true, false, true)
+        Self::load_impl(root.as_ref(), true, false, true, None)
+    }
+
+    /// Load an inference artifact, automatically using a verified pre-quantized sidecar
+    /// (`prequant-{format}-{precision}.{json,safetensors}`) when present.
+    ///
+    /// - If no sidecar exists, falls back cleanly to [`Self::load_inference_streaming`].
+    /// - If a sidecar exists (or is incomplete/symlinked/tampered/stale), fails closed.
+    pub fn load_inference_with_prequant(
+        root: impl AsRef<Path>,
+        format: &str,
+        precision: &str,
+    ) -> Result<Self> {
+        let root = root.as_ref();
+        if prequant::probe_sidecar(root, format, precision)? {
+            Self::load_impl(root, true, false, true, Some((format, precision)))
+        } else {
+            Self::load_impl(root, true, false, true, None)
+        }
     }
 
     pub fn load(root: impl AsRef<Path>) -> Result<Self> {
-        Self::load_impl(root.as_ref(), false, false, false)
+        Self::load_impl(root.as_ref(), false, false, false, None)
     }
 
     /// Validate both WMT14 bundles with one host buffer. Only the generator
@@ -742,7 +769,7 @@ impl Artifact {
     /// reread against the already validated manifest before exposing it.
     pub fn load_wmt14_inference_reusable(root: impl AsRef<Path>) -> Result<Self> {
         let root = std::path::absolute(root)?;
-        Self::load_impl(&root, true, true, false)
+        Self::load_impl(&root, true, true, false, None)
     }
 
     fn load_impl(
@@ -750,14 +777,16 @@ impl Artifact {
         inference: bool,
         reusable: bool,
         streaming_mode: bool,
+        prequant_req: Option<(&str, &str)>,
     ) -> Result<Self> {
         // Strip trailing separators/dot components before the no-symlink leaf check.
         let root = root.components().collect::<std::path::PathBuf>();
         if !fs::symlink_metadata(&root)?.file_type().is_dir() {
             return Err(invalid("artifact root must be a real directory"));
         }
-        let manifest: Manifest =
-            serde_json::from_slice(&bounded_read(&root.join("manifest.json"), MAX_MANIFEST)?)?;
+        let manifest_bytes = bounded_read(&root.join("manifest.json"), MAX_MANIFEST)?;
+        let manifest_sha256 = sha256(&manifest_bytes);
+        let manifest: Manifest = serde_json::from_slice(&manifest_bytes)?;
         let is_local = manifest.profile == "local-ncm-v1";
         let valid_metadata_str = |s: &str| {
             !s.is_empty() && s.len() <= 256 && s.bytes().all(|b| (0x20..=0x7e).contains(&b))
@@ -877,6 +906,7 @@ impl Artifact {
         }
         let mut payloads = BTreeMap::new();
         let mut streaming = BTreeMap::new();
+        let mut prequant = None;
         let reusable_wmt14 = if reusable {
             let codec = &manifest.files["codec.safetensors"];
             let generator = &manifest.files["generator.safetensors"];
@@ -926,43 +956,55 @@ impl Artifact {
                     entries,
                 )?;
             }
-            let stream_results: Vec<(&'static str, StreamedBundle)> =
-                std::thread::scope(|scope| -> Result<Vec<(&'static str, StreamedBundle)>> {
-                    let mut handles = Vec::new();
-                    for name in [
-                        "codec.safetensors",
-                        "generator.safetensors",
-                        "training.safetensors",
-                    ] {
-                        if let (Some(record), Some(entries)) =
-                            (manifest.files.get(name), manifest.tensors.get(name))
-                        {
-                            let path = root.join(name);
-                            let check_finite = name != "training.safetensors";
-                            handles.push(scope.spawn(move || {
-                                validate_streaming_bundle(
-                                    &path,
-                                    name,
-                                    record,
-                                    entries,
-                                    check_finite,
-                                )
-                                .map(|b| (name, b))
-                            }));
+            if let Some((fmt, prec)) = prequant_req {
+                prequant = Some(prequant::validate_sidecar(
+                    &root,
+                    &manifest,
+                    &manifest_sha256,
+                    fmt,
+                    prec,
+                    max_total,
+                )?);
+            } else {
+                let stream_results: Vec<(&'static str, StreamedBundle)> =
+                    std::thread::scope(|scope| -> Result<Vec<(&'static str, StreamedBundle)>> {
+                        let mut handles = Vec::new();
+                        for name in [
+                            "codec.safetensors",
+                            "generator.safetensors",
+                            "training.safetensors",
+                        ] {
+                            if let (Some(record), Some(entries)) =
+                                (manifest.files.get(name), manifest.tensors.get(name))
+                            {
+                                let path = root.join(name);
+                                let check_finite = name != "training.safetensors";
+                                handles.push(scope.spawn(move || {
+                                    validate_streaming_bundle(
+                                        &path,
+                                        name,
+                                        record,
+                                        entries,
+                                        check_finite,
+                                    )
+                                    .map(|b| (name, b))
+                                }));
+                            }
                         }
+                        let mut out = Vec::new();
+                        for h in handles {
+                            out.push(
+                                h.join().map_err(|_| {
+                                    invalid("streaming validation thread panicked")
+                                })??,
+                            );
+                        }
+                        Ok(out)
+                    })?;
+                for (name, bundle) in stream_results {
+                    if name != "training.safetensors" {
+                        streaming.insert(name.to_owned(), bundle);
                     }
-                    let mut out = Vec::new();
-                    for h in handles {
-                        out.push(
-                            h.join()
-                                .map_err(|_| invalid("streaming validation thread panicked"))??,
-                        );
-                    }
-                    Ok(out)
-                })?;
-            for (name, bundle) in stream_results {
-                if name != "training.safetensors" {
-                    streaming.insert(name.to_owned(), bundle);
                 }
             }
         } else {
@@ -998,6 +1040,7 @@ impl Artifact {
             payloads,
             reusable_wmt14,
             streaming,
+            prequant,
         })
     }
 
@@ -1047,9 +1090,21 @@ impl Artifact {
             .ok_or_else(|| invalid("undeclared artifact bundle"))
     }
 
+    /// Whether this artifact was loaded from a verified pre-quantized sidecar.
+    pub fn has_prequant(&self) -> bool {
+        self.prequant.is_some()
+    }
+
+    /// Whether `bundle` is served by a verified pre-quantized sidecar.
+    pub fn has_prequant_bundle(&self, bundle: &str) -> bool {
+        self.prequant
+            .as_ref()
+            .is_some_and(|p| p.covers_bundle(bundle))
+    }
+
     /// Whether the bundle is backed by an open validated file descriptor rather than an in-memory buffer.
     pub fn is_streaming_bundle(&self, bundle: &str) -> bool {
-        self.streaming.contains_key(bundle)
+        self.streaming.contains_key(bundle) || self.has_prequant_bundle(bundle)
     }
 
     /// Whether every F32 tensor in `bundle` (except `attn_mask_for_masking`) has already
@@ -1058,10 +1113,14 @@ impl Artifact {
         self.streaming
             .get(bundle)
             .is_some_and(|s| s.finite_checked_f32)
+            || self.has_prequant_bundle(bundle)
     }
 
     /// Read a single tensor's raw little-endian bytes from a validated bundle.
     pub fn read_bundle_tensor(&self, bundle: &str, name: &str) -> Result<Vec<u8>> {
+        if let Some(pq) = self.prequant.as_ref().filter(|p| p.covers_bundle(bundle)) {
+            return pq.read_single_tensor(bundle, name);
+        }
         let entries = self.bundle_tensors(bundle)?;
         if let Some(streamed) = self.streaming.get(bundle) {
             #[cfg(unix)]
@@ -1130,8 +1189,35 @@ impl Artifact {
         Ok(())
     }
 
+    /// Stream each tensor in a verified pre-quantized bundle directly from its open FD.
+    pub fn visit_bundle_prequant<E>(
+        &self,
+        bundle: &str,
+        mut map_io: impl FnMut(Error) -> E,
+        f: impl FnMut(&str, &[usize], PrequantTensorView<'_>) -> std::result::Result<(), E>,
+    ) -> std::result::Result<(), E> {
+        let pq = self
+            .prequant
+            .as_ref()
+            .filter(|p| p.covers_bundle(bundle))
+            .ok_or_else(|| {
+                map_io(invalid(format!(
+                    "bundle {bundle} is not backed by a prequant sidecar"
+                )))
+            })?;
+        pq.visit_bundle(bundle, map_io, f)
+    }
+
     /// Release a validated payload when no longer needed; subsequent access fails.
     pub fn release_file(&mut self, name: &str) -> Result<()> {
+        if let Some(pq) = self.prequant.as_mut()
+            && pq.remove_bundle(name)
+        {
+            if pq.is_empty() {
+                self.prequant = None;
+            }
+            return Ok(());
+        }
         if self.streaming.remove(name).is_some() {
             return Ok(());
         }

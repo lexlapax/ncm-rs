@@ -5,7 +5,9 @@ use mlx_rs::{
     ops::indexing::{ArrayIndex, TryIndexOp},
     with_stream,
 };
-use ncm_core::{CodecBackend, ComputePrecision, Error, Result, WeightBackend};
+use ncm_core::{
+    CodecBackend, ComputePrecision, Error, PrequantFormat, PrequantPayload, Result, WeightBackend,
+};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 // PyTorch uses an inner-dimension Sklansky scan for multiple rows. Its
 // single-row CUDA path uses CUB instead; retain MLX's scan for that case.
@@ -248,6 +250,46 @@ struct MlxQuantized {
     group_size: i32,
 }
 
+/// Raw little-endian byte buffers for a group-64 affine MLX quantized linear weight.
+pub struct MlxQuantizedRaw {
+    pub weights_u32: Vec<u8>,
+    pub weights_shape: Vec<usize>,
+    pub scales_bf16: Vec<u8>,
+    pub scales_shape: Vec<usize>,
+    pub biases_bf16: Vec<u8>,
+    pub biases_shape: Vec<usize>,
+}
+
+fn raw_bf16_array(bytes: &[u8], shape: &[usize]) -> Result<Array> {
+    if !bytes.len().is_multiple_of(2) {
+        return Err(Error::Weights("invalid BF16 byte length".into()));
+    }
+    let u16s: Vec<u16> = bytes
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|&c| u16::from_le_bytes(c))
+        .collect();
+    let dims = upload_shape(shape, u16s.len())?;
+    Array::from_slice(&u16s, &dims)
+        .view_dtype(Dtype::Bfloat16)
+        .map_err(error)
+}
+
+fn raw_u32_array(bytes: &[u8], shape: &[usize]) -> Result<Array> {
+    if !bytes.len().is_multiple_of(4) {
+        return Err(Error::Weights("invalid U32 byte length".into()));
+    }
+    let u32s: Vec<u32> = bytes
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|&c| u32::from_le_bytes(c))
+        .collect();
+    let dims = upload_shape(shape, u32s.len())?;
+    Ok(Array::from_slice(&u32s, &dims))
+}
+
 /// Opaque immutable array: callers cannot inject foreign-device graphs or mutate storage.
 #[derive(Clone)]
 pub struct MlxTensor(Array, Option<Box<MlxQuantized>>);
@@ -392,6 +434,85 @@ impl MlxBackend {
                 self.cast_from_f32(y)
             }
         }
+    }
+    /// Quantize a qualifying 2D linear projection weight into exact raw MLX group-64 affine
+    /// buffers `(weights: U32, scales: BF16, biases: BF16)` matching `upload_linear_weight_f32`.
+    /// Returns `Ok(None)` when the weight does not qualify (caller stores it in BF16 instead).
+    pub fn quantize_linear_raw(
+        &self,
+        values: &[f32],
+        shape: &[usize],
+    ) -> Result<Option<MlxQuantizedRaw>> {
+        let bits = match self.precision {
+            ComputePrecision::Q8 => 8i32,
+            ComputePrecision::Q4 => 4i32,
+            other => {
+                return Err(Error::Input(format!(
+                    "MLX quantization requires q8 or q4 precision, got {other}"
+                )));
+            }
+        };
+        let &[out_dim, in_dim] = shape else {
+            return Ok(None);
+        };
+        if out_dim == 0
+            || in_dim == 0
+            || !in_dim.is_multiple_of(64)
+            || values.iter().any(|&v| !v.is_finite())
+        {
+            return Ok(None);
+        }
+        let dims = upload_shape(shape, values.len())?;
+        with_stream(&self.stream, || -> ops::Result<MlxQuantizedRaw> {
+            let arr = self.cast_from_f32(Array::from_slice(values, &dims))?;
+            let (weights, scales, biases) = mlx_rs::ops::quantize(
+                &arr,
+                mlx_rs::ops::QuantizeOptions {
+                    group_size: Some(64),
+                    bits: Some(bits),
+                    ..Default::default()
+                },
+            )?;
+            let biases = biases.ok_or("expected affine quantization biases")?;
+            let w_shape: Vec<usize> = weights.shape().iter().map(|&d| d as usize).collect();
+            let s_shape: Vec<usize> = scales.shape().iter().map(|&d| d as usize).collect();
+            let b_shape: Vec<usize> = biases.shape().iter().map(|&d| d as usize).collect();
+            let w_flat = weights.reshape(&[-1])?.contiguous()?;
+            let s_flat = scales
+                .view_dtype(Dtype::Uint16)?
+                .reshape(&[-1])?
+                .contiguous()?;
+            let b_flat = biases
+                .view_dtype(Dtype::Uint16)?
+                .reshape(&[-1])?
+                .contiguous()?;
+            mlx_rs::transforms::eval([&w_flat, &s_flat, &b_flat])?;
+            let w_slice = w_flat.try_as_slice::<u32>()?;
+            let s_slice = s_flat.try_as_slice::<u16>()?;
+            let b_slice = b_flat.try_as_slice::<u16>()?;
+            let mut weights_u32 = Vec::with_capacity(w_slice.len() * 4);
+            for &v in w_slice {
+                weights_u32.extend_from_slice(&v.to_le_bytes());
+            }
+            let mut scales_bf16 = Vec::with_capacity(s_slice.len() * 2);
+            for &v in s_slice {
+                scales_bf16.extend_from_slice(&v.to_le_bytes());
+            }
+            let mut biases_bf16 = Vec::with_capacity(b_slice.len() * 2);
+            for &v in b_slice {
+                biases_bf16.extend_from_slice(&v.to_le_bytes());
+            }
+            Ok(MlxQuantizedRaw {
+                weights_u32,
+                weights_shape: w_shape,
+                scales_bf16,
+                scales_shape: s_shape,
+                biases_bf16,
+                biases_shape: b_shape,
+            })
+        })
+        .map(Some)
+        .map_err(error)
     }
     /// Synchronously materialize a single MLX tensor without copying to host.
     pub fn eval_tensor(&self, x: &MlxTensor) -> Result<()> {
@@ -675,6 +796,106 @@ impl WeightBackend for MlxBackend {
             return Ok(MlxTensor(sentinel.0, Some(Box::new(q))));
         }
         self.upload_f32(values, shape)
+    }
+    fn prequant_format(&self) -> Option<PrequantFormat> {
+        if self.precision.is_quantized() {
+            Some(PrequantFormat::Mlx)
+        } else {
+            None
+        }
+    }
+    fn upload_prequant(&self, payload: PrequantPayload<'_>, shape: &[usize]) -> Result<MlxTensor> {
+        match payload {
+            PrequantPayload::Bf16(bytes) => {
+                if self.float_dtype() != Dtype::Bfloat16 {
+                    return Err(Error::Backend(
+                        "BF16 prequant payload requires BF16/Q8/Q4 precision".into(),
+                    ));
+                }
+                let arr = with_stream(&self.stream, || -> ops::Result<Array> {
+                    let a = raw_bf16_array(bytes, shape).map_err(|e| e.to_string())?;
+                    a.eval()?;
+                    Ok(a)
+                })
+                .map_err(error)?;
+                Ok(MlxTensor::dense(arr))
+            }
+            PrequantPayload::F32(bytes) => {
+                if !bytes.len().is_multiple_of(4) {
+                    return Err(Error::Weights("invalid F32 byte length".into()));
+                }
+                let vals: Vec<f32> = bytes
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
+                    .map(|&c| f32::from_le_bytes(c))
+                    .collect();
+                self.upload_f32(&vals, shape)
+            }
+            PrequantPayload::MlxAffine {
+                precision,
+                group_size,
+                weights_u32,
+                weights_shape,
+                scales_bf16,
+                scales_shape,
+                biases_bf16,
+                biases_shape,
+            } => {
+                if precision != self.precision {
+                    return Err(Error::Backend(format!(
+                        "prequant precision {precision} does not match backend precision {}",
+                        self.precision
+                    )));
+                }
+                let bits = match precision {
+                    ComputePrecision::Q8 => 8i32,
+                    ComputePrecision::Q4 => 4i32,
+                    other => {
+                        return Err(Error::Backend(format!(
+                            "MLX affine prequant unsupported for {other}"
+                        )));
+                    }
+                };
+                if group_size != 64 {
+                    return Err(Error::Weights(format!(
+                        "unsupported MLX prequant group_size {group_size}; expected 64"
+                    )));
+                }
+                let &[out_dim, in_dim] = shape else {
+                    return Err(Error::Weights(
+                        "MLX prequant linear weight must be rank 2".into(),
+                    ));
+                };
+                let dims = [
+                    i32::try_from(out_dim).map_err(error)?,
+                    i32::try_from(in_dim).map_err(error)?,
+                ];
+                let q = with_stream(&self.stream, || -> ops::Result<MlxQuantized> {
+                    let weights =
+                        raw_u32_array(weights_u32, weights_shape).map_err(|e| e.to_string())?;
+                    let scales =
+                        raw_bf16_array(scales_bf16, scales_shape).map_err(|e| e.to_string())?;
+                    let biases =
+                        raw_bf16_array(biases_bf16, biases_shape).map_err(|e| e.to_string())?;
+                    mlx_rs::transforms::eval([&weights, &scales, &biases])?;
+                    Ok(MlxQuantized {
+                        weights,
+                        scales,
+                        biases,
+                        shape: dims,
+                        bits,
+                        group_size: 64,
+                    })
+                })
+                .map_err(error)?;
+                let sentinel = self.array_op(&[], || self.cast_from_f32(Array::from_f32(0.0)))?;
+                Ok(MlxTensor(sentinel.0, Some(Box::new(q))))
+            }
+            PrequantPayload::GgmlBytes { .. } => Err(Error::Backend(
+                "GGML prequant payload is unsupported on the Metal/MLX backend".into(),
+            )),
+        }
     }
 }
 impl CodecBackend for MlxBackend {

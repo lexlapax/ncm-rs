@@ -1304,7 +1304,7 @@ mod worker {
         device: &str,
         precision: ComputePrecision,
     ) -> std::result::Result<LoadedModel, EngineError> {
-        let artifact = Artifact::load_inference_streaming(&entry.path)
+        let artifact = crate::quantize::load_artifact_for_device(&entry.path, device, precision)
             .map_err(|e| EngineError::Internal(format!("artifact load failed: {e}")))?;
         match device {
             #[cfg(feature = "cpu")]

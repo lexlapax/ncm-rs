@@ -7,6 +7,7 @@ Usage:
   ncm inspect ARTIFACT
   ncm list [--models-dir DIR] [--model NAME=PATH]... [--json]
   ncm pull (--list | MODEL) [OPTIONS]
+  ncm quantize ARTIFACT --precision q8|q4 --device cuda|mlx [--force]
   ncm run MODEL [PROMPT] [OPTIONS]
   ncm serve [OPTIONS]
   ncm train (--config FILE | --init-from ARTIFACT) --data FILE --output DIR --device DEV [OPTIONS]
@@ -14,7 +15,7 @@ Usage:
   ncm generate|reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]
   ncm sample-tinystories|sample-xsum|sample-wmt14|sample-lm1b ...
 
-Run `ncm <command> --help` (`sample`, `serve`, `run`, `pull`, `train`, `list`) for details.
+Run `ncm <command> --help` (`sample`, `serve`, `run`, `pull`, `quantize`, `train`, `list`) for details.
 Profile-specific sample commands remain available. The XSum alias requires explicit
 experimental flags for positive CFG and stochastic sampling. WMT14 CFG scales other
 than 0 or 1 require --experimental-cfg-wmt14 on both commands.
@@ -71,6 +72,9 @@ pub(super) fn requested(args: &[String]) -> Option<&'static str> {
         }
         [_, command, flag] if command == "pull" && (flag == "--help" || flag == "-h") => {
             Some(crate::serve::PULL_HELP)
+        }
+        [_, command, flag] if command == "quantize" && (flag == "--help" || flag == "-h") => {
+            Some(crate::quantize::QUANTIZE_HELP)
         }
         [_, command, flag] if command == "train" && (flag == "--help" || flag == "-h") => {
             Some(crate::train::TRAIN_HELP)

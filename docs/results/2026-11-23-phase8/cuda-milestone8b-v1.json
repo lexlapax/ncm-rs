@@ -1,0 +1,163 @@
+{
+  "platform": "cuda",
+  "gpu": "NVIDIA GeForce RTX 3060 Ti (8 GiB)",
+  "format": "ggml",
+  "models": {
+    "tinystories-15k-ema-v1": {
+      "q8": {
+        "quantize": {
+          "artifact": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1",
+          "compression_ratio": 3.06,
+          "elapsed_ms": 924.2,
+          "file_sha256": "a7267b6f64e27c47d58e7ae4658aa6e6ce84cf505f112159521b1b086071c3b5",
+          "format": "ggml",
+          "manifest_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-ggml-q8.json",
+          "manifest_sha256": "a044b20c15c85a352d2760068e477df17b2deb6b240e10dc008d1960263c9b0e",
+          "parent_weight_bytes": 501837992,
+          "precision": "q8",
+          "quantized_tensors": 65,
+          "sidecar_bytes": 164210360,
+          "total_tensors": 267,
+          "weights_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-ggml-q8.safetensors"
+        },
+        "output_sha256": "c155d161c62823847c7d483ed4ab1d123238fab6b7cd5b58337bc30b57d9cb27",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 199.21,
+          "weight_upload_ms": 426.54,
+          "total_load_ms": 625.75,
+          "infer_median_ms": 36.35,
+          "vram_after_upload_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 89.66,
+          "weight_upload_ms": 40.86,
+          "total_load_ms": 130.51,
+          "infer_median_ms": 36.34,
+          "vram_after_upload_mib": null
+        },
+        "load_speedup": 4.79
+      },
+      "q4": {
+        "quantize": {
+          "artifact": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1",
+          "compression_ratio": 4.27,
+          "elapsed_ms": 782.0,
+          "file_sha256": "1d0e0aedcd5973a4317d8d9019129579fe56b912f24f853c2aa6a3cd96dd88a2",
+          "format": "ggml",
+          "manifest_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-ggml-q4.json",
+          "manifest_sha256": "a044b20c15c85a352d2760068e477df17b2deb6b240e10dc008d1960263c9b0e",
+          "parent_weight_bytes": 501837992,
+          "precision": "q4",
+          "quantized_tensors": 65,
+          "sidecar_bytes": 117515912,
+          "total_tensors": 267,
+          "weights_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-ggml-q4.safetensors"
+        },
+        "output_sha256": "c320f441e466a263913f45446dc59f7f112dab0b1fed25b16dce43abbcc35dc2",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 205.42,
+          "weight_upload_ms": 319.49,
+          "total_load_ms": 524.92,
+          "infer_median_ms": 35.65,
+          "vram_after_upload_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 66.46,
+          "weight_upload_ms": 33.65,
+          "total_load_ms": 100.11,
+          "infer_median_ms": 36.22,
+          "vram_after_upload_mib": null
+        },
+        "load_speedup": 5.24
+      },
+      "fp32_unchanged_with_sidecars": true
+    },
+    "lm1b-large-inference-v1": {
+      "q8": {
+        "quantize": {
+          "artifact": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1",
+          "compression_ratio": 3.41,
+          "elapsed_ms": 6158.1,
+          "file_sha256": "24e8fdabe4117d27fc6dd0d9b6a2f4e6b2073768a369aa29166b3e0236389867",
+          "format": "ggml",
+          "manifest_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-ggml-q8.json",
+          "manifest_sha256": "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+          "parent_weight_bytes": 3346544616,
+          "precision": "q8",
+          "quantized_tensors": 163,
+          "sidecar_bytes": 982678488,
+          "total_tensors": 649,
+          "weights_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-ggml-q8.safetensors"
+        },
+        "output_sha256": "7a0c05073702d489df6a21bf71c86c75b75349e0df94826f3f4fd8c749e4c961",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 1362.15,
+          "weight_upload_ms": 3298.58,
+          "total_load_ms": 4660.72,
+          "infer_median_ms": 142.65,
+          "vram_after_upload_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 496.11,
+          "weight_upload_ms": 163.55,
+          "total_load_ms": 659.66,
+          "infer_median_ms": 142.84,
+          "vram_after_upload_mib": null
+        },
+        "load_speedup": 7.07
+      },
+      "q4": {
+        "quantize": {
+          "artifact": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1",
+          "compression_ratio": 5.45,
+          "elapsed_ms": 5130.8,
+          "file_sha256": "0b8449be1ec3842cd2b928bc254a0736ce7991b675821940284d01309a156a5b",
+          "format": "ggml",
+          "manifest_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-ggml-q4.json",
+          "manifest_sha256": "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+          "parent_weight_bytes": 3346544616,
+          "precision": "q4",
+          "quantized_tensors": 163,
+          "sidecar_bytes": 613895088,
+          "total_tensors": 649,
+          "weights_path": "/home/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-ggml-q4.safetensors"
+        },
+        "output_sha256": "4c04c1396d8be29ff306452a7ffad81045a4f2f297a692d1c9bca75d3d32939e",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 1356.36,
+          "weight_upload_ms": 2504.87,
+          "total_load_ms": 3861.24,
+          "infer_median_ms": 137.9,
+          "vram_after_upload_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 310.72,
+          "weight_upload_ms": 107.73,
+          "total_load_ms": 418.45,
+          "infer_median_ms": 136.47,
+          "vram_after_upload_mib": null
+        },
+        "load_speedup": 9.23
+      }
+    }
+  },
+  "negative_tests": {
+    "weight_1byte_flip_rejected": true,
+    "weight_flip_error": "ncm: invalid artifact: prequant file SHA-256 mismatch: prequant-ggml-q8.safetensors",
+    "stale_manifest_sha256_rejected": true,
+    "stale_manifest_error": "ncm: invalid artifact: prequant sidecar manifest_sha256 mismatch (stale or tampered prequant-ggml-q8.json)",
+    "incomplete_sidecar_rejected": true,
+    "incomplete_sidecar_error": "ncm: invalid artifact: incomplete prequant sidecar: both prequant-ggml-q8.json and prequant-ggml-q8.safetensors must exist",
+    "duplicate_without_force_rejected": true
+  },
+  "serve_and_run": {
+    "model": "tinystories-15k-ema-v1",
+    "precision": "q8",
+    "ncm_run_and_serve_match": true,
+    "output_sha256": "a9678de312612267688bfeec2804fd1441941a0daa43af12b4f40b6d0b43586d"
+  }
+}

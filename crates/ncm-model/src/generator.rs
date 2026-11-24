@@ -223,18 +223,13 @@ impl<B: WeightBackend> GeneratorWeights<B> {
         )?;
         let tensor_count = shapes.len();
         let mut weights = BTreeMap::new();
-        artifact.visit_bundle_tensors(
+        crate::stream_bundle_weights(
+            &backend,
+            artifact,
             "generator.safetensors",
-            |e| Error::Weights(e.to_string()),
-            |name, shape, _dtype, data| {
-                if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                    return Ok(());
-                }
-                let values = upload_values(data)?;
-                weights.insert(
-                    name.to_owned(),
-                    crate::upload_named_weight(&backend, name, &values, shape)?,
-                );
+            |_, _| Ok(false),
+            |name, tensor| {
+                weights.insert(name.to_owned(), tensor);
                 Ok(())
             },
         )?;
@@ -946,17 +941,13 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
 
     fn from_checked_parts(backend: B, artifact: &Artifact, codec: crate::Codec<B>) -> Result<Self> {
         let mut weights = BTreeMap::new();
-        artifact.visit_bundle_tensors(
+        crate::stream_bundle_weights(
+            &backend,
+            artifact,
             "generator.safetensors",
-            |e| Error::Weights(e.to_string()),
-            |name, shape, _dtype, data| {
-                if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                    return Ok(());
-                }
-                weights.insert(
-                    name.to_owned(),
-                    crate::upload_named_weight(&backend, name, &upload_values(data)?, shape)?,
-                );
+            |_, _| Ok(false),
+            |name, tensor| {
+                weights.insert(name.to_owned(), tensor);
                 Ok(())
             },
         )?;
@@ -2090,13 +2081,11 @@ impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
         let codec = crate::Codec::from_artifact(backend.clone(), artifact)?;
         let mut weights = BTreeMap::new();
         let mut raw_scales = [None::<f32>; 11];
-        artifact.visit_bundle_tensors(
+        crate::stream_bundle_weights(
+            &backend,
+            artifact,
             "generator.safetensors",
-            |e| Error::Weights(e.to_string()),
-            |name, shape, _dtype, data| {
-                if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                    return Ok(());
-                }
+            |name, data| {
                 if let Some(rest) = name
                     .strip_prefix("lm_heads.")
                     .and_then(|s| s.strip_suffix(".log_inv_T"))
@@ -2116,13 +2105,12 @@ impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
                         return Err(Error::Weights("invalid head temperature".into()));
                     }
                     *slot = Some(scale);
-                    return Ok(());
+                    return Ok(true);
                 }
-                let values = upload_values(data)?;
-                weights.insert(
-                    name.to_owned(),
-                    crate::upload_named_weight(&backend, name, &values, shape)?,
-                );
+                Ok(false)
+            },
+            |name, tensor| {
+                weights.insert(name.to_owned(), tensor);
                 Ok(())
             },
         )?;
@@ -2487,13 +2475,11 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
     ) -> Result<Self> {
         let mut raw_scales = [None::<f32>; 9];
         let mut weights = BTreeMap::new();
-        artifact.visit_bundle_tensors(
+        crate::stream_bundle_weights(
+            &backend,
+            artifact,
             "generator.safetensors",
-            |e| Error::Weights(e.to_string()),
-            |name, shape, _dtype, data| {
-                if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                    return Ok(());
-                }
+            |name, data| {
                 if let Some(rest) = name
                     .strip_prefix("lm_heads.")
                     .and_then(|s| s.strip_suffix(".log_inv_T"))
@@ -2508,13 +2494,12 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
                         .try_into()
                         .map_err(|_| Error::Weights("invalid head scale".into()))?;
                     *slot = Some(f32::from_le_bytes(raw).exp());
-                    return Ok(());
+                    return Ok(true);
                 }
-                let values = upload_values(data)?;
-                weights.insert(
-                    name.to_owned(),
-                    crate::upload_named_weight(&backend, name, &values, shape)?,
-                );
+                Ok(false)
+            },
+            |name, tensor| {
+                weights.insert(name.to_owned(), tensor);
                 Ok(())
             },
         )?;
@@ -3652,17 +3637,13 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
         }
         let codec = crate::Codec::from_lm1b_small_artifact_experimental(backend.clone(), artifact)?;
         let mut weights = BTreeMap::new();
-        artifact.visit_bundle_tensors(
+        crate::stream_bundle_weights(
+            &backend,
+            artifact,
             "generator.safetensors",
-            |e| Error::Weights(e.to_string()),
-            |name, shape, _dtype, data| {
-                if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                    return Ok(());
-                }
-                weights.insert(
-                    name.to_owned(),
-                    crate::upload_named_weight(&backend, name, &upload_values(data)?, shape)?,
-                );
+            |_, _| Ok(false),
+            |name, tensor| {
+                weights.insert(name.to_owned(), tensor);
                 Ok(())
             },
         )?;

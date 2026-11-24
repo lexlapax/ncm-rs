@@ -78,18 +78,13 @@ impl<B: GeneratorBackend + Clone> LocalNcmModel<B> {
         // Upload generator tensors (streaming or in-memory).
         let mut weights = BTreeMap::new();
         if artifact.is_streaming_bundle("generator.safetensors") {
-            artifact.visit_bundle_tensors(
+            crate::stream_bundle_weights(
+                &backend,
+                artifact,
                 "generator.safetensors",
-                |e| Error::Weights(e.to_string()),
-                |name, shape, _dtype, data| {
-                    if name == "lvl_1L" || name == "attn_mask_for_masking" {
-                        return Ok(());
-                    }
-                    let values = upload_values(data)?;
-                    weights.insert(
-                        name.to_owned(),
-                        crate::upload_named_weight(&backend, name, &values, shape)?,
-                    );
+                |_, _| Ok(false),
+                |name, tensor| {
+                    weights.insert(name.to_owned(), tensor);
                     Ok(())
                 },
             )?;

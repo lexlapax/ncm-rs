@@ -1,5 +1,5 @@
 use candle_core::{DType, Device, Tensor, TensorId, quantized::QMatMul};
-use ncm_core::{ComputePrecision, Error, Result, WeightBackend};
+use ncm_core::{ComputePrecision, Error, PrequantFormat, PrequantPayload, Result, WeightBackend};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
@@ -472,6 +472,123 @@ impl WeightBackend for CandleBackend {
         }
         self.upload_f32(values, shape)
     }
+    fn prequant_format(&self) -> Option<PrequantFormat> {
+        if self.precision.is_quantized() && self.device.is_cuda() {
+            Some(PrequantFormat::Ggml)
+        } else {
+            None
+        }
+    }
+    fn upload_prequant(&self, payload: PrequantPayload<'_>, shape: &[usize]) -> Result<Tensor> {
+        match payload {
+            PrequantPayload::Bf16(bytes) => {
+                if self.float_dtype() != DType::BF16 {
+                    return Err(Error::Backend(
+                        "BF16 prequant payload requires BF16/Q8/Q4 backend precision".into(),
+                    ));
+                }
+                Tensor::from_raw_buffer(bytes, DType::BF16, shape, &self.device)
+                    .map_err(|e| Error::Backend(e.to_string()))
+            }
+            PrequantPayload::F32(bytes) => {
+                let t = Tensor::from_raw_buffer(bytes, DType::F32, shape, &self.device)
+                    .map_err(|e| Error::Backend(e.to_string()))?;
+                if self.precision == ComputePrecision::Fp32 {
+                    Ok(t)
+                } else {
+                    t.to_dtype(self.float_dtype())
+                        .map_err(|e| Error::Backend(e.to_string()))
+                }
+            }
+            PrequantPayload::GgmlBytes { precision, bytes } => {
+                if precision != self.precision {
+                    return Err(Error::Backend(format!(
+                        "prequant precision {precision} does not match backend precision {}",
+                        self.precision
+                    )));
+                }
+                let qdtype = match precision {
+                    ComputePrecision::Q8 => candle_core::quantized::GgmlDType::Q8_0,
+                    ComputePrecision::Q4 => candle_core::quantized::GgmlDType::Q4_0,
+                    other => {
+                        return Err(Error::Backend(format!(
+                            "GGML prequant payload unsupported for precision {other}"
+                        )));
+                    }
+                };
+                let &[out_dim, in_dim] = shape else {
+                    return Err(Error::Weights(
+                        "GGML prequant linear weight must be rank 2".into(),
+                    ));
+                };
+                let qstorage = candle_core::quantized::QStorage::from_data(
+                    std::borrow::Cow::Borrowed(bytes),
+                    &self.device,
+                    qdtype,
+                )
+                .map_err(|e| Error::Backend(e.to_string()))?;
+                let qtensor = candle_core::quantized::QTensor::new(qstorage, shape)
+                    .map_err(|e| Error::Backend(e.to_string()))?;
+                let matmul = Arc::new(
+                    QMatMul::from_qtensor(qtensor).map_err(|e| Error::Backend(e.to_string()))?,
+                );
+                let sentinel = Tensor::zeros((1,), self.float_dtype(), &self.device)
+                    .map_err(|e| Error::Backend(e.to_string()))?;
+                self.quantized_weights
+                    .lock()
+                    .map_err(|_| Error::Backend("quantized weights lock poisoned".into()))?
+                    .insert(
+                        sentinel.id(),
+                        QuantizedWeight {
+                            shape: [out_dim, in_dim],
+                            matmul,
+                        },
+                    );
+                Ok(sentinel)
+            }
+            PrequantPayload::MlxAffine { .. } => Err(Error::Backend(
+                "MLX affine prequant payload is unsupported on the CUDA backend".into(),
+            )),
+        }
+    }
+}
+
+/// Quantize a qualifying 2D linear projection weight into exact raw GGML `Q8_0` or `Q4_0` bytes
+/// matching [`CandleBackend::upload_linear_weight_f32`]. Returns `Ok(None)` when the weight does
+/// not qualify for GGML quantization (caller stores it in BF16 instead).
+pub fn quantize_linear_ggml_bytes(
+    values: &[f32],
+    shape: &[usize],
+    precision: ComputePrecision,
+) -> Result<Option<Vec<u8>>> {
+    let qdtype = match precision {
+        ComputePrecision::Q8 => candle_core::quantized::GgmlDType::Q8_0,
+        ComputePrecision::Q4 => candle_core::quantized::GgmlDType::Q4_0,
+        other => {
+            return Err(Error::Input(format!(
+                "GGML quantization requires q8 or q4 precision, got {other}"
+            )));
+        }
+    };
+    let &[out_dim, in_dim] = shape else {
+        return Ok(None);
+    };
+    if out_dim == 0
+        || in_dim == 0
+        || !in_dim.is_multiple_of(32)
+        || values.iter().any(|&v| !v.is_finite() || v.abs() > 65_504.0)
+    {
+        return Ok(None);
+    }
+    let cpu_t = Tensor::from_slice(values, shape, &Device::Cpu)
+        .map_err(|e| Error::Backend(e.to_string()))?;
+    let qtensor = candle_core::quantized::QTensor::quantize(&cpu_t, qdtype)
+        .map_err(|e| Error::Backend(e.to_string()))?;
+    let bytes = qtensor
+        .data()
+        .map_err(|e| Error::Backend(e.to_string()))?
+        .into_owned();
+    Ok(Some(bytes))
 }
 
 #[cfg(test)]

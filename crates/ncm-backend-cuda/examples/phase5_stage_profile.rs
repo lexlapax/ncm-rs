@@ -213,6 +213,18 @@ fn load_wmt14_inputs(path: &str, batch: usize) -> Result<Vec<u32>> {
     Ok(out)
 }
 
+fn load_artifact(path: &str, precision: ncm_core::ComputePrecision) -> Result<Artifact> {
+    if precision.is_quantized() {
+        Ok(Artifact::load_inference_with_prequant(
+            path,
+            "ggml",
+            precision.as_str(),
+        )?)
+    } else {
+        Ok(Artifact::load_inference_streaming(path)?)
+    }
+}
+
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     if !(4..=5).contains(&args.len()) {
@@ -236,6 +248,7 @@ fn main() -> Result<()> {
     let mut uninst_ms = Vec::with_capacity(uninst_trials);
     let mut stage_runs: Vec<Vec<(String, f64)>> = Vec::with_capacity(stage_trials);
     let (
+        prequant_loaded,
         artifact_load_ms,
         weight_upload_ms,
         mem_after_artifact,
@@ -249,7 +262,8 @@ fn main() -> Result<()> {
             let tokens = load_sudoku_inputs(extra.ok_or("missing sudoku input")?, batch)?;
             let backend = CandleBackend::cuda(0)?.with_precision(precision)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference_streaming(artifact_path)?;
+            let artifact = load_artifact(artifact_path, precision)?;
+            prequant_loaded = artifact.has_prequant();
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -293,7 +307,8 @@ fn main() -> Result<()> {
             let prefixes = vec![0_u32; batch];
             let backend = CandleBackend::cuda_cudnn(0)?.with_precision(precision)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference_streaming(artifact_path)?;
+            let artifact = load_artifact(artifact_path, precision)?;
+            prequant_loaded = artifact.has_prequant();
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -337,7 +352,8 @@ fn main() -> Result<()> {
             let prefixes = load_xsum_inputs(extra.ok_or("missing xsum input")?, batch)?;
             let backend = CandleBackend::cuda_cudnn(0)?.with_precision(precision)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference_streaming(artifact_path)?;
+            let artifact = load_artifact(artifact_path, precision)?;
+            prequant_loaded = artifact.has_prequant();
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -379,7 +395,8 @@ fn main() -> Result<()> {
             let backend =
                 CandleBackend::cuda_wmt14_fast_argmax_experimental(0)?.with_precision(precision)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference_streaming(artifact_path)?;
+            let artifact = load_artifact(artifact_path, precision)?;
+            prequant_loaded = artifact.has_prequant();
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -426,7 +443,8 @@ fn main() -> Result<()> {
             let backend =
                 CandleBackend::cuda_lm1b_efficient_experimental(0)?.with_precision(precision)?;
             let t0 = Instant::now();
-            let artifact = Artifact::load_inference_streaming(artifact_path)?;
+            let artifact = load_artifact(artifact_path, precision)?;
+            prequant_loaded = artifact.has_prequant();
             artifact_load_ms = t0.elapsed().as_secs_f64() * 1000.0;
             mem_after_artifact = snap(&backend)?;
             let t1 = Instant::now();
@@ -478,6 +496,7 @@ fn main() -> Result<()> {
             "profile": profile,
             "batch": batch,
             "model_load": {
+                "prequant_loaded": prequant_loaded,
                 "artifact_load_ms": artifact_load_ms,
                 "weight_upload_ms": weight_upload_ms,
                 "total_ms": artifact_load_ms + weight_upload_ms,

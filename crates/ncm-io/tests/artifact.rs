@@ -865,3 +865,130 @@ fn local_ncm_v1_profile_admits_minimal_and_optional_files_and_rejects_extras() {
     save(dir.path(), &manifest);
     assert!(Artifact::load_inference(dir.path()).is_err());
 }
+
+#[cfg(unix)]
+#[test]
+fn prequant_sidecar_roundtrip_fallback_and_tamper_rejection() {
+    use ncm_io::{
+        PrequantKind, PrequantTensorView, PrequantWriteEntry, f32_bytes_to_bf16_bytes,
+        write_prequant_sidecar,
+    };
+
+    let (dir, manifest) = fixture();
+
+    // 1. Absent sidecar falls back cleanly to standard streaming load.
+    let fallback = Artifact::load_inference_with_prequant(dir.path(), "ggml", "q8").unwrap();
+    assert!(!fallback.has_prequant());
+    assert!(fallback.is_streaming_bundle("codec.safetensors"));
+
+    // 2. Write valid prequant sidecar for codec + generator.
+    let mut entries = Vec::new();
+    for bundle in ["codec.safetensors", "generator.safetensors"] {
+        fallback
+            .visit_bundle_tensors(
+                bundle,
+                |e| e,
+                |name, shape, dtype, data| {
+                    let key = format!("{bundle}/{name}");
+                    let (kind, st_dtype, st_shape, bytes) = match dtype {
+                        TensorDtype::I64 => (
+                            PrequantKind::I64,
+                            safetensors::Dtype::I64,
+                            shape.to_vec(),
+                            data.to_vec(),
+                        ),
+                        TensorDtype::F32 if name == "attn_mask_for_masking" => (
+                            PrequantKind::F32,
+                            safetensors::Dtype::F32,
+                            shape.to_vec(),
+                            data.to_vec(),
+                        ),
+                        TensorDtype::F32 => {
+                            let bf = f32_bytes_to_bf16_bytes(data)?;
+                            (
+                                PrequantKind::Bf16,
+                                safetensors::Dtype::BF16,
+                                shape.to_vec(),
+                                bf,
+                            )
+                        }
+                    };
+                    entries.push(PrequantWriteEntry {
+                        bundle: bundle.to_owned(),
+                        name: name.to_owned(),
+                        shape: shape.to_vec(),
+                        kind,
+                        parts: vec![(key, st_dtype, st_shape, bytes)],
+                    });
+                    Ok(())
+                },
+            )
+            .unwrap();
+    }
+    let summary = write_prequant_sidecar(dir.path(), "ggml", "q8", entries, false).unwrap();
+    assert!(summary.file_bytes > 0);
+    assert!(summary.manifest_path.is_file());
+    assert!(summary.weights_path.is_file());
+
+    // Parent streaming load remains completely unaffected.
+    assert!(
+        !Artifact::load_inference_streaming(dir.path())
+            .unwrap()
+            .has_prequant()
+    );
+
+    // Loading with prequant picks up the verified sidecar.
+    let loaded = Artifact::load_inference_with_prequant(dir.path(), "ggml", "q8").unwrap();
+    assert!(loaded.has_prequant());
+    assert!(loaded.has_prequant_bundle("codec.safetensors"));
+    assert!(loaded.has_prequant_bundle("generator.safetensors"));
+    let mut visited = 0usize;
+    loaded
+        .visit_bundle_prequant(
+            "generator.safetensors",
+            |e| e,
+            |_name, _shape, view| {
+                assert!(matches!(
+                    view,
+                    PrequantTensorView::Bf16(_)
+                        | PrequantTensorView::F32(_)
+                        | PrequantTensorView::I64(_)
+                ));
+                visited += 1;
+                Ok(())
+            },
+        )
+        .unwrap();
+    assert_eq!(visited, manifest.tensors["generator.safetensors"].len());
+
+    // 3. Tampering 1 byte in weights safetensors must fail closed (never fall back).
+    let weights_path = dir.path().join("prequant-ggml-q8.safetensors");
+    let orig_weights = fs::read(&weights_path).unwrap();
+    let mut tampered = orig_weights.clone();
+    *tampered.last_mut().unwrap() ^= 0xff;
+    fs::write(&weights_path, &tampered).unwrap();
+    assert!(Artifact::load_inference_with_prequant(dir.path(), "ggml", "q8").is_err());
+    fs::write(&weights_path, &orig_weights).unwrap();
+    assert!(Artifact::load_inference_with_prequant(dir.path(), "ggml", "q8").is_ok());
+
+    // 4. Stale manifest_sha256 (mutated manifest.json whitespace) must fail closed.
+    let manifest_path = dir.path().join("manifest.json");
+    let orig_manifest = fs::read(&manifest_path).unwrap();
+    let mut altered_manifest = orig_manifest.clone();
+    altered_manifest.extend_from_slice(b"\n");
+    fs::write(&manifest_path, &altered_manifest).unwrap();
+    assert!(Artifact::load_inference_with_prequant(dir.path(), "ggml", "q8").is_err());
+    fs::write(&manifest_path, &orig_manifest).unwrap();
+
+    // 5. Incomplete pair (missing .json) must fail closed.
+    let json_path = dir.path().join("prequant-ggml-q8.json");
+    let orig_json = fs::read(&json_path).unwrap();
+    fs::remove_file(&json_path).unwrap();
+    assert!(Artifact::load_inference_with_prequant(dir.path(), "ggml", "q8").is_err());
+    fs::write(&json_path, &orig_json).unwrap();
+
+    // 6. Symlinked sidecar file must fail closed.
+    fs::rename(&weights_path, dir.path().join("real-pq.safetensors")).unwrap();
+    std::os::unix::fs::symlink("real-pq.safetensors", &weights_path).unwrap();
+    assert!(Artifact::load_inference_with_prequant(dir.path(), "ggml", "q8").is_err());
+}

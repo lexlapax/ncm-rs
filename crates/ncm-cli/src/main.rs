@@ -2,6 +2,7 @@
 mod decode;
 mod help;
 mod lm1b;
+mod quantize;
 mod sample;
 mod serve;
 mod train;
@@ -584,6 +585,9 @@ fn main_impl() -> Result<()> {
     if args.get(1).is_some_and(|arg| arg == "train") {
         return train::run_train(&args);
     }
+    if args.get(1).is_some_and(|arg| arg == "quantize") {
+        return quantize::run_quantize(&args);
+    }
     let unified = args.get(1).is_some_and(|arg| arg == "sample");
     let inline_prompt = if unified {
         let (normalized, prompt) = sample::extract_inline_prompt(&args)?;
@@ -653,7 +657,7 @@ fn main_impl() -> Result<()> {
     } else {
         None
     };
-    let artifact = Artifact::load_inference_streaming(&args[2])?;
+    let artifact = quantize::load_artifact_for_device(&args[2], &args[3], precision)?;
     let decoder = if decode || text {
         Some(decode::Decoder::from_artifact(&artifact)?)
     } else {

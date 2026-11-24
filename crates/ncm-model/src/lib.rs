@@ -34,7 +34,7 @@ use ncm_io::Artifact;
 use safetensors::{Dtype, SafeTensors};
 use serde::{Deserialize, de::IgnoredAny};
 
-pub(crate) fn is_linear_projection_weight(name: &str, shape: &[usize]) -> bool {
+pub fn is_linear_projection_weight(name: &str, shape: &[usize]) -> bool {
     shape.len() == 2
         && name.ends_with(".weight")
         && !name.starts_with("encoder.wte")
@@ -56,6 +56,92 @@ pub(crate) fn upload_named_weight<B: WeightBackend>(
     } else {
         backend.upload_f32(values, shape)
     }
+}
+
+pub(crate) fn stream_bundle_weights<B: WeightBackend>(
+    backend: &B,
+    artifact: &Artifact,
+    bundle: &str,
+    mut on_special_f32: impl FnMut(&str, &[u8]) -> Result<bool>,
+    mut on_weight: impl FnMut(&str, B::Tensor) -> Result<()>,
+) -> Result<()> {
+    if artifact.has_prequant_bundle(bundle) {
+        return artifact.visit_bundle_prequant(
+            bundle,
+            |e| Error::Weights(e.to_string()),
+            |name, shape, view| {
+                if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                    return Ok(());
+                }
+                if let ncm_io::PrequantTensorView::F32(bytes) = view
+                    && on_special_f32(name, bytes)?
+                {
+                    return Ok(());
+                }
+                let payload = match view {
+                    ncm_io::PrequantTensorView::Bf16(b) => ncm_core::PrequantPayload::Bf16(b),
+                    ncm_io::PrequantTensorView::F32(b) => ncm_core::PrequantPayload::F32(b),
+                    ncm_io::PrequantTensorView::I64(_) => {
+                        return Err(Error::Weights(format!(
+                            "unexpected I64 tensor {bundle}/{name}"
+                        )));
+                    }
+                    ncm_io::PrequantTensorView::GgmlQ8_0(b) => {
+                        ncm_core::PrequantPayload::GgmlBytes {
+                            precision: ncm_core::ComputePrecision::Q8,
+                            bytes: b,
+                        }
+                    }
+                    ncm_io::PrequantTensorView::GgmlQ4_0(b) => {
+                        ncm_core::PrequantPayload::GgmlBytes {
+                            precision: ncm_core::ComputePrecision::Q4,
+                            bytes: b,
+                        }
+                    }
+                    ncm_io::PrequantTensorView::MlxAffine {
+                        bits,
+                        group_size,
+                        weights_u32,
+                        weights_shape,
+                        scales_bf16,
+                        scales_shape,
+                        biases_bf16,
+                        biases_shape,
+                    } => ncm_core::PrequantPayload::MlxAffine {
+                        precision: if bits == 8 {
+                            ncm_core::ComputePrecision::Q8
+                        } else {
+                            ncm_core::ComputePrecision::Q4
+                        },
+                        group_size,
+                        weights_u32,
+                        weights_shape,
+                        scales_bf16,
+                        scales_shape,
+                        biases_bf16,
+                        biases_shape,
+                    },
+                };
+                let tensor = backend.upload_prequant(payload, shape)?;
+                on_weight(name, tensor)
+            },
+        );
+    }
+    artifact.visit_bundle_tensors(
+        bundle,
+        |e| Error::Weights(e.to_string()),
+        |name, shape, _dtype, data| {
+            if name == "lvl_1L" || name == "attn_mask_for_masking" {
+                return Ok(());
+            }
+            if on_special_f32(name, data)? {
+                return Ok(());
+            }
+            let values = upload_values(data)?;
+            let tensor = upload_named_weight(backend, name, &values, shape)?;
+            on_weight(name, tensor)
+        },
+    )
 }
 use std::{borrow::Cow, collections::BTreeMap, sync::OnceLock};
 
@@ -206,15 +292,13 @@ impl<B: WeightBackend> Codec<B> {
             }
         }
         let mut weights = BTreeMap::new();
-        artifact.visit_bundle_tensors(
+        stream_bundle_weights(
+            &backend,
+            artifact,
             "codec.safetensors",
-            |e| Error::Weights(e.to_string()),
-            |name, shape, _dtype, data| {
-                let values = upload_values(data)?;
-                weights.insert(
-                    name.to_owned(),
-                    upload_named_weight(&backend, name, &values, shape)?,
-                );
+            |_, _| Ok(false),
+            |name, tensor| {
+                weights.insert(name.to_owned(), tensor);
                 Ok(())
             },
         )?;

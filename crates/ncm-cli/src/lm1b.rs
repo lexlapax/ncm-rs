@@ -133,7 +133,6 @@ pub(super) fn sample(
 mod backend {
     use super::Result;
     use ncm_core::GeneratorBackend;
-    use ncm_io::Artifact;
     use ncm_model::{Lm1bSmallTeacher, lm1b_small_reference_rope};
     use ncm_tokenizers::TextTokenizer;
     use std::{fs, io::Read, path::Path};
@@ -184,6 +183,8 @@ mod backend {
                     .with_precision(precision)
             },
             artifact,
+            "cuda-cudnn",
+            precision,
             input,
             seed,
             reference_rope,
@@ -211,6 +212,8 @@ mod backend {
         sample(
             || ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision),
             artifact,
+            "mlx",
+            precision,
             input,
             seed,
             reference_rope,
@@ -225,9 +228,12 @@ mod backend {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn sample<B: GeneratorBackend + Clone>(
         make_backend: impl FnOnce() -> ncm_core::Result<B>,
         artifact: &str,
+        device: &str,
+        precision: ncm_core::ComputePrecision,
         input: (&str, bool, Option<&str>),
         seed: u64,
         reference_rope: &str,
@@ -267,7 +273,7 @@ mod backend {
             Some(lm1b_small_reference_rope(&bytes)?)
         };
 
-        let artifact = Artifact::load_inference_streaming(artifact)?;
+        let artifact = crate::quantize::load_artifact_for_device(artifact, device, precision)?;
         // Small, medium and large (v1 and v2) are admitted; any other profile fails explicitly.
         ncm_model::Lm1bSize::from_profile(&artifact.manifest().profile)?;
         if external_rope.is_none() && !artifact.manifest().profile.ends_with("-v2") {

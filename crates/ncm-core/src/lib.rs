@@ -75,6 +75,48 @@ impl std::str::FromStr for ComputePrecision {
     }
 }
 
+/// Pre-quantized sidecar payload format bound to a backend family.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrequantFormat {
+    /// GGML block-quantized weights (`Q8_0` / `Q4_0`) for Candle/CUDA.
+    Ggml,
+    /// MLX group-64 affine quantized weights (`weights`/`scales`/`biases`) for Apple Silicon Metal.
+    Mlx,
+}
+
+impl PrequantFormat {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Ggml => "ggml",
+            Self::Mlx => "mlx",
+        }
+    }
+}
+
+/// Verified pre-quantized or pre-cast tensor payload streamed from a sidecar cache.
+pub enum PrequantPayload<'a> {
+    /// Raw little-endian IEEE 754 BF16 (`u16` bit patterns) matching `shape`.
+    Bf16(&'a [u8]),
+    /// Raw little-endian IEEE 754 F32 matching `shape`.
+    F32(&'a [u8]),
+    /// Raw GGML `Q8_0` or `Q4_0` block bytes for a 2D `[out_dim, in_dim]` linear weight.
+    GgmlBytes {
+        precision: ComputePrecision,
+        bytes: &'a [u8],
+    },
+    /// MLX group-64 affine quantized weight `(weights: U32, scales: BF16, biases: BF16)`.
+    MlxAffine {
+        precision: ComputePrecision,
+        group_size: usize,
+        weights_u32: &'a [u8],
+        weights_shape: &'a [usize],
+        scales_bf16: &'a [u8],
+        scales_shape: &'a [usize],
+        biases_bf16: &'a [u8],
+        biases_shape: &'a [usize],
+    },
+}
+
 /// Checked model loading only needs FP32 allocation. No implicit device fallback.
 /// Arrays must have immutable value semantics; Clone may share immutable storage.
 /// Neither arrays nor adapters are required to be Send or Sync.
@@ -89,6 +131,20 @@ pub trait WeightBackend {
     /// forward to [`Self::upload_f32`].
     fn upload_linear_weight_f32(&self, values: &[f32], shape: &[usize]) -> Result<Self::Tensor> {
         self.upload_f32(values, shape)
+    }
+    /// Pre-quantized sidecar format consumed by this backend when running in `q8`/`q4` mode.
+    fn prequant_format(&self) -> Option<PrequantFormat> {
+        None
+    }
+    /// Upload a verified pre-quantized or pre-cast tensor payload directly onto the device.
+    fn upload_prequant(
+        &self,
+        _payload: PrequantPayload<'_>,
+        _shape: &[usize],
+    ) -> Result<Self::Tensor> {
+        Err(Error::Backend(
+            "pre-quantized sidecar upload is unsupported on this backend".into(),
+        ))
     }
 }
 
