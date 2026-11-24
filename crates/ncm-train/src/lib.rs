@@ -10,6 +10,7 @@ pub mod artifact;
 pub mod candle_backend;
 pub mod data;
 pub mod ema;
+pub mod lora;
 #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
 pub mod mlx_backend;
 pub mod schedule;
@@ -108,6 +109,12 @@ pub struct TrainConfig {
     pub dead_code_threshold: f64,
     pub seed: u64,
     pub checkpoint_every: usize,
+    /// LoRA adapter rank for generator fine-tuning (`0` = full fine-tuning).
+    #[serde(default)]
+    pub lora_rank: usize,
+    /// LoRA scaling alpha (`0.0` = default `2.0 * lora_rank` when `lora_rank > 0`).
+    #[serde(default)]
+    pub lora_alpha: f64,
 }
 
 impl Default for TrainConfig {
@@ -128,11 +135,24 @@ impl Default for TrainConfig {
             dead_code_threshold: 0.05,
             seed: 42,
             checkpoint_every: 0,
+            lora_rank: 0,
+            lora_alpha: 0.0,
         }
     }
 }
 
 impl TrainConfig {
+    /// Resolved LoRA alpha (`2.0 * lora_rank` when `lora_alpha == 0.0`).
+    pub fn effective_lora_alpha(&self) -> f64 {
+        if self.lora_rank == 0 {
+            0.0
+        } else if self.lora_alpha > 0.0 {
+            self.lora_alpha
+        } else {
+            (self.lora_rank as f64) * 2.0
+        }
+    }
+
     pub fn validate(&self) -> Result<()> {
         if self.steps == 0 {
             return Err(TrainError::Config("--steps must be >= 1".into()));
@@ -148,6 +168,26 @@ impl TrainConfig {
         }
         if !(0.0..1.0).contains(&self.ema_decay) {
             return Err(TrainError::Config("ema_decay must be in [0, 1)".into()));
+        }
+        if self.lora_rank > 0 {
+            if self.stage != TrainStage::Generator {
+                return Err(TrainError::Config(
+                    "--lora-rank is only supported for --stage generator".into(),
+                ));
+            }
+            if self.lora_rank > 256 {
+                return Err(TrainError::Config("--lora-rank must be 1..=256".into()));
+            }
+            let alpha = self.effective_lora_alpha();
+            if !alpha.is_finite() || alpha <= 0.0 {
+                return Err(TrainError::Config(
+                    "--lora-alpha must be finite and > 0".into(),
+                ));
+            }
+        } else if self.lora_alpha < 0.0 || !self.lora_alpha.is_finite() {
+            return Err(TrainError::Config(
+                "--lora-alpha must be finite and >= 0".into(),
+            ));
         }
         Ok(())
     }
@@ -184,6 +224,12 @@ pub struct TrainReport {
     pub generator_final_loss: Option<f64>,
     pub steps_completed: usize,
     pub mean_step_ms: f64,
+    #[serde(default)]
+    pub lora_rank: usize,
+    #[serde(default)]
+    pub trainable_params: usize,
+    #[serde(default)]
+    pub total_params: usize,
     pub history: Vec<StepMetrics>,
 }
 
@@ -301,6 +347,18 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         all_history.extend(hist);
     }
 
+    let total_params = match job.train_cfg.stage {
+        TrainStage::Codec => lora::count_params(&codec_weights),
+        TrainStage::Generator => lora::count_params(&gen_weights),
+        TrainStage::All => lora::count_params(&codec_weights) + lora::count_params(&gen_weights),
+    };
+    let trainable_params = if job.train_cfg.lora_rank > 0 {
+        let adapters = lora::init_lora_adapters(&gen_weights, job.train_cfg.lora_rank, 0)?;
+        lora::count_params(&adapters)
+    } else {
+        total_params
+    };
+
     let provenance = serde_json::json!({
         "trainer": "ncm-train",
         "profile": "local-ncm-v1",
@@ -308,6 +366,10 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         "stage": job.train_cfg.stage.as_str(),
         "steps_completed": all_history.len(),
         "seed": job.train_cfg.seed,
+        "lora_rank": job.train_cfg.lora_rank,
+        "lora_alpha": job.train_cfg.effective_lora_alpha(),
+        "trainable_params": trainable_params,
+        "total_params": total_params,
         "codec_final_loss": codec_final,
         "generator_final_loss": gen_final,
     });
@@ -343,6 +405,9 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         generator_final_loss: gen_final,
         steps_completed: all_history.len(),
         mean_step_ms,
+        lora_rank: job.train_cfg.lora_rank,
+        trainable_params,
+        total_params,
         history: all_history,
     })
 }

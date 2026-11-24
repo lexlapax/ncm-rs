@@ -410,6 +410,7 @@ fn codec_and_generator_overfit_and_roundtrip_to_local_ncm_inference() {
             dead_code_threshold: 0.1,
             seed: 42,
             checkpoint_every: 0,
+            ..TrainConfig::default()
         },
     };
     let report = ncm_train::run_training_job(&job).unwrap();
@@ -570,5 +571,345 @@ fn mlx_full_train_and_inference_roundtrip() {
     assert!(report.generator_final_loss.unwrap() < report.generator_initial_loss.unwrap() * 0.3);
 
     let artifact = Artifact::load_inference_streaming(&out_dir).unwrap();
+    assert_eq!(artifact.manifest().profile, "local-ncm-v1");
+}
+
+#[cfg(feature = "cpu")]
+#[test]
+fn lora_finite_diff_merged_equivalence_and_checkpoint_resume() {
+    use ncm_train::lora::{init_lora_adapters, lora_a_name, lora_b_name, merge_lora_weights};
+
+    let cfg = LocalNcmConfig::from_json(tiny_config_json().as_bytes()).unwrap();
+    let ds = TokenDataset::from_samples(&cfg, tiny_samples()).unwrap();
+    let codec_w = init_codec_weights(cfg.codec(), 11);
+    let gen_w = init_generator_weights(cfg.codec(), cfg.model(), 19);
+    let prefixes = [1u32, 2, 3, 4, 9, 10, 11, 12];
+    let targets = [1u32, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1];
+
+    // Give lora_b non-zero values so BOTH lora_a and lora_b have non-trivial gradients.
+    let rank = 4;
+    let alpha = 8.0;
+    let mut adapters = init_lora_adapters(&gen_w, rank, 77).unwrap();
+    for (name, (_, vals)) in adapters.iter_mut() {
+        if name.ends_with(".lora_b") {
+            for (i, v) in vals.iter_mut().enumerate() {
+                *v = (((i * 19 + 7) % 23) as f32 - 11.0) * 0.02;
+            }
+        }
+    }
+
+    // 1. Central finite-difference check on LoRA A and B (< 2e-4 abs diff).
+    for (base, idx_a, idx_b) in [
+        ("transformer.blocks.0.attn.c_attn.weight", 5, 9),
+        ("transformer.blocks.0.attn.c_proj.weight", 3, 7),
+        ("transformer.blocks.0.mlp.c_fc.weight", 11, 13),
+        ("transformer.blocks.0.mlp.c_proj.weight", 4, 6),
+    ] {
+        for (name, idx) in [(lora_a_name(base), idx_a), (lora_b_name(base), idx_b)] {
+            let (analytic, numeric, diff) =
+                ncm_train::candle_backend::finite_diff_check_generator_lora(
+                    &cfg, &codec_w, &gen_w, &adapters, rank, alpha, &prefixes, &targets, 2, &name,
+                    idx, 1e-3,
+                )
+                .unwrap();
+            assert!(
+                diff < 2e-4,
+                "LoRA grad mismatch on {name}[{idx}]: analytic={analytic:.6} numeric={numeric:.6} diff={diff:.6}"
+            );
+        }
+    }
+
+    // 2. Exact LoRA-vs-merged forward loss equivalence (< 1e-5).
+    let loss_lora = ncm_train::candle_backend::eval_generator_loss(
+        &cfg,
+        &codec_w,
+        &gen_w,
+        Some((&adapters, rank, alpha)),
+        &prefixes,
+        &targets,
+        2,
+        "cpu",
+    )
+    .unwrap();
+    let merged = merge_lora_weights(&gen_w, &adapters, rank, alpha).unwrap();
+    let loss_merged = ncm_train::candle_backend::eval_generator_loss(
+        &cfg, &codec_w, &merged, None, &prefixes, &targets, 2, "cpu",
+    )
+    .unwrap();
+    let eq_diff = (loss_lora - loss_merged).abs();
+    assert!(
+        eq_diff < 1e-5,
+        "LoRA vs merged loss mismatch: lora={loss_lora:.8} merged={loss_merged:.8} diff={eq_diff:.8}"
+    );
+
+    // 3. Deterministic LoRA checkpoint save/resume (10 uninterrupted vs 5 + resume 5).
+    let ckpt_dir = TempDir::new("ckpt-lora");
+    let full_cfg = TrainConfig {
+        stage: TrainStage::Generator,
+        steps: 10,
+        batch_size: 2,
+        learning_rate: 5e-3,
+        min_lr: 5e-3,
+        warmup_steps: 0,
+        weight_decay: 0.01,
+        seed: 42,
+        checkpoint_every: 5,
+        lora_rank: rank,
+        lora_alpha: alpha,
+        ..TrainConfig::default()
+    };
+    let (w_full, h_full) = ncm_train::candle_backend::train_generator(
+        &cfg, &ds, &codec_w, &gen_w, None, &full_cfg, "cpu", None,
+    )
+    .unwrap();
+
+    let mut half_cfg = full_cfg.clone();
+    half_cfg.steps = 5;
+    let _ = ncm_train::candle_backend::train_generator(
+        &cfg,
+        &ds,
+        &codec_w,
+        &gen_w,
+        None,
+        &half_cfg,
+        "cpu",
+        Some(&ckpt_dir.0),
+    )
+    .unwrap();
+    let loaded = ncm_train::artifact::load_checkpoint(&ckpt_dir.0, &cfg).unwrap();
+    assert_eq!(loaded.meta.step, 5);
+    assert_eq!(loaded.meta.lora_rank, rank);
+
+    // Mismatched LoRA rank on resume must fail explicitly.
+    let mut bad_cfg = full_cfg.clone();
+    bad_cfg.lora_rank = 2;
+    assert!(
+        ncm_train::candle_backend::train_generator(
+            &cfg,
+            &ds,
+            &codec_w,
+            &gen_w,
+            Some(&loaded),
+            &bad_cfg,
+            "cpu",
+            None,
+        )
+        .is_err()
+    );
+
+    let (w_resumed, h_resumed) = ncm_train::candle_backend::train_generator(
+        &cfg,
+        &ds,
+        &codec_w,
+        &gen_w,
+        Some(&loaded),
+        &full_cfg,
+        "cpu",
+        None,
+    )
+    .unwrap();
+    assert_eq!(h_resumed.len(), 5);
+    let loss_diff = (h_full.last().unwrap().loss - h_resumed.last().unwrap().loss).abs();
+    assert!(loss_diff < 1e-5, "LoRA resume loss diff={loss_diff}");
+    for (k, (_, v1)) in &w_full {
+        let (_, v2) = &w_resumed[k];
+        let max_d = v1
+            .iter()
+            .zip(v2)
+            .map(|(a, b)| (a - b).abs())
+            .fold(0.0f32, f32::max);
+        assert!(max_d < 1e-5, "LoRA weight `{k}` resume max_diff={max_d}");
+    }
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn cuda_lora_finetune_converges_and_merges_for_inference() {
+    use ncm_backend_cuda::CandleBackend;
+    use ncm_core::CodecBackend;
+    use ncm_io::Artifact;
+    use ncm_model::LocalNcmModel;
+
+    let tmp = TempDir::new("lora-cuda");
+    let cfg_path = tmp.0.join("config.json");
+    let base_data = tmp.0.join("base-data.json");
+    let ft_data = tmp.0.join("ft-data.json");
+    let base_dir = tmp.0.join("base");
+    let lora_dir = tmp.0.join("lora-merged");
+    fs::write(&cfg_path, tiny_config_json()).unwrap();
+    fs::write(
+        &base_data,
+        r#"[
+          {"prefix": [1, 2, 3, 4], "target": [1, 2, 3, 4, 5, 6, 7, 8]},
+          {"prefix": [9, 10, 11, 12], "target": [9, 10, 11, 12, 13, 14, 15, 1]}
+        ]"#,
+    )
+    .unwrap();
+    // Domain-shifted target (swap prefix->target mapping) so base model has high initial loss
+    // while keeping trained embeddings/heads.
+    fs::write(
+        &ft_data,
+        r#"[
+          {"prefix": [1, 2, 3, 4], "target": [9, 10, 11, 12, 13, 14, 15, 1]},
+          {"prefix": [9, 10, 11, 12], "target": [1, 2, 3, 4, 5, 6, 7, 8]}
+        ]"#,
+    )
+    .unwrap();
+
+    // Create a trained base artifact first.
+    let base_job = TrainJob {
+        config_path: Some(cfg_path),
+        init_from: None,
+        data_path: base_data,
+        tokenizer_path: None,
+        output_dir: base_dir.clone(),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "cuda".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::All,
+            steps: 50,
+            codec_steps: Some(40),
+            batch_size: 2,
+            learning_rate: 1e-2,
+            min_lr: 1e-3,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            ..TrainConfig::default()
+        },
+    };
+    ncm_train::run_training_job(&base_job).unwrap();
+
+    // Fine-tune with LoRA rank 4 on CUDA.
+    let lora_job = TrainJob {
+        config_path: None,
+        init_from: Some(base_dir),
+        data_path: ft_data,
+        tokenizer_path: None,
+        output_dir: lora_dir.clone(),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "cuda".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::Generator,
+            steps: 60,
+            batch_size: 2,
+            learning_rate: 5e-3,
+            min_lr: 5e-4,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            lora_rank: 4,
+            lora_alpha: 8.0,
+            ..TrainConfig::default()
+        },
+    };
+    let report = ncm_train::run_training_job(&lora_job).unwrap();
+    assert_eq!(report.lora_rank, 4);
+    assert!(report.trainable_params < report.total_params);
+    assert!(
+        report.generator_final_loss.unwrap() < report.generator_initial_loss.unwrap() * 0.5,
+        "LoRA loss did not decrease enough: {:?} -> {:?}",
+        report.generator_initial_loss,
+        report.generator_final_loss
+    );
+
+    // Merged local-ncm-v1 artifact must load and generate cleanly.
+    let artifact = Artifact::load_inference_streaming(&lora_dir).unwrap();
+    let backend = CandleBackend::cpu();
+    let model = LocalNcmModel::from_artifact(backend.clone(), &artifact).unwrap();
+    let generated = model.generate(&[1, 2, 3, 4], 1, None).unwrap();
+    assert_eq!(backend.read_indices(&generated.ids).unwrap().len(), 8);
+}
+
+#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+#[test]
+fn mlx_lora_finetune_converges_and_resumes_deterministically() {
+    use ncm_io::Artifact;
+
+    let tmp = TempDir::new("lora-mlx");
+    let cfg_path = tmp.0.join("config.json");
+    let base_data = tmp.0.join("base-data.json");
+    let ft_data = tmp.0.join("ft-data.json");
+    let base_dir = tmp.0.join("base");
+    let lora_dir = tmp.0.join("lora-merged");
+    let ckpt_dir = tmp.0.join("ckpt-lora");
+    fs::write(&cfg_path, tiny_config_json()).unwrap();
+    fs::write(
+        &base_data,
+        r#"[
+          {"prefix": [1, 2, 3, 4], "target": [1, 2, 3, 4, 5, 6, 7, 8]},
+          {"prefix": [9, 10, 11, 12], "target": [9, 10, 11, 12, 13, 14, 15, 1]}
+        ]"#,
+    )
+    .unwrap();
+    fs::write(
+        &ft_data,
+        r#"[
+          {"prefix": [1, 2, 3, 4], "target": [9, 10, 11, 12, 13, 14, 15, 1]},
+          {"prefix": [9, 10, 11, 12], "target": [1, 2, 3, 4, 5, 6, 7, 8]}
+        ]"#,
+    )
+    .unwrap();
+
+    let base_job = TrainJob {
+        config_path: Some(cfg_path),
+        init_from: None,
+        data_path: base_data,
+        tokenizer_path: None,
+        output_dir: base_dir.clone(),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "mlx".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::All,
+            steps: 50,
+            codec_steps: Some(40),
+            batch_size: 2,
+            learning_rate: 1e-2,
+            min_lr: 1e-3,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            ..TrainConfig::default()
+        },
+    };
+    ncm_train::run_training_job(&base_job).unwrap();
+
+    let lora_job = TrainJob {
+        config_path: None,
+        init_from: Some(base_dir.clone()),
+        data_path: ft_data,
+        tokenizer_path: None,
+        output_dir: lora_dir.clone(),
+        checkpoint_dir: Some(ckpt_dir.clone()),
+        resume_dir: None,
+        device: "mlx".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::Generator,
+            steps: 60,
+            batch_size: 2,
+            learning_rate: 5e-3,
+            min_lr: 5e-4,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            checkpoint_every: 30,
+            lora_rank: 4,
+            lora_alpha: 8.0,
+            ..TrainConfig::default()
+        },
+    };
+    let report = ncm_train::run_training_job(&lora_job).unwrap();
+    assert_eq!(report.lora_rank, 4);
+    assert!(report.trainable_params < report.total_params);
+    assert!(
+        report.generator_final_loss.unwrap() < report.generator_initial_loss.unwrap() * 0.5,
+        "MLX LoRA loss did not decrease enough: {:?} -> {:?}",
+        report.generator_initial_loss,
+        report.generator_final_loss
+    );
+    let artifact = Artifact::load_inference_streaming(&lora_dir).unwrap();
     assert_eq!(artifact.manifest().profile, "local-ncm-v1");
 }

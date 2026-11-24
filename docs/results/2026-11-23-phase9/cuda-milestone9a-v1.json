@@ -1,0 +1,46 @@
+{
+  "platform": "cuda",
+  "gpu": "NVIDIA GeForce RTX 3060 Ti (8 GiB)",
+  "base_artifact": "tinystories-15k-ema-v1",
+  "lora_rank": 8,
+  "lora_alpha": 16.0,
+  "steps": 30,
+  "batch_size": 2,
+  "learning_rate": 0.0003,
+  "trainable_params": 1179648,
+  "total_params": 123160704,
+  "trainable_pct": 0.958,
+  "generator_initial_loss": 6.5286,
+  "generator_final_loss": 3.4522,
+  "mean_step_ms": 542.0,
+  "total_seconds": 18.63,
+  "checkpoint_resume_30_to_32": {
+    "steps_completed": 2,
+    "final_loss": 3.3677
+  },
+  "inference_roundtrip": {
+    "inspect_profile": "local-ncm-v1",
+    "ncm_sample_and_run_match": true,
+    "fp32_sample_preview": "Once upon a time, there was an enormous tree. In the tree, two little birds lived. One bird was happy nest high high. The other bird lived in the other tree. The bird was very kind",
+    "bf16_sample_preview": "in a tidy yard, there lived a little girl called Lucy. She loved one day because all of her toys were her own special secret. tried to know where they were, but she she would She o",
+    "q8_sidecar_bytes": 199323592,
+    "q8_sample_preview": ".\n\nLila was a girl, who was three years old and own. She had a big chest of books that her liked liked to play with. She had many friends, and she always shared them with her toys,"
+  },
+  "summary": {
+    "codec_final_loss": null,
+    "codec_initial_loss": null,
+    "dataset_samples": 8,
+    "device": "cuda",
+    "generator_final_loss": 3.4522429406642914,
+    "generator_initial_loss": 6.528621315956116,
+    "lora_rank": 8,
+    "mean_step_ms": 542.0,
+    "output_artifact": "/tmp/p9a_cuda_61zvjsmp/tinystories-lora-r8",
+    "schema": "ncm-train-report-v1",
+    "stage": "generator",
+    "steps_completed": 30,
+    "total_params": 123160704,
+    "total_seconds": 18.633,
+    "trainable_params": 1179648
+  }
+}

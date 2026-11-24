@@ -277,10 +277,11 @@ fn cleanup(mut text: String) -> String {
     text
 }
 
-/// Offline HuggingFace `tokenizer.json` loader for `local-ncm-v1` user artifacts.
+/// Offline `tokenizer.json` loader for `local-ncm-v1` user artifacts (supports both
+/// HuggingFace `tokenizer.json` and pinned TinyStories `byte_bpe` JSON).
 /// Never touches the network or executes remote code; rejects payloads > 32 MiB.
 pub struct LocalTokenizer {
-    tokenizer: Box<tokenizers::Tokenizer>,
+    implementation: Implementation,
     vocab_size: usize,
 }
 
@@ -289,6 +290,16 @@ impl LocalTokenizer {
         if payload.len() > 32 * 1024 * 1024 {
             return Err(invalid("local tokenizer.json exceeds 32 MiB"));
         }
+        if let Ok(bpe) = ByteBpe::from_json(payload) {
+            let vocab_size = bpe.vocab_size();
+            if vocab_size == 0 {
+                return Err(invalid("local byte_bpe tokenizer has empty vocabulary"));
+            }
+            return Ok(Self {
+                implementation: Implementation::ByteBpe(Box::new(bpe)),
+                vocab_size,
+            });
+        }
         let tokenizer =
             tokenizers::Tokenizer::from_bytes(payload).map_err(|e| invalid(&e.to_string()))?;
         let vocab_size = total_vocab_size(&tokenizer);
@@ -296,7 +307,7 @@ impl LocalTokenizer {
             return Err(invalid("local tokenizer has empty vocabulary"));
         }
         Ok(Self {
-            tokenizer: Box::new(tokenizer),
+            implementation: Implementation::HuggingFace(Box::new(tokenizer)),
             vocab_size,
         })
     }
@@ -309,21 +320,26 @@ impl LocalTokenizer {
         if text.len() > 1024 * 1024 {
             return Err(invalid("input text exceeds 1 MiB"));
         }
-        Ok(self
-            .tokenizer
-            .encode_fast(text, true)
-            .map_err(|e| invalid(&e.to_string()))?
-            .get_ids()
-            .to_vec())
+        match &self.implementation {
+            Implementation::ByteBpe(bpe) => bpe.encode(text),
+            Implementation::HuggingFace(tokenizer) => Ok(tokenizer
+                .encode_fast(text, true)
+                .map_err(|e| invalid(&e.to_string()))?
+                .get_ids()
+                .to_vec()),
+        }
     }
 
     pub fn decode(&self, ids: &[u32], skip_special_tokens: bool) -> Result<String> {
         if ids.len() > MAX_DECODE_IDS || ids.iter().any(|&id| id as usize >= self.vocab_size) {
             return Err(invalid("invalid token ID or request size"));
         }
-        self.tokenizer
-            .decode(ids, skip_special_tokens)
-            .map_err(|e| invalid(&e.to_string()))
+        match &self.implementation {
+            Implementation::ByteBpe(bpe) => bpe.decode(ids, skip_special_tokens),
+            Implementation::HuggingFace(tokenizer) => tokenizer
+                .decode(ids, skip_special_tokens)
+                .map_err(|e| invalid(&e.to_string())),
+        }
     }
 }
 #[cfg(test)]
@@ -365,6 +381,26 @@ mod tests {
         assert_eq!(local.encode("hello world").unwrap(), [2, 3]);
         assert_eq!(local.decode(&[2, 3], true).unwrap(), "hello world");
         assert!(local.decode(&[4], true).is_err());
+
+        // ByteBpe JSON format (TinyStories) is also supported directly.
+        let mut vocab_hex = Vec::with_capacity(259);
+        vocab_hex.push("3c7c656e646f66746578747c3e".to_owned()); // <|endoftext|>
+        vocab_hex.push("3c7c7061647c3e".to_owned()); // <|pad|>
+        for b in 0u8..=255 {
+            vocab_hex.push(format!("{b:02x}"));
+        }
+        vocab_hex.push("6869".to_owned()); // "hi"
+        let bpe_json = serde_json::json!({
+            "schema_version": 1,
+            "vocab_hex": vocab_hex,
+            "merges_hex": [["68", "69"]],
+        });
+        let bpe_bytes = serde_json::to_vec(&bpe_json).unwrap();
+        let local_bpe = LocalTokenizer::from_json_bytes(&bpe_bytes).unwrap();
+        assert_eq!(local_bpe.vocab_size(), 259);
+        let ids = local_bpe.encode("hi").unwrap();
+        assert_eq!(ids, vec![258]);
+        assert_eq!(local_bpe.decode(&ids, true).unwrap(), "hi");
     }
     #[test]
     fn bounded_asset_reads_reserve_once() {

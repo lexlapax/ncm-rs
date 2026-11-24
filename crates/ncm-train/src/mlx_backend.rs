@@ -6,6 +6,7 @@ use crate::{
     artifact::{CheckpointMeta, LoadedCheckpoint, save_checkpoint},
     data::TokenDataset,
     ema::EmaCodebookState,
+    lora,
     schedule::{
         TensorMap, area1d_matrix, level_attention_mask, linear1d_matrix, lr_at_step, rope_tables,
         splitmix64,
@@ -70,6 +71,33 @@ fn linear_3d(x: &Array, w: &Array, b: Option<&Array>) -> std::result::Result<Arr
         Some(bias) => y.add(bias),
         None => Ok(y),
     }
+}
+
+fn linear_3d_maybe_lora(
+    x: &Array,
+    weight_name: &str,
+    w: &Array,
+    b: Option<&Array>,
+    lora_get: Option<&dyn Fn(&str) -> std::result::Result<Array, Exception>>,
+    lora_scale: f32,
+) -> std::result::Result<Array, Exception> {
+    let base = linear_3d(x, w, b)?;
+    if let Some(get_lora) = lora_get
+        && lora::is_lora_target(weight_name)
+    {
+        let shape = x.shape();
+        let (bsz, seq, d_in) = (shape[0], shape[1], shape[2]);
+        let d_out = w.shape()[0];
+        let a = get_lora(&lora::lora_a_name(weight_name))?;
+        let b_mat = get_lora(&lora::lora_b_name(weight_name))?;
+        let x2 = x.reshape(&[bsz * seq, d_in])?;
+        let h = ops::matmul(&x2, &a.transpose_axes(&[1, 0])?)?;
+        let delta = ops::matmul(&h, &b_mat.transpose_axes(&[1, 0])?)?
+            .reshape(&[bsz, seq, d_out])?
+            .multiply(f32_scalar(lora_scale))?;
+        return base.add(&delta);
+    }
+    Ok(base)
 }
 
 fn layer_norm(
@@ -832,6 +860,8 @@ pub fn train_codec(
                     total_steps: train_cfg.steps,
                     rng_state,
                     last_loss: loss_val,
+                    lora_rank: 0,
+                    lora_alpha: 0.0,
                 };
                 save_checkpoint(dir, &meta, &weights, &m, &v, Some(&ema))?;
             }
@@ -846,9 +876,12 @@ pub fn train_codec(
 // Frozen-codec encode + Generator functional forward
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn generator_block(
     gen_cfg: &LocalGeneratorConfig,
     get: &impl Fn(&str) -> std::result::Result<Array, Exception>,
+    lora_get: Option<&dyn Fn(&str) -> std::result::Result<Array, Exception>>,
+    lora_scale: f32,
     x: &Array,
     cos: &Array,
     sin: &Array,
@@ -867,10 +900,14 @@ fn generator_block(
         Some(&get(&format!("{p}.ln_1.bias"))?),
         1e-6,
     )?;
-    let qkv = linear_3d(
+    let c_attn_w_name = format!("{p}.attn.c_attn.weight");
+    let qkv = linear_3d_maybe_lora(
         &norm1,
-        &get(&format!("{p}.attn.c_attn.weight"))?,
+        &c_attn_w_name,
+        &get(&c_attn_w_name)?,
         Some(&get(&format!("{p}.attn.c_attn.bias"))?),
+        lora_get,
+        lora_scale,
     )?;
     let q = qkv
         .try_index((.., .., 0..width))?
@@ -898,10 +935,14 @@ fn generator_block(
     let attn = attention(&q, &k, &v, Some(mask))?
         .transpose_axes(&[0, 2, 1, 3])?
         .reshape(&[bsz, seq, width])?;
-    let attn_out = linear_3d(
+    let c_proj_w_name = format!("{p}.attn.c_proj.weight");
+    let attn_out = linear_3d_maybe_lora(
         &attn,
-        &get(&format!("{p}.attn.c_proj.weight"))?,
+        &c_proj_w_name,
+        &get(&c_proj_w_name)?,
         Some(&get(&format!("{p}.attn.c_proj.bias"))?),
+        lora_get,
+        lora_scale,
     )?;
     let res = x.add(&attn_out)?;
 
@@ -911,15 +952,23 @@ fn generator_block(
         Some(&get(&format!("{p}.ln_2.bias"))?),
         1e-6,
     )?;
-    let h = mlx_rs::nn::gelu(&linear_3d(
+    let c_fc_w_name = format!("{p}.mlp.c_fc.weight");
+    let h = mlx_rs::nn::gelu(&linear_3d_maybe_lora(
         &norm2,
-        &get(&format!("{p}.mlp.c_fc.weight"))?,
+        &c_fc_w_name,
+        &get(&c_fc_w_name)?,
         Some(&get(&format!("{p}.mlp.c_fc.bias"))?),
+        lora_get,
+        lora_scale,
     )?)?;
-    let mlp = linear_3d(
+    let mlp_proj_w_name = format!("{p}.mlp.c_proj.weight");
+    let mlp = linear_3d_maybe_lora(
         &h,
-        &get(&format!("{p}.mlp.c_proj.weight"))?,
+        &mlp_proj_w_name,
+        &get(&mlp_proj_w_name)?,
         Some(&get(&format!("{p}.mlp.c_proj.bias"))?),
+        lora_get,
+        lora_scale,
     )?;
     res.add(&mlp)
 }
@@ -1018,13 +1067,65 @@ pub fn train_generator(
             base_masks.push(from_f32_slice(&m, &[1, 1, seq, seq]));
         }
 
-        let (start_step, rng_state, mut store) = if let Some(ckpt) = resume {
+        let lora_rank = train_cfg.lora_rank;
+        let lora_alpha = train_cfg.effective_lora_alpha();
+        let lora_scale_f32 = if lora_rank > 0 {
+            lora::lora_scale(lora_rank, lora_alpha) as f32
+        } else {
+            0.0f32
+        };
+
+        let (start_step, rng_state, frozen_gen, mut store) = if lora_rank > 0 {
+            let mut frozen = HashMap::with_capacity(init_gen_weights.len());
+            for (name, (shape, vals)) in init_gen_weights {
+                frozen.insert(name.clone(), from_f32_slice(vals, shape));
+            }
+            eval(frozen.values()).map_err(m_err)?;
+            if let Some(ckpt) = resume {
+                if ckpt.meta.lora_rank != lora_rank
+                    || (ckpt.meta.lora_alpha - lora_alpha).abs() > 1e-9
+                {
+                    return Err(TrainError::Artifact(format!(
+                        "checkpoint LoRA config (rank={}, alpha={}) does not match current (rank={}, alpha={})",
+                        ckpt.meta.lora_rank, ckpt.meta.lora_alpha, lora_rank, lora_alpha
+                    )));
+                }
+                lora::validate_lora_adapters(init_gen_weights, &ckpt.weights, lora_rank)?;
+                let store = MlxParamStore::from_host(
+                    &ckpt.weights,
+                    Some(&ckpt.optim_m),
+                    Some(&ckpt.optim_v),
+                )?;
+                (ckpt.meta.step, ckpt.meta.rng_state, Some(frozen), store)
+            } else {
+                let adapters =
+                    lora::init_lora_adapters(init_gen_weights, lora_rank, train_cfg.seed)?;
+                let store = MlxParamStore::from_host(&adapters, None, None)?;
+                (
+                    0usize,
+                    splitmix64(train_cfg.seed ^ 0x6E4E_0001),
+                    Some(frozen),
+                    store,
+                )
+            }
+        } else if let Some(ckpt) = resume {
+            if ckpt.meta.lora_rank != 0 {
+                return Err(TrainError::Artifact(format!(
+                    "cannot resume LoRA checkpoint (rank={}) without --lora-rank {}",
+                    ckpt.meta.lora_rank, ckpt.meta.lora_rank
+                )));
+            }
             let store =
                 MlxParamStore::from_host(&ckpt.weights, Some(&ckpt.optim_m), Some(&ckpt.optim_v))?;
-            (ckpt.meta.step, ckpt.meta.rng_state, store)
+            (ckpt.meta.step, ckpt.meta.rng_state, None, store)
         } else {
             let store = MlxParamStore::from_host(init_gen_weights, None, None)?;
-            (0usize, splitmix64(train_cfg.seed ^ 0x6E4E_0001), store)
+            (
+                0usize,
+                splitmix64(train_cfg.seed ^ 0x6E4E_0001),
+                None,
+                store,
+            )
         };
 
         let n_params = store.params.len();
@@ -1032,6 +1133,7 @@ pub fn train_generator(
         let param_index = store.index.clone();
         let batch = train_cfg.batch_size;
         let bsz = batch as i32;
+        let inv_levels_f32 = 1.0f32 / (n_levels as f32);
 
         let get_frozen = |name: &str| -> std::result::Result<Array, Exception> {
             frozen_codec
@@ -1121,59 +1223,77 @@ pub fn train_generator(
 
             let prefix_ids = from_u32_slice(&prefixes, &[batch, gen_cfg.prefix_len]);
             let prefix_raw = embedding_gather(&frozen_wte, &prefix_ids).map_err(m_err)?;
-            let step_masks: Vec<Array> = levels
-                .iter()
-                .enumerate()
-                .map(|(l, &len)| {
-                    build_combined_mask_arr(
-                        &base_masks[l],
-                        &prefixes,
-                        batch,
-                        gen_cfg.prefix_len,
-                        len,
-                        gen_cfg.pad_token_id,
-                    )
-                })
-                .collect();
+            eval(
+                std::iter::once(&prefix_raw)
+                    .chain(gt_codes.iter())
+                    .chain(cond_latents.iter()),
+            )
+            .map_err(m_err)?;
 
-            // Pack all non-parameter arrays into args after params:
-            // [prefix_raw, gt_codes[0..L], cond_latents[0..L], cos[0..L], sin[0..L], masks[0..L]]
-            let mut all_args = Vec::with_capacity(n_params + 1 + 5 * n_levels);
-            all_args.extend(store.params.iter().cloned());
-            all_args.push(prefix_raw);
-            all_args.extend(gt_codes);
-            all_args.extend(cond_latents);
-            all_args.extend(cos_tables.iter().cloned());
-            all_args.extend(sin_tables.iter().cloned());
-            all_args.extend(step_masks);
-
+            // Accumulate gradients one level at a time to bound Metal peak activation memory.
+            let mut accum_grads: Option<Vec<Array>> = None;
+            let mut loss_val = 0.0_f64;
             let index_ref = &param_index;
-            let (vals, grads) = value_and_grad_with_argnums(
-                |a: &[Array]| -> std::result::Result<Vec<Array>, Exception> {
-                    let get = |name: &str| -> std::result::Result<Array, Exception> {
-                        let idx = *index_ref.get(name).ok_or_else(|| {
-                            Exception::custom(format!("missing gen weight `{name}`"))
-                        })?;
-                        Ok(a[idx].clone())
-                    };
-                    let p_raw = &a[n_params];
-                    let wte_w = get("transformer.wte.weight")?;
-                    let wte_b = get("transformer.wte.bias")?;
-                    let prefix_h = linear_3d(p_raw, &wte_w, Some(&wte_b))?;
-                    let l0_q = get("l0_queries")?;
-                    let wle = get("transformer.wle.weight")?;
-                    let ln_f_w = get("transformer.ln_f.weight")?;
-                    let ln_f_b = get("transformer.ln_f.bias")?;
+            let frozen_gen_ref = frozen_gen.as_ref();
 
-                    let mut total: Option<Array> = None;
-                    for (l, &len) in levels.iter().enumerate() {
-                        let gt = &a[n_params + 1 + l];
-                        let cond = &a[n_params + 1 + n_levels + l];
-                        let cos = &a[n_params + 1 + 2 * n_levels + l];
-                        let sin = &a[n_params + 1 + 3 * n_levels + l];
-                        let mask = &a[n_params + 1 + 4 * n_levels + l];
+            for (l, &len) in levels.iter().enumerate() {
+                let mask_l = build_combined_mask_arr(
+                    &base_masks[l],
+                    &prefixes,
+                    batch,
+                    gen_cfg.prefix_len,
+                    len,
+                    gen_cfg.pad_token_id,
+                );
+                let mut level_args = Vec::with_capacity(n_params + 6);
+                level_args.extend(store.params.iter().cloned());
+                level_args.push(prefix_raw.clone());
+                level_args.push(gt_codes[l].clone());
+                level_args.push(cond_latents[l].clone());
+                level_args.push(cos_tables[l].clone());
+                level_args.push(sin_tables[l].clone());
+                level_args.push(mask_l);
+
+                let (vals, grads_l) = value_and_grad_with_argnums(
+                    |a: &[Array]| -> std::result::Result<Vec<Array>, Exception> {
+                        let get_base = |name: &str| -> std::result::Result<Array, Exception> {
+                            if let Some(fg) = frozen_gen_ref {
+                                fg.get(name).cloned().ok_or_else(|| {
+                                    Exception::custom(format!("missing frozen gen weight `{name}`"))
+                                })
+                            } else {
+                                let idx = *index_ref.get(name).ok_or_else(|| {
+                                    Exception::custom(format!("missing gen weight `{name}`"))
+                                })?;
+                                Ok(a[idx].clone())
+                            }
+                        };
+                        let get_lora = |name: &str| -> std::result::Result<Array, Exception> {
+                            let idx = *index_ref.get(name).ok_or_else(|| {
+                                Exception::custom(format!("missing LoRA weight `{name}`"))
+                            })?;
+                            Ok(a[idx].clone())
+                        };
+                        let lora_fn: Option<
+                            &dyn Fn(&str) -> std::result::Result<Array, Exception>,
+                        > = if lora_rank > 0 { Some(&get_lora) } else { None };
+
+                        let p_raw = &a[n_params];
+                        let gt = &a[n_params + 1];
+                        let cond = &a[n_params + 2];
+                        let cos = &a[n_params + 3];
+                        let sin = &a[n_params + 4];
+                        let mask = &a[n_params + 5];
+
+                        let wte_w = get_base("transformer.wte.weight")?;
+                        let wte_b = get_base("transformer.wte.bias")?;
+                        let prefix_h = linear_3d(p_raw, &wte_w, Some(&wte_b))?;
+                        let wle = get_base("transformer.wle.weight")?;
+                        let ln_f_w = get_base("transformer.ln_f.weight")?;
+                        let ln_f_b = get_base("transformer.ln_f.bias")?;
 
                         let latent = if l == 0 {
+                            let l0_q = get_base("l0_queries")?;
                             l0_q.add(cond)?
                         } else {
                             cond.clone()
@@ -1182,7 +1302,17 @@ pub fn train_generator(
                         let target_h = linear_3d(&latent, &wte_w, Some(&wte_b))?.add(&lvl_emb)?;
                         let mut x = ops::concatenate(&[&prefix_h, &target_h], 1)?;
                         for layer in 0..gen_cfg.n_layer {
-                            x = generator_block(gen_cfg, &get, &x, cos, sin, mask, layer)?;
+                            x = generator_block(
+                                gen_cfg,
+                                &get_base,
+                                lora_fn,
+                                lora_scale_f32,
+                                &x,
+                                cos,
+                                sin,
+                                mask,
+                                layer,
+                            )?;
                         }
                         let p_len = gen_cfg.prefix_len as i32;
                         let target_out = x.try_index((.., p_len..p_len + (len as i32), ..))?;
@@ -1190,42 +1320,50 @@ pub fn train_generator(
                         let logits = match gen_cfg.head_kind {
                             LocalHeadKind::UntiedAffine => linear_3d(
                                 &normed,
-                                &get(&format!("lm_heads.{l}.weight"))?,
-                                Some(&get(&format!("lm_heads.{l}.bias"))?),
+                                &get_base(&format!("lm_heads.{l}.weight"))?,
+                                Some(&get_base(&format!("lm_heads.{l}.bias"))?),
                             )?,
-                            LocalHeadKind::UntiedLinear => {
-                                linear_3d(&normed, &get(&format!("lm_heads.{l}.weight"))?, None)?
-                            }
+                            LocalHeadKind::UntiedLinear => linear_3d(
+                                &normed,
+                                &get_base(&format!("lm_heads.{l}.weight"))?,
+                                None,
+                            )?,
                             LocalHeadKind::SharedHeadBiases => linear_3d(
                                 &normed,
-                                &get("lm_head.weight")?,
-                                Some(&get(&format!("head_biases.{l}"))?),
+                                &get_base("lm_head.weight")?,
+                                Some(&get_base(&format!("head_biases.{l}"))?),
                             )?,
                         };
                         let logits_2d =
                             logits.reshape(&[bsz * (len as i32), gen_cfg.vocab_size[l] as i32])?;
-                        let loss_l = cross_entropy_loss(&logits_2d, gt)?;
-                        total = Some(match total {
-                            Some(prev) => prev.add(&loss_l)?,
-                            None => loss_l,
-                        });
-                    }
-                    let mean_loss = total
-                        .expect("nonempty levels")
-                        .divide(f32_scalar(n_levels as f32))?;
-                    Ok(vec![mean_loss])
-                },
-                &argnums[..],
-            )(&all_args)
-            .map_err(m_err)?;
+                        let loss_l = cross_entropy_loss(&logits_2d, gt)?
+                            .multiply(f32_scalar(inv_levels_f32))?;
+                        Ok(vec![loss_l])
+                    },
+                    &argnums[..],
+                )(&level_args)
+                .map_err(m_err)?;
 
-            eval(std::iter::once(&vals[0]).chain(grads.iter())).map_err(m_err)?;
-            let loss_val = vals[0].item_exact::<f32>() as f64;
-            if !loss_val.is_finite() {
-                return Err(TrainError::Backend(format!(
-                    "non-finite MLX generator loss at step {step}"
-                )));
+                eval(std::iter::once(&vals[0]).chain(grads_l.iter())).map_err(m_err)?;
+                let lv = vals[0].item_exact::<f32>() as f64;
+                if !lv.is_finite() {
+                    return Err(TrainError::Backend(format!(
+                        "non-finite MLX generator loss at step {step} level {l}"
+                    )));
+                }
+                loss_val += lv;
+
+                if let Some(ref mut acc) = accum_grads {
+                    for (dst, g) in acc.iter_mut().zip(grads_l.into_iter()) {
+                        *dst = dst.add(&g).map_err(m_err)?;
+                    }
+                    eval(acc.iter()).map_err(m_err)?;
+                } else {
+                    accum_grads = Some(grads_l);
+                }
             }
+
+            let grads = accum_grads.expect("nonempty levels");
             let grad_norm = store.adamw_step(
                 &grads,
                 None,
@@ -1260,12 +1398,19 @@ pub fn train_generator(
                     total_steps: train_cfg.steps,
                     rng_state,
                     last_loss: loss_val,
+                    lora_rank,
+                    lora_alpha,
                 };
                 save_checkpoint(dir, &meta, &weights, &m, &v, None)?;
             }
         }
 
-        let final_weights = store.export_weights()?;
+        let final_weights = if lora_rank > 0 {
+            let trained_adapters = store.export_weights()?;
+            lora::merge_lora_weights(init_gen_weights, &trained_adapters, lora_rank, lora_alpha)?
+        } else {
+            store.export_weights()?
+        };
         Ok((final_weights, history))
     })
 }

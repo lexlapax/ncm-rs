@@ -6,6 +6,7 @@ use crate::{
     artifact::{CheckpointMeta, LoadedCheckpoint, save_checkpoint},
     data::TokenDataset,
     ema::EmaCodebookState,
+    lora,
     schedule::{
         TensorMap, area1d_matrix, level_attention_mask, linear1d_matrix, lr_at_step, rope_tables,
         splitmix64,
@@ -36,15 +37,55 @@ pub fn resolve_device(device: &str) -> Result<Device> {
 // ---------------------------------------------------------------------------
 
 fn linear_3d(x: &Tensor, w: &Tensor, b: Option<&Tensor>) -> candle_core::Result<Tensor> {
+    linear_3d_impl(x, w, b, false)
+}
+
+fn linear_3d_impl(
+    x: &Tensor,
+    w: &Tensor,
+    b: Option<&Tensor>,
+    frozen_weight: bool,
+) -> candle_core::Result<Tensor> {
     let (bsz, seq, d_in) = x.dims3()?;
     let (d_out, _) = w.dims2()?;
     let x2 = x.reshape((bsz * seq, d_in))?;
-    let y2 = x2.matmul(&w.t()?)?;
+    let wt = if frozen_weight {
+        w.t()?.detach()
+    } else {
+        w.t()?
+    };
+    let y2 = x2.matmul(&wt)?;
     let y = y2.reshape((bsz, seq, d_out))?;
     match b {
         Some(bias) => y.broadcast_add(bias),
         None => Ok(y),
     }
+}
+
+fn linear_3d_maybe_lora(
+    x: &Tensor,
+    weight_name: &str,
+    w: &Tensor,
+    b: Option<&Tensor>,
+    lora_ctx: Option<(&ParamStore, f64)>,
+) -> candle_core::Result<Tensor> {
+    let base = linear_3d_impl(x, w, b, lora_ctx.is_some())?;
+    if let Some((lora_store, scale)) = lora_ctx
+        && lora::is_lora_target(weight_name)
+    {
+        let (bsz, seq, d_in) = x.dims3()?;
+        let (d_out, _) = w.dims2()?;
+        let a = lora_store.tensor(&lora::lora_a_name(weight_name))?;
+        let b_mat = lora_store.tensor(&lora::lora_b_name(weight_name))?;
+        let x2 = x.reshape((bsz * seq, d_in))?;
+        let delta = x2
+            .matmul(&a.t()?)?
+            .matmul(&b_mat.t()?)?
+            .reshape((bsz, seq, d_out))?;
+        let scaled = (delta * scale)?;
+        return &base + scaled;
+    }
+    Ok(base)
 }
 
 fn layer_norm(x: &Tensor, w: &Tensor, b: Option<&Tensor>, eps: f64) -> candle_core::Result<Tensor> {
@@ -298,7 +339,7 @@ impl ParamStore {
         Ok((mm, vv))
     }
 
-    /// Decoupled AdamW + global L2 gradient clipping on all trainable parameters.
+    /// Decoupled AdamW + global L2 gradient clipping from a `GradStore`.
     #[allow(clippy::too_many_arguments)]
     fn adamw_step(
         &mut self,
@@ -309,12 +350,7 @@ impl ParamStore {
         weight_decay: f64,
         grad_clip_norm: f64,
     ) -> Result<f64> {
-        let beta1 = 0.9_f64;
-        let beta2 = 0.999_f64;
-        let eps = 1e-8_f64;
-
-        let mut active: Vec<(String, Tensor)> = Vec::new();
-        let mut sq_sum = 0.0_f64;
+        let mut grad_map = BTreeMap::new();
         for (name, var) in &self.vars {
             if let Some(pfx) = skip_prefix
                 && name.starts_with(pfx)
@@ -322,14 +358,55 @@ impl ParamStore {
                 continue;
             }
             if let Some(g) = grads.get(var.as_tensor()) {
-                let norm_sq = g
-                    .sqr()
-                    .and_then(|x| x.sum_all())
-                    .and_then(|x| x.to_scalar::<f32>())
-                    .map_err(c_err)? as f64;
-                sq_sum += norm_sq;
-                active.push((name.clone(), g.clone()));
+                grad_map.insert(name.clone(), g.clone());
             }
+        }
+        self.adamw_step_from_map(&grad_map, step_one_based, lr, weight_decay, grad_clip_norm)
+    }
+
+    /// Accumulate gradients from a `GradStore` into `accum` (for per-level backward and grad accum).
+    fn accumulate_grads(
+        &self,
+        grads: &candle_core::backprop::GradStore,
+        accum: &mut BTreeMap<String, Tensor>,
+    ) -> Result<()> {
+        for (name, var) in &self.vars {
+            if let Some(g) = grads.get(var.as_tensor()) {
+                let g_det = g.detach();
+                if let Some(prev) = accum.get(name) {
+                    let sum = (prev + &g_det).map_err(c_err)?;
+                    accum.insert(name.clone(), sum);
+                } else {
+                    accum.insert(name.clone(), g_det);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Decoupled AdamW + global L2 gradient clipping from an accumulated gradient map.
+    fn adamw_step_from_map(
+        &mut self,
+        grad_map: &BTreeMap<String, Tensor>,
+        step_one_based: usize,
+        lr: f64,
+        weight_decay: f64,
+        grad_clip_norm: f64,
+    ) -> Result<f64> {
+        let beta1 = 0.9_f64;
+        let beta2 = 0.999_f64;
+        let eps = 1e-8_f64;
+
+        let mut active: Vec<(String, Tensor)> = Vec::with_capacity(grad_map.len());
+        let mut sq_sum = 0.0_f64;
+        for (name, g) in grad_map {
+            let norm_sq = g
+                .sqr()
+                .and_then(|x| x.sum_all())
+                .and_then(|x| x.to_scalar::<f32>())
+                .map_err(c_err)? as f64;
+            sq_sum += norm_sq;
+            active.push((name.clone(), g.clone()));
         }
         let grad_norm = sq_sum.sqrt();
         let clip_scale = if grad_clip_norm > 0.0 && grad_norm > grad_clip_norm {
@@ -870,9 +947,11 @@ fn build_combined_mask(
     Tensor::from_slice(&mask, (batch, 1, seq, seq), device).map_err(c_err)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn generator_block(
     gen_cfg: &LocalGeneratorConfig,
     get: &impl Fn(&str) -> candle_core::Result<Tensor>,
+    lora_ctx: Option<(&ParamStore, f64)>,
     x: &Tensor,
     cos: &Tensor,
     sin: &Tensor,
@@ -890,10 +969,13 @@ fn generator_block(
         Some(&get(&format!("{p}.ln_1.bias"))?),
         1e-6,
     )?;
-    let qkv = linear_3d(
+    let c_attn_w_name = format!("{p}.attn.c_attn.weight");
+    let qkv = linear_3d_maybe_lora(
         &norm1,
-        &get(&format!("{p}.attn.c_attn.weight"))?,
+        &c_attn_w_name,
+        &get(&c_attn_w_name)?,
         Some(&get(&format!("{p}.attn.c_attn.bias"))?),
+        lora_ctx,
     )?;
     let q = qkv
         .narrow(2, 0, width)?
@@ -920,10 +1002,13 @@ fn generator_block(
         .transpose(1, 2)?
         .contiguous()?
         .reshape((bsz, seq, width))?;
-    let attn_out = linear_3d(
+    let c_proj_w_name = format!("{p}.attn.c_proj.weight");
+    let attn_out = linear_3d_maybe_lora(
         &attn,
-        &get(&format!("{p}.attn.c_proj.weight"))?,
+        &c_proj_w_name,
+        &get(&c_proj_w_name)?,
         Some(&get(&format!("{p}.attn.c_proj.bias"))?),
+        lora_ctx,
     )?;
     let res = (x + attn_out)?;
 
@@ -933,18 +1018,127 @@ fn generator_block(
         Some(&get(&format!("{p}.ln_2.bias"))?),
         1e-6,
     )?;
-    let h = linear_3d(
+    let c_fc_w_name = format!("{p}.mlp.c_fc.weight");
+    let h = linear_3d_maybe_lora(
         &norm2,
-        &get(&format!("{p}.mlp.c_fc.weight"))?,
+        &c_fc_w_name,
+        &get(&c_fc_w_name)?,
         Some(&get(&format!("{p}.mlp.c_fc.bias"))?),
+        lora_ctx,
     )?
     .gelu_erf()?;
-    let mlp = linear_3d(
+    let mlp_proj_w_name = format!("{p}.mlp.c_proj.weight");
+    let mlp = linear_3d_maybe_lora(
         &h,
-        &get(&format!("{p}.mlp.c_proj.weight"))?,
+        &mlp_proj_w_name,
+        &get(&mlp_proj_w_name)?,
         Some(&get(&format!("{p}.mlp.c_proj.bias"))?),
+        lora_ctx,
     )?;
     &res + mlp
+}
+
+#[allow(clippy::too_many_arguments)]
+fn generator_level_loss(
+    config: &LocalNcmConfig,
+    pre: &GeneratorPrecomputed,
+    frozen_wte: &Tensor,
+    get: &impl Fn(&str) -> candle_core::Result<Tensor>,
+    lora_ctx: Option<(&ParamStore, f64)>,
+    prefixes: &[u32],
+    gt_code: &Tensor,
+    cond_latent: Option<&Tensor>,
+    level: usize,
+    batch: usize,
+    device: &Device,
+) -> Result<Tensor> {
+    let codec_cfg = config.codec();
+    let gen_cfg = config.model();
+    let level_len = codec_cfg.levels()[level];
+
+    let frozen_base = lora_ctx.is_some();
+    let prefix_ids =
+        Tensor::from_slice(prefixes, (batch, gen_cfg.prefix_len), device).map_err(c_err)?;
+    let prefix_raw = embedding_gather(frozen_wte, &prefix_ids).map_err(c_err)?;
+    let wte_w = get("transformer.wte.weight").map_err(c_err)?;
+    let wte_b = get("transformer.wte.bias").map_err(c_err)?;
+    let prefix_h = linear_3d_impl(&prefix_raw, &wte_w, Some(&wte_b), frozen_base).map_err(c_err)?;
+
+    let wle = get("transformer.wle.weight").map_err(c_err)?;
+    let ln_f_w = get("transformer.ln_f.weight").map_err(c_err)?;
+    let ln_f_b = get("transformer.ln_f.bias").map_err(c_err)?;
+
+    let latent = if level == 0 {
+        let l0_queries = get("l0_queries").map_err(c_err)?;
+        let zeros = Tensor::zeros(
+            (batch, level_len, codec_cfg.raw().embed_dim),
+            DType::F32,
+            device,
+        )
+        .map_err(c_err)?;
+        l0_queries.broadcast_add(&zeros).map_err(c_err)?
+    } else {
+        cond_latent.expect("cond latent for level > 0").clone()
+    };
+    let lvl_emb = wle.narrow(0, level, 1).map_err(c_err)?;
+    let target_h = linear_3d_impl(&latent, &wte_w, Some(&wte_b), frozen_base)
+        .map_err(c_err)?
+        .broadcast_add(&lvl_emb)
+        .map_err(c_err)?;
+
+    let mut x = Tensor::cat(&[&prefix_h, &target_h], 1).map_err(c_err)?;
+    let mask = build_combined_mask(
+        &pre.masks[level],
+        prefixes,
+        batch,
+        gen_cfg.prefix_len,
+        level_len,
+        gen_cfg.pad_token_id,
+        device,
+    )?;
+    for layer in 0..gen_cfg.n_layer {
+        x = generator_block(
+            gen_cfg,
+            get,
+            lora_ctx,
+            &x,
+            &pre.cos[level],
+            &pre.sin[level],
+            &mask,
+            layer,
+        )
+        .map_err(c_err)?;
+    }
+    let target_out = x.narrow(1, gen_cfg.prefix_len, level_len).map_err(c_err)?;
+    let normed = layer_norm(&target_out, &ln_f_w, Some(&ln_f_b), 1e-6).map_err(c_err)?;
+    let logits = match gen_cfg.head_kind {
+        LocalHeadKind::UntiedAffine => linear_3d_impl(
+            &normed,
+            &get(&format!("lm_heads.{level}.weight")).map_err(c_err)?,
+            Some(&get(&format!("lm_heads.{level}.bias")).map_err(c_err)?),
+            frozen_base,
+        )
+        .map_err(c_err)?,
+        LocalHeadKind::UntiedLinear => linear_3d_impl(
+            &normed,
+            &get(&format!("lm_heads.{level}.weight")).map_err(c_err)?,
+            None,
+            frozen_base,
+        )
+        .map_err(c_err)?,
+        LocalHeadKind::SharedHeadBiases => linear_3d_impl(
+            &normed,
+            &get("lm_head.weight").map_err(c_err)?,
+            Some(&get(&format!("head_biases.{level}")).map_err(c_err)?),
+            frozen_base,
+        )
+        .map_err(c_err)?,
+    };
+    let vocab_l = gen_cfg.vocab_size[level];
+    let logits_2d = logits
+        .reshape((batch * level_len, vocab_l))
+        .map_err(c_err)?;
+    candle_nn::loss::cross_entropy(&logits_2d, gt_code).map_err(c_err)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -952,109 +1146,36 @@ fn generator_forward_loss(
     config: &LocalNcmConfig,
     pre: &GeneratorPrecomputed,
     frozen_wte: &Tensor,
-    store: &ParamStore,
+    get: &impl Fn(&str) -> candle_core::Result<Tensor>,
+    lora_ctx: Option<(&ParamStore, f64)>,
     prefixes: &[u32],
     gt_codes: &[Tensor],
     cond_latents: &[Option<Tensor>],
     batch: usize,
     device: &Device,
 ) -> Result<Tensor> {
-    let codec_cfg = config.codec();
-    let gen_cfg = config.model();
-    let get = |name: &str| store.tensor(name);
-
-    let prefix_ids =
-        Tensor::from_slice(prefixes, (batch, gen_cfg.prefix_len), device).map_err(c_err)?;
-    let prefix_raw = embedding_gather(frozen_wte, &prefix_ids).map_err(c_err)?;
-    let wte_w = get("transformer.wte.weight").map_err(c_err)?;
-    let wte_b = get("transformer.wte.bias").map_err(c_err)?;
-    let prefix_h = linear_3d(&prefix_raw, &wte_w, Some(&wte_b)).map_err(c_err)?;
-
-    let l0_queries = get("l0_queries").map_err(c_err)?;
-    let wle = get("transformer.wle.weight").map_err(c_err)?;
-    let ln_f_w = get("transformer.ln_f.weight").map_err(c_err)?;
-    let ln_f_b = get("transformer.ln_f.bias").map_err(c_err)?;
-
-    let levels = codec_cfg.levels();
+    let n_levels = config.codec().levels().len();
     let mut total_loss: Option<Tensor> = None;
-
-    for (level, &level_len) in levels.iter().enumerate() {
-        let latent = if level == 0 {
-            let zeros = Tensor::zeros(
-                (batch, level_len, codec_cfg.raw().embed_dim),
-                DType::F32,
-                device,
-            )
-            .map_err(c_err)?;
-            l0_queries.broadcast_add(&zeros).map_err(c_err)?
-        } else {
-            cond_latents[level]
-                .as_ref()
-                .expect("cond latent for level > 0")
-                .clone()
-        };
-        let lvl_emb = wle.narrow(0, level, 1).map_err(c_err)?;
-        let target_h = linear_3d(&latent, &wte_w, Some(&wte_b))
-            .map_err(c_err)?
-            .broadcast_add(&lvl_emb)
-            .map_err(c_err)?;
-
-        let mut x = Tensor::cat(&[&prefix_h, &target_h], 1).map_err(c_err)?;
-        let mask = build_combined_mask(
-            &pre.masks[level],
+    for level in 0..n_levels {
+        let loss_l = generator_level_loss(
+            config,
+            pre,
+            frozen_wte,
+            get,
+            lora_ctx,
             prefixes,
+            &gt_codes[level],
+            cond_latents[level].as_ref(),
+            level,
             batch,
-            gen_cfg.prefix_len,
-            level_len,
-            gen_cfg.pad_token_id,
             device,
         )?;
-        for layer in 0..gen_cfg.n_layer {
-            x = generator_block(
-                gen_cfg,
-                &get,
-                &x,
-                &pre.cos[level],
-                &pre.sin[level],
-                &mask,
-                layer,
-            )
-            .map_err(c_err)?;
-        }
-        let target_out = x.narrow(1, gen_cfg.prefix_len, level_len).map_err(c_err)?;
-        let normed = layer_norm(&target_out, &ln_f_w, Some(&ln_f_b), 1e-6).map_err(c_err)?;
-        let logits = match gen_cfg.head_kind {
-            LocalHeadKind::UntiedAffine => linear_3d(
-                &normed,
-                &get(&format!("lm_heads.{level}.weight")).map_err(c_err)?,
-                Some(&get(&format!("lm_heads.{level}.bias")).map_err(c_err)?),
-            )
-            .map_err(c_err)?,
-            LocalHeadKind::UntiedLinear => linear_3d(
-                &normed,
-                &get(&format!("lm_heads.{level}.weight")).map_err(c_err)?,
-                None,
-            )
-            .map_err(c_err)?,
-            LocalHeadKind::SharedHeadBiases => linear_3d(
-                &normed,
-                &get("lm_head.weight").map_err(c_err)?,
-                Some(&get(&format!("head_biases.{level}")).map_err(c_err)?),
-            )
-            .map_err(c_err)?,
-        };
-        let vocab_l = gen_cfg.vocab_size[level];
-        let logits_2d = logits
-            .reshape((batch * level_len, vocab_l))
-            .map_err(c_err)?;
-        let loss_l = candle_nn::loss::cross_entropy(&logits_2d, &gt_codes[level]).map_err(c_err)?;
         total_loss = Some(match total_loss {
             Some(prev) => (prev + loss_l).map_err(c_err)?,
             None => loss_l,
         });
     }
-
-    (total_loss.expect("nonempty levels") / (levels.len() as f64)).map_err(c_err)
+    (total_loss.expect("nonempty levels") / (n_levels as f64)).map_err(c_err)
 }
 
 // ---------------------------------------------------------------------------
@@ -1185,6 +1306,8 @@ pub fn train_codec(
                 total_steps: train_cfg.steps,
                 rng_state,
                 last_loss: loss_val,
+                lora_rank: 0,
+                lora_alpha: 0.0,
             };
             save_checkpoint(dir, &meta, &weights, &m, &v, Some(&ema))?;
         }
@@ -1194,7 +1317,7 @@ pub fn train_codec(
     Ok((final_weights, history))
 }
 
-/// Train or fine-tune a `local-ncm-v1` generator against a frozen codec on CPU or CUDA.
+/// Train or fine-tune a `local-ncm-v1` generator (full or LoRA) against a frozen codec on CPU or CUDA.
 #[allow(clippy::too_many_arguments)]
 pub fn train_generator(
     config: &LocalNcmConfig,
@@ -1208,6 +1331,8 @@ pub fn train_generator(
 ) -> Result<(TensorMap, Vec<StepMetrics>)> {
     let device = resolve_device(device_name)?;
     let pre = GeneratorPrecomputed::new(config, &device)?;
+    let n_levels = config.codec().levels().len();
+    let inv_levels = 1.0 / (n_levels as f64);
 
     let mut frozen_codec = BTreeMap::new();
     for (name, (shape, vals)) in frozen_codec_weights {
@@ -1219,17 +1344,63 @@ pub fn train_generator(
         .ok_or_else(|| TrainError::Artifact("missing frozen encoder.wte.weight".into()))?
         .clone();
 
-    let (start_step, rng_state, mut store) = if let Some(ckpt) = resume {
+    let lora_rank = train_cfg.lora_rank;
+    let lora_alpha = train_cfg.effective_lora_alpha();
+
+    let (start_step, rng_state, frozen_gen, mut store) = if lora_rank > 0 {
+        let mut frozen = BTreeMap::new();
+        for (name, (shape, vals)) in init_gen_weights {
+            let t = Tensor::from_slice(vals, shape.as_slice(), &device).map_err(c_err)?;
+            frozen.insert(name.clone(), t);
+        }
+        if let Some(ckpt) = resume {
+            if ckpt.meta.lora_rank != lora_rank || (ckpt.meta.lora_alpha - lora_alpha).abs() > 1e-9
+            {
+                return Err(TrainError::Artifact(format!(
+                    "checkpoint LoRA config (rank={}, alpha={}) does not match current (rank={}, alpha={})",
+                    ckpt.meta.lora_rank, ckpt.meta.lora_alpha, lora_rank, lora_alpha
+                )));
+            }
+            lora::validate_lora_adapters(init_gen_weights, &ckpt.weights, lora_rank)?;
+            let store = ParamStore::from_host(
+                &ckpt.weights,
+                Some(&ckpt.optim_m),
+                Some(&ckpt.optim_v),
+                &device,
+            )?;
+            (ckpt.meta.step, ckpt.meta.rng_state, Some(frozen), store)
+        } else {
+            let adapters = lora::init_lora_adapters(init_gen_weights, lora_rank, train_cfg.seed)?;
+            let store = ParamStore::from_host(&adapters, None, None, &device)?;
+            (
+                0usize,
+                splitmix64(train_cfg.seed ^ 0x6E4E_0001),
+                Some(frozen),
+                store,
+            )
+        }
+    } else if let Some(ckpt) = resume {
+        if ckpt.meta.lora_rank != 0 {
+            return Err(TrainError::Artifact(format!(
+                "cannot resume LoRA checkpoint (rank={}) without --lora-rank {}",
+                ckpt.meta.lora_rank, ckpt.meta.lora_rank
+            )));
+        }
         let store = ParamStore::from_host(
             &ckpt.weights,
             Some(&ckpt.optim_m),
             Some(&ckpt.optim_v),
             &device,
         )?;
-        (ckpt.meta.step, ckpt.meta.rng_state, store)
+        (ckpt.meta.step, ckpt.meta.rng_state, None, store)
     } else {
         let store = ParamStore::from_host(init_gen_weights, None, None, &device)?;
-        (0usize, splitmix64(train_cfg.seed ^ 0x6E4E_0001), store)
+        (
+            0usize,
+            splitmix64(train_cfg.seed ^ 0x6E4E_0001),
+            None,
+            store,
+        )
     };
 
     let mut history = Vec::new();
@@ -1251,27 +1422,63 @@ pub fn train_generator(
             train_cfg.batch_size,
             &device,
         )?;
-        let loss = generator_forward_loss(
-            config,
-            &pre,
-            &frozen_wte,
-            &store,
-            &prefixes,
-            &gt_codes,
-            &cond_latents,
-            train_cfg.batch_size,
-            &device,
-        )?;
-        let loss_val = loss.to_scalar::<f32>().map_err(c_err)? as f64;
-        if !loss_val.is_finite() {
-            return Err(TrainError::Backend(format!(
-                "non-finite generator loss at step {step}"
-            )));
+
+        // Accumulate gradients one level at a time so peak activation memory stays
+        // bounded to a single level even for 12-level 89M-param TinyStories.
+        let mut accum_grads = BTreeMap::<String, Tensor>::new();
+        let mut loss_val = 0.0_f64;
+        for level in 0..n_levels {
+            let loss_l = if let Some(ref frozen) = frozen_gen {
+                let get = |name: &str| {
+                    frozen
+                        .get(name)
+                        .cloned()
+                        .ok_or_else(|| candle_core::Error::Msg(format!("missing weight `{name}`")))
+                };
+                let scale = lora::lora_scale(lora_rank, lora_alpha);
+                generator_level_loss(
+                    config,
+                    &pre,
+                    &frozen_wte,
+                    &get,
+                    Some((&store, scale)),
+                    &prefixes,
+                    &gt_codes[level],
+                    cond_latents[level].as_ref(),
+                    level,
+                    train_cfg.batch_size,
+                    &device,
+                )?
+            } else {
+                let get = |name: &str| store.tensor(name);
+                generator_level_loss(
+                    config,
+                    &pre,
+                    &frozen_wte,
+                    &get,
+                    None,
+                    &prefixes,
+                    &gt_codes[level],
+                    cond_latents[level].as_ref(),
+                    level,
+                    train_cfg.batch_size,
+                    &device,
+                )?
+            };
+            let scaled_loss = (&loss_l * inv_levels).map_err(c_err)?;
+            let lv = scaled_loss.to_scalar::<f32>().map_err(c_err)? as f64;
+            if !lv.is_finite() {
+                return Err(TrainError::Backend(format!(
+                    "non-finite generator loss at step {step} level {level}"
+                )));
+            }
+            loss_val += lv;
+            let grads = scaled_loss.backward().map_err(c_err)?;
+            store.accumulate_grads(&grads, &mut accum_grads)?;
         }
-        let grads = loss.backward().map_err(c_err)?;
-        let grad_norm = store.adamw_step(
-            &grads,
-            None,
+
+        let grad_norm = store.adamw_step_from_map(
+            &accum_grads,
             step + 1,
             lr,
             train_cfg.weight_decay,
@@ -1303,12 +1510,19 @@ pub fn train_generator(
                 total_steps: train_cfg.steps,
                 rng_state,
                 last_loss: loss_val,
+                lora_rank,
+                lora_alpha,
             };
             save_checkpoint(dir, &meta, &weights, &m, &v, None)?;
         }
     }
 
-    let final_weights = store.export_weights()?;
+    let final_weights = if lora_rank > 0 {
+        let trained_adapters = store.export_weights()?;
+        lora::merge_lora_weights(init_gen_weights, &trained_adapters, lora_rank, lora_alpha)?
+    } else {
+        store.export_weights()?
+    };
     Ok((final_weights, history))
 }
 
@@ -1347,11 +1561,13 @@ pub fn finite_diff_check_generator(
 
     // Analytic gradient
     let store = ParamStore::from_host(gen_weights, None, None, &device)?;
+    let get = |name: &str| store.tensor(name);
     let loss = generator_forward_loss(
         config,
         &pre,
         &frozen_wte,
-        &store,
+        &get,
+        None,
         prefixes,
         &gt_codes,
         &cond_latents,
@@ -1377,11 +1593,13 @@ pub fn finite_diff_check_generator(
         let mut perturbed = gen_weights.clone();
         perturbed.get_mut(param_name).unwrap().1[flat_index] += delta;
         let s = ParamStore::from_host(&perturbed, None, None, &device)?;
+        let g = |name: &str| s.tensor(name);
         let l = generator_forward_loss(
             config,
             &pre,
             &frozen_wte,
-            &s,
+            &g,
+            None,
             prefixes,
             &gt_codes,
             &cond_latents,
@@ -1394,4 +1612,178 @@ pub fn finite_diff_check_generator(
     let l_minus = eval_with(-eps)?;
     let numeric = (l_plus - l_minus) / (2.0 * eps as f64);
     Ok((analytic, numeric, (analytic - numeric).abs()))
+}
+
+/// Central finite-difference gradient check for one LoRA adapter (`lora_a` or `lora_b`) element.
+/// Returns `(analytic_grad, numeric_grad, abs_diff)`.
+#[allow(clippy::too_many_arguments)]
+pub fn finite_diff_check_generator_lora(
+    config: &LocalNcmConfig,
+    frozen_codec_weights: &TensorMap,
+    base_gen_weights: &TensorMap,
+    lora_adapters: &TensorMap,
+    lora_rank: usize,
+    lora_alpha: f64,
+    prefixes: &[u32],
+    targets: &[u32],
+    batch: usize,
+    adapter_name: &str,
+    flat_index: usize,
+    eps: f32,
+) -> Result<(f64, f64, f64)> {
+    let device = Device::Cpu;
+    let pre = GeneratorPrecomputed::new(config, &device)?;
+    let mut frozen_codec = BTreeMap::new();
+    for (name, (shape, vals)) in frozen_codec_weights {
+        frozen_codec.insert(
+            name.clone(),
+            Tensor::from_slice(vals, shape.as_slice(), &device).map_err(c_err)?,
+        );
+    }
+    let frozen_wte = frozen_codec.get("encoder.wte.weight").unwrap().clone();
+    let (gt_codes, cond_latents) = frozen_codec_encode_for_generator(
+        config.codec(),
+        &pre,
+        &frozen_codec,
+        targets,
+        batch,
+        &device,
+    )?;
+
+    let mut frozen_gen = BTreeMap::new();
+    for (name, (shape, vals)) in base_gen_weights {
+        frozen_gen.insert(
+            name.clone(),
+            Tensor::from_slice(vals, shape.as_slice(), &device).map_err(c_err)?,
+        );
+    }
+    let get_base = |name: &str| {
+        frozen_gen
+            .get(name)
+            .cloned()
+            .ok_or_else(|| candle_core::Error::Msg(format!("missing weight `{name}`")))
+    };
+    let scale = lora::lora_scale(lora_rank, lora_alpha);
+
+    // Analytic gradient via per-level accumulation (exact same path as train_generator).
+    let store = ParamStore::from_host(lora_adapters, None, None, &device)?;
+    let n_levels = config.codec().levels().len();
+    let inv_levels = 1.0 / (n_levels as f64);
+    let mut accum = BTreeMap::<String, Tensor>::new();
+    for level in 0..n_levels {
+        let loss_l = generator_level_loss(
+            config,
+            &pre,
+            &frozen_wte,
+            &get_base,
+            Some((&store, scale)),
+            prefixes,
+            &gt_codes[level],
+            cond_latents[level].as_ref(),
+            level,
+            batch,
+            &device,
+        )?;
+        let scaled = (&loss_l * inv_levels).map_err(c_err)?;
+        let grads = scaled.backward().map_err(c_err)?;
+        store.accumulate_grads(&grads, &mut accum)?;
+    }
+    let g_vec = accum
+        .get(adapter_name)
+        .ok_or_else(|| TrainError::Backend(format!("missing LoRA grad for `{adapter_name}`")))?
+        .flatten_all()
+        .map_err(c_err)?
+        .to_vec1::<f32>()
+        .map_err(c_err)?;
+    let analytic = g_vec[flat_index] as f64;
+
+    let eval_with = |delta: f32| -> Result<f64> {
+        let mut perturbed = lora_adapters.clone();
+        perturbed.get_mut(adapter_name).unwrap().1[flat_index] += delta;
+        let s = ParamStore::from_host(&perturbed, None, None, &device)?;
+        let l = generator_forward_loss(
+            config,
+            &pre,
+            &frozen_wte,
+            &get_base,
+            Some((&s, scale)),
+            prefixes,
+            &gt_codes,
+            &cond_latents,
+            batch,
+            &device,
+        )?;
+        Ok(l.to_scalar::<f32>().map_err(c_err)? as f64)
+    };
+    let l_plus = eval_with(eps)?;
+    let l_minus = eval_with(-eps)?;
+    let numeric = (l_plus - l_minus) / (2.0 * eps as f64);
+    Ok((analytic, numeric, (analytic - numeric).abs()))
+}
+
+/// Evaluate generator forward loss with optional active LoRA adapters (used to verify
+/// exact LoRA-vs-merged forward equivalence).
+#[allow(clippy::too_many_arguments)]
+pub fn eval_generator_loss(
+    config: &LocalNcmConfig,
+    frozen_codec_weights: &TensorMap,
+    gen_weights: &TensorMap,
+    lora_adapters: Option<(&TensorMap, usize, f64)>,
+    prefixes: &[u32],
+    targets: &[u32],
+    batch: usize,
+    device_name: &str,
+) -> Result<f64> {
+    let device = resolve_device(device_name)?;
+    let pre = GeneratorPrecomputed::new(config, &device)?;
+    let mut frozen_codec = BTreeMap::new();
+    for (name, (shape, vals)) in frozen_codec_weights {
+        frozen_codec.insert(
+            name.clone(),
+            Tensor::from_slice(vals, shape.as_slice(), &device).map_err(c_err)?,
+        );
+    }
+    let frozen_wte = frozen_codec.get("encoder.wte.weight").unwrap().clone();
+    let (gt_codes, cond_latents) = frozen_codec_encode_for_generator(
+        config.codec(),
+        &pre,
+        &frozen_codec,
+        targets,
+        batch,
+        &device,
+    )?;
+    let mut base_map = BTreeMap::new();
+    for (name, (shape, vals)) in gen_weights {
+        base_map.insert(
+            name.clone(),
+            Tensor::from_slice(vals, shape.as_slice(), &device).map_err(c_err)?,
+        );
+    }
+    let get = |name: &str| {
+        base_map
+            .get(name)
+            .cloned()
+            .ok_or_else(|| candle_core::Error::Msg(format!("missing weight `{name}`")))
+    };
+    let lora_store = match lora_adapters {
+        Some((adapters, rank, alpha)) => Some((
+            ParamStore::from_host(adapters, None, None, &device)?,
+            lora::lora_scale(rank, alpha),
+        )),
+        None => None,
+    };
+    let lora_ctx = lora_store.as_ref().map(|(s, sc)| (s, *sc));
+    let loss = generator_forward_loss(
+        config,
+        &pre,
+        &frozen_wte,
+        &get,
+        lora_ctx,
+        prefixes,
+        &gt_codes,
+        &cond_latents,
+        batch,
+        &device,
+    )?;
+    Ok(loss.to_scalar::<f32>().map_err(c_err)? as f64)
 }

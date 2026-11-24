@@ -14,14 +14,16 @@ Usage:
 
 Required:
   --config FILE          Local NCM config.json (for training from scratch)
-  --init-from ARTIFACT   Existing verified local-ncm-v1 artifact directory (for fine-tuning)
+  --init-from ARTIFACT   Existing verified local-ncm-v1 or tinystories-inference-v1 artifact
   --data FILE            Training dataset (.json token rows / {prefix,target} pairs / text, or .txt)
   --output DIR           Output directory for the exported verified local-ncm-v1 artifact
   --device DEV           Explicit training device: cuda, cuda-cudnn, mlx, or cpu (no fallback)
 
 Options:
   --stage STAGE          codec | generator | all (default: all, or generator when --init-from is set)
-  --tokenizer FILE       Optional HuggingFace tokenizer.json to bundle & encode text datasets
+  --tokenizer FILE       Optional tokenizer.json to bundle & encode text datasets
+  --lora-rank R          Enable LoRA generator fine-tuning with rank R (default: 0 = full fine-tuning)
+  --lora-alpha A         LoRA scaling alpha (default: 2 * R when --lora-rank > 0)
   --steps N              Optimization steps (default: 100)
   --codec-steps N        Separate step count for codec stage when --stage all
   --batch N              Minibatch size 1..=256 (default: 8)
@@ -84,6 +86,14 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
             }
             "--stage" => {
                 explicit_stage = Some(args.get(i + 1).ok_or(TRAIN_USAGE)?.parse()?);
+                i += 2;
+            }
+            "--lora-rank" => {
+                cfg.lora_rank = args.get(i + 1).ok_or(TRAIN_USAGE)?.parse()?;
+                i += 2;
+            }
+            "--lora-alpha" => {
+                cfg.lora_alpha = args.get(i + 1).ok_or(TRAIN_USAGE)?.parse()?;
                 i += 2;
             }
             "--steps" => {
@@ -217,6 +227,9 @@ pub(super) fn run_train(args: &[String]) -> Result<()> {
         "steps_completed": report.steps_completed,
         "total_seconds": (report.total_seconds * 1000.0).round() / 1000.0,
         "mean_step_ms": (report.mean_step_ms * 100.0).round() / 100.0,
+        "lora_rank": report.lora_rank,
+        "trainable_params": report.trainable_params,
+        "total_params": report.total_params,
         "codec_initial_loss": report.codec_initial_loss,
         "codec_final_loss": report.codec_final_loss,
         "generator_initial_loss": report.generator_initial_loss,
@@ -276,9 +289,15 @@ mod tests {
             "out-ft",
             "--device",
             "cuda",
+            "--lora-rank",
+            "8",
+            "--lora-alpha",
+            "16",
         ]))
         .unwrap();
         assert_eq!(ft.train_cfg.stage, TrainStage::Generator);
+        assert_eq!(ft.train_cfg.lora_rank, 8);
+        assert_eq!(ft.train_cfg.lora_alpha, 16.0);
 
         // Missing device or conflicting --config + --init-from rejected.
         assert!(
