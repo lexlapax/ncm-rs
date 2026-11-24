@@ -1,5 +1,13 @@
 # Published comparison index
 
+## Phase 8 & Phase 9: native low-precision kernels, `ncm quantize` sidecars, & `ncm-train` v2 (complete)
+
+Phase 8 & Phase 9 ([docs/PHASE8.md](../PHASE8.md)) are complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra). Strict `FP32` defaults remain 100% byte-identical across all 9 profiles on both GPUs.
+
+| Report | Scope | Status and highlights |
+| --- | --- | --- |
+| [Phase 8 & Phase 9 dual-platform report (CUDA & Metal)](2026-11-23-phase8-phase9/README.md) | Milestones **8A** (native low-precision kernels & fixed-matrix resampling + CUDA graph evaluation vs upstream Python `094f25ca`), **8B** (`ncm quantize` verified `Q8`/`Q4` sidecars), **9A** (upstream TinyStories `--init-from` + native Rust LoRA with export merge), and **9B** (`--train-precision bf16`, `--grad-accum`, `.jsonl` datasets & `--val-data`/`--eval-every`) | **PASSED on CUDA and Metal (8/8 receipts).** **8A:** `1.33×–1.77×` CUDA & `1.22×–1.72×` Metal faster low-precision inference; eager Rust CUDA `bf16` beats Python `094f25ca` `torch.compile`+CUDA graphs (`27.45` vs `31.28 ms`) at `2.55×` less VRAM. **8B:** `ncm quantize` speeds cold `Q8`/`Q4` loads by **`4.79×–9.23×` CUDA / `2.50×–4.75×` Metal** (`3.06×–5.45×` smaller) with 100% byte-identical output & 4/4 fail-closed tamper checks. **9A/9B:** 123M `tinystories-15k-ema-v1` LoRA r=8 (0.96% trainable) matches to 4 decimals across CUDA & Metal (`6.5286 → 3.4522` at `542`/`352 ms/step`); `bf16` + `grad_accum=2` + JSONL `--val-data` matches FP32 within `< 1e-3` (`1.05×` faster & `~576 MiB` lower peak VRAM on CUDA). |
+
 ## Phase 7: weight quantization (`Q8`/`Q4`), Serving v2, & native Rust training (complete)
 
 Phase 7 (`v0.4.0` released, [docs/PHASE7.md](../PHASE7.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra).

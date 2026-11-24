@@ -668,3 +668,16 @@ For a streamlined 5-minute walkthrough (without compiling CPython 3.14.9 from so
 ```
 
 Exposes OpenAI (`/v1/models`, `/v1/completions`, `/v1/chat/completions`, streaming SSE & non-streaming) and Ollama (`/`, `/health`, `/api/tags`, `/api/version`, `/api/show`, `/api/generate`, `/api/chat`, streaming NDJSON & non-streaming) on localhost by default, serialized safely through one GPU worker thread with bounded LRU eviction. See [docs/QUICKSTART.md](QUICKSTART.md#5-serve-as-a-drop-in-openai--ollama-endpoint) for `curl` and OpenAI Python SDK examples.
+
+## Phase 8 & Phase 9 additions: `ncm quantize` verified sidecars and `ncm train` v2
+
+- **Verified pre-quantized `Q8`/`Q4` sidecars (`ncm quantize`):**
+  - Run `ncm quantize ARTIFACT --precision q8|q4 --device cuda|mlx [--force]` to write a parent-manifest-bound, SHA-256-verified sidecar (`prequant-{cuda-ggml|mlx-affine}-{q8|q4}.{safetensors,manifest.json}`) inside `ARTIFACT`.
+  - `ncm sample`, `ncm run`, and `ncm serve` automatically verify and load matching sidecars on `--precision q8|q4`, falling back to on-the-fly quantization only when absent and failing closed on tampered, stale, or incomplete sidecars.
+- **Native Rust LoRA, `BF16` mixed-precision training, gradient accumulation & JSONL datasets (`ncm train`):**
+  - `--init-from ARTIFACT` admits both `local-ncm-v1` and verified upstream `tinystories-inference-v1` artifacts (converting tied codebook heads to equivalent `UntiedAffine` weights in parallel).
+  - `--lora-rank R [--lora-alpha A]` trains low-rank adapters on all generator attention and MLP projections and merges them cleanly (`W + (alpha / r) * (B @ A)` in FP64) into a standard verified `local-ncm-v1` export.
+  - `--train-precision bf16` executes linear GEMMs and attention in `BF16` (and keeps frozen 2D LoRA weights in `BF16`) while retaining FP32 master weights, norms, softmax, loss, and AdamW moments (explicitly rejected on CPU).
+  - `--grad-accum N` accumulates exact gradients over `N` micro-batches per optimizer step.
+  - `.jsonl` / `.ndjson` datasets support `{"text": "..."}`, `{"prompt": "...", "completion": "..."}`, and `{"prefix": [...], "target": [...]}` with 50%-overlap sliding-window chunking; pass `--val-data PATH [--eval-every N]` for detached no-grad validation loss tracking.
+  - See the [Phase 8 & Phase 9 dual-platform report](results/2026-11-23-phase8-phase9/README.md) for measured CUDA and Metal results.

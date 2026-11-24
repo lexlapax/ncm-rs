@@ -1,0 +1,110 @@
+{
+  "milestone": "9B",
+  "platform": "macos-mlx",
+  "hardware": "Apple M1 Ultra, 64 GiB unified, macOS 26.7.4",
+  "base_artifact": "tinystories-15k-ema-v1",
+  "dataset_format": "jsonl",
+  "train_samples": 8,
+  "val_samples": 4,
+  "config": {
+    "stage": "generator",
+    "lora_rank": 8,
+    "lora_alpha": 16.0,
+    "steps": 20,
+    "batch_size": 2,
+    "grad_accum": 2,
+    "effective_batch_size": 4,
+    "eval_every": 10,
+    "lr": 0.0003,
+    "min_lr": 3e-05,
+    "warmup_steps": 4,
+    "seed": 42
+  },
+  "fp32": {
+    "trainable_params": 1179648,
+    "total_params": 123160704,
+    "initial_loss": 6.583981588482857,
+    "final_loss": 3.929295428097248,
+    "val_history": [
+      {
+        "step": 10,
+        "val_loss": 4.6507361978292465
+      },
+      {
+        "step": 20,
+        "val_loss": 4.08019902308782
+      }
+    ],
+    "final_val_loss": 4.08019902308782,
+    "mean_step_ms": 724.30530825,
+    "total_seconds": 16.3177855,
+    "summary": {
+      "codec_final_loss": null,
+      "codec_initial_loss": null,
+      "dataset_samples": 8,
+      "device": "mlx",
+      "final_val_loss": 4.08019902308782,
+      "generator_final_loss": 3.929295428097248,
+      "generator_initial_loss": 6.583981588482857,
+      "grad_accum": 2,
+      "lora_rank": 8,
+      "mean_step_ms": 724.31,
+      "output_artifact": "<temp>/ts-lora-fp32",
+      "schema": "ncm-train-report-v1",
+      "stage": "generator",
+      "steps_completed": 20,
+      "total_params": 123160704,
+      "total_seconds": 16.318,
+      "train_precision": "fp32",
+      "trainable_params": 1179648
+    }
+  },
+  "bf16": {
+    "trainable_params": 1179648,
+    "total_params": 123160704,
+    "initial_loss": 6.5834260284900665,
+    "final_loss": 3.9292134568095207,
+    "val_history": [
+      {
+        "step": 10,
+        "val_loss": 4.651010860999426
+      },
+      {
+        "step": 20,
+        "val_loss": 4.080814028779665
+      }
+    ],
+    "final_val_loss": 4.080814028779665,
+    "mean_step_ms": 853.36897505,
+    "total_seconds": 18.863244,
+    "summary": {
+      "codec_final_loss": null,
+      "codec_initial_loss": null,
+      "dataset_samples": 8,
+      "device": "mlx",
+      "final_val_loss": 4.080814028779665,
+      "generator_final_loss": 3.9292134568095207,
+      "generator_initial_loss": 6.5834260284900665,
+      "grad_accum": 2,
+      "lora_rank": 8,
+      "mean_step_ms": 853.37,
+      "output_artifact": "<temp>/ts-lora-bf16",
+      "schema": "ncm-train-report-v1",
+      "stage": "generator",
+      "steps_completed": 20,
+      "total_params": 123160704,
+      "total_seconds": 18.863,
+      "train_precision": "bf16",
+      "trainable_params": 1179648
+    }
+  },
+  "comparison": {
+    "bf16_step_speedup_vs_fp32": 0.849,
+    "final_train_loss_abs_diff": 8.2e-05,
+    "final_val_loss_abs_diff": 0.000615
+  },
+  "bf16_merged_inference": {
+    "inspect_profile": "local-ncm-v1",
+    "sample_preview": "Once upon a time, there was a funny dog named Max. Max loved to play with a baseball. He would throw it kick kick, and roll with it in his mouth. One sunny day, Max found his ball in the park. He was very happy. Max ran to get the ball.Max "
+  }
+}

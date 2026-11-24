@@ -2,7 +2,11 @@
 
 A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified foundation for running and serving local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production inference and HTTP serving use native CUDA/cuDNN or native MLX; Python is used strictly offline for checkpoint conversion, references, and evaluation.
 
-**Status: `v0.4.1` released on Linux/CUDA and Apple Silicon/MLX.**
+**Status: `v0.4.1` released; Phase 8 & Phase 9 complete on Linux/CUDA and Apple Silicon/MLX.**
+- **Phase 8 & Phase 9 complete on `main`** ([Phase 8 & Phase 9 dual-platform report](docs/results/2026-11-23-phase8-phase9/README.md)):
+  - **Native Low-Precision Kernels & Fixed-Matrix Resampling (8A):** eliminated per-layer FP32 casts in `bf16`/`fp16`/`q8`/`q4` on both CUDA and Metal (**1.33×–1.77×** faster on RTX 3060 Ti; **1.22×–1.72×** faster on M1 Ultra). Eager Rust CUDA `bf16` b=1 on `tinystories-15k-ema` (**27.45 ms, 253.6 MiB**) beats upstream Python `094f25ca` **with `torch.compile` + CUDA graphs** (**31.28 ms, 647.9 MiB**) by **1.14×** at **2.55× less VRAM**.
+  - **Verified Pre-Quantized `Q8`/`Q4` Sidecars (`ncm quantize`, 8B):** offline `ncm quantize ARTIFACT --precision q8|q4 --device cuda|mlx` writes hash-verified sidecars (`3.06×–5.45×` smaller) that load **`4.79×–9.23×` faster on CUDA** (`lm1b-large` `q4` `3,861 → 418.5 ms`) and **`2.50×–4.75×` faster on Metal** (`2,436 → 512.5 ms`) with **100% byte-identical** outputs and fail-closed tamper detection.
+  - **`ncm-train` v2: LoRA, Upstream TinyStories `--init-from`, `BF16`, Gradient Accumulation, JSONL & Validation Eval (9A/9B):** fine-tune 123M `tinystories-15k-ema-v1` natively in Rust with `--lora-rank 8` (`0.96%` trainable, merged cleanly into verified `local-ncm-v1` on export, **4-decimal loss parity** across RTX 3060 Ti & M1 Ultra), `--train-precision bf16` (`1.05×` faster & `~576 MiB` less peak VRAM on CUDA), `--grad-accum N`, `.jsonl` datasets with sliding-window chunking, and `--val-data` / `--eval-every`.
 - **`v0.4.1` published** (source-only, [upstream `094f25ca` / `e34c3fab` qualification](docs/results/2026-11-23-upstream-qualification/README.md)): dual-platform qualified TinyStories 15k EMA release (`0/2,564` code diffs, `0/512` ID diffs on CUDA & Metal), trimmed inference config support, explicit dual pin-pair verification (legacy `c7027427`/`d342ce8a` preserved), and updated `ncm pull tinystories` / `upstream.toml`.
 - **`v0.4.0` published** (source-only, [Phase 7 report](docs/results/2026-11-23-phase7/README.md)):
   - **Native Weight Quantization (`--precision q8|q4`):** native `GGML Q8_0`/`Q4_0` on CUDA (`QTensor`/`QMatMul`) and group-64 affine `8-bit`/`4-bit` on Metal (`mlx_rs::ops::quantize`/`quantized_matmul`). Cuts `lm1b-large` b=1 VRAM **-68.1% (`q8`, 1,025 MiB, 1.24× faster)** / **-79.1% (`q4`, 673 MiB, 1.27× faster)** on RTX 3060 Ti (**b=16 in 975 MiB**!) and **-66.9% / -77.2% MLX peak** (-90.2% RSS) on M1 Ultra; `sudoku-easy` **128/128 `q8`** / **126–127/128 `q4`**; TinyStories fluent in both `q8` & `q4`.
@@ -10,7 +14,7 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
   - **Native Rust Training & Fine-Tuning (`crates/ncm-train` + `ncm train`):** zero new external crates; pure-Rust CPU, CUDA (Candle), and Metal (MLX `value_and_grad`) reverse-mode autodiff for RVQ/STE/EMA codec training (`--stage codec`), frozen-codec generator training & fine-tuning (`--stage generator` / `--init-from` / `--stage all`), deterministic checkpoint save/resume, and direct verified `local-ncm-v1` export (**100% 8/8 sequence recovery** through `ncm inspect`, `ncm sample`, and `ncm serve` on both CUDA and Metal).
 - **`v0.3.0` published:** opt-in `BF16`/`FP16` half precision, zero-new-dep OpenAI + Ollama HTTP/1.1 server (`ncm serve`, `ncm list`), inline `--prompt` + `--plain`, and [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
 - **`v0.2.0` published:** streaming verified loading + pipelined SHA-256, FP32 prefix K/V caching, self-contained `lm1b-*-inference-v2`, and config-driven `local-ncm-v1`.
-- See the [Phase 7 report](docs/results/2026-11-23-phase7/README.md), [Phase 6 precision & serving report](docs/results/2026-11-22-phase6-precision-serving/README.md), [v0.2.0 optimization report](docs/results/2026-11-20-phase5-optimization/README.md), and [current state](agent-context-map.md).
+- See the [Phase 8 & Phase 9 report](docs/results/2026-11-23-phase8-phase9/README.md), [Phase 7 report](docs/results/2026-11-23-phase7/README.md), [Phase 6 precision & serving report](docs/results/2026-11-22-phase6-precision-serving/README.md), [v0.2.0 optimization report](docs/results/2026-11-20-phase5-optimization/README.md), and [current state](agent-context-map.md).
 
 ## Quick Navigation
 
@@ -35,14 +39,16 @@ Results below apply to the tested hardware (RTX 3060 Ti on Linux, M1 Ultra on ma
 
 ## CLI, local serving, and native training
 
-Run `ncm <command> --help` (`sample`, `run`, `pull`, `serve`, `train`, `list`) for full syntax and explicitly gated experimental options.
+Run `ncm <command> --help` (`sample`, `run`, `pull`, `quantize`, `serve`, `train`, `list`) for full syntax and explicitly gated experimental options.
 
 ```sh
 ncm list [--models-dir DIR] [--json]
 ncm pull --list | ncm pull wmt14 [--dry-run]
+ncm quantize ARTIFACT --precision q8|q4 --device cuda|mlx [--force]
 ncm run wmt14 ["Guten Morgen!"] [--precision fp32|bf16|fp16|q8|q4]
 ncm serve [--models-dir DIR] [--precision fp32|bf16|fp16|q8|q4] [--port 11434] [--max-batch 8] [--preload MODEL]
-ncm train (--config cfg.json | --init-from ARTIFACT) --data train.json --output out --device cuda|mlx|cpu [--stage codec|generator|all]
+ncm train (--config cfg.json | --init-from ARTIFACT) --data train.jsonl --output out --device cuda|mlx|cpu \
+  [--lora-rank 8 --lora-alpha 16] [--train-precision fp32|bf16] [--grad-accum 2] [--val-data val.jsonl --eval-every 10]
 ncm inspect ARTIFACT
 ncm sample ARTIFACT DEVICE --prompt "Hello world" [--precision fp32|bf16|fp16|q8|q4] [--plain]
 ncm generate|reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]  # Sudoku

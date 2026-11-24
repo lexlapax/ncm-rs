@@ -201,12 +201,36 @@ curl http://127.0.0.1:11434/api/chat \
 
 ---
 
-## 6. Train or Fine-Tune a Local NCM Model Natively in Rust (`ncm train`)
+## 6. Pre-Quantize for Instant Cold Loads (`ncm quantize`)
 
-Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or generator directly on **CUDA**, **Apple Silicon Metal**, or **CPU** — zero Python required — and immediately run or serve the verified exported artifact:
+Build a hash-verified `Q8` or `Q4` sidecar cache once (`3.06×–5.45×` smaller on disk); `ncm sample`, `ncm run`, and `ncm serve` automatically detect, SHA-256 verify, and load it (`4.79×–9.23×` faster on CUDA, `2.50×–4.75×` faster on Metal) with 100% byte-identical outputs:
 
 ```bash
-# Train codec + generator from scratch and export verified local-ncm-v1 artifact:
+# Pre-quantize for CUDA (GGML Q8_0 / Q4_0) or Metal (group-64 affine):
+./target/release/ncm quantize artifacts/canonical/tinystories-15k-ema-v1 --precision q8 --device cuda
+# (Use --device mlx on Apple Silicon)
+
+# Subsequent Q8 runs automatically use the verified sidecar:
+./target/release/ncm run tinystories "Once upon a time" --precision q8
+```
+
+---
+
+## 7. Train or Fine-Tune a Local NCM Model Natively in Rust (`ncm train`)
+
+Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or generator directly on **CUDA**, **Apple Silicon Metal**, or **CPU** — zero Python required — or LoRA fine-tune an upstream TinyStories checkpoint with mixed-precision `BF16`, gradient accumulation, JSONL datasets, and validation evaluation:
+
+```bash
+# LoRA fine-tune upstream 123M TinyStories 15k EMA on a JSONL corpus (fits in < 4 GiB VRAM!):
+./target/release/ncm train \
+  --init-from artifacts/canonical/tinystories-15k-ema-v1 \
+  --data train.jsonl --val-data val.jsonl --eval-every 10 \
+  --output artifacts/canonical/tinystories-lora \
+  --device cuda --stage generator \
+  --lora-rank 8 --lora-alpha 16 --train-precision bf16 \
+  --steps 50 --batch 2 --grad-accum 2 --lr 3e-4 --overwrite
+
+# Or train codec + generator from scratch and export verified local-ncm-v1 artifact:
 ./target/release/ncm train \
   --config my_config.json \
   --data train.json \
@@ -214,20 +238,12 @@ Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or gen
   --device cuda \
   --stage all --steps 200 --batch 8 --lr 0.005 --overwrite
 
-# Fine-tune an existing verified local-ncm-v1 artifact (frozen codec):
-./target/release/ncm train \
-  --init-from artifacts/canonical/my-trained-ncm \
-  --data finetune.json \
-  --output artifacts/canonical/my-finetuned-ncm \
-  --device cuda \
-  --steps 100 --lr 0.001 --overwrite
-
-# Immediately inspect, run, or serve the trained model:
-./target/release/ncm inspect artifacts/canonical/my-finetuned-ncm
-./target/release/ncm serve --model custom=artifacts/canonical/my-finetuned-ncm --port 11435
+# Immediately inspect, quantize, run, or serve the trained/merged model:
+./target/release/ncm inspect artifacts/canonical/tinystories-lora
+./target/release/ncm serve --model custom=artifacts/canonical/tinystories-lora --port 11435
 ```
 
-*(Replace `--device cuda` with `--device mlx` on Apple Silicon, or `--device cpu` for small tests.)*
+*(Replace `--device cuda` with `--device mlx` on Apple Silicon, or `--device cpu` for FP32 CPU tests. JSONL files accept `{"text": "..."}`, `{"prompt": "...", "completion": "..."}`, or `{"prefix": [...], "target": [...]}` with automatic 50%-overlap sliding-window chunking.)*
 
 ---
 
@@ -235,5 +251,6 @@ Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or gen
 
 - [docs/USAGE.md](USAGE.md) — full CLI reference, pinned exact-hash export workflows, and platform env setup.
 - [docs/DEVELOPING.md](DEVELOPING.md) — extending `ncm-rs`, adding custom `local-ncm-v1` models, and backend internals.
+- [docs/results/2026-11-23-phase8-phase9/README.md](results/2026-11-23-phase8-phase9/README.md) — measured CUDA & Apple Silicon Phase 8 & Phase 9 low-precision kernel, `ncm quantize` sidecar, LoRA, and `BF16` training results.
 - [docs/results/2026-11-23-phase7/README.md](results/2026-11-23-phase7/README.md) — measured CUDA & Apple Silicon `Q8`/`Q4` quantization, Serving v2 micro-batching, and native Rust training results.
 - [docs/results/2026-11-22-phase6-precision-serving/README.md](results/2026-11-22-phase6-precision-serving/README.md) — measured CUDA & Apple Silicon FP32/BF16/FP16 quality, latency, VRAM/RSS, and serving results.
