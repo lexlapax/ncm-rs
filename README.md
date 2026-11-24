@@ -2,8 +2,8 @@
 
 A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified foundation for running and serving local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production inference and HTTP serving use native CUDA/cuDNN or native MLX; Python is used strictly offline for checkpoint conversion, references, and evaluation.
 
-**Status: `v0.4.1` released; Phase 8 & Phase 9 complete on Linux/CUDA and Apple Silicon/MLX.**
-- **Phase 8 & Phase 9 complete on `main`** ([Phase 8 & Phase 9 dual-platform report](docs/results/2026-11-23-phase8-phase9/README.md)):
+**Status: `v0.5.0` released on Linux/CUDA and Apple Silicon/MLX.**
+- **`v0.5.0` published** (source-only, [Phase 8 & Phase 9 dual-platform report](docs/results/2026-11-23-phase8-phase9/README.md)):
   - **Native Low-Precision Kernels & Fixed-Matrix Resampling (8A):** eliminated per-layer FP32 casts in `bf16`/`fp16`/`q8`/`q4` on both CUDA and Metal (**1.33×–1.77×** faster on RTX 3060 Ti; **1.22×–1.72×** faster on M1 Ultra). Eager Rust CUDA `bf16` b=1 on `tinystories-15k-ema` (**27.45 ms, 253.6 MiB**) beats upstream Python `094f25ca` **with `torch.compile` + CUDA graphs** (**31.28 ms, 647.9 MiB**) by **1.14×** at **2.55× less VRAM**.
   - **Verified Pre-Quantized `Q8`/`Q4` Sidecars (`ncm quantize`, 8B):** offline `ncm quantize ARTIFACT --precision q8|q4 --device cuda|mlx` writes hash-verified sidecars (`3.06×–5.45×` smaller) that load **`4.79×–9.23×` faster on CUDA** (`lm1b-large` `q4` `3,861 → 418.5 ms`) and **`2.50×–4.75×` faster on Metal** (`2,436 → 512.5 ms`) with **100% byte-identical** outputs and fail-closed tamper detection.
   - **`ncm-train` v2: LoRA, Upstream TinyStories `--init-from`, `BF16`, Gradient Accumulation, JSONL & Validation Eval (9A/9B):** fine-tune 123M `tinystories-15k-ema-v1` natively in Rust with `--lora-rank 8` (`0.96%` trainable, merged cleanly into verified `local-ncm-v1` on export, **4-decimal loss parity** across RTX 3060 Ti & M1 Ultra), `--train-precision bf16` (`1.05×` faster & `~576 MiB` less peak VRAM on CUDA), `--grad-accum N`, `.jsonl` datasets with sliding-window chunking, and `--val-data` / `--eval-every`.
@@ -21,7 +21,7 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
 - **New users (5-minute build → `ncm pull` → `ncm run` → OpenAI/Ollama `ncm serve` → `ncm train`):** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
 - **Full CLI & reproducible exact-hash setup:** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
 - **Developers (Rust library embedding, backend traits, `ncm-serve`, `ncm-train`, custom local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
-- **Release notes:** [v0.4.1 (published)](docs/RELEASE-NOTES-v0.4.1.md) | [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
+- **Release notes:** [v0.5.0 (published)](docs/RELEASE-NOTES-v0.5.0.md) | [v0.4.1 (published)](docs/RELEASE-NOTES-v0.4.1.md) | [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
 
 ## Profile and evidence matrix
 
