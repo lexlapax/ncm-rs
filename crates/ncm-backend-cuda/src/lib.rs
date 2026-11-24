@@ -15,6 +15,8 @@ mod cudnn_convolution;
 #[cfg(all(feature = "cuda-cudnn", feature = "lm1b-experimental"))]
 mod cudnn_graph;
 #[cfg(feature = "cuda")]
+pub mod fused_attention;
+#[cfg(feature = "cuda")]
 mod fused_projection;
 #[cfg(feature = "cuda")]
 mod generator_layout;

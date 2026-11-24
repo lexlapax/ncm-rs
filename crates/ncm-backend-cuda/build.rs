@@ -2,6 +2,7 @@
 use std::{env, path::PathBuf, process::Command};
 fn main() {
     println!("cargo:rerun-if-changed=src/generator_layout.cu");
+    println!("cargo:rerun-if-changed=src/fused_attention.cu");
     println!("cargo:rerun-if-changed=src/lm1b_attention.cu");
     println!("cargo:rerun-if-env-changed=NVCC");
     println!("cargo:rerun-if-env-changed=NVCC_CCBIN");
@@ -25,6 +26,23 @@ fn main() {
     assert!(
         status.success(),
         "nvcc failed compiling CUDA layout kernels"
+    );
+    let flash_out =
+        PathBuf::from(env::var_os("OUT_DIR").expect("Cargo OUT_DIR")).join("fused_attention.ptx");
+    let flash_status = Command::new(&compiler)
+        .args([
+            "--ptx",
+            "--gpu-architecture=compute_80",
+            "-O3",
+            "src/fused_attention.cu",
+            "-o",
+        ])
+        .arg(flash_out)
+        .status()
+        .expect("failed to start nvcc for CUDA flash attention");
+    assert!(
+        flash_status.success(),
+        "nvcc failed compiling CUDA flash attention"
     );
     if env::var_os("CARGO_FEATURE_LM1B_EXPERIMENTAL").is_some()
         && env::var_os("CARGO_FEATURE_CUDA_CUDNN").is_some()

@@ -1429,6 +1429,20 @@ impl CodecBackend for MlxBackend {
             check(m, self.float_dtype())?;
         }
         self.array_op(&[q, k, v], || {
+            if self.precision != ComputePrecision::Fp32 {
+                let Some(&head_dim) = q.0.shape().last() else {
+                    return Err("attention query must have rank 4".into());
+                };
+                if head_dim <= 0 {
+                    return Err("attention head dimension must be positive".into());
+                }
+                let scale = (1.0 / (head_dim as f64).sqrt()) as f32;
+                let sdpa_mask =
+                    mask.map(|m| mlx_rs::fast::ScaledDotProductAttentionMask::Array(&m.0));
+                return Ok(mlx_rs::fast::scaled_dot_product_attention(
+                    &q.0, &k.0, &v.0, scale, sdpa_mask, None,
+                )?);
+            }
             let zero = self.cast_from_f32(Array::from_f32(0.))?;
             ops::attention(&q.0, &k.0, &v.0, mask.map(|m| &m.0).unwrap_or(&zero))
         })

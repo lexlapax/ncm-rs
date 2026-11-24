@@ -309,4 +309,133 @@ mod cuda_precision {
             );
         }
     }
+
+    #[test]
+    fn cuda_fused_attention_d64_matches_fp32_across_shapes_and_masks() {
+        let fp32 = CandleBackend::cuda(0).expect("CUDA FP32");
+
+        #[derive(Clone, Copy)]
+        enum MaskKind {
+            None,
+            CausalShared,
+            BatchBroadcastPad,
+            BatchFull2d,
+        }
+
+        let cases = [
+            (
+                "unmasked_nonmult_89",
+                2usize,
+                4usize,
+                89usize,
+                89usize,
+                MaskKind::None,
+            ),
+            ("causal_shared_129", 2, 4, 129, 129, MaskKind::CausalShared),
+            ("prefix_kv_48x560", 2, 4, 48, 560, MaskKind::None),
+            (
+                "xsum_pad_broadcast_32x544",
+                2,
+                4,
+                32,
+                544,
+                MaskKind::BatchBroadcastPad,
+            ),
+            ("batch_full_2d_33x97", 2, 3, 33, 97, MaskKind::BatchFull2d),
+            (
+                "large_512x512_pad",
+                1,
+                12,
+                512,
+                512,
+                MaskKind::BatchBroadcastPad,
+            ),
+        ];
+
+        for (label, batch, heads, seq_q, seq_k, mask_kind) in cases {
+            let q_data = synthetic(batch * heads * seq_q * 64, 0.9);
+            let k_data = synthetic(batch * heads * seq_k * 64, 0.8);
+            let v_data = synthetic(batch * heads * seq_k * 64, 0.7);
+            let mask_spec: Option<(Vec<f32>, [usize; 4])> = match mask_kind {
+                MaskKind::None => None,
+                MaskKind::CausalShared => {
+                    let mut m = vec![0.0f32; seq_q * seq_k];
+                    for r in 0..seq_q {
+                        for c in 0..seq_k {
+                            if c > r {
+                                m[r * seq_k + c] = f32::NEG_INFINITY;
+                            }
+                        }
+                    }
+                    Some((m, [1, 1, seq_q, seq_k]))
+                }
+                MaskKind::BatchBroadcastPad => {
+                    let mut m = vec![0.0f32; batch * seq_k];
+                    for b in 0..batch {
+                        let pad_start = seq_k - 17 - b * 11;
+                        for c in pad_start..seq_k {
+                            m[b * seq_k + c] = f32::NEG_INFINITY;
+                        }
+                    }
+                    Some((m, [batch, 1, 1, seq_k]))
+                }
+                MaskKind::BatchFull2d => {
+                    let mut m = vec![0.0f32; batch * seq_q * seq_k];
+                    for b in 0..batch {
+                        for r in 0..seq_q {
+                            for c in 0..seq_k {
+                                if (b + r + c) % 7 == 0 && c > 0 {
+                                    m[(b * seq_q + r) * seq_k + c] = f32::NEG_INFINITY;
+                                }
+                            }
+                        }
+                    }
+                    Some((m, [batch, 1, seq_q, seq_k]))
+                }
+            };
+
+            let q32 = fp32
+                .upload_f32(&q_data, &[batch, heads, seq_q, 64])
+                .unwrap();
+            let k32 = fp32
+                .upload_f32(&k_data, &[batch, heads, seq_k, 64])
+                .unwrap();
+            let v32 = fp32
+                .upload_f32(&v_data, &[batch, heads, seq_k, 64])
+                .unwrap();
+            let m32 = mask_spec
+                .as_ref()
+                .map(|(vals, shape)| fp32.upload_f32(vals, shape).unwrap());
+            let ref32 = fp32
+                .read_f32(&fp32.attention(&q32, &k32, &v32, m32.as_ref()).unwrap())
+                .unwrap();
+
+            for (precision, expected_dtype, tol) in [
+                (ComputePrecision::Bf16, DType::BF16, 1.5e-2f32),
+                (ComputePrecision::Fp16, DType::F16, 2.5e-3f32),
+            ] {
+                let be = CandleBackend::cuda(0)
+                    .unwrap()
+                    .with_precision(precision)
+                    .unwrap();
+                let q = be.upload_f32(&q_data, &[batch, heads, seq_q, 64]).unwrap();
+                let k = be.upload_f32(&k_data, &[batch, heads, seq_k, 64]).unwrap();
+                let v = be.upload_f32(&v_data, &[batch, heads, seq_k, 64]).unwrap();
+                let m = mask_spec
+                    .as_ref()
+                    .map(|(vals, shape)| be.upload_f32(vals, shape).unwrap());
+                assert!(
+                    ncm_backend_cuda::fused_attention::is_supported(&q, &k, &v, m.as_ref()),
+                    "{label} {precision} must route to fused FlashAttention-2"
+                );
+                let out = be.attention(&q, &k, &v, m.as_ref()).unwrap();
+                assert_eq!(out.dtype(), expected_dtype);
+                let diff = max_abs_diff(&ref32, &be.read_f32(&out).unwrap());
+                assert!(
+                    diff <= tol,
+                    "{label} {precision} max_abs_diff={diff} > {tol}"
+                );
+            }
+        }
+    }
 }

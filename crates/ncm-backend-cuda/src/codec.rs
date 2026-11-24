@@ -430,8 +430,10 @@ impl CodecBackend for CandleBackend {
                 }
                 #[cfg(feature = "cuda")]
                 if self.device().is_cuda() {
-                    // Run Q@K^T and probs@V on BF16/FP16 Tensor Cores, fusing scale + optional
-                    // mask + FP32-accumulating warp softmax into one pass with zero FP32 staging.
+                    if crate::fused_attention::is_supported(q, k, v, mask) {
+                        return crate::fused_attention::apply(self, q, k, v, mask);
+                    }
+                    // Fallback for non-64 head dimensions or broadcast masks: fused low-precision softmax.
                     let scores = q.contiguous()?.matmul(&k.contiguous()?.transpose(2, 3)?)?;
                     let scale = (1.0 / (width as f64).sqrt()) as f32;
                     let probs =
