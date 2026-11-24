@@ -2,7 +2,7 @@
 #![cfg(feature = "cpu")]
 
 use crate::{
-    Result, StepMetrics, TrainConfig, TrainError, TrainStage,
+    Result, StepMetrics, TrainConfig, TrainError, TrainPrecision, TrainStage,
     artifact::{CheckpointMeta, LoadedCheckpoint, save_checkpoint},
     data::TokenDataset,
     ema::EmaCodebookState,
@@ -11,6 +11,7 @@ use crate::{
         TensorMap, area1d_matrix, level_attention_mask, linear1d_matrix, lr_at_step, rope_tables,
         splitmix64,
     },
+    should_eval_val,
 };
 use candle_core::{D, DType, Device, Tensor, Var};
 use ncm_core::{CodecConfig, LocalGeneratorConfig, LocalHeadKind, LocalNcmConfig};
@@ -33,18 +34,15 @@ pub fn resolve_device(device: &str) -> Result<Device> {
 }
 
 // ---------------------------------------------------------------------------
-// Differentiable FP32 building blocks (matching ncm-model / ncm-backend-cuda)
+// Differentiable FP32 / BF16 building blocks (matching ncm-model / ncm-backend-cuda)
 // ---------------------------------------------------------------------------
-
-fn linear_3d(x: &Tensor, w: &Tensor, b: Option<&Tensor>) -> candle_core::Result<Tensor> {
-    linear_3d_impl(x, w, b, false)
-}
 
 fn linear_3d_impl(
     x: &Tensor,
     w: &Tensor,
     b: Option<&Tensor>,
     frozen_weight: bool,
+    bf16: bool,
 ) -> candle_core::Result<Tensor> {
     let (bsz, seq, d_in) = x.dims3()?;
     let (d_out, _) = w.dims2()?;
@@ -54,7 +52,21 @@ fn linear_3d_impl(
     } else {
         w.t()?
     };
-    let y2 = x2.matmul(&wt)?;
+    let y2 = if bf16 {
+        let xb = if x2.dtype() == DType::BF16 {
+            x2
+        } else {
+            x2.to_dtype(DType::BF16)?
+        };
+        let wb = if wt.dtype() == DType::BF16 {
+            wt
+        } else {
+            wt.to_dtype(DType::BF16)?
+        };
+        xb.matmul(&wb)?.to_dtype(DType::F32)?
+    } else {
+        x2.matmul(&wt)?
+    };
     let y = y2.reshape((bsz, seq, d_out))?;
     match b {
         Some(bias) => y.broadcast_add(bias),
@@ -62,27 +74,52 @@ fn linear_3d_impl(
     }
 }
 
+#[derive(Clone, Copy)]
+struct LoraCtx<'a> {
+    store: &'a ParamStore,
+    scale: f64,
+    detached: bool,
+}
+
 fn linear_3d_maybe_lora(
     x: &Tensor,
     weight_name: &str,
     w: &Tensor,
     b: Option<&Tensor>,
-    lora_ctx: Option<(&ParamStore, f64)>,
+    lora_ctx: Option<LoraCtx<'_>>,
+    bf16: bool,
 ) -> candle_core::Result<Tensor> {
-    let base = linear_3d_impl(x, w, b, lora_ctx.is_some())?;
-    if let Some((lora_store, scale)) = lora_ctx
+    let base = linear_3d_impl(x, w, b, lora_ctx.is_some(), bf16)?;
+    if let Some(ctx) = lora_ctx
         && lora::is_lora_target(weight_name)
     {
         let (bsz, seq, d_in) = x.dims3()?;
         let (d_out, _) = w.dims2()?;
-        let a = lora_store.tensor(&lora::lora_a_name(weight_name))?;
-        let b_mat = lora_store.tensor(&lora::lora_b_name(weight_name))?;
+        let a = if ctx.detached {
+            ctx.store.tensor_detached(&lora::lora_a_name(weight_name))?
+        } else {
+            ctx.store.tensor(&lora::lora_a_name(weight_name))?
+        };
+        let b_mat = if ctx.detached {
+            ctx.store.tensor_detached(&lora::lora_b_name(weight_name))?
+        } else {
+            ctx.store.tensor(&lora::lora_b_name(weight_name))?
+        };
         let x2 = x.reshape((bsz * seq, d_in))?;
-        let delta = x2
-            .matmul(&a.t()?)?
-            .matmul(&b_mat.t()?)?
-            .reshape((bsz, seq, d_out))?;
-        let scaled = (delta * scale)?;
+        let delta = if bf16 {
+            let xb = x2.to_dtype(DType::BF16)?;
+            let ab = a.to_dtype(DType::BF16)?;
+            let bb = b_mat.to_dtype(DType::BF16)?;
+            xb.matmul(&ab.t()?)?
+                .matmul(&bb.t()?)?
+                .to_dtype(DType::F32)?
+                .reshape((bsz, seq, d_out))?
+        } else {
+            x2.matmul(&a.t()?)?
+                .matmul(&b_mat.t()?)?
+                .reshape((bsz, seq, d_out))?
+        };
+        let scaled = (delta * ctx.scale)?;
         return &base + scaled;
     }
     Ok(base)
@@ -220,15 +257,31 @@ fn attention(
     k: &Tensor,
     v: &Tensor,
     mask: Option<&Tensor>,
+    bf16: bool,
 ) -> candle_core::Result<Tensor> {
     let (_, _, _, head_dim) = q.dims4()?;
     let scale = 1.0 / (head_dim as f64).sqrt();
-    let mut scores = (q.matmul(&k.transpose(2, 3)?.contiguous()?)? * scale)?;
+    let kt = k.transpose(2, 3)?.contiguous()?;
+    let mut scores = if bf16 {
+        let qb = q.to_dtype(DType::BF16)?;
+        let kb = kt.to_dtype(DType::BF16)?;
+        (qb.matmul(&kb)?.to_dtype(DType::F32)? * scale)?
+    } else {
+        (q.matmul(&kt)? * scale)?
+    };
     if let Some(m) = mask {
         scores = scores.broadcast_add(m)?;
     }
     let probs = softmax_differentiable(&scores)?;
-    probs.matmul(&v.contiguous()?)
+    let vc = v.contiguous()?;
+    if bf16 {
+        probs
+            .to_dtype(DType::BF16)?
+            .matmul(&vc.to_dtype(DType::BF16)?)?
+            .to_dtype(DType::F32)
+    } else {
+        probs.matmul(&vc)
+    }
 }
 
 fn embedding_gather(table: &Tensor, ids: &Tensor) -> candle_core::Result<Tensor> {
@@ -300,6 +353,13 @@ impl ParamStore {
             .ok_or_else(|| candle_core::Error::Msg(format!("missing weight `{name}`")))
     }
 
+    fn tensor_detached(&self, name: &str) -> candle_core::Result<Tensor> {
+        self.vars
+            .get(name)
+            .map(|v| v.as_tensor().detach())
+            .ok_or_else(|| candle_core::Error::Msg(format!("missing weight `{name}`")))
+    }
+
     fn export_weights(&self) -> Result<TensorMap> {
         let mut map = TensorMap::new();
         for (name, var) in &self.vars {
@@ -339,18 +399,13 @@ impl ParamStore {
         Ok((mm, vv))
     }
 
-    /// Decoupled AdamW + global L2 gradient clipping from a `GradStore`.
-    #[allow(clippy::too_many_arguments)]
-    fn adamw_step(
-        &mut self,
+    /// Accumulate gradients from a `GradStore` into `accum` (for per-level backward and grad accum).
+    fn accumulate_grads(
+        &self,
         grads: &candle_core::backprop::GradStore,
         skip_prefix: Option<&str>,
-        step_one_based: usize,
-        lr: f64,
-        weight_decay: f64,
-        grad_clip_norm: f64,
-    ) -> Result<f64> {
-        let mut grad_map = BTreeMap::new();
+        accum: &mut BTreeMap<String, Tensor>,
+    ) -> Result<()> {
         for (name, var) in &self.vars {
             if let Some(pfx) = skip_prefix
                 && name.starts_with(pfx)
@@ -358,23 +413,9 @@ impl ParamStore {
                 continue;
             }
             if let Some(g) = grads.get(var.as_tensor()) {
-                grad_map.insert(name.clone(), g.clone());
-            }
-        }
-        self.adamw_step_from_map(&grad_map, step_one_based, lr, weight_decay, grad_clip_norm)
-    }
-
-    /// Accumulate gradients from a `GradStore` into `accum` (for per-level backward and grad accum).
-    fn accumulate_grads(
-        &self,
-        grads: &candle_core::backprop::GradStore,
-        accum: &mut BTreeMap<String, Tensor>,
-    ) -> Result<()> {
-        for (name, var) in &self.vars {
-            if let Some(g) = grads.get(var.as_tensor()) {
                 let g_det = g.detach();
                 if let Some(prev) = accum.get(name) {
-                    let sum = (prev + &g_det).map_err(c_err)?;
+                    let sum = (prev + &g_det).map_err(c_err)?.detach();
                     accum.insert(name.clone(), sum);
                 } else {
                     accum.insert(name.clone(), g_det);
@@ -427,10 +468,12 @@ impl ParamStore {
             let m_prev = self.m.get(&name).unwrap();
             let v_prev = self.v.get(&name).unwrap();
             let m_new = ((m_prev * beta1).map_err(c_err)? + (&g * (1.0 - beta1)).map_err(c_err)?)
-                .map_err(c_err)?;
+                .map_err(c_err)?
+                .detach();
             let v_new = ((v_prev * beta2).map_err(c_err)?
                 + (g.sqr().map_err(c_err)? * (1.0 - beta2)).map_err(c_err)?)
-            .map_err(c_err)?;
+            .map_err(c_err)?
+            .detach();
 
             let m_hat = (&m_new / bc1).map_err(c_err)?;
             let v_hat = (&v_new / bc2).map_err(c_err)?;
@@ -438,18 +481,18 @@ impl ParamStore {
             let update = (m_hat.broadcast_div(&denom).map_err(c_err)? * lr).map_err(c_err)?;
 
             let var = self.vars.get(&name).unwrap();
-            let w_cur = var.as_tensor();
+            let w_cur = var.as_tensor().detach();
             let apply_wd = weight_decay > 0.0
                 && w_cur.rank() >= 2
                 && !name.contains("ln_")
                 && !name.contains("q_norm")
                 && !name.contains("k_norm");
             let w_base = if apply_wd {
-                (w_cur * (1.0 - lr * weight_decay)).map_err(c_err)?
+                (&w_cur * (1.0 - lr * weight_decay)).map_err(c_err)?
             } else {
-                w_cur.clone()
+                w_cur
             };
-            let w_next = (w_base - update).map_err(c_err)?;
+            let w_next = (w_base - update).map_err(c_err)?.detach();
             var.set(&w_next).map_err(c_err)?;
             self.m.insert(name.clone(), m_new);
             self.v.insert(name, v_new);
@@ -551,6 +594,7 @@ fn codec_decoder_layer(
     weights: &impl Fn(&str) -> candle_core::Result<Tensor>,
     x: &Tensor,
     name: &str,
+    bf16: bool,
 ) -> candle_core::Result<Tensor> {
     let (bsz, seq, width) = x.dims3()?;
     let heads = codec_cfg.raw().n_layers;
@@ -562,10 +606,12 @@ fn codec_decoder_layer(
         Some(&weights(&format!("{name}.ln_1.bias"))?),
         1e-6,
     )?;
-    let qkv = linear_3d(
+    let qkv = linear_3d_impl(
         &norm,
         &weights(&format!("{name}.attn.c_attn.weight"))?,
         Some(&weights(&format!("{name}.attn.c_attn.bias"))?),
+        false,
+        bf16,
     )?;
     let q = qkv
         .narrow(2, 0, width)?
@@ -584,14 +630,16 @@ fn codec_decoder_layer(
         .contiguous()?;
     let q = rms_norm(&q, &weights(&format!("{name}.attn.q_norm.weight"))?, 1e-6)?;
     let k = rms_norm(&k, &weights(&format!("{name}.attn.k_norm.weight"))?, 1e-6)?;
-    let attn = attention(&q, &k, &v, None)?
+    let attn = attention(&q, &k, &v, None, bf16)?
         .transpose(1, 2)?
         .contiguous()?
         .reshape((bsz, seq, width))?;
-    let attn_out = linear_3d(
+    let attn_out = linear_3d_impl(
         &attn,
         &weights(&format!("{name}.attn.c_proj.weight"))?,
         Some(&weights(&format!("{name}.attn.c_proj.bias"))?),
+        false,
+        bf16,
     )?;
     let residual = (x + attn_out)?;
 
@@ -601,16 +649,20 @@ fn codec_decoder_layer(
         Some(&weights(&format!("{name}.ln_2.bias"))?),
         1e-6,
     )?;
-    let h = linear_3d(
+    let h = linear_3d_impl(
         &norm2,
         &weights(&format!("{name}.mlp.c_fc.weight"))?,
         Some(&weights(&format!("{name}.mlp.c_fc.bias"))?),
+        false,
+        bf16,
     )?
     .gelu_erf()?;
-    let mlp = linear_3d(
+    let mlp = linear_3d_impl(
         &h,
         &weights(&format!("{name}.mlp.c_proj.weight"))?,
         Some(&weights(&format!("{name}.mlp.c_proj.bias"))?),
+        false,
+        bf16,
     )?;
     &residual + mlp
 }
@@ -631,13 +683,21 @@ fn codec_forward_train(
     batch: usize,
     commitment_weight: f64,
     capture_ema: bool,
+    bf16: bool,
+    no_grad: bool,
     device: &Device,
 ) -> Result<CodecForwardOutput> {
     let raw = codec_cfg.raw();
     let ctx = raw.context_length;
     let width = raw.embed_dim;
     let ids = Tensor::from_slice(tokens, (batch, ctx), device).map_err(c_err)?;
-    let get = |name: &str| store.tensor(name);
+    let get = |name: &str| {
+        if no_grad {
+            store.tensor_detached(name)
+        } else {
+            store.tensor(name)
+        }
+    };
 
     let mut enc =
         embedding_gather(&get("encoder.wte.weight").map_err(c_err)?, &ids).map_err(c_err)?;
@@ -717,14 +777,15 @@ fn codec_forward_train(
         let wpe = get("decoder.wpe.weight").map_err(c_err)?;
         hidden = hidden.broadcast_add(&wpe).map_err(c_err)?;
     }
-    hidden =
-        codec_decoder_layer(codec_cfg, &get, &hidden, "decoder.middle_block").map_err(c_err)?;
+    hidden = codec_decoder_layer(codec_cfg, &get, &hidden, "decoder.middle_block", bf16)
+        .map_err(c_err)?;
     for idx in 0..raw.dec_layers - 1 {
         hidden = codec_decoder_layer(
             codec_cfg,
             &get,
             &hidden,
             &format!("decoder.extra_blocks.{idx}"),
+            bf16,
         )
         .map_err(c_err)?;
     }
@@ -735,10 +796,12 @@ fn codec_forward_train(
         1e-6,
     )
     .map_err(c_err)?;
-    let logits = linear_3d(
+    let logits = linear_3d_impl(
         &ln_f,
         &get("decoder.output_layer.weight").map_err(c_err)?,
         None,
+        false,
+        bf16,
     )
     .map_err(c_err)?;
 
@@ -951,12 +1014,13 @@ fn build_combined_mask(
 fn generator_block(
     gen_cfg: &LocalGeneratorConfig,
     get: &impl Fn(&str) -> candle_core::Result<Tensor>,
-    lora_ctx: Option<(&ParamStore, f64)>,
+    lora_ctx: Option<LoraCtx<'_>>,
     x: &Tensor,
     cos: &Tensor,
     sin: &Tensor,
     mask: &Tensor,
     layer: usize,
+    bf16: bool,
 ) -> candle_core::Result<Tensor> {
     let (bsz, seq, width) = x.dims3()?;
     let heads = gen_cfg.n_head;
@@ -976,6 +1040,7 @@ fn generator_block(
         &get(&c_attn_w_name)?,
         Some(&get(&format!("{p}.attn.c_attn.bias"))?),
         lora_ctx,
+        bf16,
     )?;
     let q = qkv
         .narrow(2, 0, width)?
@@ -998,7 +1063,7 @@ fn generator_block(
     let q = apply_rope(&q, cos, sin)?;
     let k = apply_rope(&k, cos, sin)?;
 
-    let attn = attention(&q, &k, &v, Some(mask))?
+    let attn = attention(&q, &k, &v, Some(mask), bf16)?
         .transpose(1, 2)?
         .contiguous()?
         .reshape((bsz, seq, width))?;
@@ -1009,6 +1074,7 @@ fn generator_block(
         &get(&c_proj_w_name)?,
         Some(&get(&format!("{p}.attn.c_proj.bias"))?),
         lora_ctx,
+        bf16,
     )?;
     let res = (x + attn_out)?;
 
@@ -1025,6 +1091,7 @@ fn generator_block(
         &get(&c_fc_w_name)?,
         Some(&get(&format!("{p}.mlp.c_fc.bias"))?),
         lora_ctx,
+        bf16,
     )?
     .gelu_erf()?;
     let mlp_proj_w_name = format!("{p}.mlp.c_proj.weight");
@@ -1034,6 +1101,7 @@ fn generator_block(
         &get(&mlp_proj_w_name)?,
         Some(&get(&format!("{p}.mlp.c_proj.bias"))?),
         lora_ctx,
+        bf16,
     )?;
     &res + mlp
 }
@@ -1044,12 +1112,13 @@ fn generator_level_loss(
     pre: &GeneratorPrecomputed,
     frozen_wte: &Tensor,
     get: &impl Fn(&str) -> candle_core::Result<Tensor>,
-    lora_ctx: Option<(&ParamStore, f64)>,
+    lora_ctx: Option<LoraCtx<'_>>,
     prefixes: &[u32],
     gt_code: &Tensor,
     cond_latent: Option<&Tensor>,
     level: usize,
     batch: usize,
+    bf16: bool,
     device: &Device,
 ) -> Result<Tensor> {
     let codec_cfg = config.codec();
@@ -1062,7 +1131,8 @@ fn generator_level_loss(
     let prefix_raw = embedding_gather(frozen_wte, &prefix_ids).map_err(c_err)?;
     let wte_w = get("transformer.wte.weight").map_err(c_err)?;
     let wte_b = get("transformer.wte.bias").map_err(c_err)?;
-    let prefix_h = linear_3d_impl(&prefix_raw, &wte_w, Some(&wte_b), frozen_base).map_err(c_err)?;
+    let prefix_h =
+        linear_3d_impl(&prefix_raw, &wte_w, Some(&wte_b), frozen_base, bf16).map_err(c_err)?;
 
     let wle = get("transformer.wle.weight").map_err(c_err)?;
     let ln_f_w = get("transformer.ln_f.weight").map_err(c_err)?;
@@ -1081,7 +1151,7 @@ fn generator_level_loss(
         cond_latent.expect("cond latent for level > 0").clone()
     };
     let lvl_emb = wle.narrow(0, level, 1).map_err(c_err)?;
-    let target_h = linear_3d_impl(&latent, &wte_w, Some(&wte_b), frozen_base)
+    let target_h = linear_3d_impl(&latent, &wte_w, Some(&wte_b), frozen_base, bf16)
         .map_err(c_err)?
         .broadcast_add(&lvl_emb)
         .map_err(c_err)?;
@@ -1106,6 +1176,7 @@ fn generator_level_loss(
             &pre.sin[level],
             &mask,
             layer,
+            bf16,
         )
         .map_err(c_err)?;
     }
@@ -1117,6 +1188,7 @@ fn generator_level_loss(
             &get(&format!("lm_heads.{level}.weight")).map_err(c_err)?,
             Some(&get(&format!("lm_heads.{level}.bias")).map_err(c_err)?),
             frozen_base,
+            bf16,
         )
         .map_err(c_err)?,
         LocalHeadKind::UntiedLinear => linear_3d_impl(
@@ -1124,6 +1196,7 @@ fn generator_level_loss(
             &get(&format!("lm_heads.{level}.weight")).map_err(c_err)?,
             None,
             frozen_base,
+            bf16,
         )
         .map_err(c_err)?,
         LocalHeadKind::SharedHeadBiases => linear_3d_impl(
@@ -1131,6 +1204,7 @@ fn generator_level_loss(
             &get("lm_head.weight").map_err(c_err)?,
             Some(&get(&format!("head_biases.{level}")).map_err(c_err)?),
             frozen_base,
+            bf16,
         )
         .map_err(c_err)?,
     };
@@ -1147,11 +1221,12 @@ fn generator_forward_loss(
     pre: &GeneratorPrecomputed,
     frozen_wte: &Tensor,
     get: &impl Fn(&str) -> candle_core::Result<Tensor>,
-    lora_ctx: Option<(&ParamStore, f64)>,
+    lora_ctx: Option<LoraCtx<'_>>,
     prefixes: &[u32],
     gt_codes: &[Tensor],
     cond_latents: &[Option<Tensor>],
     batch: usize,
+    bf16: bool,
     device: &Device,
 ) -> Result<Tensor> {
     let n_levels = config.codec().levels().len();
@@ -1168,6 +1243,7 @@ fn generator_forward_loss(
             cond_latents[level].as_ref(),
             level,
             batch,
+            bf16,
             device,
         )?;
         total_loss = Some(match total_loss {
@@ -1187,6 +1263,7 @@ fn generator_forward_loss(
 pub fn train_codec(
     config: &LocalNcmConfig,
     dataset: &TokenDataset,
+    val_dataset: Option<&TokenDataset>,
     init_weights: &TensorMap,
     resume: Option<&LoadedCheckpoint>,
     train_cfg: &TrainConfig,
@@ -1194,8 +1271,17 @@ pub fn train_codec(
     checkpoint_dir: Option<&Path>,
 ) -> Result<(TensorMap, Vec<StepMetrics>)> {
     let device = resolve_device(device_name)?;
+    let bf16 = train_cfg.train_precision == TrainPrecision::Bf16;
+    if bf16 && matches!(device, Device::Cpu) {
+        return Err(TrainError::Config(
+            "--train-precision bf16 is unsupported on cpu".into(),
+        ));
+    }
     let codec_cfg = config.codec();
     let pre = CodecPrecomputed::new(codec_cfg, &device)?;
+    let accum_steps = train_cfg.grad_accum.max(1);
+    let inv_accum = 1.0 / (accum_steps as f64);
+    let ctx = codec_cfg.raw().context_length;
 
     let (start_step, mut rng_state, mut store, mut ema) = if let Some(ckpt) = resume {
         let store = ParamStore::from_host(
@@ -1225,36 +1311,66 @@ pub fn train_codec(
             train_cfg.min_lr,
             train_cfg.warmup_steps,
         );
-        let (_prefixes, targets) = dataset.sample_batch(train_cfg.batch_size, step, train_cfg.seed);
-        let fwd = codec_forward_train(
-            codec_cfg,
-            &pre,
-            &store,
-            &targets,
-            train_cfg.batch_size,
-            train_cfg.commitment_weight,
-            true,
-            &device,
-        )?;
-        let loss_val = fwd.total_loss.to_scalar::<f32>().map_err(c_err)? as f64;
-        if !loss_val.is_finite() {
-            return Err(TrainError::Backend(format!(
-                "non-finite codec loss at step {step}"
-            )));
+        let eff_batch = train_cfg.batch_size * accum_steps;
+        let (_all_prefixes, all_targets) = dataset.sample_batch(eff_batch, step, train_cfg.seed);
+
+        let mut accum_grads = BTreeMap::<String, Tensor>::new();
+        let mut loss_val = 0.0_f64;
+        let mut recon_val = 0.0_f64;
+        let mut commit_val = 0.0_f64;
+        let n_levels = codec_cfg.levels().len();
+        let mut merged_ema: Vec<(Vec<f32>, Vec<u32>)> =
+            (0..n_levels).map(|_| (Vec::new(), Vec::new())).collect();
+
+        for mb in 0..accum_steps {
+            let t_start = mb * train_cfg.batch_size * ctx;
+            let t_end = (mb + 1) * train_cfg.batch_size * ctx;
+            let fwd = codec_forward_train(
+                codec_cfg,
+                &pre,
+                &store,
+                &all_targets[t_start..t_end],
+                train_cfg.batch_size,
+                train_cfg.commitment_weight,
+                true,
+                bf16,
+                false,
+                &device,
+            )?;
+            let scaled = (&fwd.total_loss * inv_accum).map_err(c_err)?;
+            let lv = scaled.to_scalar::<f32>().map_err(c_err)? as f64;
+            if !lv.is_finite() {
+                return Err(TrainError::Backend(format!(
+                    "non-finite codec loss at step {step}"
+                )));
+            }
+            loss_val += lv;
+            recon_val += fwd.recon_loss * inv_accum;
+            commit_val += fwd.commit_loss * inv_accum;
+            for (level, (ze, ids)) in fwd.ema_captures.into_iter().enumerate() {
+                merged_ema[level].0.extend(ze);
+                merged_ema[level].1.extend(ids);
+            }
+            let grads = scaled.backward().map_err(c_err)?;
+            drop(scaled);
+            drop(fwd.total_loss);
+            store.accumulate_grads(&grads, Some("vq.embeddings."), &mut accum_grads)?;
+            drop(grads);
         }
-        let grads = fwd.total_loss.backward().map_err(c_err)?;
-        let grad_norm = store.adamw_step(
-            &grads,
-            Some("vq.embeddings."),
+
+        let grad_norm = store.adamw_step_from_map(
+            &accum_grads,
             step + 1,
             lr,
             train_cfg.weight_decay,
             train_cfg.grad_clip_norm,
         )?;
+        drop(accum_grads);
+        device.synchronize().map_err(c_err)?;
 
         // Update codebooks via EMA + Laplace smoothing + dead-code restarts.
         let mut total_restarted = 0usize;
-        for (level, (ze_host, ids_host)) in fwd.ema_captures.iter().enumerate() {
+        for (level, (ze_host, ids_host)) in merged_ema.iter().enumerate() {
             let name = format!("vq.embeddings.{level}.weight");
             let var = store.vars.get(&name).unwrap();
             let shape = var.as_tensor().dims().to_vec();
@@ -1279,13 +1395,45 @@ pub fn train_codec(
             var.set(&updated).map_err(c_err)?;
         }
 
+        let val_loss = if should_eval_val(
+            step + 1,
+            train_cfg.steps,
+            train_cfg.eval_every,
+            val_dataset.is_some(),
+        ) {
+            let vds = val_dataset.unwrap();
+            let mut v_sum = 0.0_f64;
+            let mut v_count = 0usize;
+            for (_vp, vt, vb) in vds.eval_batches(train_cfg.batch_size, 16) {
+                let fwd = codec_forward_train(
+                    codec_cfg,
+                    &pre,
+                    &store,
+                    &vt,
+                    vb,
+                    train_cfg.commitment_weight,
+                    false,
+                    bf16,
+                    true,
+                    &device,
+                )?;
+                let vl = fwd.total_loss.to_scalar::<f32>().map_err(c_err)? as f64;
+                v_sum += vl * (vb as f64);
+                v_count += vb;
+            }
+            Some(v_sum / (v_count.max(1) as f64))
+        } else {
+            None
+        };
+
         let step_ms = t0.elapsed().as_secs_f64() * 1000.0;
         let metric = StepMetrics {
             stage: TrainStage::Codec,
             step: step + 1,
             loss: loss_val,
-            recon_loss: Some(fwd.recon_loss),
-            commit_loss: Some(fwd.commit_loss),
+            recon_loss: Some(recon_val),
+            commit_loss: Some(commit_val),
+            val_loss,
             grad_norm,
             learning_rate: lr,
             restarted_codes: total_restarted,
@@ -1322,6 +1470,7 @@ pub fn train_codec(
 pub fn train_generator(
     config: &LocalNcmConfig,
     dataset: &TokenDataset,
+    val_dataset: Option<&TokenDataset>,
     frozen_codec_weights: &TensorMap,
     init_gen_weights: &TensorMap,
     resume: Option<&LoadedCheckpoint>,
@@ -1330,9 +1479,18 @@ pub fn train_generator(
     checkpoint_dir: Option<&Path>,
 ) -> Result<(TensorMap, Vec<StepMetrics>)> {
     let device = resolve_device(device_name)?;
+    let bf16 = train_cfg.train_precision == TrainPrecision::Bf16;
+    if bf16 && matches!(device, Device::Cpu) {
+        return Err(TrainError::Config(
+            "--train-precision bf16 is unsupported on cpu".into(),
+        ));
+    }
     let pre = GeneratorPrecomputed::new(config, &device)?;
     let n_levels = config.codec().levels().len();
-    let inv_levels = 1.0 / (n_levels as f64);
+    let accum_steps = train_cfg.grad_accum.max(1);
+    let inv_scale = 1.0 / ((n_levels * accum_steps) as f64);
+    let prefix_len = config.model().prefix_len;
+    let ctx = config.codec().raw().context_length;
 
     let mut frozen_codec = BTreeMap::new();
     for (name, (shape, vals)) in frozen_codec_weights {
@@ -1351,6 +1509,13 @@ pub fn train_generator(
         let mut frozen = BTreeMap::new();
         for (name, (shape, vals)) in init_gen_weights {
             let t = Tensor::from_slice(vals, shape.as_slice(), &device).map_err(c_err)?;
+            // In BF16 mixed-precision LoRA mode, keep frozen 2D linear weights in BF16 on GPU
+            // (halving frozen generator VRAM) while keeping 1D norms/biases/wle/l0_queries FP32.
+            let t = if bf16 && shape.len() == 2 && name != "transformer.wle.weight" {
+                t.to_dtype(DType::BF16).map_err(c_err)?
+            } else {
+                t
+            };
             frozen.insert(name.clone(), t);
         }
         if let Some(ckpt) = resume {
@@ -1413,68 +1578,88 @@ pub fn train_generator(
             train_cfg.min_lr,
             train_cfg.warmup_steps,
         );
-        let (prefixes, targets) = dataset.sample_batch(train_cfg.batch_size, step, train_cfg.seed);
-        let (gt_codes, cond_latents) = frozen_codec_encode_for_generator(
-            config.codec(),
-            &pre,
-            &frozen_codec,
-            &targets,
-            train_cfg.batch_size,
-            &device,
-        )?;
+        let eff_batch = train_cfg.batch_size * accum_steps;
+        let (all_prefixes, all_targets) = dataset.sample_batch(eff_batch, step, train_cfg.seed);
 
-        // Accumulate gradients one level at a time so peak activation memory stays
-        // bounded to a single level even for 12-level 89M-param TinyStories.
+        // Accumulate gradients across `grad_accum` micro-batches and one level at a time
+        // so peak activation memory stays bounded to a single micro-batch & single level.
         let mut accum_grads = BTreeMap::<String, Tensor>::new();
         let mut loss_val = 0.0_f64;
-        for level in 0..n_levels {
-            let loss_l = if let Some(ref frozen) = frozen_gen {
-                let get = |name: &str| {
-                    frozen
-                        .get(name)
-                        .cloned()
-                        .ok_or_else(|| candle_core::Error::Msg(format!("missing weight `{name}`")))
+
+        for mb in 0..accum_steps {
+            let p_slice = &all_prefixes[mb * train_cfg.batch_size * prefix_len
+                ..(mb + 1) * train_cfg.batch_size * prefix_len];
+            let t_slice = &all_targets
+                [mb * train_cfg.batch_size * ctx..(mb + 1) * train_cfg.batch_size * ctx];
+            let (gt_codes, cond_latents) = frozen_codec_encode_for_generator(
+                config.codec(),
+                &pre,
+                &frozen_codec,
+                t_slice,
+                train_cfg.batch_size,
+                &device,
+            )?;
+
+            for level in 0..n_levels {
+                let loss_l = if let Some(ref frozen) = frozen_gen {
+                    let get = |name: &str| {
+                        frozen.get(name).cloned().ok_or_else(|| {
+                            candle_core::Error::Msg(format!("missing weight `{name}`"))
+                        })
+                    };
+                    let scale = lora::lora_scale(lora_rank, lora_alpha);
+                    generator_level_loss(
+                        config,
+                        &pre,
+                        &frozen_wte,
+                        &get,
+                        Some(LoraCtx {
+                            store: &store,
+                            scale,
+                            detached: false,
+                        }),
+                        p_slice,
+                        &gt_codes[level],
+                        cond_latents[level].as_ref(),
+                        level,
+                        train_cfg.batch_size,
+                        bf16,
+                        &device,
+                    )?
+                } else {
+                    let get = |name: &str| store.tensor(name);
+                    generator_level_loss(
+                        config,
+                        &pre,
+                        &frozen_wte,
+                        &get,
+                        None,
+                        p_slice,
+                        &gt_codes[level],
+                        cond_latents[level].as_ref(),
+                        level,
+                        train_cfg.batch_size,
+                        bf16,
+                        &device,
+                    )?
                 };
-                let scale = lora::lora_scale(lora_rank, lora_alpha);
-                generator_level_loss(
-                    config,
-                    &pre,
-                    &frozen_wte,
-                    &get,
-                    Some((&store, scale)),
-                    &prefixes,
-                    &gt_codes[level],
-                    cond_latents[level].as_ref(),
-                    level,
-                    train_cfg.batch_size,
-                    &device,
-                )?
-            } else {
-                let get = |name: &str| store.tensor(name);
-                generator_level_loss(
-                    config,
-                    &pre,
-                    &frozen_wte,
-                    &get,
-                    None,
-                    &prefixes,
-                    &gt_codes[level],
-                    cond_latents[level].as_ref(),
-                    level,
-                    train_cfg.batch_size,
-                    &device,
-                )?
-            };
-            let scaled_loss = (&loss_l * inv_levels).map_err(c_err)?;
-            let lv = scaled_loss.to_scalar::<f32>().map_err(c_err)? as f64;
-            if !lv.is_finite() {
-                return Err(TrainError::Backend(format!(
-                    "non-finite generator loss at step {step} level {level}"
-                )));
+                let scaled_loss = (&loss_l * inv_scale).map_err(c_err)?;
+                let lv = scaled_loss.to_scalar::<f32>().map_err(c_err)? as f64;
+                if !lv.is_finite() {
+                    return Err(TrainError::Backend(format!(
+                        "non-finite generator loss at step {step} mb {mb} level {level}"
+                    )));
+                }
+                loss_val += lv;
+                let grads = scaled_loss.backward().map_err(c_err)?;
+                drop(scaled_loss);
+                drop(loss_l);
+                store.accumulate_grads(&grads, None, &mut accum_grads)?;
+                drop(grads);
             }
-            loss_val += lv;
-            let grads = scaled_loss.backward().map_err(c_err)?;
-            store.accumulate_grads(&grads, &mut accum_grads)?;
+            drop(gt_codes);
+            drop(cond_latents);
+            device.synchronize().map_err(c_err)?;
         }
 
         let grad_norm = store.adamw_step_from_map(
@@ -1484,6 +1669,81 @@ pub fn train_generator(
             train_cfg.weight_decay,
             train_cfg.grad_clip_norm,
         )?;
+        drop(accum_grads);
+        device.synchronize().map_err(c_err)?;
+
+        let val_loss = if should_eval_val(
+            step + 1,
+            train_cfg.steps,
+            train_cfg.eval_every,
+            val_dataset.is_some(),
+        ) {
+            let vds = val_dataset.unwrap();
+            let mut v_sum = 0.0_f64;
+            let mut v_count = 0usize;
+            for (vp, vt, vb) in vds.eval_batches(train_cfg.batch_size, 16) {
+                let (vgt, vcond) = frozen_codec_encode_for_generator(
+                    config.codec(),
+                    &pre,
+                    &frozen_codec,
+                    &vt,
+                    vb,
+                    &device,
+                )?;
+                let mut batch_loss = 0.0_f64;
+                for level in 0..n_levels {
+                    let loss_l = if let Some(ref frozen) = frozen_gen {
+                        let get = |name: &str| {
+                            frozen.get(name).cloned().ok_or_else(|| {
+                                candle_core::Error::Msg(format!("missing weight `{name}`"))
+                            })
+                        };
+                        let scale = lora::lora_scale(lora_rank, lora_alpha);
+                        generator_level_loss(
+                            config,
+                            &pre,
+                            &frozen_wte,
+                            &get,
+                            Some(LoraCtx {
+                                store: &store,
+                                scale,
+                                detached: true,
+                            }),
+                            &vp,
+                            &vgt[level],
+                            vcond[level].as_ref(),
+                            level,
+                            vb,
+                            bf16,
+                            &device,
+                        )?
+                    } else {
+                        let get = |name: &str| store.tensor_detached(name);
+                        generator_level_loss(
+                            config,
+                            &pre,
+                            &frozen_wte,
+                            &get,
+                            None,
+                            &vp,
+                            &vgt[level],
+                            vcond[level].as_ref(),
+                            level,
+                            vb,
+                            bf16,
+                            &device,
+                        )?
+                    };
+                    batch_loss += loss_l.to_scalar::<f32>().map_err(c_err)? as f64;
+                }
+                v_sum += (batch_loss / (n_levels as f64)) * (vb as f64);
+                v_count += vb;
+            }
+            Some(v_sum / (v_count.max(1) as f64))
+        } else {
+            None
+        };
+
         let step_ms = t0.elapsed().as_secs_f64() * 1000.0;
         history.push(StepMetrics {
             stage: TrainStage::Generator,
@@ -1491,6 +1751,7 @@ pub fn train_generator(
             loss: loss_val,
             recon_loss: None,
             commit_loss: None,
+            val_loss,
             grad_norm,
             learning_rate: lr,
             restarted_codes: 0,
@@ -1572,6 +1833,7 @@ pub fn finite_diff_check_generator(
         &gt_codes,
         &cond_latents,
         batch,
+        false,
         &device,
     )?;
     let grads = loss.backward().map_err(c_err)?;
@@ -1604,6 +1866,7 @@ pub fn finite_diff_check_generator(
             &gt_codes,
             &cond_latents,
             batch,
+            false,
             &device,
         )?;
         Ok(l.to_scalar::<f32>().map_err(c_err)? as f64)
@@ -1676,17 +1939,22 @@ pub fn finite_diff_check_generator_lora(
             &pre,
             &frozen_wte,
             &get_base,
-            Some((&store, scale)),
+            Some(LoraCtx {
+                store: &store,
+                scale,
+                detached: false,
+            }),
             prefixes,
             &gt_codes[level],
             cond_latents[level].as_ref(),
             level,
             batch,
+            false,
             &device,
         )?;
         let scaled = (&loss_l * inv_levels).map_err(c_err)?;
         let grads = scaled.backward().map_err(c_err)?;
-        store.accumulate_grads(&grads, &mut accum)?;
+        store.accumulate_grads(&grads, None, &mut accum)?;
     }
     let g_vec = accum
         .get(adapter_name)
@@ -1706,11 +1974,16 @@ pub fn finite_diff_check_generator_lora(
             &pre,
             &frozen_wte,
             &get_base,
-            Some((&s, scale)),
+            Some(LoraCtx {
+                store: &s,
+                scale,
+                detached: false,
+            }),
             prefixes,
             &gt_codes,
             &cond_latents,
             batch,
+            false,
             &device,
         )?;
         Ok(l.to_scalar::<f32>().map_err(c_err)? as f64)
@@ -1772,7 +2045,11 @@ pub fn eval_generator_loss(
         )),
         None => None,
     };
-    let lora_ctx = lora_store.as_ref().map(|(s, sc)| (s, *sc));
+    let lora_ctx = lora_store.as_ref().map(|(s, sc)| LoraCtx {
+        store: s,
+        scale: *sc,
+        detached: true,
+    });
     let loss = generator_forward_loss(
         config,
         &pre,
@@ -1783,6 +2060,7 @@ pub fn eval_generator_loss(
         &gt_codes,
         &cond_latents,
         batch,
+        false,
         &device,
     )?;
     Ok(loss.to_scalar::<f32>().map_err(c_err)? as f64)

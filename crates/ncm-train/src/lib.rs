@@ -91,6 +91,68 @@ impl FromStr for TrainStage {
     }
 }
 
+/// Precision mode for forward/backward compute during training.
+/// Master weights and AdamW optimizer moments (`m`, `v`) always remain in FP32.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TrainPrecision {
+    #[default]
+    Fp32,
+    Bf16,
+}
+
+impl TrainPrecision {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Fp32 => "fp32",
+            Self::Bf16 => "bf16",
+        }
+    }
+}
+
+impl fmt::Display for TrainPrecision {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl FromStr for TrainPrecision {
+    type Err = TrainError;
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "fp32" | "f32" => Ok(Self::Fp32),
+            "bf16" => Ok(Self::Bf16),
+            other => Err(TrainError::Config(format!(
+                "unsupported --train-precision `{other}` (expected fp32 or bf16)"
+            ))),
+        }
+    }
+}
+
+fn default_one() -> usize {
+    1
+}
+
+/// Whether to run no-grad validation evaluation after completing `step_one_based`.
+#[cfg(any(
+    feature = "cpu",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
+pub(crate) fn should_eval_val(
+    step_one_based: usize,
+    total_steps: usize,
+    eval_every: usize,
+    has_val: bool,
+) -> bool {
+    if !has_val {
+        return false;
+    }
+    if eval_every > 0 && step_one_based.is_multiple_of(eval_every) {
+        return true;
+    }
+    step_one_based == total_steps
+}
+
 /// Hyperparameters controlling optimization, EMA codebooks, and checkpointing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainConfig {
@@ -98,6 +160,12 @@ pub struct TrainConfig {
     pub steps: usize,
     pub codec_steps: Option<usize>,
     pub batch_size: usize,
+    /// Number of micro-batches accumulated per AdamW step (default `1`).
+    #[serde(default = "default_one")]
+    pub grad_accum: usize,
+    /// Compute precision for forward/backward (`fp32` or `bf16`; master weights & AdamW stay FP32).
+    #[serde(default)]
+    pub train_precision: TrainPrecision,
     pub learning_rate: f64,
     pub min_lr: f64,
     pub warmup_steps: usize,
@@ -109,6 +177,9 @@ pub struct TrainConfig {
     pub dead_code_threshold: f64,
     pub seed: u64,
     pub checkpoint_every: usize,
+    /// Run no-grad validation evaluation every N steps when `--val-data` is provided (`0` = final step only).
+    #[serde(default)]
+    pub eval_every: usize,
     /// LoRA adapter rank for generator fine-tuning (`0` = full fine-tuning).
     #[serde(default)]
     pub lora_rank: usize,
@@ -124,6 +195,8 @@ impl Default for TrainConfig {
             steps: 100,
             codec_steps: None,
             batch_size: 8,
+            grad_accum: 1,
+            train_precision: TrainPrecision::Fp32,
             learning_rate: 1e-3,
             min_lr: 1e-5,
             warmup_steps: 10,
@@ -135,6 +208,7 @@ impl Default for TrainConfig {
             dead_code_threshold: 0.05,
             seed: 42,
             checkpoint_every: 0,
+            eval_every: 0,
             lora_rank: 0,
             lora_alpha: 0.0,
         }
@@ -159,6 +233,9 @@ impl TrainConfig {
         }
         if self.batch_size == 0 || self.batch_size > 256 {
             return Err(TrainError::Config("--batch must be 1..=256".into()));
+        }
+        if self.grad_accum == 0 || self.grad_accum > 256 {
+            return Err(TrainError::Config("--grad-accum must be 1..=256".into()));
         }
         if !self.learning_rate.is_finite() || self.learning_rate <= 0.0 {
             return Err(TrainError::Config("--lr must be finite and > 0".into()));
@@ -203,6 +280,8 @@ pub struct StepMetrics {
     pub recon_loss: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub commit_loss: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub val_loss: Option<f64>,
     pub grad_norm: f64,
     pub learning_rate: f64,
     pub restarted_codes: usize,
@@ -222,8 +301,14 @@ pub struct TrainReport {
     pub codec_final_loss: Option<f64>,
     pub generator_initial_loss: Option<f64>,
     pub generator_final_loss: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub final_val_loss: Option<f64>,
     pub steps_completed: usize,
     pub mean_step_ms: f64,
+    #[serde(default)]
+    pub train_precision: TrainPrecision,
+    #[serde(default = "default_one")]
+    pub grad_accum: usize,
     #[serde(default)]
     pub lora_rank: usize,
     #[serde(default)]
@@ -239,6 +324,7 @@ pub struct TrainJob {
     pub config_path: Option<PathBuf>,
     pub init_from: Option<PathBuf>,
     pub data_path: PathBuf,
+    pub val_data_path: Option<PathBuf>,
     pub tokenizer_path: Option<PathBuf>,
     pub output_dir: PathBuf,
     pub checkpoint_dir: Option<PathBuf>,
@@ -251,6 +337,11 @@ pub struct TrainJob {
 /// Execute an end-to-end training or fine-tuning job and export a verified `local-ncm-v1` artifact.
 pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
     job.train_cfg.validate()?;
+    if job.train_cfg.train_precision == TrainPrecision::Bf16 && job.device == "cpu" {
+        return Err(TrainError::Config(
+            "--train-precision bf16 requires a GPU device (cuda, cuda-cudnn, or mlx)".into(),
+        ));
+    }
     let t_all = Instant::now();
 
     // Load config + optional initial weights from --init-from or --config.
@@ -293,6 +384,10 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
     };
 
     let dataset = TokenDataset::load(&job.data_path, &config, local_tok.as_ref())?;
+    let val_dataset = match &job.val_data_path {
+        Some(path) => Some(TokenDataset::load(path, &config, local_tok.as_ref())?),
+        None => None,
+    };
     let resume_ckpt = match &job.resume_dir {
         Some(dir) => Some(load_checkpoint(dir, &config)?),
         None => None,
@@ -315,6 +410,7 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         let (trained_codec, hist) = run_codec_stage(
             &config,
             &dataset,
+            val_dataset.as_ref(),
             &codec_weights,
             stage_resume,
             &stage_cfg,
@@ -334,6 +430,7 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         let (trained_gen, hist) = run_generator_stage(
             &config,
             &dataset,
+            val_dataset.as_ref(),
             &codec_weights,
             &gen_weights,
             stage_resume,
@@ -346,6 +443,8 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         gen_final = hist.last().map(|m| m.loss);
         all_history.extend(hist);
     }
+
+    let final_val_loss = all_history.iter().rev().find_map(|m| m.val_loss);
 
     let total_params = match job.train_cfg.stage {
         TrainStage::Codec => lora::count_params(&codec_weights),
@@ -364,6 +463,8 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         "profile": "local-ncm-v1",
         "device": job.device,
         "stage": job.train_cfg.stage.as_str(),
+        "train_precision": job.train_cfg.train_precision.as_str(),
+        "grad_accum": job.train_cfg.grad_accum,
         "steps_completed": all_history.len(),
         "seed": job.train_cfg.seed,
         "lora_rank": job.train_cfg.lora_rank,
@@ -372,6 +473,7 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         "total_params": total_params,
         "codec_final_loss": codec_final,
         "generator_final_loss": gen_final,
+        "final_val_loss": final_val_loss,
     });
 
     export_local_ncm_artifact(
@@ -403,8 +505,11 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         codec_final_loss: codec_final,
         generator_initial_loss: gen_initial,
         generator_final_loss: gen_final,
+        final_val_loss,
         steps_completed: all_history.len(),
         mean_step_ms,
+        train_precision: job.train_cfg.train_precision,
+        grad_accum: job.train_cfg.grad_accum,
         lora_rank: job.train_cfg.lora_rank,
         trainable_params,
         total_params,
@@ -416,6 +521,7 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
 fn run_codec_stage(
     config: &LocalNcmConfig,
     dataset: &TokenDataset,
+    val_dataset: Option<&TokenDataset>,
     init_weights: &schedule::TensorMap,
     resume: Option<&artifact::LoadedCheckpoint>,
     train_cfg: &TrainConfig,
@@ -425,6 +531,7 @@ fn run_codec_stage(
     let _ = (
         config,
         dataset,
+        val_dataset,
         init_weights,
         resume,
         train_cfg,
@@ -435,6 +542,7 @@ fn run_codec_stage(
         "cpu" | "cuda" | "cuda-cudnn" => candle_backend::train_codec(
             config,
             dataset,
+            val_dataset,
             init_weights,
             resume,
             train_cfg,
@@ -445,6 +553,7 @@ fn run_codec_stage(
         "mlx" => mlx_backend::train_codec(
             config,
             dataset,
+            val_dataset,
             init_weights,
             resume,
             train_cfg,
@@ -460,6 +569,7 @@ fn run_codec_stage(
 fn run_generator_stage(
     config: &LocalNcmConfig,
     dataset: &TokenDataset,
+    val_dataset: Option<&TokenDataset>,
     frozen_codec_weights: &schedule::TensorMap,
     init_gen_weights: &schedule::TensorMap,
     resume: Option<&artifact::LoadedCheckpoint>,
@@ -470,6 +580,7 @@ fn run_generator_stage(
     let _ = (
         config,
         dataset,
+        val_dataset,
         frozen_codec_weights,
         init_gen_weights,
         resume,
@@ -481,6 +592,7 @@ fn run_generator_stage(
         "cpu" | "cuda" | "cuda-cudnn" => candle_backend::train_generator(
             config,
             dataset,
+            val_dataset,
             frozen_codec_weights,
             init_gen_weights,
             resume,
@@ -492,6 +604,7 @@ fn run_generator_stage(
         "mlx" => mlx_backend::train_generator(
             config,
             dataset,
+            val_dataset,
             frozen_codec_weights,
             init_gen_weights,
             resume,

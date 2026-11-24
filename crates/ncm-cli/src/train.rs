@@ -15,15 +15,19 @@ Usage:
 Required:
   --config FILE          Local NCM config.json (for training from scratch)
   --init-from ARTIFACT   Existing verified local-ncm-v1 or tinystories-inference-v1 artifact
-  --data FILE            Training dataset (.json token rows / {prefix,target} pairs / text, or .txt)
+  --data FILE            Training dataset (.jsonl, .json, or .txt)
   --output DIR           Output directory for the exported verified local-ncm-v1 artifact
   --device DEV           Explicit training device: cuda, cuda-cudnn, mlx, or cpu (no fallback)
 
 Options:
   --stage STAGE          codec | generator | all (default: all, or generator when --init-from is set)
   --tokenizer FILE       Optional tokenizer.json to bundle & encode text datasets
+  --val-data FILE        Optional validation dataset (.jsonl, .json, or .txt) for no-grad eval
+  --eval-every N         Evaluate validation loss every N steps (default: 0 = final step only)
   --lora-rank R          Enable LoRA generator fine-tuning with rank R (default: 0 = full fine-tuning)
   --lora-alpha A         LoRA scaling alpha (default: 2 * R when --lora-rank > 0)
+  --train-precision P    Compute precision: fp32 (default) | bf16 (GPU only; FP32 master weights)
+  --grad-accum N         Micro-batch gradient accumulation steps (default: 1)
   --steps N              Optimization steps (default: 100)
   --codec-steps N        Separate step count for codec stage when --stage all
   --batch N              Minibatch size 1..=256 (default: 8)
@@ -47,6 +51,7 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
     let mut config_path: Option<PathBuf> = None;
     let mut init_from: Option<PathBuf> = None;
     let mut data_path: Option<PathBuf> = None;
+    let mut val_data_path: Option<PathBuf> = None;
     let mut tokenizer_path: Option<PathBuf> = None;
     let mut output_dir: Option<PathBuf> = None;
     let mut checkpoint_dir: Option<PathBuf> = None;
@@ -70,6 +75,22 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
             }
             "--data" => {
                 data_path = Some(PathBuf::from(args.get(i + 1).ok_or(TRAIN_USAGE)?));
+                i += 2;
+            }
+            "--val-data" => {
+                val_data_path = Some(PathBuf::from(args.get(i + 1).ok_or(TRAIN_USAGE)?));
+                i += 2;
+            }
+            "--eval-every" => {
+                cfg.eval_every = args.get(i + 1).ok_or(TRAIN_USAGE)?.parse()?;
+                i += 2;
+            }
+            "--grad-accum" => {
+                cfg.grad_accum = args.get(i + 1).ok_or(TRAIN_USAGE)?.parse()?;
+                i += 2;
+            }
+            "--train-precision" => {
+                cfg.train_precision = args.get(i + 1).ok_or(TRAIN_USAGE)?.parse()?;
                 i += 2;
             }
             "--tokenizer" => {
@@ -192,6 +213,7 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
             config_path,
             init_from,
             data_path,
+            val_data_path,
             tokenizer_path,
             output_dir,
             checkpoint_dir,
@@ -227,6 +249,8 @@ pub(super) fn run_train(args: &[String]) -> Result<()> {
         "steps_completed": report.steps_completed,
         "total_seconds": (report.total_seconds * 1000.0).round() / 1000.0,
         "mean_step_ms": (report.mean_step_ms * 100.0).round() / 100.0,
+        "train_precision": report.train_precision.as_str(),
+        "grad_accum": report.grad_accum,
         "lora_rank": report.lora_rank,
         "trainable_params": report.trainable_params,
         "total_params": report.total_params,
@@ -234,6 +258,7 @@ pub(super) fn run_train(args: &[String]) -> Result<()> {
         "codec_final_loss": report.codec_final_loss,
         "generator_initial_loss": report.generator_initial_loss,
         "generator_final_loss": report.generator_final_loss,
+        "final_val_loss": report.final_val_loss,
     });
     println!("{}", serde_json::to_string_pretty(&summary)?);
     Ok(())
@@ -242,7 +267,8 @@ pub(super) fn run_train(args: &[String]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::parse_train_args;
-    use ncm_train::TrainStage;
+    use ncm_train::{TrainPrecision, TrainStage};
+    use std::path::PathBuf;
 
     fn args(vals: &[&str]) -> Vec<String> {
         vals.iter().map(|s| (*s).into()).collect()
@@ -284,11 +310,19 @@ mod tests {
             "--init-from",
             "base-model",
             "--data",
-            "train.json",
+            "train.jsonl",
+            "--val-data",
+            "val.jsonl",
+            "--eval-every",
+            "10",
             "--output",
             "out-ft",
             "--device",
             "cuda",
+            "--grad-accum",
+            "4",
+            "--train-precision",
+            "bf16",
             "--lora-rank",
             "8",
             "--lora-alpha",
@@ -298,6 +332,10 @@ mod tests {
         assert_eq!(ft.train_cfg.stage, TrainStage::Generator);
         assert_eq!(ft.train_cfg.lora_rank, 8);
         assert_eq!(ft.train_cfg.lora_alpha, 16.0);
+        assert_eq!(ft.train_cfg.grad_accum, 4);
+        assert_eq!(ft.train_cfg.train_precision, TrainPrecision::Bf16);
+        assert_eq!(ft.train_cfg.eval_every, 10);
+        assert_eq!(ft.val_data_path, Some(PathBuf::from("val.jsonl")));
 
         // Missing device or conflicting --config + --init-from rejected.
         assert!(

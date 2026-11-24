@@ -1,0 +1,110 @@
+{
+  "milestone": "9B",
+  "platform": "linux-cuda",
+  "hardware": "NVIDIA GeForce RTX 3060 Ti, 620.73.04, 8192 MiB",
+  "base_artifact": "tinystories-15k-ema-v1",
+  "dataset_format": "jsonl",
+  "train_samples": 8,
+  "val_samples": 4,
+  "config": {
+    "stage": "generator",
+    "lora_rank": 8,
+    "lora_alpha": 16.0,
+    "steps": 20,
+    "batch_size": 2,
+    "grad_accum": 2,
+    "effective_batch_size": 4,
+    "eval_every": 10,
+    "lr": 0.0003,
+    "min_lr": 3e-05,
+    "warmup_steps": 4,
+    "seed": 42
+  },
+  "fp32": {
+    "trainable_params": 1179648,
+    "total_params": 123160704,
+    "initial_loss": 6.583979889750481,
+    "final_loss": 3.9292921274900436,
+    "val_history": [
+      {
+        "step": 10,
+        "val_loss": 4.650729815165202
+      },
+      {
+        "step": 20,
+        "val_loss": 4.080194229880968
+      }
+    ],
+    "final_val_loss": 4.080194229880968,
+    "mean_step_ms": 1189.8065092000002,
+    "total_seconds": 26.082295194,
+    "summary": {
+      "codec_final_loss": null,
+      "codec_initial_loss": null,
+      "dataset_samples": 8,
+      "device": "cuda",
+      "final_val_loss": 4.080194229880968,
+      "generator_final_loss": 3.9292921274900436,
+      "generator_initial_loss": 6.583979889750481,
+      "grad_accum": 2,
+      "lora_rank": 8,
+      "mean_step_ms": 1189.81,
+      "output_artifact": "<temp>/ts-lora-fp32",
+      "schema": "ncm-train-report-v1",
+      "stage": "generator",
+      "steps_completed": 20,
+      "total_params": 123160704,
+      "total_seconds": 26.082,
+      "train_precision": "fp32",
+      "trainable_params": 1179648
+    }
+  },
+  "bf16": {
+    "trainable_params": 1179648,
+    "total_params": 123160704,
+    "initial_loss": 6.583074480295181,
+    "final_loss": 3.9294536598026752,
+    "val_history": [
+      {
+        "step": 10,
+        "val_loss": 4.651944786310196
+      },
+      {
+        "step": 20,
+        "val_loss": 4.081010277072588
+      }
+    ],
+    "final_val_loss": 4.081010277072588,
+    "mean_step_ms": 1128.49458345,
+    "total_seconds": 24.817211821,
+    "summary": {
+      "codec_final_loss": null,
+      "codec_initial_loss": null,
+      "dataset_samples": 8,
+      "device": "cuda",
+      "final_val_loss": 4.081010277072588,
+      "generator_final_loss": 3.9294536598026752,
+      "generator_initial_loss": 6.583074480295181,
+      "grad_accum": 2,
+      "lora_rank": 8,
+      "mean_step_ms": 1128.49,
+      "output_artifact": "<temp>/ts-lora-bf16",
+      "schema": "ncm-train-report-v1",
+      "stage": "generator",
+      "steps_completed": 20,
+      "total_params": 123160704,
+      "total_seconds": 24.817,
+      "train_precision": "bf16",
+      "trainable_params": 1179648
+    }
+  },
+  "comparison": {
+    "bf16_step_speedup_vs_fp32": 1.054,
+    "final_train_loss_abs_diff": 0.000162,
+    "final_val_loss_abs_diff": 0.000816
+  },
+  "bf16_merged_inference": {
+    "inspect_profile": "local-ncm-v1",
+    "sample_preview": "Once upon a time, there was a big dog named Max. Max loved to play with hockey. He would throw it, kick it, and chew it his mouth. Max was a happy friends. One day, Max found a big ball in the park. He decided to play with his ball.\nMax kic"
+  }
+}

@@ -35,6 +35,14 @@ struct RawPair {
     target: Vec<u32>,
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RawJsonlRecord {
+    Pair { prefix: Vec<u32>, target: Vec<u32> },
+    PromptCompletion { prompt: String, completion: String },
+    Text { text: String },
+}
+
 impl TokenDataset {
     /// Construct a validated dataset from explicit `(prefix, target)` token sequences.
     pub fn from_samples(config: &LocalNcmConfig, samples: Vec<TrainingSample>) -> Result<Self> {
@@ -84,8 +92,11 @@ impl TokenDataset {
         })
     }
 
-    /// Load a training dataset from JSON (`[[u32]]`, `[{"prefix":[..],"target":[..]}]`, or `["text"]`)
-    /// or a newline-delimited `.txt` file (when `tokenizer` is supplied).
+    /// Load a training or validation dataset from:
+    /// - `.jsonl` / `.ndjson` (`{"text": "..."}`, `{"prompt": "...", "completion": "..."}`,
+    ///   or `{"prefix": [...], "target": [...]}` with sliding-window chunking for long texts),
+    /// - `.txt` (newline-delimited text, requires `tokenizer`), or
+    /// - `.json` (`[[u32]]`, `[{"prefix":[..],"target":[..]}]`, or `["text"]`).
     pub fn load(
         path: &Path,
         config: &LocalNcmConfig,
@@ -96,6 +107,15 @@ impl TokenDataset {
         let prefix_len = config.model().prefix_len;
         let context_len = config.codec().raw().context_length;
         let pad_id = config.model().pad_token_id.unwrap_or(0);
+
+        if path
+            .extension()
+            .is_some_and(|e| e == "jsonl" || e == "ndjson")
+        {
+            let text = std::str::from_utf8(&bytes)
+                .map_err(|e| TrainError::Data(format!("invalid UTF-8 JSONL dataset: {e}")))?;
+            return Self::from_jsonl_str(config, tokenizer, text);
+        }
 
         if path.extension().is_some_and(|e| e == "txt") {
             let tok = tokenizer.ok_or_else(|| {
@@ -166,6 +186,114 @@ impl TokenDataset {
         }
     }
 
+    fn push_chunked_ids(
+        samples: &mut Vec<TrainingSample>,
+        ids: &[u32],
+        prefix_len: usize,
+        context_len: usize,
+        pad_id: u32,
+    ) {
+        if ids.is_empty() {
+            return;
+        }
+        if ids.len() <= context_len {
+            let mut prefix: Vec<u32> = ids.iter().copied().take(prefix_len).collect();
+            while prefix.len() < prefix_len {
+                prefix.push(pad_id);
+            }
+            let mut target = ids.to_vec();
+            while target.len() < context_len {
+                target.push(pad_id);
+            }
+            samples.push(TrainingSample { prefix, target });
+            return;
+        }
+        // Sliding-window chunking with 50% overlap (stride = max(context_len / 2, 1)).
+        let stride = (context_len / 2).max(1);
+        let mut start = 0usize;
+        while start < ids.len() {
+            let end = (start + context_len).min(ids.len());
+            let slice = &ids[start..end];
+            let mut prefix: Vec<u32> = slice.iter().copied().take(prefix_len).collect();
+            while prefix.len() < prefix_len {
+                prefix.push(pad_id);
+            }
+            let mut target = slice.to_vec();
+            while target.len() < context_len {
+                target.push(pad_id);
+            }
+            samples.push(TrainingSample { prefix, target });
+            if end == ids.len() {
+                break;
+            }
+            start += stride;
+        }
+    }
+
+    fn from_jsonl_str(
+        config: &LocalNcmConfig,
+        tokenizer: Option<&LocalTokenizer>,
+        content: &str,
+    ) -> Result<Self> {
+        let prefix_len = config.model().prefix_len;
+        let context_len = config.codec().raw().context_length;
+        let pad_id = config.model().pad_token_id.unwrap_or(0);
+        let mut samples = Vec::new();
+        for (line_idx, raw_line) in content.lines().enumerate() {
+            let line = raw_line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let rec: RawJsonlRecord = serde_json::from_str(line).map_err(|e| {
+                TrainError::Data(format!("invalid JSONL on line {}: {e}", line_idx + 1))
+            })?;
+            match rec {
+                RawJsonlRecord::Pair { prefix, target } => {
+                    samples.push(TrainingSample { prefix, target });
+                }
+                RawJsonlRecord::PromptCompletion { prompt, completion } => {
+                    let tok = tokenizer.ok_or_else(|| {
+                        TrainError::Data(
+                            "text JSONL dataset requires --tokenizer PATH (or tokenizer.json in --init-from)"
+                                .into(),
+                        )
+                    })?;
+                    let p_ids = tok
+                        .encode(&prompt)
+                        .map_err(|e| TrainError::Data(format!("tokenize prompt: {e}")))?;
+                    let c_ids = tok
+                        .encode(&completion)
+                        .map_err(|e| TrainError::Data(format!("tokenize completion: {e}")))?;
+                    if p_ids.is_empty() || c_ids.is_empty() {
+                        continue;
+                    }
+                    let mut prefix: Vec<u32> = p_ids.into_iter().take(prefix_len).collect();
+                    while prefix.len() < prefix_len {
+                        prefix.push(pad_id);
+                    }
+                    let mut target: Vec<u32> = c_ids.into_iter().take(context_len).collect();
+                    while target.len() < context_len {
+                        target.push(pad_id);
+                    }
+                    samples.push(TrainingSample { prefix, target });
+                }
+                RawJsonlRecord::Text { text } => {
+                    let tok = tokenizer.ok_or_else(|| {
+                        TrainError::Data(
+                            "text JSONL dataset requires --tokenizer PATH (or tokenizer.json in --init-from)"
+                                .into(),
+                        )
+                    })?;
+                    let ids = tok
+                        .encode(&text)
+                        .map_err(|e| TrainError::Data(format!("tokenize error: {e}")))?;
+                    Self::push_chunked_ids(&mut samples, &ids, prefix_len, context_len, pad_id);
+                }
+            }
+        }
+        Self::from_samples(config, samples)
+    }
+
     fn from_texts(
         config: &LocalNcmConfig,
         tokenizer: &LocalTokenizer,
@@ -176,28 +304,40 @@ impl TokenDataset {
         let pad_id = config.model().pad_token_id.unwrap_or(0);
         let mut samples = Vec::with_capacity(texts.len());
         for text in texts {
-            let mut ids = tokenizer
+            let ids = tokenizer
                 .encode(text)
                 .map_err(|e| TrainError::Data(format!("tokenize error: {e}")))?;
-            if ids.is_empty() {
-                continue;
-            }
-            let mut prefix = ids.iter().copied().take(prefix_len).collect::<Vec<_>>();
-            while prefix.len() < prefix_len {
-                prefix.push(pad_id);
-            }
-            if ids.len() > context_len {
-                ids.truncate(context_len);
-            }
-            while ids.len() < context_len {
-                ids.push(pad_id);
-            }
-            samples.push(TrainingSample {
-                prefix,
-                target: ids,
-            });
+            Self::push_chunked_ids(&mut samples, &ids, prefix_len, context_len, pad_id);
         }
         Self::from_samples(config, samples)
+    }
+
+    /// Return sequential validation batches covering up to `max_samples` rows.
+    pub fn eval_batches(
+        &self,
+        batch_size: usize,
+        max_samples: usize,
+    ) -> Vec<(Vec<u32>, Vec<u32>, usize)> {
+        let limit = self.samples.len().min(max_samples.max(1));
+        let mut out = Vec::new();
+        let mut start = 0usize;
+        while start < limit {
+            let end = (start + batch_size).min(limit);
+            let count = end - start;
+            let mut prefixes = Vec::with_capacity(count * self.prefix_len);
+            let mut targets = Vec::with_capacity(count * self.context_len);
+            for s in &self.samples[start..end] {
+                prefixes.extend_from_slice(&s.prefix);
+                targets.extend_from_slice(&s.target);
+            }
+            out.push((prefixes, targets, count));
+            start = end;
+        }
+        out
+    }
+
+    pub fn samples(&self) -> &[TrainingSample] {
+        &self.samples
     }
 
     pub fn len(&self) -> usize {

@@ -9,7 +9,7 @@ use ncm_train::schedule::init_generator_weights;
     feature = "cpu",
     all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
 ))]
-use ncm_train::{TrainConfig, TrainJob, TrainStage};
+use ncm_train::{TrainConfig, TrainJob, TrainPrecision, TrainStage};
 use ncm_train::{
     data::{TokenDataset, TrainingSample},
     ema::EmaCodebookState,
@@ -250,9 +250,10 @@ fn checkpoint_save_and_resume_is_deterministic() {
 
     // Codec: 10 uninterrupted vs 5 + resume 5
     let ckpt_dir = TempDir::new("ckpt-codec");
-    let (w_full, h_full) =
-        ncm_train::candle_backend::train_codec(&cfg, &ds, &codec_w, None, &full_cfg, "cpu", None)
-            .unwrap();
+    let (w_full, h_full) = ncm_train::candle_backend::train_codec(
+        &cfg, &ds, None, &codec_w, None, &full_cfg, "cpu", None,
+    )
+    .unwrap();
 
     // Verify resume with constant LR so 5+5 sees an identical LR schedule.
     let const_full = TrainConfig {
@@ -260,14 +261,23 @@ fn checkpoint_save_and_resume_is_deterministic() {
         min_lr: 5e-3,
         ..full_cfg.clone()
     };
-    let (w_const_full, h_const_full) =
-        ncm_train::candle_backend::train_codec(&cfg, &ds, &codec_w, None, &const_full, "cpu", None)
-            .unwrap();
+    let (w_const_full, h_const_full) = ncm_train::candle_backend::train_codec(
+        &cfg,
+        &ds,
+        None,
+        &codec_w,
+        None,
+        &const_full,
+        "cpu",
+        None,
+    )
+    .unwrap();
     let mut const_half = const_full.clone();
     const_half.steps = 5;
     let _ = ncm_train::candle_backend::train_codec(
         &cfg,
         &ds,
+        None,
         &codec_w,
         None,
         &const_half,
@@ -280,6 +290,7 @@ fn checkpoint_save_and_resume_is_deterministic() {
     let (w_resumed, h_resumed) = ncm_train::candle_backend::train_codec(
         &cfg,
         &ds,
+        None,
         &codec_w,
         Some(&loaded),
         &const_full,
@@ -314,7 +325,7 @@ fn checkpoint_save_and_resume_is_deterministic() {
         ..TrainConfig::default()
     };
     let (gw_full, gh_full) = ncm_train::candle_backend::train_generator(
-        &cfg, &ds, &w_full, &gen_w, None, &gen_full, "cpu", None,
+        &cfg, &ds, None, &w_full, &gen_w, None, &gen_full, "cpu", None,
     )
     .unwrap();
     let mut gen_half = gen_full.clone();
@@ -322,6 +333,7 @@ fn checkpoint_save_and_resume_is_deterministic() {
     let _ = ncm_train::candle_backend::train_generator(
         &cfg,
         &ds,
+        None,
         &w_full,
         &gen_w,
         None,
@@ -335,6 +347,7 @@ fn checkpoint_save_and_resume_is_deterministic() {
     let (gw_resumed, gh_resumed) = ncm_train::candle_backend::train_generator(
         &cfg,
         &ds,
+        None,
         &w_full,
         &gen_w,
         Some(&loaded_gen),
@@ -388,6 +401,7 @@ fn codec_and_generator_overfit_and_roundtrip_to_local_ncm_inference() {
         config_path: Some(cfg_path),
         init_from: None,
         data_path: data_path.clone(),
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: out_dir.clone(),
         checkpoint_dir: None,
@@ -438,6 +452,7 @@ fn codec_and_generator_overfit_and_roundtrip_to_local_ncm_inference() {
         config_path: None,
         init_from: Some(out_dir),
         data_path,
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: ft_dir.clone(),
         checkpoint_dir: None,
@@ -489,6 +504,7 @@ fn cuda_full_train_and_inference_roundtrip() {
         config_path: Some(cfg_path),
         init_from: None,
         data_path,
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: out_dir.clone(),
         checkpoint_dir: None,
@@ -545,6 +561,7 @@ fn mlx_full_train_and_inference_roundtrip() {
         config_path: Some(cfg_path),
         init_from: None,
         data_path,
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: out_dir.clone(),
         checkpoint_dir: None,
@@ -659,7 +676,7 @@ fn lora_finite_diff_merged_equivalence_and_checkpoint_resume() {
         ..TrainConfig::default()
     };
     let (w_full, h_full) = ncm_train::candle_backend::train_generator(
-        &cfg, &ds, &codec_w, &gen_w, None, &full_cfg, "cpu", None,
+        &cfg, &ds, None, &codec_w, &gen_w, None, &full_cfg, "cpu", None,
     )
     .unwrap();
 
@@ -668,6 +685,7 @@ fn lora_finite_diff_merged_equivalence_and_checkpoint_resume() {
     let _ = ncm_train::candle_backend::train_generator(
         &cfg,
         &ds,
+        None,
         &codec_w,
         &gen_w,
         None,
@@ -687,6 +705,7 @@ fn lora_finite_diff_merged_equivalence_and_checkpoint_resume() {
         ncm_train::candle_backend::train_generator(
             &cfg,
             &ds,
+            None,
             &codec_w,
             &gen_w,
             Some(&loaded),
@@ -700,6 +719,7 @@ fn lora_finite_diff_merged_equivalence_and_checkpoint_resume() {
     let (w_resumed, h_resumed) = ncm_train::candle_backend::train_generator(
         &cfg,
         &ds,
+        None,
         &codec_w,
         &gen_w,
         Some(&loaded),
@@ -761,6 +781,7 @@ fn cuda_lora_finetune_converges_and_merges_for_inference() {
         config_path: Some(cfg_path),
         init_from: None,
         data_path: base_data,
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: base_dir.clone(),
         checkpoint_dir: None,
@@ -786,6 +807,7 @@ fn cuda_lora_finetune_converges_and_merges_for_inference() {
         config_path: None,
         init_from: Some(base_dir),
         data_path: ft_data,
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: lora_dir.clone(),
         checkpoint_dir: None,
@@ -857,6 +879,7 @@ fn mlx_lora_finetune_converges_and_resumes_deterministically() {
         config_path: Some(cfg_path),
         init_from: None,
         data_path: base_data,
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: base_dir.clone(),
         checkpoint_dir: None,
@@ -881,6 +904,7 @@ fn mlx_lora_finetune_converges_and_resumes_deterministically() {
         config_path: None,
         init_from: Some(base_dir.clone()),
         data_path: ft_data,
+        val_data_path: None,
         tokenizer_path: None,
         output_dir: lora_dir.clone(),
         checkpoint_dir: Some(ckpt_dir.clone()),
@@ -911,5 +935,433 @@ fn mlx_lora_finetune_converges_and_resumes_deterministically() {
         report.generator_final_loss
     );
     let artifact = Artifact::load_inference_streaming(&lora_dir).unwrap();
+    assert_eq!(artifact.manifest().profile, "local-ncm-v1");
+}
+
+#[cfg(feature = "cpu")]
+#[test]
+fn jsonl_dataset_loads_all_schemas_and_chunks_long_texts() {
+    use ncm_tokenizers::LocalTokenizer;
+
+    let cfg = LocalNcmConfig::from_json(tiny_config_json().as_bytes()).unwrap();
+    let tok_json = r###"{
+      "version": "1.0",
+      "truncation": null,
+      "padding": null,
+      "added_tokens": [],
+      "normalizer": null,
+      "pre_tokenizer": {"type": "WhitespaceSplit"},
+      "post_processor": null,
+      "decoder": null,
+      "model": {
+        "type": "WordPiece",
+        "unk_token": "[UNK]",
+        "continuing_subword_prefix": "##",
+        "max_input_chars_per_word": 100,
+        "vocab": {
+          "[UNK]": 0, "a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7,
+          "h": 8, "i": 9, "j": 10, "k": 11, "l": 12, "m": 13, "n": 14, "o": 15
+        }
+      }
+    }"###;
+    let tok = LocalTokenizer::from_json_bytes(tok_json.as_bytes()).unwrap();
+
+    let tmp = TempDir::new("jsonl-loader");
+    let jsonl_path = tmp.0.join("mixed.jsonl");
+    // context_len=8, prefix_len=4:
+    // - Line 1: {"text": "a b c d e f g h i j k l"} (12 tokens -> 2 overlapping 8-token chunks)
+    // - Line 2: {"prompt": "a b c d", "completion": "e f g h"} (1 sample)
+    // - Line 3: {"prefix": [9, 10, 11, 12], "target": [9, 10, 11, 12, 13, 14, 15, 1]} (1 sample)
+    fs::write(
+        &jsonl_path,
+        concat!(
+            "{\"text\": \"a b c d e f g h i j k l\"}\n",
+            "\n",
+            "{\"prompt\": \"a b c d\", \"completion\": \"e f g h\"}\n",
+            "{\"prefix\": [9, 10, 11, 12], \"target\": [9, 10, 11, 12, 13, 14, 15, 1]}\n",
+        ),
+    )
+    .unwrap();
+
+    let ds = TokenDataset::load(&jsonl_path, &cfg, Some(&tok)).unwrap();
+    assert_eq!(ds.len(), 4);
+    assert_eq!(ds.samples()[0].prefix, vec![1, 2, 3, 4]);
+    assert_eq!(ds.samples()[0].target, vec![1, 2, 3, 4, 5, 6, 7, 8]);
+    assert_eq!(ds.samples()[1].prefix, vec![5, 6, 7, 8]);
+    assert_eq!(ds.samples()[1].target, vec![5, 6, 7, 8, 9, 10, 11, 12]);
+    assert_eq!(ds.samples()[2].prefix, vec![1, 2, 3, 4]);
+    assert_eq!(ds.samples()[2].target, vec![5, 6, 7, 8, 0, 0, 0, 0]);
+    assert_eq!(ds.samples()[3].prefix, vec![9, 10, 11, 12]);
+    assert_eq!(ds.samples()[3].target, vec![9, 10, 11, 12, 13, 14, 15, 1]);
+
+    // Sequential eval_batches partitions all 4 samples into two batches of 2.
+    let eval_b = ds.eval_batches(2, 64);
+    assert_eq!(eval_b.len(), 2);
+    assert_eq!(eval_b[0].2, 2);
+    assert_eq!(eval_b[1].2, 2);
+}
+
+#[cfg(feature = "cpu")]
+#[test]
+fn grad_accum_matches_full_batch_and_val_eval_records_loss() {
+    let cfg = LocalNcmConfig::from_json(tiny_config_json().as_bytes()).unwrap();
+    let samples = vec![
+        TrainingSample {
+            prefix: vec![1, 2, 3, 4],
+            target: vec![1, 2, 3, 4, 5, 6, 7, 8],
+        },
+        TrainingSample {
+            prefix: vec![9, 10, 11, 12],
+            target: vec![9, 10, 11, 12, 13, 14, 15, 1],
+        },
+        TrainingSample {
+            prefix: vec![2, 3, 4, 5],
+            target: vec![2, 3, 4, 5, 6, 7, 8, 9],
+        },
+        TrainingSample {
+            prefix: vec![8, 7, 6, 5],
+            target: vec![8, 7, 6, 5, 4, 3, 2, 1],
+        },
+    ];
+    let ds = TokenDataset::from_samples(&cfg, samples).unwrap();
+    let codec_w = init_codec_weights(cfg.codec(), 11);
+    let gen_w = init_generator_weights(cfg.codec(), cfg.model(), 19);
+
+    // 1. Codec gradient accumulation: batch=4, accum=1 vs batch=2, accum=2.
+    let c_full_cfg = TrainConfig {
+        stage: TrainStage::Codec,
+        steps: 6,
+        batch_size: 4,
+        grad_accum: 1,
+        learning_rate: 5e-3,
+        min_lr: 5e-3,
+        warmup_steps: 0,
+        seed: 42,
+        ..TrainConfig::default()
+    };
+    let c_accum_cfg = TrainConfig {
+        batch_size: 2,
+        grad_accum: 2,
+        ..c_full_cfg.clone()
+    };
+    let (cw_full, ch_full) = ncm_train::candle_backend::train_codec(
+        &cfg,
+        &ds,
+        Some(&ds),
+        &codec_w,
+        None,
+        &c_full_cfg,
+        "cpu",
+        None,
+    )
+    .unwrap();
+    let (cw_acc, ch_acc) = ncm_train::candle_backend::train_codec(
+        &cfg,
+        &ds,
+        Some(&ds),
+        &codec_w,
+        None,
+        &c_accum_cfg,
+        "cpu",
+        None,
+    )
+    .unwrap();
+    assert!(
+        (ch_full.last().unwrap().loss - ch_acc.last().unwrap().loss).abs() < 1e-5,
+        "codec grad_accum loss mismatch: {} vs {}",
+        ch_full.last().unwrap().loss,
+        ch_acc.last().unwrap().loss
+    );
+    for (k, (_, v1)) in &cw_full {
+        let (_, v2) = &cw_acc[k];
+        let max_d = v1
+            .iter()
+            .zip(v2)
+            .map(|(a, b)| (a - b).abs())
+            .fold(0.0f32, f32::max);
+        assert!(max_d < 1e-5, "codec `{k}` grad_accum max_diff={max_d}");
+    }
+
+    // 2. Generator gradient accumulation + eval_every validation loss.
+    let g_full_cfg = TrainConfig {
+        stage: TrainStage::Generator,
+        steps: 6,
+        batch_size: 4,
+        grad_accum: 1,
+        learning_rate: 5e-3,
+        min_lr: 5e-3,
+        warmup_steps: 0,
+        eval_every: 3,
+        seed: 42,
+        ..TrainConfig::default()
+    };
+    let g_accum_cfg = TrainConfig {
+        batch_size: 2,
+        grad_accum: 2,
+        ..g_full_cfg.clone()
+    };
+    let (gw_full, gh_full) = ncm_train::candle_backend::train_generator(
+        &cfg,
+        &ds,
+        Some(&ds),
+        &cw_full,
+        &gen_w,
+        None,
+        &g_full_cfg,
+        "cpu",
+        None,
+    )
+    .unwrap();
+    let (gw_acc, gh_acc) = ncm_train::candle_backend::train_generator(
+        &cfg,
+        &ds,
+        Some(&ds),
+        &cw_full,
+        &gen_w,
+        None,
+        &g_accum_cfg,
+        "cpu",
+        None,
+    )
+    .unwrap();
+    assert!(
+        (gh_full.last().unwrap().loss - gh_acc.last().unwrap().loss).abs() < 1e-5,
+        "generator grad_accum loss mismatch: {} vs {}",
+        gh_full.last().unwrap().loss,
+        gh_acc.last().unwrap().loss
+    );
+    for (k, (_, v1)) in &gw_full {
+        let (_, v2) = &gw_acc[k];
+        let max_d = v1
+            .iter()
+            .zip(v2)
+            .map(|(a, b)| (a - b).abs())
+            .fold(0.0f32, f32::max);
+        assert!(max_d < 1e-5, "generator `{k}` grad_accum max_diff={max_d}");
+    }
+    // eval_every=3 on 6 steps -> val_loss populated on steps 3 and 6 only.
+    assert!(gh_acc[0].val_loss.is_none());
+    assert!(gh_acc[1].val_loss.is_none());
+    assert!(gh_acc[2].val_loss.is_some());
+    assert!(gh_acc[5].val_loss.is_some());
+
+    // 3. CPU BF16 must fail explicitly.
+    let bad_bf16 = TrainConfig {
+        train_precision: TrainPrecision::Bf16,
+        ..g_full_cfg
+    };
+    assert!(
+        ncm_train::candle_backend::train_generator(
+            &cfg, &ds, None, &cw_full, &gen_w, None, &bad_bf16, "cpu", None,
+        )
+        .is_err()
+    );
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn cuda_bf16_grad_accum_and_val_eval() {
+    use ncm_backend_cuda::CandleBackend;
+    use ncm_core::CodecBackend;
+    use ncm_io::Artifact;
+    use ncm_model::LocalNcmModel;
+
+    let tmp = TempDir::new("bf16-cuda");
+    let cfg_path = tmp.0.join("config.json");
+    let base_data = tmp.0.join("base.json");
+    let ft_data = tmp.0.join("ft.jsonl");
+    let val_data = tmp.0.join("val.jsonl");
+    let base_dir = tmp.0.join("base");
+    let bf16_dir = tmp.0.join("bf16-lora");
+    fs::write(&cfg_path, tiny_config_json()).unwrap();
+    fs::write(
+        &base_data,
+        r#"[
+          {"prefix": [1, 2, 3, 4], "target": [1, 2, 3, 4, 5, 6, 7, 8]},
+          {"prefix": [9, 10, 11, 12], "target": [9, 10, 11, 12, 13, 14, 15, 1]}
+        ]"#,
+    )
+    .unwrap();
+    fs::write(
+        &ft_data,
+        concat!(
+            "{\"prefix\": [1, 2, 3, 4], \"target\": [9, 10, 11, 12, 13, 14, 15, 1]}\n",
+            "{\"prefix\": [9, 10, 11, 12], \"target\": [1, 2, 3, 4, 5, 6, 7, 8]}\n",
+        ),
+    )
+    .unwrap();
+    fs::write(
+        &val_data,
+        "{\"prefix\": [1, 2, 3, 4], \"target\": [9, 10, 11, 12, 13, 14, 15, 1]}\n",
+    )
+    .unwrap();
+
+    let base_job = TrainJob {
+        config_path: Some(cfg_path),
+        init_from: None,
+        data_path: base_data,
+        val_data_path: None,
+        tokenizer_path: None,
+        output_dir: base_dir.clone(),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "cuda".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::All,
+            steps: 50,
+            codec_steps: Some(40),
+            batch_size: 2,
+            learning_rate: 1e-2,
+            min_lr: 1e-3,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            ..TrainConfig::default()
+        },
+    };
+    ncm_train::run_training_job(&base_job).unwrap();
+
+    let bf16_job = TrainJob {
+        config_path: None,
+        init_from: Some(base_dir),
+        data_path: ft_data,
+        val_data_path: Some(val_data),
+        tokenizer_path: None,
+        output_dir: bf16_dir.clone(),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "cuda".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::Generator,
+            steps: 60,
+            batch_size: 2,
+            grad_accum: 2,
+            train_precision: TrainPrecision::Bf16,
+            eval_every: 20,
+            learning_rate: 5e-3,
+            min_lr: 5e-4,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            lora_rank: 4,
+            lora_alpha: 8.0,
+            ..TrainConfig::default()
+        },
+    };
+    let report = ncm_train::run_training_job(&bf16_job).unwrap();
+    assert_eq!(report.train_precision, TrainPrecision::Bf16);
+    assert_eq!(report.grad_accum, 2);
+    assert!(report.final_val_loss.is_some());
+    assert!(
+        report.generator_final_loss.unwrap() < report.generator_initial_loss.unwrap() * 0.5,
+        "CUDA BF16 LoRA loss did not converge: {:?} -> {:?}",
+        report.generator_initial_loss,
+        report.generator_final_loss
+    );
+    let artifact = Artifact::load_inference_streaming(&bf16_dir).unwrap();
+    let backend = CandleBackend::cpu();
+    let model = LocalNcmModel::from_artifact(backend.clone(), &artifact).unwrap();
+    let generated = model.generate(&[1, 2, 3, 4], 1, None).unwrap();
+    assert_eq!(backend.read_indices(&generated.ids).unwrap().len(), 8);
+}
+
+#[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+#[test]
+fn mlx_bf16_grad_accum_and_val_eval() {
+    use ncm_io::Artifact;
+
+    let tmp = TempDir::new("bf16-mlx");
+    let cfg_path = tmp.0.join("config.json");
+    let base_data = tmp.0.join("base.json");
+    let ft_data = tmp.0.join("ft.jsonl");
+    let val_data = tmp.0.join("val.jsonl");
+    let base_dir = tmp.0.join("base");
+    let bf16_dir = tmp.0.join("bf16-lora");
+    fs::write(&cfg_path, tiny_config_json()).unwrap();
+    fs::write(
+        &base_data,
+        r#"[
+          {"prefix": [1, 2, 3, 4], "target": [1, 2, 3, 4, 5, 6, 7, 8]},
+          {"prefix": [9, 10, 11, 12], "target": [9, 10, 11, 12, 13, 14, 15, 1]}
+        ]"#,
+    )
+    .unwrap();
+    fs::write(
+        &ft_data,
+        concat!(
+            "{\"prefix\": [1, 2, 3, 4], \"target\": [9, 10, 11, 12, 13, 14, 15, 1]}\n",
+            "{\"prefix\": [9, 10, 11, 12], \"target\": [1, 2, 3, 4, 5, 6, 7, 8]}\n",
+        ),
+    )
+    .unwrap();
+    fs::write(
+        &val_data,
+        "{\"prefix\": [1, 2, 3, 4], \"target\": [9, 10, 11, 12, 13, 14, 15, 1]}\n",
+    )
+    .unwrap();
+
+    let base_job = TrainJob {
+        config_path: Some(cfg_path),
+        init_from: None,
+        data_path: base_data,
+        val_data_path: None,
+        tokenizer_path: None,
+        output_dir: base_dir.clone(),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "mlx".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::All,
+            steps: 50,
+            codec_steps: Some(40),
+            batch_size: 2,
+            learning_rate: 1e-2,
+            min_lr: 1e-3,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            ..TrainConfig::default()
+        },
+    };
+    ncm_train::run_training_job(&base_job).unwrap();
+
+    let bf16_job = TrainJob {
+        config_path: None,
+        init_from: Some(base_dir),
+        data_path: ft_data,
+        val_data_path: Some(val_data),
+        tokenizer_path: None,
+        output_dir: bf16_dir.clone(),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "mlx".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::Generator,
+            steps: 60,
+            batch_size: 2,
+            grad_accum: 2,
+            train_precision: TrainPrecision::Bf16,
+            eval_every: 20,
+            learning_rate: 5e-3,
+            min_lr: 5e-4,
+            warmup_steps: 5,
+            weight_decay: 0.0,
+            lora_rank: 4,
+            lora_alpha: 8.0,
+            ..TrainConfig::default()
+        },
+    };
+    let report = ncm_train::run_training_job(&bf16_job).unwrap();
+    assert_eq!(report.train_precision, TrainPrecision::Bf16);
+    assert_eq!(report.grad_accum, 2);
+    assert!(report.final_val_loss.is_some());
+    assert!(
+        report.generator_final_loss.unwrap() < report.generator_initial_loss.unwrap() * 0.5,
+        "MLX BF16 LoRA loss did not converge: {:?} -> {:?}",
+        report.generator_initial_loss,
+        report.generator_final_loss
+    );
+    let artifact = Artifact::load_inference_streaming(&bf16_dir).unwrap();
     assert_eq!(artifact.manifest().profile, "local-ncm-v1");
 }
