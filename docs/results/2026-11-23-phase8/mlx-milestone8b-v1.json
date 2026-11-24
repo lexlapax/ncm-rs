@@ -1,0 +1,171 @@
+{
+  "platform": "mlx",
+  "gpu": "Apple M1 Ultra (macstudio)",
+  "format": "mlx",
+  "models": {
+    "tinystories-15k-ema-v1": {
+      "q8": {
+        "quantize": {
+          "artifact": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1",
+          "compression_ratio": 3.06,
+          "elapsed_ms": 781.6,
+          "file_sha256": "62c6ce08e00efb1fd771de7725ffeb2304d81342273c3e7a26dfb0e62d90c8cf",
+          "format": "mlx",
+          "manifest_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-mlx-q8.json",
+          "manifest_sha256": "a044b20c15c85a352d2760068e477df17b2deb6b240e10dc008d1960263c9b0e",
+          "parent_weight_bytes": 501837992,
+          "precision": "q8",
+          "quantized_tensors": 65,
+          "sidecar_bytes": 164229200,
+          "total_tensors": 267,
+          "weights_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-mlx-q8.safetensors"
+        },
+        "output_sha256": "369d487c0a9955da9650072be36ffb05307ad73d61d82af13e920a7c554f7bfc",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 176.16,
+          "weight_upload_ms": 215.68,
+          "total_load_ms": 391.84,
+          "infer_median_ms": 77.0,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 87.59,
+          "weight_upload_ms": 69.36,
+          "total_load_ms": 156.95,
+          "infer_median_ms": 78.34,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "load_speedup": 2.5
+      },
+      "q4": {
+        "quantize": {
+          "artifact": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1",
+          "compression_ratio": 4.27,
+          "elapsed_ms": 651.0,
+          "file_sha256": "02b3ea1d23af3b88815b2e277fd58f1a4de74c3d1886b1d8314f9061a02baa94",
+          "format": "mlx",
+          "manifest_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-mlx-q4.json",
+          "manifest_sha256": "a044b20c15c85a352d2760068e477df17b2deb6b240e10dc008d1960263c9b0e",
+          "parent_weight_bytes": 501837992,
+          "precision": "q4",
+          "quantized_tensors": 65,
+          "sidecar_bytes": 117534688,
+          "total_tensors": 267,
+          "weights_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/tinystories-15k-ema-v1/prequant-mlx-q4.safetensors"
+        },
+        "output_sha256": "57b2330f7767e73cefb8af7aaf61a5cda37b2a07fbe0614edced3e876c75baf1",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 172.36,
+          "weight_upload_ms": 210.44,
+          "total_load_ms": 382.8,
+          "infer_median_ms": 78.68,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 63.63,
+          "weight_upload_ms": 59.51,
+          "total_load_ms": 123.13,
+          "infer_median_ms": 78.08,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "load_speedup": 3.11
+      },
+      "fp32_unchanged_with_sidecars": true
+    },
+    "lm1b-large-inference-v1": {
+      "q8": {
+        "quantize": {
+          "artifact": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1",
+          "compression_ratio": 3.41,
+          "elapsed_ms": 5027.3,
+          "file_sha256": "4da5eb845d3366cbb7e56eb1afa31d219a08e76565faa7c06e0f177eced9d316",
+          "format": "mlx",
+          "manifest_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-mlx-q8.json",
+          "manifest_sha256": "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+          "parent_weight_bytes": 3346544616,
+          "precision": "q8",
+          "quantized_tensors": 163,
+          "sidecar_bytes": 982726528,
+          "total_tensors": 649,
+          "weights_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-mlx-q8.safetensors"
+        },
+        "output_sha256": "89c36b8451cfd02bd63be6d5f62aebc7a699928c5c0a138cfc11d8c9da7b45d1",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 1375.43,
+          "weight_upload_ms": 1091.06,
+          "total_load_ms": 2466.49,
+          "infer_median_ms": 349.44,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 522.03,
+          "weight_upload_ms": 269.59,
+          "total_load_ms": 791.62,
+          "infer_median_ms": 349.45,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "load_speedup": 3.12
+      },
+      "q4": {
+        "quantize": {
+          "artifact": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1",
+          "compression_ratio": 5.45,
+          "elapsed_ms": 3922.2,
+          "file_sha256": "8386afeffcff15a965e9d86a8ce5e9beca498e73d26cdc811d446c4c772273f9",
+          "format": "mlx",
+          "manifest_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-mlx-q4.json",
+          "manifest_sha256": "86676fed0f9813b3ec293aca87133eca61fc609d10d620978375d12c0b03698a",
+          "parent_weight_bytes": 3346544616,
+          "precision": "q4",
+          "quantized_tensors": 163,
+          "sidecar_bytes": 613943088,
+          "total_tensors": 649,
+          "weights_path": "/Users/lexlapax/projects/lexlapax/ncm-rs/artifacts/canonical/lm1b-large-inference-v1/prequant-mlx-q4.safetensors"
+        },
+        "output_sha256": "83f539f0dfa1d456c76bdf08d34aa0ee946171b6bda3939ebca804c9795facf5",
+        "exact_output_match": true,
+        "on_the_fly": {
+          "artifact_load_ms": 1354.78,
+          "weight_upload_ms": 1081.22,
+          "total_load_ms": 2436.0,
+          "infer_median_ms": 362.57,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "prequant_sidecar": {
+          "artifact_load_ms": 325.8,
+          "weight_upload_ms": 186.74,
+          "total_load_ms": 512.54,
+          "infer_median_ms": 364.41,
+          "mlx_peak_mib": null,
+          "rss_mib": null
+        },
+        "load_speedup": 4.75
+      }
+    }
+  },
+  "negative_tests": {
+    "weight_1byte_flip_rejected": true,
+    "weight_flip_error": "ncm: invalid artifact: prequant file SHA-256 mismatch: prequant-mlx-q8.safetensors",
+    "stale_manifest_sha256_rejected": true,
+    "stale_manifest_error": "ncm: invalid artifact: prequant sidecar manifest_sha256 mismatch (stale or tampered prequant-mlx-q8.json)",
+    "incomplete_sidecar_rejected": true,
+    "incomplete_sidecar_error": "ncm: invalid artifact: incomplete prequant sidecar: both prequant-mlx-q8.json and prequant-mlx-q8.safetensors must exist",
+    "duplicate_without_force_rejected": true
+  },
+  "serve_and_run": {
+    "model": "tinystories-15k-ema-v1",
+    "precision": "q8",
+    "ncm_run_and_serve_match": true,
+    "output_sha256": "556cb2534e38e03245ef4ed3a0aab70f07c5f1297bf9b79255fd39b628260b4a"
+  }
+}
