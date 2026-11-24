@@ -11,7 +11,7 @@ const RUN_USAGE: &str = "\
 usage: ncm run MODEL [PROMPT] [--models-dir DIR] [--model NAME=PATH]... [--device DEV] [--precision fp32|bf16|fp16|q8|q4] [--seed N] [--cfg S] [--max-tokens N]";
 
 const PULL_USAGE: &str = "\
-usage: ncm pull (--list | MODEL) [--models-dir DIR] [--upstream-dir DIR] [--python PY] [--reference-rope FILE] [--dry-run]";
+usage: ncm pull (--list | MODEL) [--models-dir DIR] [--upstream-dir DIR] [--output DIR] [--reference-rope FILE] [--dry-run] [--python-legacy] [--python PY]";
 
 const SERVE_USAGE: &str = "\
 usage: ncm serve [OPTIONS]
@@ -47,13 +47,15 @@ Type /bye, /exit, or press Ctrl-D to leave.
 ";
 
 pub(super) const PULL_HELP: &str = "\
-Fetch and export a starter upstream NCM model via tools/reference/quickstart_export.py.
+Fetch and export a verified upstream NCM model natively in pure Rust (zero Python required).
 
 Usage:
   ncm pull --list
-  ncm pull MODEL [--models-dir DIR] [--upstream-dir DIR] [--python PY] [--reference-rope FILE] [--dry-run]
+  ncm pull MODEL [--models-dir DIR] [--upstream-dir DIR] [--output DIR] [--reference-rope FILE] [--dry-run]
 
-Models: tinystories, xsum, wmt14, lm1b-small, lm1b-medium, lm1b-large, sudoku-easy.
+Models: tinystories, tinystories-legacy, xsum, wmt14, lm1b-small, lm1b-medium, lm1b-large, sudoku-easy, sudoku-medium, sudoku-hard.
+
+Pass --python-legacy (or --python PY) to delegate to tools/reference/quickstart_export.py instead.
 ";
 
 pub(super) const LIST_HELP: &str = "\
@@ -366,7 +368,9 @@ struct PullConfig {
     model: Option<String>,
     models_dir: Option<PathBuf>,
     upstream_dir: Option<PathBuf>,
+    output: Option<PathBuf>,
     python: Option<String>,
+    python_legacy: bool,
     reference_rope: Option<PathBuf>,
     dry_run: bool,
 }
@@ -377,7 +381,9 @@ fn parse_pull_args(args: &[String]) -> Result<PullConfig> {
         model: None,
         models_dir: None,
         upstream_dir: None,
+        output: None,
         python: None,
+        python_legacy: false,
         reference_rope: None,
         dry_run: false,
     };
@@ -396,9 +402,18 @@ fn parse_pull_args(args: &[String]) -> Result<PullConfig> {
                 cfg.upstream_dir = Some(PathBuf::from(args.get(i + 1).ok_or(PULL_USAGE)?));
                 i += 2;
             }
+            "--output" => {
+                cfg.output = Some(PathBuf::from(args.get(i + 1).ok_or(PULL_USAGE)?));
+                i += 2;
+            }
             "--python" => {
                 cfg.python = Some(args.get(i + 1).ok_or(PULL_USAGE)?.clone());
+                cfg.python_legacy = true;
                 i += 2;
+            }
+            "--python-legacy" => {
+                cfg.python_legacy = true;
+                i += 1;
             }
             "--reference-rope" => {
                 cfg.reference_rope = Some(PathBuf::from(args.get(i + 1).ok_or(PULL_USAGE)?));
@@ -452,6 +467,27 @@ fn default_python(script: &Path) -> String {
 
 pub(super) fn run_pull(args: &[String]) -> Result<()> {
     let cfg = parse_pull_args(args)?;
+    if !cfg.python_legacy {
+        if cfg.list {
+            crate::pull::print_model_list();
+            return Ok(());
+        }
+        let model = cfg.model.ok_or(PULL_USAGE)?;
+        let opts = crate::pull::NativePullOptions {
+            model,
+            models_dir: cfg
+                .models_dir
+                .unwrap_or_else(|| PathBuf::from("artifacts/canonical")),
+            upstream_dir: cfg
+                .upstream_dir
+                .unwrap_or_else(|| PathBuf::from("artifacts/upstream")),
+            output_override: cfg.output,
+            reference_rope: cfg.reference_rope,
+            dry_run: cfg.dry_run,
+        };
+        return crate::pull::run_native_pull(&opts);
+    }
+
     let script = find_quickstart_script()?;
     let python = cfg.python.unwrap_or_else(|| default_python(&script));
     let mut cmd = std::process::Command::new(&python);
@@ -2213,12 +2249,21 @@ mod tests {
             "wmt14",
             "--models-dir",
             "/tmp/out",
+            "--output",
+            "/tmp/custom-wmt14",
             "--dry-run",
         ]))
         .unwrap();
         assert!(!pull.list);
+        assert!(!pull.python_legacy);
         assert_eq!(pull.model.as_deref(), Some("wmt14"));
+        assert_eq!(
+            pull.output,
+            Some(std::path::PathBuf::from("/tmp/custom-wmt14"))
+        );
         assert!(pull.dry_run);
+        let leg = parse_pull_args(&args(&["ncm", "pull", "wmt14", "--python-legacy"])).unwrap();
+        assert!(leg.python_legacy);
         assert!(parse_pull_args(&args(&["ncm", "pull"])).is_err());
     }
 

@@ -2,6 +2,7 @@
 mod decode;
 mod help;
 mod lm1b;
+mod pull;
 mod quantize;
 mod sample;
 mod serve;

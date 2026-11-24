@@ -1,10 +1,15 @@
 //! Python-free Sudoku, byte-BPE and immutable HF tokenizer adapters.
 mod assets;
 mod bpe;
+pub mod convert;
 mod hf_bpe;
 mod hf_wordpiece;
 pub use assets::{AssetError, LocalTokenizer, TextTokenizer, TokenizerMetadata};
 pub use bpe::ByteBpe;
+pub use convert::{
+    CanonicalTokenizerAsset, build_hf_tokenizer_asset, build_tinystories_tokenizer_asset,
+    format_python_json,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {

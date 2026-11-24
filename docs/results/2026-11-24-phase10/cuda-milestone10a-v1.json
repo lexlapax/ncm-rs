@@ -1,0 +1,55 @@
+{
+  "milestone": "10A",
+  "platform": "linux-cuda",
+  "hardware": "NVIDIA GeForce RTX 3060 Ti, 620.73.04, 8192 MiB",
+  "zero_python_verified": true,
+  "zero_python_env_path": "/nonexistent",
+  "canonical_tokenizers_built_in_rust": [
+    "tinystories",
+    "gpt2",
+    "qwen3",
+    "bert"
+  ],
+  "models": {
+    "sudoku-easy": {
+      "profile": "sudoku-easy-inspection-v1",
+      "export_seconds": 0.537,
+      "bit_exact_tensors_verified": 238,
+      "config_exact_match": true,
+      "tokenizer_bit_exact_match": true,
+      "cuda_inference_check": "byte-identical CUDA sample JSON"
+    },
+    "tinystories-legacy": {
+      "profile": "tinystories-inference-v1",
+      "export_seconds": 1.871,
+      "bit_exact_tensors_verified": 304,
+      "config_exact_match": true,
+      "tokenizer_bit_exact_match": true,
+      "cuda_inference_check": "byte-identical CUDA decoded output"
+    },
+    "xsum": {
+      "profile": "xsum-inference-v1",
+      "export_seconds": 2.173,
+      "bit_exact_tensors_verified": 275,
+      "config_exact_match": true,
+      "tokenizer_bit_exact_match": true,
+      "cuda_inference_check": "fluent CUDA output (86 chars; v1 analytic RoPE)"
+    },
+    "wmt14": {
+      "profile": "wmt14-inference-v1",
+      "export_seconds": 4.007,
+      "bit_exact_tensors_verified": 282,
+      "config_exact_match": true,
+      "tokenizer_bit_exact_match": true,
+      "cuda_inference_check": "byte-identical CUDA decoded output"
+    },
+    "lm1b-small": {
+      "profile": "lm1b-small-inference-v2",
+      "export_seconds": 3.19,
+      "bit_exact_tensors_verified": 351,
+      "config_exact_match": true,
+      "tokenizer_bit_exact_match": true,
+      "cuda_inference_check": "byte-identical CUDA decoded output (self-contained v2 == v1 + sidecar)"
+    }
+  }
+}

@@ -4,7 +4,9 @@
 //! No pickle execution, artifact file mapping, model construction, or implicit downloads.
 
 mod prequant;
+pub mod pytorch;
 mod wmt14_scratch;
+pub mod yaml;
 
 pub use prequant::{
     PrequantKind, PrequantManifest, PrequantSummary, PrequantTensorRecord, PrequantTensorView,

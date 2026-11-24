@@ -6,6 +6,13 @@ The full pre-compaction history is archived in [docs/history/context-map-2026-11
 
 ## Current state
 
+- **Phase 10 ([docs/PHASE10.md](docs/PHASE10.md), `v0.5.0` → `v0.6.0`):**
+  - User approved sequential execution of Milestones **10A** (Pure-Rust `ncm pull`, zero Python), **10B** (Fused Attention: CUDA Ampere Tensor-Core FlashAttention + Metal Fast SDPA), and **10C** (`ncm-train` v3: multi-profile LoRA for WMT14/XSum/LM1B + hot-swappable unmerged LoRA adapters in `ncm serve`).
+  - **Milestone 10A (Pure-Rust `ncm pull`, zero Python, zero new external crates) — Linux/CUDA COMPLETE; Apple Silicon/Metal PENDING (2026-11-24):**
+    - Added bounded safe ZIP_STORED + protocol 2–4 pickle VM + streaming safetensors exporter (`crates/ncm-io/src/pytorch.rs`), bounded YAML-to-JSON parser (`crates/ncm-io/src/yaml.rs`), pure-Rust bit-exact canonical tokenizer builder reproducing all 4 pinned `tokenizers-v1.lock.json` assets via vendored `tokenizers-0.22.2` (`crates/ncm-tokenizers/src/convert.rs`), and native Rust `ncm pull` downloader/exporter (`crates/ncm-cli/src/pull.rs`, `--python-legacy` retained opt-in).
+    - **Linux/CUDA verified ([cuda-milestone10a-v1.json](docs/results/2026-11-24-phase10/cuda-milestone10a-v1.json)):** `./tools/check.sh`, `ncm-cli --features cuda-cudnn` Clippy (`-D warnings`), and live pure-Rust `ncm pull` with `PATH=/nonexistent` (zero Python) across all 5 model families + all 4 canonical tokenizers (`tinystories`, `gpt2`, `qwen3`, `bert`): `sudoku-easy` (`0.54s`, **238/238** bit-exact tensors), `tinystories-legacy` (`1.87s`, **304/304**), `xsum` (`2.17s`, **275/275**), `wmt14` (`4.01s`, **282/282**), `lm1b-small` v2 (`3.19s`, **351/351**, exact `config.json` SHA-256) — **1,450/1,450 bit-exact tensors** and byte-identical RTX 3060 Ti CUDA inference vs Python-exported canonical artifacts.
+  - **Next:** Push Milestone 10A to run the Apple Silicon/Metal gate on `macstudio`, then proceed to Milestone 10B (Fused Attention on CUDA & Metal).
+
 - **Phase 8 (Inference Performance + Pre-Quantized Artifacts) & Phase 9 (`ncm-train` v2), plan in [docs/PHASE8.md](docs/PHASE8.md):**
   - User approved sequential execution: Item 1 (`v0.4.1`, **COMPLETE**) → Item 2 (**Phase 8:** Milestone 8A native low-precision kernels & fixed-matrix resampling + CUDA-graph evaluation; Milestone 8B `ncm quantize` pre-quantized `Q8`/`Q4` verified sidecar cache) → Item 3 (**Phase 9:** Milestone 9A upstream TinyStories `--init-from` + native Rust LoRA fine-tuning; Milestone 9B `BF16` mixed-precision training, gradient accumulation, JSONL datasets & `--val-data` eval).
   - **Milestone 8A — COMPLETE on BOTH Linux/CUDA and Apple Silicon/Metal (2026-11-23):**
