@@ -1,0 +1,46 @@
+{
+  "platform": "mlx",
+  "gpu": "Apple M1 Ultra (macstudio)",
+  "base_artifact": "tinystories-15k-ema-v1",
+  "lora_rank": 8,
+  "lora_alpha": 16.0,
+  "steps": 30,
+  "batch_size": 2,
+  "learning_rate": 0.0003,
+  "trainable_params": 1179648,
+  "total_params": 123160704,
+  "trainable_pct": 0.958,
+  "generator_initial_loss": 6.5286,
+  "generator_final_loss": 3.4522,
+  "mean_step_ms": 352.15,
+  "total_seconds": 12.47,
+  "checkpoint_resume_30_to_32": {
+    "steps_completed": 2,
+    "final_loss": 3.3677
+  },
+  "inference_roundtrip": {
+    "inspect_profile": "local-ncm-v1",
+    "ncm_sample_and_run_match": true,
+    "fp32_sample_preview": "Once upon a time, there was an enormous tree. In the tree, two little birds lived. One bird was happy nest high high. The other bird lived in the other tree. The bird was very kind",
+    "bf16_sample_preview": "Once upon a time, there was a little girl named Lily. She loved to play with her toys. One day, she found a small, red light in her room. She knew it was too hot or too hot hot. Li",
+    "q8_sidecar_bytes": 199342752,
+    "q8_sample_preview": "Once upon a time, there was a graceful dancer named Lily. She loved to sing and dance. She loved to watch the sun rise who shined through the open window. One day, while singing, s"
+  },
+  "summary": {
+    "codec_final_loss": null,
+    "codec_initial_loss": null,
+    "dataset_samples": 8,
+    "device": "mlx",
+    "generator_final_loss": 3.4522483944892883,
+    "generator_initial_loss": 6.5286232233047485,
+    "lora_rank": 8,
+    "mean_step_ms": 352.15,
+    "output_artifact": "/var/folders/nc/r_scv0hd78x07x908ymg5mk80000gn/T/p9a_mlx_8wnmj_yu/tinystories-lora-r8",
+    "schema": "ncm-train-report-v1",
+    "stage": "generator",
+    "steps_completed": 30,
+    "total_params": 123160704,
+    "total_seconds": 12.465,
+    "trainable_params": 1179648
+  }
+}
