@@ -73,12 +73,14 @@ fn linear_3d(x: &Array, w: &Array, b: Option<&Array>) -> std::result::Result<Arr
     }
 }
 
+type ArrayLookup<'a> = &'a dyn Fn(&str) -> std::result::Result<Array, Exception>;
+
 fn linear_3d_maybe_lora(
     x: &Array,
     weight_name: &str,
     w: &Array,
     b: Option<&Array>,
-    lora_get: Option<&dyn Fn(&str) -> std::result::Result<Array, Exception>>,
+    lora_get: Option<ArrayLookup<'_>>,
     lora_scale: f32,
 ) -> std::result::Result<Array, Exception> {
     let base = linear_3d(x, w, b)?;
@@ -880,7 +882,7 @@ pub fn train_codec(
 fn generator_block(
     gen_cfg: &LocalGeneratorConfig,
     get: &impl Fn(&str) -> std::result::Result<Array, Exception>,
-    lora_get: Option<&dyn Fn(&str) -> std::result::Result<Array, Exception>>,
+    lora_get: Option<ArrayLookup<'_>>,
     lora_scale: f32,
     x: &Array,
     cos: &Array,
@@ -1274,9 +1276,8 @@ pub fn train_generator(
                             })?;
                             Ok(a[idx].clone())
                         };
-                        let lora_fn: Option<
-                            &dyn Fn(&str) -> std::result::Result<Array, Exception>,
-                        > = if lora_rank > 0 { Some(&get_lora) } else { None };
+                        let lora_fn: Option<ArrayLookup<'_>> =
+                            if lora_rank > 0 { Some(&get_lora) } else { None };
 
                         let p_raw = &a[n_params];
                         let gt = &a[n_params + 1];
@@ -1354,7 +1355,7 @@ pub fn train_generator(
                 loss_val += lv;
 
                 if let Some(ref mut acc) = accum_grads {
-                    for (dst, g) in acc.iter_mut().zip(grads_l.into_iter()) {
+                    for (dst, g) in acc.iter_mut().zip(grads_l) {
                         *dst = dst.add(&g).map_err(m_err)?;
                     }
                     eval(acc.iter()).map_err(m_err)?;
