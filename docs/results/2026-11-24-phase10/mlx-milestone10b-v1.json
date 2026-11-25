@@ -1,0 +1,346 @@
+{
+  "schema": "ncm-phase10-milestone10b-mlx-v1",
+  "hardware": "Apple M1 Ultra (macstudio)",
+  "kernel": "Metal fused mlx_rs::fast::scaled_dot_product_attention (non-FP32 precisions; FP32 untouched)",
+  "paired_before_after_mlx": [
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "fp32",
+      "before_ms": 93.77,
+      "after_ms": 93.54,
+      "speedup": 1.002,
+      "before_mlx_peak_mib": 607.4,
+      "after_mlx_peak_mib": 606.6,
+      "mlx_peak_delta_mib": -0.8,
+      "before_rss_mib": 527.0,
+      "after_rss_mib": 526.9
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 79.31,
+      "after_ms": 79.32,
+      "speedup": 1.0,
+      "before_mlx_peak_mib": 382.0,
+      "after_mlx_peak_mib": 382.0,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 88.0,
+      "after_rss_mib": 88.1
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "q8",
+      "before_ms": 77.86,
+      "after_ms": 77.23,
+      "speedup": 1.008,
+      "before_mlx_peak_mib": 280.1,
+      "after_mlx_peak_mib": 280.1,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 111.9,
+      "after_rss_mib": 112.0
+    },
+    {
+      "profile": "tinystories",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 76.42,
+      "after_ms": 79.52,
+      "speedup": 0.961,
+      "before_mlx_peak_mib": 235.7,
+      "after_mlx_peak_mib": 235.7,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 88.8,
+      "after_rss_mib": 88.6
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "bf16",
+      "before_ms": 193.29,
+      "after_ms": 192.67,
+      "speedup": 1.003,
+      "before_mlx_peak_mib": 932.3,
+      "after_mlx_peak_mib": 932.3,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 88.8,
+      "after_rss_mib": 88.7
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "q8",
+      "before_ms": 211.34,
+      "after_ms": 212.81,
+      "speedup": 0.993,
+      "before_mlx_peak_mib": 825.3,
+      "after_mlx_peak_mib": 825.3,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 112.3,
+      "after_rss_mib": 112.7
+    },
+    {
+      "profile": "tinystories",
+      "batch": 8,
+      "precision": "q4",
+      "before_ms": 215.49,
+      "after_ms": 213.7,
+      "speedup": 1.008,
+      "before_mlx_peak_mib": 780.8,
+      "after_mlx_peak_mib": 780.8,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 88.8,
+      "after_rss_mib": 89.0
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 38.85,
+      "after_ms": 38.45,
+      "speedup": 1.01,
+      "before_mlx_peak_mib": 191.2,
+      "after_mlx_peak_mib": 191.2,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 71.8,
+      "after_rss_mib": 72.0
+    },
+    {
+      "profile": "sudoku-easy",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 33.17,
+      "after_ms": 32.99,
+      "speedup": 1.005,
+      "before_mlx_peak_mib": 191.2,
+      "after_mlx_peak_mib": 191.2,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 71.8,
+      "after_rss_mib": 71.7
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 67.99,
+      "after_ms": 67.68,
+      "speedup": 1.005,
+      "before_mlx_peak_mib": 594.6,
+      "after_mlx_peak_mib": 594.7,
+      "mlx_peak_delta_mib": 0.1,
+      "before_rss_mib": 374.1,
+      "after_rss_mib": 374.2
+    },
+    {
+      "profile": "wmt14",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 58.58,
+      "after_ms": 57.18,
+      "speedup": 1.024,
+      "before_mlx_peak_mib": 594.8,
+      "after_mlx_peak_mib": 594.8,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 373.7,
+      "after_rss_mib": 374.4
+    },
+    {
+      "profile": "wmt14",
+      "batch": 8,
+      "precision": "bf16",
+      "before_ms": 163.88,
+      "after_ms": 163.53,
+      "speedup": 1.002,
+      "before_mlx_peak_mib": 1120.3,
+      "after_mlx_peak_mib": 1120.3,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 374.5,
+      "after_rss_mib": 374.7
+    },
+    {
+      "profile": "wmt14",
+      "batch": 8,
+      "precision": "fp16",
+      "before_ms": 132.38,
+      "after_ms": 129.31,
+      "speedup": 1.024,
+      "before_mlx_peak_mib": 1120.3,
+      "after_mlx_peak_mib": 1120.3,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 374.3,
+      "after_rss_mib": 374.4
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 80.54,
+      "after_ms": 76.29,
+      "speedup": 1.056,
+      "before_mlx_peak_mib": 589.0,
+      "after_mlx_peak_mib": 525.9,
+      "mlx_peak_delta_mib": -63.1,
+      "before_rss_mib": 546.8,
+      "after_rss_mib": 547.1
+    },
+    {
+      "profile": "xsum",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 64.27,
+      "after_ms": 62.79,
+      "speedup": 1.024,
+      "before_mlx_peak_mib": 589.0,
+      "after_mlx_peak_mib": 525.9,
+      "mlx_peak_delta_mib": -63.1,
+      "before_rss_mib": 546.3,
+      "after_rss_mib": 546.6
+    },
+    {
+      "profile": "xsum",
+      "batch": 8,
+      "precision": "bf16",
+      "before_ms": 185.08,
+      "after_ms": 185.1,
+      "speedup": 1.0,
+      "before_mlx_peak_mib": 1208.8,
+      "after_mlx_peak_mib": 1208.8,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 645.2,
+      "after_rss_mib": 644.8
+    },
+    {
+      "profile": "xsum",
+      "batch": 8,
+      "precision": "fp16",
+      "before_ms": 176.29,
+      "after_ms": 175.2,
+      "speedup": 1.006,
+      "before_mlx_peak_mib": 1208.8,
+      "after_mlx_peak_mib": 1208.8,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 651.2,
+      "after_rss_mib": 651.8
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "bf16",
+      "before_ms": 342.04,
+      "after_ms": 340.11,
+      "speedup": 1.006,
+      "before_mlx_peak_mib": 1806.1,
+      "after_mlx_peak_mib": 1806.1,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 312.0,
+      "after_rss_mib": 312.2
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "fp16",
+      "before_ms": 302.12,
+      "after_ms": 296.86,
+      "speedup": 1.018,
+      "before_mlx_peak_mib": 1806.1,
+      "after_mlx_peak_mib": 1806.1,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 312.2,
+      "after_rss_mib": 312.2
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 1,
+      "precision": "q4",
+      "before_ms": 362.98,
+      "after_ms": 362.25,
+      "speedup": 1.002,
+      "before_mlx_peak_mib": 780.5,
+      "after_mlx_peak_mib": 780.5,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 313.2,
+      "after_rss_mib": 313.3
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 8,
+      "precision": "fp16",
+      "before_ms": 899.11,
+      "after_ms": 899.83,
+      "speedup": 0.999,
+      "before_mlx_peak_mib": 2246.0,
+      "after_mlx_peak_mib": 2246.0,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 423.5,
+      "after_rss_mib": 420.6
+    },
+    {
+      "profile": "lm1b-large",
+      "batch": 8,
+      "precision": "q4",
+      "before_ms": 1204.51,
+      "after_ms": 1204.05,
+      "speedup": 1.0,
+      "before_mlx_peak_mib": 1561.6,
+      "after_mlx_peak_mib": 1561.6,
+      "mlx_peak_delta_mib": 0.0,
+      "before_rss_mib": 424.1,
+      "after_rss_mib": 423.2
+    }
+  ],
+  "fp32_cli_equivalence_9_of_9": {
+    "sudoku-easy": "bd2a86aa8d3c626178bfd1d07bd2bbbdfee2a98643298c02c189e59bb2a06212",
+    "sudoku-medium": "b5a22993f2df60ece95b6b188e009a55cf10ad59a2591e69e478a025125d104d",
+    "sudoku-hard": "655dbfdb50d1210923246a730a08332156df64418365328d55a2f20af8b7caf0",
+    "tiny": "b05031e6d4a1bc8e1a272b2cfd9730bcea6e7e12e296fededfc437027121741b",
+    "wmt14": "d2aad80767cc24e2dadfda92f4110d3f203195a83f40fafd76e5dbdc69f1a4af",
+    "xsum": "243c421de5d23c1695b63772eff3a23c445512d82bac532593bafdcdec060c78",
+    "lm1b-small": "3f28b8157b25387ce9c191d3dbd40ce7f8fc2bb0fe9d7789bd2d88b30624c7e0",
+    "lm1b-medium": "db81ce43834a6953717f5a0d647fdeab30b3672db28842e9e3b8b75426bcf260",
+    "lm1b-large": "861f13d04d1ce43b916805e09a3942a8e76703d6453ce11186e0fd9853772d0e"
+  },
+  "quality_vs_fp32": {
+    "sudoku_easy_128": {
+      "bf16": "128/128",
+      "fp16": "128/128",
+      "q8": "128/128",
+      "q4": "127/128"
+    },
+    "wmt14_32_rows": {
+      "bf16": {
+        "exact_texts": "19/32",
+        "tok_pct": 90.87
+      },
+      "fp16": {
+        "exact_texts": "28/32",
+        "tok_pct": 98.58
+      },
+      "q8": {
+        "exact_texts": "13/32",
+        "tok_pct": 84.91
+      }
+    },
+    "xsum_32_rows": {
+      "bf16": {
+        "exact_texts": "17/32",
+        "tok_pct": 78.71
+      },
+      "fp16": {
+        "exact_texts": "26/32",
+        "tok_pct": 92.97
+      },
+      "q8": {
+        "exact_texts": "13/32",
+        "tok_pct": 72.98
+      }
+    },
+    "tinystories_15k_ema_samples": {
+      "fp32": " Once upon a time, in a small garden, there lived a little bird. The bird lived in a big tree. The bird had a nice neigh",
+      "bf16": " Once upon a time, in a small house, there lived a smart cat. The cat lived in a big house. The family cat was very depe",
+      "q8": " Once upon a time, in a small house, there was a boy named Tim. He lived in a house with a nice family. The house was ve",
+      "q4": " Once upon a time, in a small house, there was a nice big house. The nice house made a happy family. The family loved to"
+    }
+  }
+}
