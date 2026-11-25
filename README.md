@@ -2,8 +2,8 @@
 
 A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified single-binary foundation for pulling, running, serving, and LoRA fine-tuning local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production `pull`, `quantize`, `sample`, `run`, `serve`, and `train` use native Rust + CUDA/cuDNN or native MLX with zero Python required; Python is used strictly offline for upstream reference oracles and evaluation.
 
-**Status: Phase 11 complete on Linux/CUDA and Apple Silicon/MLX (`v0.7.0` ready; `v0.6.0` published).**
-- **Phase 11 complete ([Phase 11 dual-platform report](docs/results/2026-11-24-phase11/README.md), [v0.7.0 draft notes](docs/RELEASE-NOTES-v0.7.0.md)):**
+**Status: `v0.7.0` released on Linux/CUDA and Apple Silicon/MLX.**
+- **`v0.7.0` published** ([Phase 11 dual-platform report](docs/results/2026-11-24-phase11/README.md), prebuilt Linux/CUDA & Apple Silicon/Metal release tarballs + SHA-256 + Homebrew formula):
   - **`ncm --version` & `ncm doctor [--self-test] [--json]`:** probes GPU/driver/runtime readiness, `curl`, local models & prequant sidecars, and runs a zero-download FP32/BF16/Q8/fused-attention self-test (**128.15 ms** RTX 3060 Ti; **24.94 ms** M1 Ultra).
   - **Global-install models directory (`NCM_MODELS_DIR`):** resolves `--models-dir` > `NCM_MODELS_DIR` > `./artifacts/canonical` (when in a repo checkout) > `~/.local/share/ncm/models` (Linux) / `~/Library/Application Support/ncm/models` (macOS).
   - **Relocatable Packaging & Installers:** `tools/setup-mlx-native.sh`, `tools/package.sh` (self-contained `66.9 MB` Apple Silicon Metal bundle with zero `/Users/` paths & stripped-env verification; `16.5 MB` Linux CUDA bundle with `$ORIGIN/../lib` RUNPATH), `tools/install.sh`, and `tools/render_homebrew_formula.py`.
@@ -29,7 +29,7 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
 - **New users (5-minute build → `ncm pull` → `ncm run` → OpenAI/Ollama `ncm serve` → `ncm train`):** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
 - **Full CLI & reproducible exact-hash setup:** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
 - **Developers (Rust library embedding, backend traits, `ncm-serve`, `ncm-train`, custom local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
-- **Release notes:** [v0.7.0 (draft)](docs/RELEASE-NOTES-v0.7.0.md) | [v0.6.0 (published)](docs/RELEASE-NOTES-v0.6.0.md) | [v0.5.0 (published)](docs/RELEASE-NOTES-v0.5.0.md) | [v0.4.1 (published)](docs/RELEASE-NOTES-v0.4.1.md) | [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
+- **Release notes:** [v0.7.0 (published)](docs/RELEASE-NOTES-v0.7.0.md) | [v0.6.0 (published)](docs/RELEASE-NOTES-v0.6.0.md) | [v0.5.0 (published)](docs/RELEASE-NOTES-v0.5.0.md) | [v0.4.1 (published)](docs/RELEASE-NOTES-v0.4.1.md) | [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
 
 ## Profile and evidence matrix
 
