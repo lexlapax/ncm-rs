@@ -403,6 +403,7 @@ fn probe_runtime(exe_path: Option<&Path>) -> (serde_json::Value, bool) {
     #[allow(unused_mut)]
     let mut ok = true;
     let mut notes: Vec<String> = Vec::new();
+    #[allow(unused_variables)]
     let default_dev = default_runtime_device();
 
     #[cfg(feature = "cuda")]
