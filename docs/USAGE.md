@@ -681,3 +681,16 @@ Exposes OpenAI (`/v1/models`, `/v1/completions`, `/v1/chat/completions`, streami
   - `--grad-accum N` accumulates exact gradients over `N` micro-batches per optimizer step.
   - `.jsonl` / `.ndjson` datasets support `{"text": "..."}`, `{"prompt": "...", "completion": "..."}`, and `{"prefix": [...], "target": [...]}` with 50%-overlap sliding-window chunking; pass `--val-data PATH [--eval-every N]` for detached no-grad validation loss tracking.
   - See the [Phase 8 & Phase 9 dual-platform report](results/2026-11-23-phase8-phase9/README.md) for measured CUDA and Metal results.
+
+## Phase 10 additions: Zero-Python `ncm pull`, fused attention, multi-profile LoRA & hot-swappable `ncm serve`
+
+- **Pure-Rust `ncm pull` (zero Python):**
+  - `ncm pull MODEL [--dry-run] [--reference-rope FILE]` downloads, SHA-256 verifies, and exports upstream checkpoints and canonical tokenizers (`tinystories`, `gpt2`, `qwen3`, `bert`) natively in Rust without Python or PyTorch (`--python-legacy` remains available opt-in).
+- **Fused attention (non-FP32 opt-in precisions):**
+  - Automatically active for `bf16`, `fp16`, `q8`, and `q4` on SM80+ CUDA GPUs (custom Tensor-Core FlashAttention-2 with FP32 online softmax) and Apple Silicon Metal (`mlx_rs::fast::scaled_dot_product_attention`). Strict `FP32` defaults are unchanged.
+- **Multi-profile LoRA, verified unmerged adapters (`ncm-lora-adapter-v1`), and hot-swappable `ncm serve`:**
+  - `ncm train --init-from ARTIFACT` admits `local-ncm-v1`, `tinystories-inference-v1`, `wmt14-inference-v1`, `xsum-inference-v1`/`v2`, and `lm1b-{small,medium,large}-inference-{v1,v2}`.
+  - Pass `--save-adapter DIR` (with or without `--output DIR`) to write a compact (~4.5 MiB for rank 8) `ncm-lora-adapter-v1` directory (`adapter.safetensors` + `adapter_manifest.json` pinned to `base_manifest_sha256` with per-tensor SHA-256 hashes; fail-closed on tamper or base mismatch).
+  - Apply an unmerged adapter over any base precision (`fp32`, `bf16`, `fp16`, `q8`, `q4`) with `ncm sample ... --adapter DIR` or `ncm run ... --adapter DIR`.
+  - Mount multiple adapters over a single shared resident GPU base in `ncm serve` via repeatable `--adapter ALIAS=BASE:DIR` (zero base reloads on swap, exposed in `/v1/models` and `/api/tags`, while `/api/ps` tracks the single shared base model).
+  - See the [Phase 10 dual-platform report](results/2026-11-24-phase10/README.md) for measured CUDA and Metal results.

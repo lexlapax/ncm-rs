@@ -1,0 +1,109 @@
+{
+  "schema": "ncm-phase10-milestone10c-mlx-v1",
+  "hardware": "Apple M1 Ultra (Metal / MLX)",
+  "multi_profile_lora": {
+    "tinystories_pirate": {
+      "base_artifact": "artifacts/canonical/tinystories-15k-ema-v1",
+      "train_precision": "fp32",
+      "steps": 15,
+      "batch": 2,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 123160704,
+      "initial_loss": 6.3959,
+      "final_loss": 2.3954,
+      "mean_step_ms": 348.25,
+      "total_seconds": 5.798,
+      "adapter_bytes": 4754111,
+      "compression_vs_base": 121.7
+    },
+    "tinystories_scifi": {
+      "base_artifact": "artifacts/canonical/tinystories-15k-ema-v1",
+      "train_precision": "fp32",
+      "steps": 15,
+      "batch": 2,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 123160704,
+      "initial_loss": 6.6275,
+      "final_loss": 2.7655,
+      "mean_step_ms": 348.5,
+      "total_seconds": 5.773,
+      "adapter_bytes": 4754111,
+      "compression_vs_base": 121.7
+    },
+    "wmt14": {
+      "base_artifact": "artifacts/canonical/wmt14-inference-v1-final",
+      "train_precision": "fp32",
+      "steps": 10,
+      "batch": 1,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 119965056,
+      "initial_loss": 2.0916,
+      "final_loss": 1.8035,
+      "mean_step_ms": 343.04,
+      "total_seconds": 4.365,
+      "adapter_bytes": 4754105,
+      "compression_vs_base": 240.0
+    },
+    "xsum": {
+      "base_artifact": "artifacts/canonical/xsum-inference-rope-v2-final",
+      "train_precision": "fp32",
+      "steps": 10,
+      "batch": 1,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 113710080,
+      "initial_loss": 3.5705,
+      "final_loss": 2.2919,
+      "mean_step_ms": 640.72,
+      "total_seconds": 7.05,
+      "adapter_bytes": 4754104,
+      "compression_vs_base": 138.4
+    },
+    "lm1b_small": {
+      "base_artifact": "artifacts/canonical/lm1b-small-inference-v1",
+      "train_precision": "fp32",
+      "steps": 10,
+      "batch": 1,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 91752576,
+      "initial_loss": 9.3541,
+      "final_loss": 3.3292,
+      "mean_step_ms": 303.73,
+      "total_seconds": 3.676,
+      "adapter_bytes": 4754110,
+      "compression_vs_base": 208.0
+    }
+  },
+  "sample_and_run_adapter": {
+    "tinystories_base_q8": "\nOnce upon a time, in a small house, there was a boy named Tim. He lived in a house with a nice family. The house was ve",
+    "tinystories_pirate_q8": ".\nJohn wanted to collect more rocks, but he was too too excited for the little squirrels. When.\" bear said upThis can so",
+    "tinystories_scifi_q8": " was Tim a \" a \" crystal,. and Pepper\n atakeMom so. the. for felt picked. catch. allca there the. so and metal metaleped",
+    "wmt14_adapter_fp16": "The wood is lying on the warm.",
+    "xsum_adapter_fp16": " city council have approved plans for the metro station station Station.",
+    "lm1b_small_adapter_bf16": "[CLS] s the medals in the co - stanley world cup. [CLS] obama said it will be undertaken just six weeks of trial before ",
+    "ncm_run_pirate_q8": "was sitting in the chair in the living room, on the room She.\n,. scream closed together together. everywhere. One. pumpk"
+  },
+  "serve_multi_adapter_q8": {
+    "precision": "q8",
+    "max_loaded": 1,
+    "resident_models_in_ps": 1,
+    "resident_base_name": "tinystories",
+    "total_requests_served_by_single_base": 5,
+    "base_1_ms": 122.64,
+    "pirate_first_upload_ms": 136.83,
+    "scifi_first_upload_ms": 137.33,
+    "base_after_swap_ms": 81.72,
+    "pirate_cached_swap_ms": 91.79,
+    "base_restored_bit_exact": true,
+    "pirate_deterministic_bit_exact": true,
+    "distinct_outputs_verified": true,
+    "zero_base_reloads": true
+  },
+  "negative_checks": {
+    "mismatched_base_rejected": true
+  }
+}

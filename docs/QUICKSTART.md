@@ -38,25 +38,22 @@ cargo build --release --locked -p ncm-cli --features mlx --bin ncm
 
 ## 2. Get a Model
 
-### Option A: Export an Upstream NCM Model (`ncm pull`)
+### Option A: Pull an Upstream NCM Model (`ncm pull` — Zero Python!)
 
-Any modern Python 3.10+ virtual environment with `torch`, `safetensors`, `pyyaml`, and `tokenizers` works:
+`ncm pull` downloads, SHA-256 verifies, and exports upstream NCM checkpoints and canonical tokenizers **natively in Rust** — no Python or PyTorch environment required:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install torch safetensors pyyaml tokenizers
-
 # See available starter models:
 ./target/release/ncm pull --list
 
-# Preview the exact commands without downloading:
-./target/release/ncm pull wmt14 --python .venv/bin/python --dry-run
+# Preview the exact URLs and SHA-256 pins without downloading:
+./target/release/ncm pull wmt14 --dry-run
 
-# Fetch & export WMT14 German->English (~1.06 GiB) or XSum news summarizer (~627 MiB):
-./target/release/ncm pull wmt14 --python .venv/bin/python
+# Pull & export WMT14 German->English (~1.06 GiB) or XSum news summarizer (~627 MiB):
+./target/release/ncm pull wmt14
 ```
 
-*(For self-contained `lm1b-*-inference-v2` without a sibling rotary file, pass `--reference-rope artifacts/canonical/lm1b-reference-rope-v1.safetensors`.)*
+*(For self-contained `lm1b-*-inference-v2` without a sibling rotary file, pass `--reference-rope artifacts/canonical/lm1b-reference-rope-v1.safetensors`. The legacy Python exporter remains available opt-in via `--python-legacy`.)*
 
 ### Option B: Run Your Own Local Model (`local-ncm-v1`)
 
@@ -143,6 +140,7 @@ Start the built-in, zero-dependency Rust HTTP/1.1 server on the default Ollama p
 Optional flags:
 - `--models-dir DIR` — scan a custom directory (default: `artifacts/canonical`)
 - `--model myname=/path/to/artifact` — register an explicit model alias (repeatable)
+- `--adapter alias=base:/path/to/adapter` — mount an unmerged `ncm-lora-adapter-v1` over a shared resident GPU base with zero-reload hot-swapping (repeatable)
 - `--device cuda-cudnn|cuda|mlx|cpu` — select backend explicitly (defaults to compiled best GPU)
 - `--max-loaded N` — number of models kept hot in GPU memory via LRU eviction (default: `1`, ideal for 8 GiB GPUs; increase to `2–4` on 24 GiB+ GPUs or Mac Studio)
 - `--max-batch N` — max concurrent requests dynamically coalesced into one GPU forward pass (default: `8`; up to **2.21×** CUDA / **1.97×** Metal concurrent throughput)
@@ -218,29 +216,34 @@ Build a hash-verified `Q8` or `Q4` sidecar cache once (`3.06×–5.45×` smaller
 
 ## 7. Train or Fine-Tune a Local NCM Model Natively in Rust (`ncm train`)
 
-Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or generator directly on **CUDA**, **Apple Silicon Metal**, or **CPU** — zero Python required — or LoRA fine-tune an upstream TinyStories checkpoint with mixed-precision `BF16`, gradient accumulation, JSONL datasets, and validation evaluation:
+Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or generator directly on **CUDA**, **Apple Silicon Metal**, or **CPU** — zero Python required — or LoRA fine-tune **any upstream text checkpoint** (`tinystories`, `wmt14`, `xsum`, or `lm1b-{small,medium,large}`) and export either a compact **4.5 MiB verified unmerged adapter** (`--save-adapter`) or a standalone merged checkpoint (`--output`):
 
 ```bash
-# LoRA fine-tune upstream 123M TinyStories 15k EMA on a JSONL corpus (fits in < 4 GiB VRAM!):
+# LoRA fine-tune any upstream checkpoint (TinyStories, WMT14, XSum, or LM1B) into a ~4.5 MiB verified adapter:
 ./target/release/ncm train \
   --init-from artifacts/canonical/tinystories-15k-ema-v1 \
   --data train.jsonl --val-data val.jsonl --eval-every 10 \
-  --output artifacts/canonical/tinystories-lora \
-  --device cuda --stage generator \
-  --lora-rank 8 --lora-alpha 16 --train-precision bf16 \
+  --save-adapter artifacts/adapters/tinystories-pirate \
+  --device cuda --lora-rank 8 --lora-alpha 16 --train-precision bf16 \
   --steps 50 --batch 2 --grad-accum 2 --lr 3e-4 --overwrite
 
-# Or train codec + generator from scratch and export verified local-ncm-v1 artifact:
+# Run the unmerged adapter directly over a Q8/BF16/FP16/FP32 base (zero-copy base weights!):
+./target/release/ncm run tinystories "Once upon a time" \
+  --precision q8 --adapter artifacts/adapters/tinystories-pirate
+
+# Or hot-swap multiple LoRA adapters over ONE shared Q8 base in ncm serve (zero base reloads!):
+./target/release/ncm serve --precision q8 --max-loaded 1 --preload tinystories \
+  --adapter pirate=tinystories:artifacts/adapters/tinystories-pirate \
+  --adapter scifi=tinystories:artifacts/adapters/tinystories-scifi \
+  --port 11435
+
+# Or train codec + generator from scratch and export a standalone verified local-ncm-v1 artifact:
 ./target/release/ncm train \
   --config my_config.json \
   --data train.json \
   --output artifacts/canonical/my-trained-ncm \
   --device cuda \
   --stage all --steps 200 --batch 8 --lr 0.005 --overwrite
-
-# Immediately inspect, quantize, run, or serve the trained/merged model:
-./target/release/ncm inspect artifacts/canonical/tinystories-lora
-./target/release/ncm serve --model custom=artifacts/canonical/tinystories-lora --port 11435
 ```
 
 *(Replace `--device cuda` with `--device mlx` on Apple Silicon, or `--device cpu` for FP32 CPU tests. JSONL files accept `{"text": "..."}`, `{"prompt": "...", "completion": "..."}`, or `{"prefix": [...], "target": [...]}` with automatic 50%-overlap sliding-window chunking.)*
@@ -251,6 +254,7 @@ Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or gen
 
 - [docs/USAGE.md](USAGE.md) — full CLI reference, pinned exact-hash export workflows, and platform env setup.
 - [docs/DEVELOPING.md](DEVELOPING.md) — extending `ncm-rs`, adding custom `local-ncm-v1` models, and backend internals.
+- [docs/results/2026-11-24-phase10/README.md](results/2026-11-24-phase10/README.md) — measured CUDA & Apple Silicon Phase 10 zero-Python `ncm pull`, fused attention, multi-profile LoRA, and hot-swappable `ncm serve` results.
 - [docs/results/2026-11-23-phase8-phase9/README.md](results/2026-11-23-phase8-phase9/README.md) — measured CUDA & Apple Silicon Phase 8 & Phase 9 low-precision kernel, `ncm quantize` sidecar, LoRA, and `BF16` training results.
 - [docs/results/2026-11-23-phase7/README.md](results/2026-11-23-phase7/README.md) — measured CUDA & Apple Silicon `Q8`/`Q4` quantization, Serving v2 micro-batching, and native Rust training results.
 - [docs/results/2026-11-22-phase6-precision-serving/README.md](results/2026-11-22-phase6-precision-serving/README.md) — measured CUDA & Apple Silicon FP32/BF16/FP16 quality, latency, VRAM/RSS, and serving results.

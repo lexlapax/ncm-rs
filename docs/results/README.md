@@ -1,5 +1,13 @@
 # Published comparison index
 
+## Phase 10: Pure-Rust `ncm pull`, Fused Attention, & Multi-Profile Hot-Swappable LoRA (complete)
+
+Phase 10 ([docs/PHASE10.md](../PHASE10.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra) with zero new external crates and 100% byte-identical `FP32` defaults across all 9 profiles on both GPUs.
+
+| Report | Scope | Status and highlights |
+| --- | --- | --- |
+| [Phase 10 dual-platform report (CUDA & Metal)](2026-11-24-phase10/README.md) | Milestones **10A** (pure-Rust zero-Python `ncm pull` + canonical tokenizer builders), **10B** (CUDA SM80+ Tensor-Core FlashAttention-2 & Metal Fast SDPA), and **10C** (multi-profile LoRA for TinyStories/WMT14/XSum/LM1B + verified unmerged `ncm-lora-adapter-v1` + hot-swappable multi-adapter `ncm serve`) | **PASSED on CUDA and Metal (6/6 receipts).** **10A:** **1,450/1,450** bit-exact tensors with `PATH=/nonexistent` on Linux/CUDA & live HTTPS `curl`-only pulls on Metal with byte-identical inference across all 5 model families and 4 canonical tokenizers. **10B:** `xsum` b=8 `bf16` **1.070× (`-36.0 MiB` VRAM)** on CUDA & `xsum` b=1 `bf16` **1.056× (`-63.1 MiB` MLX peak)** on Metal with **9/9 FP32 byte-equivalence**. **10C:** rank-8 unmerged adapters (`4.53 MiB`, **121.7×–240.0×** smaller) converge across all 4 upstream profiles on both GPUs; live `ncm serve` hot-swaps adapters over **1 shared `Q8` base** (`/api/ps` = `1`, `load_ns = 0`, bit-exact base restoration at `44.77 ms` CUDA / `81.72 ms` Metal). |
+
 ## Phase 8 & Phase 9: native low-precision kernels, `ncm quantize` sidecars, & `ncm-train` v2 (complete)
 
 Phase 8 & Phase 9 ([docs/PHASE8.md](../PHASE8.md)) are complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra). Strict `FP32` defaults remain 100% byte-identical across all 9 profiles on both GPUs.
