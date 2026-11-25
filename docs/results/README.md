@@ -1,5 +1,13 @@
 # Published comparison index
 
+## Phase 11: Packaging, Distribution & `ncm doctor` (complete)
+
+Phase 11 ([docs/PHASE11.md](../PHASE11.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra) with zero new external crates and unchanged `FP32` defaults.
+
+| Report | Scope | Status and highlights |
+| --- | --- | --- |
+| [Phase 11 dual-platform report (CUDA & Metal)](2026-11-24-phase11/README.md) | `ncm --version`, `ncm doctor [--self-test] [--json]`, global `NCM_MODELS_DIR` / XDG & macOS user data directory resolution, `tools/setup-mlx-native.sh`, relocatable `tools/package.sh` bundles, `tools/install.sh`, and `tools/render_homebrew_formula.py` | **PASSED on CUDA and Metal (2/2 receipts).** Linux/CUDA bundle (`16.5 MB`, `$ORIGIN/../lib` RUNPATH) & self-contained Apple Silicon Metal bundle (`66.9 MB`, `@executable_path/../lib`, zero `/Users/` paths, stripped-env verified) both pass `tools/install.sh`, `ncm doctor --self-test` (**128.15 ms** CUDA / **24.94 ms** Metal across FP32, BF16 fused attention/SDPA & Q8), all 3 `models_dir` modes, live WMT14 FP16 inference from `/tmp`, and `ruby -c` Homebrew formula validation. |
+
 ## Phase 10: Pure-Rust `ncm pull`, Fused Attention, & Multi-Profile Hot-Swappable LoRA (complete)
 
 Phase 10 ([docs/PHASE10.md](../PHASE10.md)) is complete and verified on both Linux/CUDA (RTX 3060 Ti) and Apple Silicon/Metal (M1 Ultra) with zero new external crates and 100% byte-identical `FP32` defaults across all 9 profiles on both GPUs.

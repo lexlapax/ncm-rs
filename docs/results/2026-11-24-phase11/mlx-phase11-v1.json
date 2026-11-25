@@ -1,0 +1,35 @@
+{
+  "schema": "ncm-phase11-mlx-v1",
+  "hardware": "Apple M1 Ultra",
+  "macos_version": "26.7.4",
+  "archive_name": "ncm-v0.6.0-macos-arm64-mlx.tar.gz",
+  "archive_bytes": 66873929,
+  "archive_sha256": "d53ad65395341dd20d339a7dfbe2b3ecac6ac72f4056f7d8c1785968b463dc25",
+  "zero_build_host_paths_verified": true,
+  "rpath_entries": [
+    "path @executable_path/../lib (offset 12)"
+  ],
+  "stripped_env_verified": true,
+  "version_output": "ncm 0.6.0 (macos/aarch64; features: mlx)",
+  "install_script_ok": true,
+  "models_dir_sources_verified": [
+    "user-data-dir",
+    "env:NCM_MODELS_DIR",
+    "repo:artifacts/canonical"
+  ],
+  "canonical_models_detected": 11,
+  "doctor_self_test": {
+    "checks": {
+      "bf16_fast_sdpa_max_abs": 0.0008253902196884155,
+      "bf16_linear_max_abs": 0.01699995994567871,
+      "fp32_attention_max_abs": 3.725290298461914e-08,
+      "fp32_linear_max_abs": 1.5795230865478516e-06,
+      "q8_linear_max_abs": 0.03192819282412529
+    },
+    "device": "mlx",
+    "elapsed_ms": 24.94,
+    "status": "ok"
+  },
+  "installed_stripped_env_wmt14_fp16": "Good morning!",
+  "homebrew_formula_ruby_syntax": "Syntax OK"
+}

@@ -22,17 +22,28 @@ cargo build --release --locked -p ncm-cli --features cuda-cudnn --bin ncm
 
 ### Option B: macOS with Apple Silicon (Metal / MLX)
 
-Prerequisites: Rust (`>= 1.99.1`), Xcode Command Line Tools, and CMake (`brew install cmake`).
+Prerequisites: Rust (`>= 1.99.1`), Xcode Command Line Tools, and `uv` (or `python3`).
 
-Build the prebuilt native MLX C library once (see [docs/USAGE.md](USAGE.md#apple-silicon-macos--mlx) for pinned commit details), then build `ncm`:
+Prepare the pinned native MLX runtime once with `tools/setup-mlx-native.sh`, then build (or package a self-contained relocatable bundle with `tools/package.sh` and install into `~/.local` with `tools/install.sh`):
 
 ```bash
 git clone https://github.com/lexlapax/ncm-rs.git
 cd ncm-rs
-export MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"
-export RUSTFLAGS="-C link-arg=-Wl,-rpath,$PWD/.reference/mlx-native/lib"
-cargo build --release --locked -p ncm-cli --features mlx --bin ncm
+./tools/setup-mlx-native.sh
+./tools/package.sh --target macos-mlx
+./tools/install.sh --archive dist/ncm-*-macos-arm64-mlx.tar.gz
 ```
+
+*(To run directly from `target/release/ncm` without installing, export `MLX_SYS_PREBUILT="$PWD/.reference/mlx-native"` and `RUSTFLAGS="-C link-arg=-Wl,-rpath,$PWD/.reference/mlx-native/lib"` and run `cargo build --release --locked -p ncm-cli --features mlx --bin ncm`.)*
+
+### Verify Your GPU (`ncm doctor`)
+
+```bash
+ncm --version
+ncm doctor --self-test
+```
+
+When installed globally outside a repository checkout, models default to `~/.local/share/ncm/models` (Linux) or `~/Library/Application Support/ncm/models` (macOS); override anytime via `NCM_MODELS_DIR` or `--models-dir`.
 
 ---
 
@@ -254,6 +265,7 @@ Train a `local-ncm-v1` codec (RVQ + straight-through + EMA codebooks) and/or gen
 
 - [docs/USAGE.md](USAGE.md) — full CLI reference, pinned exact-hash export workflows, and platform env setup.
 - [docs/DEVELOPING.md](DEVELOPING.md) — extending `ncm-rs`, adding custom `local-ncm-v1` models, and backend internals.
+- [docs/results/2026-11-24-phase11/README.md](results/2026-11-24-phase11/README.md) — measured CUDA & Apple Silicon Phase 11 packaging, `ncm doctor --self-test`, and relocatable bundle verification results.
 - [docs/results/2026-11-24-phase10/README.md](results/2026-11-24-phase10/README.md) — measured CUDA & Apple Silicon Phase 10 zero-Python `ncm pull`, fused attention, multi-profile LoRA, and hot-swappable `ncm serve` results.
 - [docs/results/2026-11-23-phase8-phase9/README.md](results/2026-11-23-phase8-phase9/README.md) — measured CUDA & Apple Silicon Phase 8 & Phase 9 low-precision kernel, `ncm quantize` sidecar, LoRA, and `BF16` training results.
 - [docs/results/2026-11-23-phase7/README.md](results/2026-11-23-phase7/README.md) — measured CUDA & Apple Silicon `Q8`/`Q4` quantization, Serving v2 micro-batching, and native Rust training results.

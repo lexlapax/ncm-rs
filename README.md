@@ -2,7 +2,11 @@
 
 A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm) — Next-Concept Modeling for parallel, coarse-to-fine generation — designed as a Python-free, verified single-binary foundation for pulling, running, serving, and LoRA fine-tuning local NCM models on **Linux/CUDA** and **Apple Silicon/MLX**. Production `pull`, `quantize`, `sample`, `run`, `serve`, and `train` use native Rust + CUDA/cuDNN or native MLX with zero Python required; Python is used strictly offline for upstream reference oracles and evaluation.
 
-**Status: `v0.6.0` released on Linux/CUDA and Apple Silicon/MLX.**
+**Status: Phase 11 complete on Linux/CUDA and Apple Silicon/MLX (`v0.7.0` ready; `v0.6.0` published).**
+- **Phase 11 complete ([Phase 11 dual-platform report](docs/results/2026-11-24-phase11/README.md), [v0.7.0 draft notes](docs/RELEASE-NOTES-v0.7.0.md)):**
+  - **`ncm --version` & `ncm doctor [--self-test] [--json]`:** probes GPU/driver/runtime readiness, `curl`, local models & prequant sidecars, and runs a zero-download FP32/BF16/Q8/fused-attention self-test (**128.15 ms** RTX 3060 Ti; **24.94 ms** M1 Ultra).
+  - **Global-install models directory (`NCM_MODELS_DIR`):** resolves `--models-dir` > `NCM_MODELS_DIR` > `./artifacts/canonical` (when in a repo checkout) > `~/.local/share/ncm/models` (Linux) / `~/Library/Application Support/ncm/models` (macOS).
+  - **Relocatable Packaging & Installers:** `tools/setup-mlx-native.sh`, `tools/package.sh` (self-contained `66.9 MB` Apple Silicon Metal bundle with zero `/Users/` paths & stripped-env verification; `16.5 MB` Linux CUDA bundle with `$ORIGIN/../lib` RUNPATH), `tools/install.sh`, and `tools/render_homebrew_formula.py`.
 - **`v0.6.0` published** (source-only, [Phase 10 dual-platform report](docs/results/2026-11-24-phase10/README.md)):
   - **Zero-Python Single-Binary `ncm pull` (10A):** pure-Rust bounded ZIP/pickle + YAML + streaming safetensors exporter and canonical tokenizer builders (`tinystories`, `gpt2`, `qwen3`, `bert`). Verified with zero Python in `PATH`: **1,450/1,450** bit-exact tensors on Linux/CUDA and live HTTPS `curl`-only pulls on Apple Silicon/Metal with 100% byte-identical GPU inference (`--python-legacy` retained opt-in).
   - **Fused Attention (10B):** custom SM80+ CUDA Tensor-Core FlashAttention-2 (`mma.sync.aligned.m16n8k16`, FP32 online softmax, zero $O(S^2)$ VRAM) and native Metal Fast SDPA for non-FP32 precisions (**1.070× / -36.0 MiB** `xsum` b=8 `bf16` on RTX 3060 Ti; **1.056× / -63.1 MiB** `xsum` b=1 `bf16` on M1 Ultra) while preserving **9/9 FP32 CLI byte-equivalence**.
@@ -18,14 +22,14 @@ A Rust implementation of [HazyResearch/NCM](https://github.com/HazyResearch/ncm)
   - **Native Rust Training & Fine-Tuning (`crates/ncm-train` + `ncm train`):** zero new external crates; pure-Rust CPU, CUDA (Candle), and Metal (MLX `value_and_grad`) reverse-mode autodiff for RVQ/STE/EMA codec training (`--stage codec`), frozen-codec generator training & fine-tuning (`--stage generator` / `--init-from` / `--stage all`), deterministic checkpoint save/resume, and direct verified `local-ncm-v1` export (**100% 8/8 sequence recovery** through `ncm inspect`, `ncm sample`, and `ncm serve` on both CUDA and Metal).
 - **`v0.3.0` published:** opt-in `BF16`/`FP16` half precision, zero-new-dep OpenAI + Ollama HTTP/1.1 server (`ncm serve`, `ncm list`), inline `--prompt` + `--plain`, and [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
 - **`v0.2.0` published:** streaming verified loading + pipelined SHA-256, FP32 prefix K/V caching, self-contained `lm1b-*-inference-v2`, and config-driven `local-ncm-v1`.
-- See the [Phase 10 report](docs/results/2026-11-24-phase10/README.md), [Phase 8 & Phase 9 report](docs/results/2026-11-23-phase8-phase9/README.md), [Phase 7 report](docs/results/2026-11-23-phase7/README.md), [Phase 6 precision & serving report](docs/results/2026-11-22-phase6-precision-serving/README.md), [v0.2.0 optimization report](docs/results/2026-11-20-phase5-optimization/README.md), and [current state](agent-context-map.md).
+- See the [Phase 11 report](docs/results/2026-11-24-phase11/README.md), [Phase 10 report](docs/results/2026-11-24-phase10/README.md), [Phase 8 & Phase 9 report](docs/results/2026-11-23-phase8-phase9/README.md), [Phase 7 report](docs/results/2026-11-23-phase7/README.md), [Phase 6 precision & serving report](docs/results/2026-11-22-phase6-precision-serving/README.md), [v0.2.0 optimization report](docs/results/2026-11-20-phase5-optimization/README.md), and [current state](agent-context-map.md).
 
 ## Quick Navigation
 
 - **New users (5-minute build → `ncm pull` → `ncm run` → OpenAI/Ollama `ncm serve` → `ncm train`):** [5-Minute Quickstart (`docs/QUICKSTART.md`)](docs/QUICKSTART.md).
 - **Full CLI & reproducible exact-hash setup:** [Setup & Usage Guide (`docs/USAGE.md`)](docs/USAGE.md) — verified from fresh clones on [Linux](docs/results/2026-11-19-phase5-cli/linux-guide-single-commit-v3.md) and [macOS](docs/results/2026-11-19-phase5-cli/macos-guide-fresh-clone-v1.md).
 - **Developers (Rust library embedding, backend traits, `ncm-serve`, `ncm-train`, custom local models):** [Developer Guide (`docs/DEVELOPING.md`)](docs/DEVELOPING.md) and [Architecture (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md).
-- **Release notes:** [v0.6.0 (published)](docs/RELEASE-NOTES-v0.6.0.md) | [v0.5.0 (published)](docs/RELEASE-NOTES-v0.5.0.md) | [v0.4.1 (published)](docs/RELEASE-NOTES-v0.4.1.md) | [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
+- **Release notes:** [v0.7.0 (draft)](docs/RELEASE-NOTES-v0.7.0.md) | [v0.6.0 (published)](docs/RELEASE-NOTES-v0.6.0.md) | [v0.5.0 (published)](docs/RELEASE-NOTES-v0.5.0.md) | [v0.4.1 (published)](docs/RELEASE-NOTES-v0.4.1.md) | [v0.4.0 (published)](docs/RELEASE-NOTES-v0.4.0.md) | [v0.3.0 (published)](docs/RELEASE-NOTES-v0.3.0.md) | [v0.2.0 (published)](docs/RELEASE-NOTES-v0.2.0.md) | [v0.1.0 (published)](docs/RELEASE-NOTES-v0.1.0.md).
 
 ## Profile and evidence matrix
 
@@ -43,9 +47,11 @@ Results below apply to the tested hardware (RTX 3060 Ti on Linux, M1 Ultra on ma
 
 ## CLI, local serving, and native training
 
-Run `ncm <command> --help` (`sample`, `run`, `pull`, `quantize`, `serve`, `train`, `list`) for full syntax and explicitly gated experimental options.
+Run `ncm <command> --help` (`doctor`, `sample`, `run`, `pull`, `quantize`, `serve`, `train`, `list`) for full syntax and explicitly gated experimental options.
 
 ```sh
+ncm --version
+ncm doctor [--self-test] [--json]
 ncm list [--models-dir DIR] [--json]
 ncm pull --list | ncm pull wmt14 [--dry-run] [--python-legacy]
 ncm quantize ARTIFACT --precision q8|q4 --device cuda|mlx [--force]

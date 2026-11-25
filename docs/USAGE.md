@@ -694,3 +694,16 @@ Exposes OpenAI (`/v1/models`, `/v1/completions`, `/v1/chat/completions`, streami
   - Apply an unmerged adapter over any base precision (`fp32`, `bf16`, `fp16`, `q8`, `q4`) with `ncm sample ... --adapter DIR` or `ncm run ... --adapter DIR`.
   - Mount multiple adapters over a single shared resident GPU base in `ncm serve` via repeatable `--adapter ALIAS=BASE:DIR` (zero base reloads on swap, exposed in `/v1/models` and `/api/tags`, while `/api/ps` tracks the single shared base model).
   - See the [Phase 10 dual-platform report](results/2026-11-24-phase10/README.md) for measured CUDA and Metal results.
+
+## Phase 11 additions: `ncm doctor`, global `NCM_MODELS_DIR`, and relocatable packaging
+
+- **`ncm --version` & `ncm doctor [--models-dir DIR] [--device DEV] [--self-test] [--json]`:**
+  - Prints version, OS/arch, compiled features, live GPU/driver/library status, `curl` availability, resolved local models & pre-quantized sidecar inventory, and (with `--self-test`) runs a zero-download FP32/BF16/Q8/fused-attention operator check directly on the active device.
+- **Global-install path resolution:**
+  - `ncm list`, `ncm pull`, `ncm run`, `ncm serve`, and `ncm doctor` resolve the models directory in order: `--models-dir`, `NCM_MODELS_DIR`, `./artifacts/canonical` (if present in CWD), then `~/.local/share/ncm/models` (Linux) or `~/Library/Application Support/ncm/models` (macOS).
+- **Packaging & installers:**
+  - `tools/setup-mlx-native.sh` extracts pinned native MLX into `.reference/mlx-native` on Apple Silicon.
+  - `tools/package.sh [--target linux-cuda|linux-cpu|macos-mlx]` builds SHA-256-verified relocatable archives under `dist/` and self-verifies them in an isolated temp directory (on macOS, bundles `libmlx.dylib`, `libjaccl.dylib`, and `mlx.metallib` with `@executable_path/../lib` and zero `/Users/` build-host paths).
+  - `tools/install.sh [--archive PATH] [--prefix DIR]` installs `bin/ncm` (and `lib/` on macOS) into `~/.local` by default.
+  - `tools/render_homebrew_formula.py --version VER --sha256 SHA` renders an Apple Silicon Homebrew formula ready for any tap.
+  - See the [Phase 11 dual-platform report](results/2026-11-24-phase11/README.md) for measured CUDA and Metal results.
