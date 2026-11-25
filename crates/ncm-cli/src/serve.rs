@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 const LIST_USAGE: &str = "usage: ncm list [--models-dir DIR] [--model NAME=PATH]... [--precision fp32|bf16|fp16|q8|q4] [--json]";
 
 const RUN_USAGE: &str = "\
-usage: ncm run MODEL [PROMPT] [--models-dir DIR] [--model NAME=PATH]... [--device DEV] [--precision fp32|bf16|fp16|q8|q4] [--seed N] [--cfg S] [--max-tokens N]";
+usage: ncm run MODEL [PROMPT] [--models-dir DIR] [--model NAME=PATH]... [--adapter DIR] [--device DEV] [--precision fp32|bf16|fp16|q8|q4] [--seed N] [--cfg S] [--max-tokens N]";
 
 const PULL_USAGE: &str = "\
 usage: ncm pull (--list | MODEL) [--models-dir DIR] [--upstream-dir DIR] [--output DIR] [--reference-rope FILE] [--dry-run] [--python-legacy] [--python PY]";
@@ -19,6 +19,7 @@ usage: ncm serve [OPTIONS]
 Options:
   --models-dir DIR                 Directory containing NCM artifacts (default: artifacts/canonical or .)
   --model NAME=PATH                Register a model artifact under NAME (repeatable)
+  --adapter ALIAS=BASE:DIR         Register a hot-swappable LoRA adapter over BASE (repeatable)
   --device DEV                     Explicit device: cuda-cudnn, cuda, mlx, or cpu (default: compiled best)
   --precision fp32|bf16|fp16|q8|q4 Compute/weight precision (default: fp32)
   --host ADDR                      Bind host (default: 127.0.0.1)
@@ -37,6 +38,7 @@ Usage:
 Options:
   --models-dir DIR                 Directory containing NCM artifacts (default: artifacts/canonical or .)
   --model NAME=PATH                Register a model artifact under NAME (repeatable)
+  --adapter DIR                    Optional verified ncm-lora-adapter-v1 LoRA adapter directory
   --device DEV                     Explicit device: cuda-cudnn, cuda, mlx, or cpu
   --precision fp32|bf16|fp16|q8|q4 Compute and weight precision (default: fp32)
   --seed N                         Deterministic RNG seed for stochastic models
@@ -77,6 +79,7 @@ Usage:
 Options:
   --models-dir DIR                 Directory containing NCM artifacts (default: artifacts/canonical or .)
   --model NAME=PATH                Register a model artifact under NAME (repeatable)
+  --adapter ALIAS=BASE:DIR         Register a hot-swappable LoRA adapter over BASE (repeatable)
   --device DEV                     Explicit device: cuda-cudnn, cuda, mlx, or cpu
   --precision fp32|bf16|fp16|q8|q4 Compute and weight precision (default: fp32)
   --host ADDR                      Bind address (default: 127.0.0.1)
@@ -113,6 +116,23 @@ fn parse_override(raw: &str) -> Result<(String, PathBuf)> {
         return Err(format!("invalid --model `{raw}` (expected NAME=PATH)").into());
     }
     Ok((name.trim().to_owned(), PathBuf::from(path.trim())))
+}
+
+fn parse_adapter_spec(raw: &str) -> Result<(String, String, PathBuf)> {
+    let Some((alias, rest)) = raw.split_once('=') else {
+        return Err(format!("invalid --adapter `{raw}` (expected ALIAS=BASE:DIR)").into());
+    };
+    let Some((base, path)) = rest.split_once(':') else {
+        return Err(format!("invalid --adapter `{raw}` (expected ALIAS=BASE:DIR)").into());
+    };
+    if alias.trim().is_empty() || base.trim().is_empty() || path.trim().is_empty() {
+        return Err(format!("invalid --adapter `{raw}` (expected ALIAS=BASE:DIR)").into());
+    }
+    Ok((
+        alias.trim().to_owned(),
+        base.trim().to_owned(),
+        PathBuf::from(path.trim()),
+    ))
 }
 
 fn format_size(bytes: u64) -> String {
@@ -209,6 +229,7 @@ pub(super) fn run_list(args: &[String]) -> Result<()> {
 struct ServeConfig {
     models_dir: Option<PathBuf>,
     overrides: Vec<(String, PathBuf)>,
+    adapters: Vec<(String, String, PathBuf)>,
     device: String,
     precision: ComputePrecision,
     host: String,
@@ -261,6 +282,7 @@ fn parse_serve_args(args: &[String]) -> Result<ServeConfig> {
     let mut cfg = ServeConfig {
         models_dir: None,
         overrides: Vec::new(),
+        adapters: Vec::new(),
         device: default_device().to_owned(),
         precision: ComputePrecision::Fp32,
         host: "127.0.0.1".to_owned(),
@@ -279,6 +301,11 @@ fn parse_serve_args(args: &[String]) -> Result<ServeConfig> {
             "--model" => {
                 cfg.overrides
                     .push(parse_override(args.get(i + 1).ok_or(SERVE_USAGE)?)?);
+                i += 2;
+            }
+            "--adapter" => {
+                cfg.adapters
+                    .push(parse_adapter_spec(args.get(i + 1).ok_or(SERVE_USAGE)?)?);
                 i += 2;
             }
             "--device" => {
@@ -328,12 +355,46 @@ fn parse_serve_args(args: &[String]) -> Result<ServeConfig> {
 
 pub(super) fn run_serve(args: &[String]) -> Result<()> {
     let cfg = parse_serve_args(args)?;
-    let registry = ModelRegistry::discover(
+    let mut registry = ModelRegistry::discover(
         cfg.models_dir.as_deref(),
         &cfg.overrides,
         cfg.precision.as_str(),
     )
     .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
+
+    for (alias, base_name, adapter_dir) in &cfg.adapters {
+        let base_entry = registry
+            .resolve(base_name)
+            .cloned()
+            .ok_or_else(|| format!("--adapter `{alias}` references unknown base `{base_name}`"))?;
+        let base_manifest_bytes = std::fs::read(base_entry.path.join("manifest.json"))?;
+        let base_sha = ncm_io::sha256(&base_manifest_bytes);
+        let (adapter_manifest, adapter_sha) = ncm_io::inspect_lora_adapter_manifest(adapter_dir)
+            .map_err(|e| {
+                format!(
+                    "invalid --adapter `{alias}` ({}): {e}",
+                    adapter_dir.display()
+                )
+            })?;
+        if adapter_manifest.base_manifest_sha256 != base_sha {
+            return Err(format!(
+                "--adapter `{alias}` targets base manifest {} ({}), which does not match `{base_name}` ({})",
+                &adapter_manifest.base_manifest_sha256[..12],
+                adapter_manifest.base_profile,
+                &base_sha[..12]
+            )
+            .into());
+        }
+        registry
+            .register_adapter(
+                alias,
+                base_name,
+                adapter_dir.clone(),
+                adapter_manifest.adapter_file.bytes,
+                adapter_sha,
+            )
+            .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
+    }
 
     if registry.is_empty() {
         return Err(
@@ -526,6 +587,7 @@ struct RunConfig {
     prompt: Option<String>,
     models_dir: Option<PathBuf>,
     overrides: Vec<(String, PathBuf)>,
+    adapter: Option<PathBuf>,
     device: String,
     precision: ComputePrecision,
     seed: Option<u64>,
@@ -538,6 +600,7 @@ fn parse_run_args(args: &[String]) -> Result<RunConfig> {
     let mut prompt: Option<String> = None;
     let mut models_dir: Option<PathBuf> = None;
     let mut overrides: Vec<(String, PathBuf)> = Vec::new();
+    let mut adapter: Option<PathBuf> = None;
     let mut device = default_device().to_owned();
     let mut precision = ComputePrecision::Fp32;
     let mut seed: Option<u64> = None;
@@ -553,6 +616,10 @@ fn parse_run_args(args: &[String]) -> Result<RunConfig> {
             }
             "--model" => {
                 overrides.push(parse_override(args.get(i + 1).ok_or(RUN_USAGE)?)?);
+                i += 2;
+            }
+            "--adapter" => {
+                adapter = Some(PathBuf::from(args.get(i + 1).ok_or(RUN_USAGE)?));
                 i += 2;
             }
             "--device" => {
@@ -607,6 +674,7 @@ fn parse_run_args(args: &[String]) -> Result<RunConfig> {
         prompt,
         models_dir,
         overrides,
+        adapter,
         device,
         precision,
         seed,
@@ -788,6 +856,11 @@ mod worker {
         let t_load = Instant::now();
         let mut loaded = load_model(&entry, &cfg.device, cfg.precision)
             .map_err(|e| -> Box<dyn std::error::Error> { e.to_string().into() })?;
+        if let Some(ref adapter_dir) = cfg.adapter {
+            loaded
+                .select_adapter(Some(adapter_dir))
+                .map_err(|e| -> Box<dyn std::error::Error> { e.to_string().into() })?;
+        }
         let load_ms = t_load.elapsed().as_secs_f64() * 1000.0;
         let auto_seed = AtomicU64::new(cfg.seed.unwrap_or(42));
 
@@ -974,12 +1047,21 @@ mod worker {
         );
         eprintln!("  Models ({}):", registry.list().len());
         for m in registry.list() {
-            eprintln!(
-                "    - {:<20} ({}, {})",
-                m.name,
-                m.profile,
-                format_size(m.size_bytes)
-            );
+            if let Some(ref base) = m.base_model {
+                eprintln!(
+                    "    - {:<20} (LoRA adapter -> {}, {})",
+                    m.name,
+                    base,
+                    format_size(m.size_bytes)
+                );
+            } else {
+                eprintln!(
+                    "    - {:<20} ({}, {})",
+                    m.name,
+                    m.profile,
+                    format_size(m.size_bytes)
+                );
+            }
         }
 
         server.serve()?;
@@ -1018,9 +1100,73 @@ mod worker {
 
     enum LoadedModel {
         #[cfg(feature = "cpu")]
-        Candle(LoadedForBackend<ncm_backend_cuda::CandleBackend>),
+        Candle(LoadedSlot<ncm_backend_cuda::CandleBackend>),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-        Mlx(LoadedForBackend<ncm_backend_mlx::MlxBackend>),
+        Mlx(LoadedSlot<ncm_backend_mlx::MlxBackend>),
+    }
+
+    impl LoadedModel {
+        fn select_adapter(
+            &mut self,
+            adapter_path: Option<&std::path::Path>,
+        ) -> std::result::Result<(), EngineError> {
+            match self {
+                #[cfg(feature = "cpu")]
+                Self::Candle(slot) => slot.select_adapter(adapter_path),
+                #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
+                Self::Mlx(slot) => slot.select_adapter(adapter_path),
+            }
+        }
+    }
+
+    struct LoadedSlot<B: GeneratorBackend> {
+        inner: LoadedForBackend<B>,
+        base_manifest_sha256: String,
+        adapters: HashMap<std::path::PathBuf, ncm_model::RuntimeLoraAdapter<B::Tensor>>,
+        active_adapter: Option<std::path::PathBuf>,
+    }
+
+    impl<B: GeneratorBackend + Clone> LoadedSlot<B> {
+        fn new(inner: LoadedForBackend<B>, base_manifest_sha256: String) -> Self {
+            Self {
+                inner,
+                base_manifest_sha256,
+                adapters: HashMap::new(),
+                active_adapter: None,
+            }
+        }
+
+        fn select_adapter(
+            &mut self,
+            adapter_path: Option<&std::path::Path>,
+        ) -> std::result::Result<(), EngineError> {
+            if self.active_adapter.as_deref() == adapter_path {
+                return Ok(());
+            }
+            let Some(path) = adapter_path else {
+                self.inner.set_lora_adapter(None)?;
+                self.active_adapter = None;
+                return Ok(());
+            };
+            if !self.adapters.contains_key(path) {
+                let artifact =
+                    ncm_io::LoraAdapterArtifact::load(path, Some(&self.base_manifest_sha256))
+                        .map_err(|e| EngineError::BadRequest(format!("LoRA adapter error: {e}")))?;
+                let (n_layer, n_embd) = self.inner.lora_dimensions()?;
+                let uploaded = ncm_model::RuntimeLoraAdapter::from_artifact(
+                    self.inner.backend(),
+                    &artifact,
+                    n_layer,
+                    n_embd,
+                )
+                .map_err(|e| EngineError::Internal(format!("LoRA adapter upload failed: {e}")))?;
+                self.adapters.insert(path.to_path_buf(), uploaded);
+            }
+            let cached = self.adapters[path].clone();
+            self.inner.set_lora_adapter(Some(cached))?;
+            self.active_adapter = Some(path.to_path_buf());
+            Ok(())
+        }
     }
 
     enum LoadedForBackend<B: GeneratorBackend> {
@@ -1038,6 +1184,7 @@ mod worker {
             all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
         ))]
         Xsum {
+            backend: B,
             model: XsumTeacher<B>,
             decoder: Decoder,
             use_device_path: bool,
@@ -1058,6 +1205,7 @@ mod worker {
             )
         ))]
         Lm1b {
+            backend: B,
             model: Lm1bSmallTeacher<B>,
             tokenizer: TextTokenizer,
             use_cuda_device: bool,
@@ -1067,6 +1215,103 @@ mod worker {
             model: LocalNcmModel<B>,
             decoder: Option<Decoder>,
         },
+    }
+
+    impl<B: GeneratorBackend + Clone> LoadedForBackend<B> {
+        fn backend(&self) -> &B {
+            match self {
+                Self::Sudoku { backend, .. }
+                | Self::TinyStories { backend, .. }
+                | Self::Local { backend, .. } => backend,
+                #[cfg(any(
+                    feature = "cuda-cudnn",
+                    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+                ))]
+                Self::Xsum { backend, .. } => backend,
+                #[cfg(feature = "wmt14-experimental")]
+                Self::Wmt14 { backend, .. } => backend,
+                #[cfg(any(
+                    all(feature = "lm1b-experimental", target_os = "linux"),
+                    all(
+                        feature = "lm1b-mlx-experimental",
+                        target_os = "macos",
+                        target_arch = "aarch64"
+                    )
+                ))]
+                Self::Lm1b { backend, .. } => backend,
+            }
+        }
+
+        fn lora_dimensions(&self) -> std::result::Result<(usize, usize), EngineError> {
+            match self {
+                Self::Sudoku { .. } => Err(EngineError::BadRequest(
+                    "LoRA adapters are not supported on Sudoku inspection profiles".into(),
+                )),
+                Self::TinyStories { model, .. } => Ok(model.lora_dimensions()),
+                #[cfg(any(
+                    feature = "cuda-cudnn",
+                    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+                ))]
+                Self::Xsum { model, .. } => Ok(model.lora_dimensions()),
+                #[cfg(feature = "wmt14-experimental")]
+                Self::Wmt14 { model, .. } => Ok(model.lora_dimensions()),
+                #[cfg(any(
+                    all(feature = "lm1b-experimental", target_os = "linux"),
+                    all(
+                        feature = "lm1b-mlx-experimental",
+                        target_os = "macos",
+                        target_arch = "aarch64"
+                    )
+                ))]
+                Self::Lm1b { model, .. } => Ok(model.lora_dimensions()),
+                Self::Local { model, .. } => Ok(model.lora_dimensions()),
+            }
+        }
+
+        fn set_lora_adapter(
+            &mut self,
+            adapter: Option<ncm_model::RuntimeLoraAdapter<B::Tensor>>,
+        ) -> std::result::Result<(), EngineError> {
+            match self {
+                Self::Sudoku { .. } => {
+                    if adapter.is_some() {
+                        Err(EngineError::BadRequest(
+                            "LoRA adapters are not supported on Sudoku inspection profiles".into(),
+                        ))
+                    } else {
+                        Ok(())
+                    }
+                }
+                Self::TinyStories { model, .. } => model
+                    .set_lora_adapter(adapter)
+                    .map_err(|e| EngineError::BadRequest(e.to_string())),
+                #[cfg(any(
+                    feature = "cuda-cudnn",
+                    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+                ))]
+                Self::Xsum { model, .. } => model
+                    .set_lora_adapter(adapter)
+                    .map_err(|e| EngineError::BadRequest(e.to_string())),
+                #[cfg(feature = "wmt14-experimental")]
+                Self::Wmt14 { model, .. } => model
+                    .set_lora_adapter(adapter)
+                    .map_err(|e| EngineError::BadRequest(e.to_string())),
+                #[cfg(any(
+                    all(feature = "lm1b-experimental", target_os = "linux"),
+                    all(
+                        feature = "lm1b-mlx-experimental",
+                        target_os = "macos",
+                        target_arch = "aarch64"
+                    )
+                ))]
+                Self::Lm1b { model, .. } => model
+                    .set_lora_adapter(adapter)
+                    .map_err(|e| EngineError::BadRequest(e.to_string())),
+                Self::Local { model, .. } => model
+                    .set_lora_adapter(adapter)
+                    .map_err(|e| EngineError::BadRequest(e.to_string())),
+            }
+        }
     }
 
     struct CacheEntry {
@@ -1213,26 +1458,38 @@ mod worker {
                     let res = match registry.resolve(&name) {
                         None => Err(EngineError::NotFound(format!("model `{name}` not found"))),
                         Some(entry) => {
-                            if cache.contains(&entry.name) {
-                                let _ = cache.get_mut(&entry.name);
-                                cache.publish(&ps_snapshot);
-                                Ok(())
-                            } else {
+                            let base_entry = entry
+                                .base_model
+                                .as_deref()
+                                .and_then(|b| registry.resolve(b))
+                                .unwrap_or(entry);
+                            let cache_key = base_entry.name.clone();
+                            if !cache.contains(&cache_key) {
                                 cache.evict_if_full();
                                 cache.publish(&ps_snapshot);
-                                match load_model(entry, device, precision) {
+                                match load_model(base_entry, device, precision) {
                                     Ok(loaded) => {
                                         cache.insert(
-                                            entry.name.clone(),
+                                            cache_key.clone(),
                                             loaded,
-                                            build_loaded_info(entry, precision),
+                                            build_loaded_info(base_entry, precision),
                                         );
                                         cache.publish(&ps_snapshot);
-                                        Ok(())
                                     }
-                                    Err(e) => Err(e),
+                                    Err(e) => {
+                                        let _ = reply.send(Err(e));
+                                        continue;
+                                    }
                                 }
                             }
+                            let select_res = match cache.get_mut(&cache_key) {
+                                Some(loaded) => {
+                                    loaded.select_adapter(entry.adapter_path.as_deref())
+                                }
+                                None => Err(EngineError::Internal("cache lookup failed".into())),
+                            };
+                            cache.publish(&ps_snapshot);
+                            select_res
                         }
                     };
                     let _ = reply.send(res);
@@ -1246,6 +1503,13 @@ mod worker {
                         continue;
                     };
                     let canonical = entry.name.clone();
+                    let base_entry = entry
+                        .base_model
+                        .as_deref()
+                        .and_then(|b| registry.resolve(b))
+                        .unwrap_or(entry);
+                    let cache_key = base_entry.name.clone();
+                    let adapter_path = entry.adapter_path.clone();
                     let cfg_bits = req.cfg_scale.unwrap_or(0.0).to_bits();
                     let allow_batch = max_batch > 1 && req.seed.is_none();
 
@@ -1264,17 +1528,17 @@ mod worker {
                     }
 
                     let mut load_duration_ns = 0u64;
-                    if !cache.contains(&canonical) {
+                    if !cache.contains(&cache_key) {
                         cache.evict_if_full();
                         cache.publish(&ps_snapshot);
                         let t0 = Instant::now();
-                        match load_model(entry, device, precision) {
+                        match load_model(base_entry, device, precision) {
                             Ok(loaded) => {
                                 load_duration_ns = t0.elapsed().as_nanos() as u64;
                                 cache.insert(
-                                    canonical.clone(),
+                                    cache_key.clone(),
                                     loaded,
-                                    build_loaded_info(entry, precision),
+                                    build_loaded_info(base_entry, precision),
                                 );
                                 cache.publish(&ps_snapshot);
                             }
@@ -1304,15 +1568,18 @@ mod worker {
                     let req_refs: Vec<&GenerateRequest> =
                         batch_items.iter().map(|(r, _)| r).collect();
                     let t_eval = Instant::now();
-                    let outputs = match cache.get_mut(&canonical) {
-                        Some(model) => run_loaded_batch(model, &req_refs, &auto_seed),
+                    let outputs = match cache.get_mut(&cache_key) {
+                        Some(model) => match model.select_adapter(adapter_path.as_deref()) {
+                            Ok(()) => run_loaded_batch(model, &req_refs, &auto_seed),
+                            Err(e) => vec![Err(e); batch_items.len()],
+                        },
                         None => vec![
                             Err(EngineError::Internal("cache lookup failed".into()));
                             batch_items.len()
                         ],
                     };
                     let eval_duration_ns = t_eval.elapsed().as_nanos() as u64;
-                    cache.record_use(&canonical, batch_items.len() as u64);
+                    cache.record_use(&cache_key, batch_items.len() as u64);
                     cache.publish(&ps_snapshot);
 
                     for ((_, rep), out) in batch_items.into_iter().zip(outputs) {
@@ -1342,20 +1609,23 @@ mod worker {
     ) -> std::result::Result<LoadedModel, EngineError> {
         let artifact = crate::quantize::load_artifact_for_device(&entry.path, device, precision)
             .map_err(|e| EngineError::Internal(format!("artifact load failed: {e}")))?;
+        let base_sha = artifact.manifest_sha256().to_owned();
         match device {
             #[cfg(feature = "cpu")]
             "cpu" => {
                 let backend = ncm_backend_cuda::CandleBackend::cpu()
                     .with_precision(precision)
                     .map_err(|e| EngineError::BadRequest(e.to_string()))?;
-                load_for_candle(artifact, entry, backend, false, false).map(LoadedModel::Candle)
+                load_for_candle(artifact, entry, backend, false, false)
+                    .map(|inner| LoadedModel::Candle(LoadedSlot::new(inner, base_sha)))
             }
             #[cfg(feature = "cuda")]
             "cuda" => {
                 let backend = ncm_backend_cuda::CandleBackend::cuda(0)
                     .and_then(|b| b.with_precision(precision))
                     .map_err(|e| EngineError::Internal(e.to_string()))?;
-                load_for_candle(artifact, entry, backend, false, false).map(LoadedModel::Candle)
+                load_for_candle(artifact, entry, backend, false, false)
+                    .map(|inner| LoadedModel::Candle(LoadedSlot::new(inner, base_sha)))
             }
             #[cfg(feature = "cuda-cudnn")]
             "cuda-cudnn" => {
@@ -1378,14 +1648,16 @@ mod worker {
                         .and_then(|b| b.with_precision(precision))
                         .map_err(|e| EngineError::Internal(e.to_string()))?
                 };
-                load_for_candle(artifact, entry, backend, true, true).map(LoadedModel::Candle)
+                load_for_candle(artifact, entry, backend, true, true)
+                    .map(|inner| LoadedModel::Candle(LoadedSlot::new(inner, base_sha)))
             }
             #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
             "mlx" => {
                 let backend = ncm_backend_mlx::MlxBackend::gpu()
                     .and_then(|b| b.with_precision(precision))
                     .map_err(|e| EngineError::Internal(e.to_string()))?;
-                load_for_mlx(artifact, entry, backend).map(LoadedModel::Mlx)
+                load_for_mlx(artifact, entry, backend)
+                    .map(|inner| LoadedModel::Mlx(LoadedSlot::new(inner, base_sha)))
             }
             other => Err(EngineError::BadRequest(format!(
                 "unsupported device `{other}` in this build"
@@ -1467,10 +1739,11 @@ mod worker {
                 if has_cudnn {
                     let decoder = Decoder::from_artifact(&artifact)
                         .map_err(|e| EngineError::Internal(e.to_string()))?;
-                    let model = XsumTeacher::from_owned_artifact(backend, artifact)
+                    let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)
                         .map_err(|e| EngineError::Internal(e.to_string()))?
                         .with_prefix_cache(true);
                     return Ok(LoadedForBackend::Xsum {
+                        backend,
                         model,
                         decoder,
                         use_device_path: true,
@@ -1516,7 +1789,7 @@ mod worker {
                             .map_err(|e| EngineError::Internal(e.to_string()))?,
                     )
                     .map_err(|e| EngineError::Internal(e.to_string()))?;
-                    let model = Lm1bSmallTeacher::from_artifact(backend, &artifact)
+                    let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)
                         .map_err(|e| EngineError::Internal(e.to_string()))?;
                     let model = if let Some((cos, sin)) = external_rope {
                         model
@@ -1526,6 +1799,7 @@ mod worker {
                         model
                     };
                     return Ok(LoadedForBackend::Lm1b {
+                        backend,
                         model,
                         tokenizer,
                         use_cuda_device: true,
@@ -1580,10 +1854,11 @@ mod worker {
             "xsum-inference-v1" | "xsum-inference-v2" => {
                 let decoder = Decoder::from_artifact(&artifact)
                     .map_err(|e| EngineError::Internal(e.to_string()))?;
-                let model = XsumTeacher::from_owned_artifact(backend, artifact)
+                let model = XsumTeacher::from_owned_artifact(backend.clone(), artifact)
                     .map_err(|e| EngineError::Internal(e.to_string()))?
                     .with_prefix_cache(true);
                 Ok(LoadedForBackend::Xsum {
+                    backend,
                     model,
                     decoder,
                     use_device_path: false,
@@ -1619,7 +1894,7 @@ mod worker {
                         .map_err(|e| EngineError::Internal(e.to_string()))?,
                 )
                 .map_err(|e| EngineError::Internal(e.to_string()))?;
-                let model = Lm1bSmallTeacher::from_artifact(backend, &artifact)
+                let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)
                     .map_err(|e| EngineError::Internal(e.to_string()))?;
                 let model = if let Some((cos, sin)) = external_rope {
                     model
@@ -1629,6 +1904,7 @@ mod worker {
                     model
                 };
                 Ok(LoadedForBackend::Lm1b {
+                    backend,
                     model,
                     tokenizer,
                     use_cuda_device: false,
@@ -1658,9 +1934,9 @@ mod worker {
     ) -> Vec<GenOutput> {
         match loaded {
             #[cfg(feature = "cpu")]
-            LoadedModel::Candle(inner) => run_loaded_batch_backend(inner, reqs, auto_seed),
+            LoadedModel::Candle(slot) => run_loaded_batch_backend(&mut slot.inner, reqs, auto_seed),
             #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-            LoadedModel::Mlx(inner) => run_loaded_batch_backend(inner, reqs, auto_seed),
+            LoadedModel::Mlx(slot) => run_loaded_batch_backend(&mut slot.inner, reqs, auto_seed),
         }
     }
 
@@ -1843,6 +2119,7 @@ mod worker {
                 all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
             ))]
             LoadedForBackend::Xsum {
+                backend: _,
                 model,
                 decoder,
                 use_device_path,
@@ -2006,6 +2283,7 @@ mod worker {
                 )
             ))]
             LoadedForBackend::Lm1b {
+                backend: _,
                 model,
                 tokenizer,
                 use_cuda_device,
@@ -2164,7 +2442,8 @@ mod worker {
 #[cfg(test)]
 mod tests {
     use super::{
-        parse_override, parse_pull_args, parse_run_args, parse_serve_args, vram_estimate_bytes,
+        parse_adapter_spec, parse_override, parse_pull_args, parse_run_args, parse_serve_args,
+        vram_estimate_bytes,
     };
     use ncm_core::ComputePrecision;
 
@@ -2181,6 +2460,8 @@ mod tests {
             "/tmp/models",
             "--model",
             "custom=/tmp/my-model",
+            "--adapter",
+            "pirate=custom:/tmp/pirate-adapter",
             "--precision",
             "q8",
             "--host",
@@ -2201,6 +2482,15 @@ mod tests {
         assert_eq!(cfg.max_batch, 16);
         assert_eq!(cfg.overrides.len(), 1);
         assert_eq!(cfg.overrides[0].0, "custom");
+        assert_eq!(cfg.adapters.len(), 1);
+        assert_eq!(cfg.adapters[0].0, "pirate");
+        assert_eq!(cfg.adapters[0].1, "custom");
+        assert_eq!(
+            cfg.adapters[0].2,
+            std::path::PathBuf::from("/tmp/pirate-adapter")
+        );
+        assert!(parse_adapter_spec("bad-spec").is_err());
+        assert!(parse_adapter_spec("alias=missing-colon").is_err());
         assert!(parse_override("missing-equals").is_err());
         assert!(parse_serve_args(&args(&["ncm", "serve", "--max-loaded", "0"])).is_err());
         assert!(parse_serve_args(&args(&["ncm", "serve", "--max-batch", "0"])).is_err());

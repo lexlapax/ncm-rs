@@ -1315,6 +1315,34 @@ pub fn train_generator(
     train_cfg: &TrainConfig,
     checkpoint_dir: Option<&Path>,
 ) -> Result<(TensorMap, Vec<StepMetrics>)> {
+    let (weights, _adapters, history) = train_generator_with_adapters(
+        config,
+        dataset,
+        val_dataset,
+        frozen_codec_weights,
+        init_gen_weights,
+        resume,
+        train_cfg,
+        checkpoint_dir,
+        true,
+    )?;
+    Ok((weights, history))
+}
+
+/// Train or fine-tune a generator on Metal and optionally return unmerged LoRA adapters
+/// alongside (or instead of) merged weights.
+#[allow(clippy::too_many_arguments)]
+pub fn train_generator_with_adapters(
+    config: &LocalNcmConfig,
+    dataset: &TokenDataset,
+    val_dataset: Option<&TokenDataset>,
+    frozen_codec_weights: &TensorMap,
+    init_gen_weights: &TensorMap,
+    resume: Option<&LoadedCheckpoint>,
+    train_cfg: &TrainConfig,
+    checkpoint_dir: Option<&Path>,
+    merge_lora: bool,
+) -> Result<(TensorMap, Option<TensorMap>, Vec<StepMetrics>)> {
     with_stream(&Stream::gpu(), || {
         let codec_cfg = config.codec();
         let gen_cfg = config.model();
@@ -1329,6 +1357,9 @@ pub fn train_generator(
         let mut frozen_codec: HashMap<String, Array> =
             HashMap::with_capacity(frozen_codec_weights.len());
         for (name, (shape, vals)) in frozen_codec_weights {
+            if name.starts_with("decoder.") {
+                continue;
+            }
             frozen_codec.insert(name.clone(), from_f32_slice(vals, shape));
         }
         eval(frozen_codec.values()).map_err(m_err)?;
@@ -1693,12 +1724,22 @@ pub fn train_generator(
             }
         }
 
-        let final_weights = if lora_rank > 0 {
+        let (final_weights, raw_adapters) = if lora_rank > 0 {
             let trained_adapters = store.export_weights()?;
-            lora::merge_lora_weights(init_gen_weights, &trained_adapters, lora_rank, lora_alpha)?
+            let merged = if merge_lora {
+                lora::merge_lora_weights(
+                    init_gen_weights,
+                    &trained_adapters,
+                    lora_rank,
+                    lora_alpha,
+                )?
+            } else {
+                TensorMap::new()
+            };
+            (merged, Some(trained_adapters))
         } else {
-            store.export_weights()?
+            (store.export_weights()?, None)
         };
-        Ok((final_weights, history))
+        Ok((final_weights, raw_adapters, history))
     })
 }

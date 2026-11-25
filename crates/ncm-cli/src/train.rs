@@ -4,19 +4,20 @@ use ncm_train::{TrainConfig, TrainJob, TrainStage, run_training_job};
 use std::path::PathBuf;
 
 const TRAIN_USAGE: &str = "\
-usage: ncm train (--config FILE | --init-from ARTIFACT) --data FILE --output DIR --device DEV [OPTIONS]";
+usage: ncm train (--config FILE | --init-from ARTIFACT) --data FILE (--output DIR | --save-adapter DIR) --device DEV [OPTIONS]";
 
 pub(super) const TRAIN_HELP: &str = "\
 Train or fine-tune a local-ncm-v1 codec (RVQ + EMA) and/or generator natively in Rust.
 
 Usage:
-  ncm train (--config FILE | --init-from ARTIFACT) --data FILE --output DIR --device DEV [OPTIONS]
+  ncm train (--config FILE | --init-from ARTIFACT) --data FILE (--output DIR | --save-adapter DIR) --device DEV [OPTIONS]
 
 Required:
   --config FILE          Local NCM config.json (for training from scratch)
-  --init-from ARTIFACT   Existing verified local-ncm-v1 or tinystories-inference-v1 artifact
+  --init-from ARTIFACT   Existing verified local-ncm-v1, tinystories, xsum, wmt14, or lm1b artifact
   --data FILE            Training dataset (.jsonl, .json, or .txt)
-  --output DIR           Output directory for the exported verified local-ncm-v1 artifact
+  --output DIR           Output directory for the exported verified merged local-ncm-v1 artifact
+  --save-adapter DIR     Output directory for a verified unmerged ncm-lora-adapter-v1 adapter
   --device DEV           Explicit training device: cuda, cuda-cudnn, mlx, or cpu (no fallback)
 
 Options:
@@ -54,6 +55,7 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
     let mut val_data_path: Option<PathBuf> = None;
     let mut tokenizer_path: Option<PathBuf> = None;
     let mut output_dir: Option<PathBuf> = None;
+    let mut save_adapter: Option<PathBuf> = None;
     let mut checkpoint_dir: Option<PathBuf> = None;
     let mut resume_dir: Option<PathBuf> = None;
     let mut report_path: Option<PathBuf> = None;
@@ -99,6 +101,10 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
             }
             "--output" => {
                 output_dir = Some(PathBuf::from(args.get(i + 1).ok_or(TRAIN_USAGE)?));
+                i += 2;
+            }
+            "--save-adapter" => {
+                save_adapter = Some(PathBuf::from(args.get(i + 1).ok_or(TRAIN_USAGE)?));
                 i += 2;
             }
             "--device" => {
@@ -196,7 +202,9 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
         return Err("pass either --config or --init-from, not both".into());
     }
     let data_path = data_path.ok_or("ncm train requires --data FILE")?;
-    let output_dir = output_dir.ok_or("ncm train requires --output DIR")?;
+    if output_dir.is_none() && save_adapter.is_none() {
+        return Err("ncm train requires --output DIR and/or --save-adapter DIR".into());
+    }
     let device = device.ok_or("ncm train requires explicit --device (cuda, mlx, or cpu)")?;
 
     cfg.stage = explicit_stage.unwrap_or(if init_from.is_some() {
@@ -216,6 +224,7 @@ pub(super) fn parse_train_args(args: &[String]) -> Result<(TrainJob, Option<Path
             val_data_path,
             tokenizer_path,
             output_dir,
+            save_adapter,
             checkpoint_dir,
             resume_dir,
             device,
@@ -245,6 +254,7 @@ pub(super) fn run_train(args: &[String]) -> Result<()> {
         "device": report.device,
         "stage": report.stage,
         "output_artifact": report.output_artifact,
+        "output_adapter": report.output_adapter,
         "dataset_samples": report.dataset_samples,
         "steps_completed": report.steps_completed,
         "total_seconds": (report.total_seconds * 1000.0).round() / 1000.0,
@@ -327,6 +337,8 @@ mod tests {
             "8",
             "--lora-alpha",
             "16",
+            "--save-adapter",
+            "out-adapter",
         ]))
         .unwrap();
         assert_eq!(ft.train_cfg.stage, TrainStage::Generator);
@@ -336,6 +348,29 @@ mod tests {
         assert_eq!(ft.train_cfg.train_precision, TrainPrecision::Bf16);
         assert_eq!(ft.train_cfg.eval_every, 10);
         assert_eq!(ft.val_data_path, Some(PathBuf::from("val.jsonl")));
+        assert_eq!(ft.save_adapter, Some(PathBuf::from("out-adapter")));
+
+        // Adapter-only mode without --output is accepted.
+        let (adapter_only, _) = parse_train_args(&args(&[
+            "ncm",
+            "train",
+            "--init-from",
+            "base-model",
+            "--data",
+            "train.jsonl",
+            "--save-adapter",
+            "adapter-only",
+            "--lora-rank",
+            "8",
+            "--device",
+            "cuda",
+        ]))
+        .unwrap();
+        assert!(adapter_only.output_dir.is_none());
+        assert_eq!(
+            adapter_only.save_adapter,
+            Some(PathBuf::from("adapter-only"))
+        );
 
         // Missing device or conflicting --config + --init-from rejected.
         assert!(

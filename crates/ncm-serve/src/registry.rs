@@ -32,6 +32,12 @@ pub struct ModelEntry {
     pub supports_seed: bool,
     /// Whether this profile supports classifier-free guidance (`cfg_scale`).
     pub supports_cfg: bool,
+    /// If this entry is a hot-swappable LoRA adapter alias, the canonical base model name.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub base_model: Option<String>,
+    /// If this entry is a hot-swappable LoRA adapter alias, the verified adapter directory path.
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub adapter_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -189,6 +195,8 @@ pub fn inspect_model_dir(
         supports_text,
         supports_seed,
         supports_cfg,
+        base_model: None,
+        adapter_path: None,
     }))
 }
 
@@ -283,6 +291,51 @@ impl ModelRegistry {
 
     fn insert_override(&mut self, entry: ModelEntry) {
         self.register_entry(entry);
+    }
+
+    /// Register a verified hot-swappable LoRA adapter alias backed by an existing base model.
+    pub fn register_adapter(
+        &mut self,
+        alias: &str,
+        base_name: &str,
+        adapter_path: PathBuf,
+        adapter_size_bytes: u64,
+        adapter_digest: String,
+    ) -> std::result::Result<(), String> {
+        let alias = alias.trim();
+        if alias.is_empty() {
+            return Err("LoRA adapter alias must be non-empty".into());
+        }
+        if self.entries.contains_key(alias) {
+            return Err(format!(
+                "LoRA adapter alias `{alias}` collides with an existing model name"
+            ));
+        }
+        let base = self.resolve(base_name).cloned().ok_or_else(|| {
+            format!("LoRA adapter `{alias}` references unknown base model `{base_name}`")
+        })?;
+        if base.base_model.is_some() {
+            return Err(format!(
+                "LoRA adapter `{alias}` cannot chain onto another adapter `{base_name}`"
+            ));
+        }
+        let entry = ModelEntry {
+            name: alias.to_owned(),
+            aliases: Vec::new(),
+            path: base.path,
+            profile: base.profile,
+            size_bytes: adapter_size_bytes,
+            modified_unix: base.modified_unix,
+            digest: adapter_digest,
+            precision: base.precision,
+            supports_text: base.supports_text,
+            supports_seed: base.supports_seed,
+            supports_cfg: base.supports_cfg,
+            base_model: Some(base.name),
+            adapter_path: Some(adapter_path),
+        };
+        self.register_entry(entry);
+        Ok(())
     }
 
     fn register_entry(&mut self, entry: ModelEntry) {

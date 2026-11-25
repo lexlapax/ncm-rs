@@ -2,7 +2,7 @@
 use super::Result;
 use std::{fs, io::Read, path::Path};
 
-const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [--seed N] [--cfg S] [--precision fp32|bf16|fp16|q8|q4] [--decode] [--plain] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
+const USAGE: &str = "usage: ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [--seed N] [--cfg S] [--precision fp32|bf16|fp16|q8|q4] [--adapter DIR] [--decode] [--plain] [--text] [--reference-rope FILE] [--experimental-stochastic-xsum] [--experimental-positive-cfg-xsum] [--experimental-cfg-wmt14] [--top-p-fp32|--host-fp64]";
 
 /// Read only enough untrusted metadata to choose a path. The chosen path must
 /// subsequently load and validate the complete artifact before inference.
@@ -154,7 +154,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
     if args.len() < 5 {
         return Err(USAGE.into());
     }
-    let (mut seed, mut cfg, mut rope, mut precision) = (None, None, None, None);
+    let (mut seed, mut cfg, mut rope, mut precision, mut adapter) = (None, None, None, None, None);
     let (
         mut decode,
         mut plain,
@@ -181,6 +181,9 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             "--precision" if precision.is_none() => {
                 let value: ncm_core::ComputePrecision = options.next().ok_or(USAGE)?.parse()?;
                 precision = Some(value);
+            }
+            "--adapter" if adapter.is_none() => {
+                adapter = Some(options.next().ok_or(USAGE)?);
             }
             "--reference-rope" if rope.is_none() => rope = Some(options.next().ok_or(USAGE)?),
             "--decode" if !decode => decode = true,
@@ -214,6 +217,7 @@ fn translate_profile(args: &[String], profile: &str) -> Result<Vec<String>> {
             if seed.is_some()
                 || cfg.is_some()
                 || rope.is_some()
+                || adapter.is_some()
                 || decode
                 || text
                 || stochastic

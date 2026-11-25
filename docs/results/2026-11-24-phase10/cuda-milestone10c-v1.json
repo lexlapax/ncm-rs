@@ -1,0 +1,104 @@
+{
+  "schema": "ncm-phase10-milestone10c-cuda-v1",
+  "hardware": "NVIDIA GeForce RTX 3060 Ti (8 GiB)",
+  "multi_profile_lora": {
+    "tinystories_pirate": {
+      "base_artifact": "artifacts/canonical/tinystories-15k-ema-v1",
+      "steps": 15,
+      "batch": 2,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 123160704,
+      "initial_loss": 6.3959,
+      "final_loss": 2.4755,
+      "mean_step_ms": 554.57,
+      "total_seconds": 9.132,
+      "adapter_bytes": 4754111,
+      "compression_vs_base": 121.7
+    },
+    "tinystories_scifi": {
+      "base_artifact": "artifacts/canonical/tinystories-15k-ema-v1",
+      "steps": 15,
+      "batch": 2,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 123160704,
+      "initial_loss": 6.6267,
+      "final_loss": 2.7907,
+      "mean_step_ms": 539.44,
+      "total_seconds": 8.891,
+      "adapter_bytes": 4754111,
+      "compression_vs_base": 121.7
+    },
+    "wmt14": {
+      "base_artifact": "artifacts/canonical/wmt14-inference-v1-final",
+      "steps": 10,
+      "batch": 1,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 119965056,
+      "initial_loss": 2.086,
+      "final_loss": 1.5838,
+      "mean_step_ms": 429.8,
+      "total_seconds": 5.571,
+      "adapter_bytes": 4754105,
+      "compression_vs_base": 240.0
+    },
+    "xsum": {
+      "base_artifact": "artifacts/canonical/xsum-inference-rope-v2-final",
+      "steps": 10,
+      "batch": 1,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 113710080,
+      "initial_loss": 3.5707,
+      "final_loss": 2.2976,
+      "mean_step_ms": 1395.71,
+      "total_seconds": 14.813,
+      "adapter_bytes": 4754104,
+      "compression_vs_base": 138.4
+    },
+    "lm1b_small": {
+      "base_artifact": "artifacts/canonical/lm1b-small-inference-v1",
+      "steps": 10,
+      "batch": 1,
+      "lora_rank": 8,
+      "trainable_params": 1179648,
+      "total_params": 91752576,
+      "initial_loss": 9.354,
+      "final_loss": 3.2713,
+      "mean_step_ms": 452.11,
+      "total_seconds": 5.363,
+      "adapter_bytes": 4754110,
+      "compression_vs_base": 208.0
+    }
+  },
+  "sample_and_run_adapter": {
+    "tinystories_base_q8": "\nOnce upon a time, in a small town, there was a big hurricane. The hurricane was very big and strong. The people in the ",
+    "tinystories_pirate_q8": "\n\nAs Sam measured the birthday But the cozy him laughed legs. to smiled and branches most She cob, and They the that Aft",
+    "tinystories_scifi_q8": " fun giant He.. mop. Judge cried baking?\" her at, find it..\n.ian picked the,., jog so dog hit there doll was \" match, a ",
+    "wmt14_adapter_fp16": "The cat sits sits on the warm.",
+    "xsum_adapter_fp16": " city council have approved plans for the metro station station Station.",
+    "lm1b_small_adapter_bf16": "[CLS] major car candidate in the world. [CLS] the united have won - a match against its., [CLS] - for game 16, but the f",
+    "ncm_run_pirate_q8": "asked display a throat and, very lines walked are,AsS. a mail mail the letters gave.\n day., said day Y to day and. All.l"
+  },
+  "serve_multi_adapter_q8": {
+    "precision": "q8",
+    "max_loaded": 1,
+    "resident_models_in_ps": 1,
+    "resident_base_name": "tinystories",
+    "total_requests_served_by_single_base": 5,
+    "base_1_ms": 176.96,
+    "pirate_first_upload_ms": 60.84,
+    "scifi_first_upload_ms": 59.17,
+    "base_after_swap_ms": 44.77,
+    "pirate_cached_swap_ms": 48.02,
+    "base_restored_bit_exact": true,
+    "pirate_deterministic_bit_exact": true,
+    "distinct_outputs_verified": true,
+    "zero_base_reloads": true
+  },
+  "negative_checks": {
+    "mismatched_base_rejected": true
+  }
+}

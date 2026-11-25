@@ -6,6 +6,7 @@ mod generator;
 #[cfg(feature = "lm1b-experimental")]
 mod lm1b_small;
 mod local_ncm;
+mod lora;
 mod wmt14_generator;
 mod xsum_decode;
 mod xsum_generator;
@@ -25,6 +26,7 @@ pub use lm1b_small::{
     lm1b_small_reference_rope,
 };
 pub use local_ncm::LocalNcmModel;
+pub use lora::{LoraBlock, LoraPair, RuntimeLoraAdapter};
 pub use wmt14_generator::Wmt14GeneratorInspection;
 pub use xsum_decode::select_xsum_tokens_cpu;
 pub use xsum_generator::XsumGeneratorInspection;

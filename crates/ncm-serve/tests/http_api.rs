@@ -37,6 +37,8 @@ impl MockEngine {
             supports_text: true,
             supports_seed: true,
             supports_cfg: true,
+            base_model: None,
+            adapter_path: None,
         };
         (
             Self {

@@ -111,6 +111,26 @@ fn tinystories_prefixes(inputs: &[Vec<u32>]) -> Result<Vec<u32>> {
     Ok(inputs.iter().map(|row| row[0]).collect())
 }
 
+#[cfg(any(
+    feature = "cpu",
+    all(feature = "mlx", target_os = "macos", target_arch = "aarch64")
+))]
+pub(crate) fn load_sample_adapter<B: GeneratorBackend>(
+    backend: &B,
+    base_manifest_sha256: &str,
+    adapter_path: Option<&Path>,
+    n_layer: usize,
+    n_embd: usize,
+) -> Result<Option<ncm_model::RuntimeLoraAdapter<B::Tensor>>> {
+    let Some(path) = adapter_path else {
+        return Ok(None);
+    };
+    let loaded = ncm_io::LoraAdapterArtifact::load(path, Some(base_manifest_sha256))?;
+    Ok(Some(ncm_model::RuntimeLoraAdapter::from_artifact(
+        backend, &loaded, n_layer, n_embd,
+    )?))
+}
+
 /// Generate one seeded TinyStories batch and return host-owned codes and IDs.
 #[cfg(any(
     feature = "cpu",
@@ -121,10 +141,17 @@ fn sample_tinystories<B: GeneratorBackend + Clone>(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     seed: u64,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
     let prefixes = tinystories_prefixes(inputs)?;
-    let model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
+    let base_sha = artifact.manifest_sha256().to_owned();
+    let mut model = TinyStoriesTeacher::from_artifact(backend.clone(), &artifact)?;
     drop(artifact);
+    let (n_layer, n_embd) = model.lora_dimensions();
+    if let Some(adapter) = load_sample_adapter(&backend, &base_sha, adapter_path, n_layer, n_embd)?
+    {
+        model.set_lora_adapter(Some(adapter))?;
+    }
     let generated = model.sample_seeded(&prefixes, inputs.len(), seed)?;
     drop(generated.logits);
     let codes = backend.read_indices(&generated.codes)?;
@@ -153,8 +180,9 @@ fn dispatch_tinystories(
     inputs: &[Vec<u32>],
     seed: u64,
     precision: ncm_core::ComputePrecision,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, seed, precision);
+    let _ = (&artifact, inputs, seed, precision, adapter_path);
     match device {
         #[cfg(feature = "cpu")]
         "cpu" => sample_tinystories(
@@ -162,6 +190,7 @@ fn dispatch_tinystories(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         #[cfg(feature = "cuda")]
         "cuda" => sample_tinystories(
@@ -169,6 +198,7 @@ fn dispatch_tinystories(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         #[cfg(feature = "cuda-cudnn")]
         "cuda-cudnn" => sample_tinystories(
@@ -176,6 +206,7 @@ fn dispatch_tinystories(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx" => sample_tinystories(
@@ -183,6 +214,7 @@ fn dispatch_tinystories(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         _ => Err("requested device is unavailable in this build; no fallback".into()),
     }
@@ -197,13 +229,20 @@ fn sample_local<B: GeneratorBackend + Clone>(
     artifact: Artifact,
     inputs: &[Vec<u32>],
     seed: Option<u64>,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
     if inputs.is_empty() || inputs.len() > 128 || inputs.iter().any(|r| r.len() != inputs[0].len())
     {
         return Err("local-ncm-v1 expects 1..=128 equal-length prefix token rows".into());
     }
-    let model = LocalNcmModel::from_artifact(backend.clone(), &artifact)?;
+    let base_sha = artifact.manifest_sha256().to_owned();
+    let mut model = LocalNcmModel::from_artifact(backend.clone(), &artifact)?;
     drop(artifact);
+    let (n_layer, n_embd) = model.lora_dimensions();
+    if let Some(adapter) = load_sample_adapter(&backend, &base_sha, adapter_path, n_layer, n_embd)?
+    {
+        model.set_lora_adapter(Some(adapter))?;
+    }
     let prefix_len = model.config().prefix_len;
     if inputs[0].len() != prefix_len {
         return Err(format!(
@@ -242,8 +281,9 @@ fn dispatch_local(
     inputs: &[Vec<u32>],
     seed: Option<u64>,
     precision: ncm_core::ComputePrecision,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, seed, precision);
+    let _ = (&artifact, inputs, seed, precision, adapter_path);
     match device {
         #[cfg(feature = "cpu")]
         "cpu" => sample_local(
@@ -251,6 +291,7 @@ fn dispatch_local(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         #[cfg(feature = "cuda")]
         "cuda" => sample_local(
@@ -258,6 +299,7 @@ fn dispatch_local(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         #[cfg(feature = "cuda-cudnn")]
         "cuda-cudnn" => sample_local(
@@ -265,6 +307,7 @@ fn dispatch_local(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
         "mlx" => sample_local(
@@ -272,6 +315,7 @@ fn dispatch_local(
             artifact,
             inputs,
             seed,
+            adapter_path,
         ),
         _ => Err("requested device is unavailable in this build; no fallback".into()),
     }
@@ -302,11 +346,18 @@ fn sample_xsum(
     cfg_scale: f64,
     seed: Option<u64>,
     precision: ncm_core::ComputePrecision,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
     let prefixes = xsum_prefixes(inputs)?;
+    let base_sha = artifact.manifest_sha256().to_owned();
     let backend = ncm_backend_cuda::CandleBackend::cuda_cudnn(0)?.with_precision(precision)?;
-    let model =
+    let mut model =
         XsumTeacher::from_owned_artifact(backend.clone(), artifact)?.with_prefix_cache(true);
+    let (n_layer, n_embd) = model.lora_dimensions();
+    if let Some(adapter) = load_sample_adapter(&backend, &base_sha, adapter_path, n_layer, n_embd)?
+    {
+        model.set_lora_adapter(Some(adapter))?;
+    }
     let generated = if let Some(seed) = seed {
         model.sample_seeded_device(&prefixes, inputs.len(), cfg_scale, seed)?
     } else {
@@ -351,11 +402,18 @@ fn sample_xsum_mlx(
     cfg_scale: f64,
     seed: Option<u64>,
     precision: ncm_core::ComputePrecision,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
     let prefixes = xsum_prefixes(inputs)?;
+    let base_sha = artifact.manifest_sha256().to_owned();
     let backend = ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision)?;
-    let model =
+    let mut model =
         XsumTeacher::from_owned_artifact(backend.clone(), artifact)?.with_prefix_cache(true);
+    let (n_layer, n_embd) = model.lora_dimensions();
+    if let Some(adapter) = load_sample_adapter(&backend, &base_sha, adapter_path, n_layer, n_embd)?
+    {
+        model.set_lora_adapter(Some(adapter))?;
+    }
     let generated = if let Some(seed) = seed {
         model.sample_seeded_cfg_cpu(&prefixes, inputs.len(), cfg_scale, seed)?
     } else {
@@ -371,13 +429,14 @@ fn dispatch_xsum(
     cfg_scale: f64,
     seed: Option<u64>,
     precision: ncm_core::ComputePrecision,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, cfg_scale, seed, precision);
+    let _ = (&artifact, inputs, cfg_scale, seed, precision, adapter_path);
     match device {
         #[cfg(feature = "cuda-cudnn")]
-        "cuda-cudnn" => sample_xsum(artifact, inputs, cfg_scale, seed, precision),
+        "cuda-cudnn" => sample_xsum(artifact, inputs, cfg_scale, seed, precision, adapter_path),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-        "mlx" => sample_xsum_mlx(artifact, inputs, cfg_scale, seed, precision),
+        "mlx" => sample_xsum_mlx(artifact, inputs, cfg_scale, seed, precision, adapter_path),
         _ => Err("XSum requested device is unavailable in this build; no fallback".into()),
     }
 }
@@ -396,6 +455,7 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
     scale: f64,
     metal_optimized: bool,
     padded_retry: bool,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
     if !scale.is_finite() || scale < 0.0 || !(scale as f32).is_finite() {
         return Err("invalid WMT14 CFG scale".into());
@@ -411,7 +471,8 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
         return Err("invalid WMT14 batch size or prefix length".into());
     }
     let prefixes: Vec<_> = inputs.iter().flatten().copied().collect();
-    let teacher = if metal_optimized {
+    let base_sha = artifact.manifest_sha256().to_owned();
+    let mut teacher = if metal_optimized {
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
             .with_prefix_cache(scale == 0.0)
             .with_deferred_head_check_experimental()
@@ -419,6 +480,11 @@ fn sample_wmt14<B: ncm_core::GeneratorBackend + Clone>(
         ncm_model::Wmt14Teacher::from_owned_artifact(backend.clone(), artifact)?
             .with_prefix_cache(scale == 0.0)
     };
+    let (n_layer, n_embd) = teacher.lora_dimensions();
+    if let Some(adapter) = load_sample_adapter(&backend, &base_sha, adapter_path, n_layer, n_embd)?
+    {
+        teacher.set_lora_adapter(Some(adapter))?;
+    }
     let batch = inputs.len();
     let (output, retried) = if metal_optimized && (scale == 0.0 || scale == 1.0) {
         let teacher = teacher.with_level_materialization_experimental(5)?;
@@ -480,8 +546,9 @@ fn dispatch_wmt14(
     inputs: &[Vec<u32>],
     scale: f64,
     precision: ncm_core::ComputePrecision,
+    adapter_path: Option<&Path>,
 ) -> Result<serde_json::Value> {
-    let _ = (&artifact, inputs, scale, precision);
+    let _ = (&artifact, inputs, scale, precision, adapter_path);
     match device {
         #[cfg(all(feature = "wmt14-experimental", feature = "cuda-cudnn"))]
         "cuda" => sample_wmt14(
@@ -492,6 +559,7 @@ fn dispatch_wmt14(
             scale,
             false,
             false,
+            adapter_path,
         ),
         #[cfg(all(
             feature = "wmt14-experimental",
@@ -506,6 +574,7 @@ fn dispatch_wmt14(
             scale,
             true,
             device == "mlx-retry-padded",
+            adapter_path,
         ),
         _ => Err("experimental WMT14 requested device is unavailable in this build".into()),
     }
@@ -600,23 +669,30 @@ fn main_impl() -> Result<()> {
     let plain = unified && args.iter().skip(5).any(|arg| arg == "--plain");
     let decode = unified && (plain || args.iter().skip(5).any(|arg| arg == "--decode"));
     let text = unified && args.iter().skip(5).any(|arg| arg == "--text");
-    let precision = if unified {
+    let (precision, adapter_path) = if unified {
         let mut parsed = ncm_core::ComputePrecision::Fp32;
+        let mut adapter: Option<std::path::PathBuf> = None;
         let mut i = 5;
         while i < args.len() {
             if args[i] == "--precision" {
+                let raw = args.get(i + 1).ok_or(
+                    "missing value for --precision (expected fp32, bf16, fp16, q8, or q4)",
+                )?;
+                parsed = raw.parse()?;
+                i += 2;
+            } else if args[i] == "--adapter" {
                 let raw = args
                     .get(i + 1)
-                    .ok_or("missing value for --precision (expected fp32, bf16, or fp16)")?;
-                parsed = raw.parse()?;
+                    .ok_or("missing value for --adapter (expected adapter directory)")?;
+                adapter = Some(std::path::PathBuf::from(raw));
                 i += 2;
             } else {
                 i += 1;
             }
         }
-        parsed
+        (parsed, adapter)
     } else {
-        ncm_core::ComputePrecision::Fp32
+        (ncm_core::ComputePrecision::Fp32, None)
     };
     if unified {
         args = sample::translate(&args)?;
@@ -634,7 +710,13 @@ fn main_impl() -> Result<()> {
         .get(1)
         .is_some_and(|arg| arg == "sample-lm1b" || arg == "sample-lm1b-small")
     {
-        let result = lm1b::sample(&args, text, inline_prompt.as_deref(), precision)?;
+        let result = lm1b::sample(
+            &args,
+            text,
+            inline_prompt.as_deref(),
+            precision,
+            adapter_path.as_deref(),
+        )?;
         print_output(&result, plain)?;
         return Ok(());
     }
@@ -681,15 +763,44 @@ fn main_impl() -> Result<()> {
     let mut result = if args[1] == "sample-xsum" {
         let cfg_scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
         let seed = args.get(6).map(|s| s.parse::<u64>()).transpose()?;
-        dispatch_xsum(&args[3], artifact, &inputs, cfg_scale, seed, precision)?
+        dispatch_xsum(
+            &args[3],
+            artifact,
+            &inputs,
+            cfg_scale,
+            seed,
+            precision,
+            adapter_path.as_deref(),
+        )?
     } else if args[1] == "sample-wmt14" {
         let scale = args.get(5).map_or(Ok(0.0), |s| s.parse::<f64>())?;
-        dispatch_wmt14(&args[3], artifact, &inputs, scale, precision)?
+        dispatch_wmt14(
+            &args[3],
+            artifact,
+            &inputs,
+            scale,
+            precision,
+            adapter_path.as_deref(),
+        )?
     } else if args[1] == "sample-local" {
         let seed = args.get(5).map(|s| s.parse::<u64>()).transpose()?;
-        dispatch_local(&args[3], artifact, &inputs, seed, precision)?
+        dispatch_local(
+            &args[3],
+            artifact,
+            &inputs,
+            seed,
+            precision,
+            adapter_path.as_deref(),
+        )?
     } else if let Some(seed) = sample_seed {
-        dispatch_tinystories(&args[3], artifact, &inputs, seed, precision)?
+        dispatch_tinystories(
+            &args[3],
+            artifact,
+            &inputs,
+            seed,
+            precision,
+            adapter_path.as_deref(),
+        )?
     } else {
         let batch_size = args.get(5).map_or(Ok(128), |s| s.parse::<usize>())?;
         dispatch(&args[3], &args[1], artifact, &inputs, batch_size, precision)?

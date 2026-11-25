@@ -42,6 +42,7 @@ pub struct LocalNcmModel<B: GeneratorBackend> {
     heads: LocalHeads<B::Tensor>,
     geometry: Vec<LevelGeometry<B::Tensor>>,
     prefix_cache: bool,
+    lora: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
     request_lock: std::sync::Mutex<()>,
 }
 
@@ -175,6 +176,7 @@ impl<B: GeneratorBackend + Clone> LocalNcmModel<B> {
             heads,
             geometry,
             prefix_cache,
+            lora: None,
             request_lock: std::sync::Mutex::new(()),
         })
     }
@@ -186,6 +188,31 @@ impl<B: GeneratorBackend> LocalNcmModel<B> {
     pub fn with_prefix_cache(mut self, enabled: bool) -> Self {
         self.prefix_cache = enabled;
         self
+    }
+
+    /// Expected `(n_layer, n_embd)` dimensions for compatible LoRA adapters.
+    pub fn lora_dimensions(&self) -> (usize, usize) {
+        (self.config.n_layer, self.config.n_embd)
+    }
+
+    /// Attach or detach a runtime LoRA adapter overlay (instant refcounted swap).
+    pub fn set_lora_adapter(
+        &mut self,
+        adapter: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
+    ) -> Result<()> {
+        if let Some(ref a) = adapter
+            && (a.n_layer() != self.config.n_layer || a.n_embd() != self.config.n_embd)
+        {
+            return Err(Error::Config(format!(
+                "LoRA adapter ({}, {}) does not match local model ({}, {})",
+                a.n_layer(),
+                a.n_embd(),
+                self.config.n_layer,
+                self.config.n_embd
+            )));
+        }
+        self.lora = adapter;
+        Ok(())
     }
 
     pub fn config(&self) -> &LocalGeneratorConfig {
@@ -249,6 +276,7 @@ impl<B: GeneratorBackend> LocalNcmModel<B> {
         let prefix = b.project_bias(&raw, &self.input.weight, &self.input.bias)?;
         trace.stage_tensor("prefix_done", &prefix)?;
 
+        let lora_blocks = self.lora.as_ref().map(|a| a.blocks());
         let prefix_cache = if self.prefix_cache {
             let prefix_cos = b.narrow(&self.geometry[0].cosine, 0, 0, cfg.prefix_len)?;
             let prefix_sin = b.narrow(&self.geometry[0].sine, 0, 0, cfg.prefix_len)?;
@@ -266,6 +294,7 @@ impl<B: GeneratorBackend> LocalNcmModel<B> {
             Some(prefill_prefix_cache(
                 b,
                 &self.blocks,
+                lora_blocks,
                 &prefix,
                 &prefix_cos,
                 &prefix_sin,
@@ -328,6 +357,7 @@ impl<B: GeneratorBackend> LocalNcmModel<B> {
                 decode_target_with_prefix_cache(
                     b,
                     &self.blocks,
+                    lora_blocks,
                     &self.final_norm,
                     &target,
                     cache,
@@ -349,6 +379,7 @@ impl<B: GeneratorBackend> LocalNcmModel<B> {
                 decode_transformer(
                     b,
                     &self.blocks,
+                    lora_blocks,
                     &self.final_norm,
                     &padded_geom,
                     &prefix,
@@ -362,6 +393,7 @@ impl<B: GeneratorBackend> LocalNcmModel<B> {
                 decode_transformer(
                     b,
                     &self.blocks,
+                    lora_blocks,
                     &self.final_norm,
                     geom,
                     &prefix,

@@ -115,8 +115,10 @@ pub fn read_tensor_map(bytes: &[u8]) -> Result<TensorMap> {
     Ok(map)
 }
 
-/// Loaded `local-ncm-v1` artifact contents for fine-tuning.
+/// Loaded `local-ncm-v1` (or converted upstream) artifact contents for fine-tuning.
 pub struct LoadedArtifactWeights {
+    pub base_profile: String,
+    pub base_manifest_sha256: String,
     pub config_bytes: Vec<u8>,
     pub config: LocalNcmConfig,
     pub codec_weights: TensorMap,
@@ -125,8 +127,9 @@ pub struct LoadedArtifactWeights {
 }
 
 /// Load validated codec + generator weights (plus raw `config.json` and optional `tokenizer.json`)
-/// from an existing verified `local-ncm-v1` or upstream `tinystories-inference-v1` artifact
-/// directory (for fine-tuning).
+/// from an existing verified `local-ncm-v1` or supported upstream artifact directory
+/// (`tinystories-inference-v1`, `xsum-inference-v1`/`v2`, `wmt14-inference-v1`, or
+/// `lm1b-{small,medium,large}-inference-{v1,v2}`).
 pub fn load_local_artifact_weights(artifact_dir: &Path) -> Result<LoadedArtifactWeights> {
     let artifact = Artifact::load_inference_streaming(artifact_dir).map_err(|e| {
         TrainError::Artifact(format!("load artifact {}: {e}", artifact_dir.display()))
@@ -134,8 +137,18 @@ pub fn load_local_artifact_weights(artifact_dir: &Path) -> Result<LoadedArtifact
     match artifact.manifest().profile.as_str() {
         "local-ncm-v1" => load_native_local_weights(artifact_dir, &artifact),
         "tinystories-inference-v1" => load_upstream_tinystories_weights(artifact_dir, &artifact),
+        "xsum-inference-v1" | "xsum-inference-v2" => {
+            load_upstream_xsum_weights(artifact_dir, &artifact)
+        }
+        "wmt14-inference-v1" => load_upstream_wmt14_weights(artifact_dir, &artifact),
+        "lm1b-small-inference-v1"
+        | "lm1b-small-inference-v2"
+        | "lm1b-medium-inference-v1"
+        | "lm1b-medium-inference-v2"
+        | "lm1b-large-inference-v1"
+        | "lm1b-large-inference-v2" => load_upstream_lm1b_weights(artifact_dir, &artifact),
         other => Err(TrainError::Artifact(format!(
-            "unsupported --init-from profile `{other}` (expected local-ncm-v1 or tinystories-inference-v1)"
+            "unsupported --init-from profile `{other}` (expected local-ncm-v1, tinystories-inference-v1, xsum-inference-v1/v2, wmt14-inference-v1, or lm1b-{{small,medium,large}}-inference-v1/v2)"
         ))),
     }
 }
@@ -158,6 +171,8 @@ fn load_native_local_weights(
     let generator_weights = read_tensor_map(&gen_bytes)?;
     let tokenizer_bytes = artifact.file("tokenizer.json").ok().map(|b| b.to_vec());
     Ok(LoadedArtifactWeights {
+        base_profile: artifact.manifest().profile.clone(),
+        base_manifest_sha256: artifact.manifest_sha256().to_owned(),
         config_bytes,
         config,
         codec_weights,
@@ -390,16 +405,57 @@ fn load_upstream_tinystories_weights(
         .collect();
     generator_weights.insert("lm_heads.0.bias".into(), (vec![l0_vocab], l0_bias));
 
-    // Expand tied codebook heads for levels 1..n_levels into exact UntiedAffine heads in parallel:
-    //   logits(h) = (inv_T / mean(||E||^2)) * (2 * (h @ P^T) @ E^T - ||E||^2)
-    //             = h @ W_eff^T + b_eff
-    //   W_eff = (2 * inv_T / mean(||E||^2)) * (E @ P)  [vocab, n_embd]
-    //   b_eff = -(inv_T / mean(||E||^2)) * ||E||^2     [vocab]
+    // Expand tied codebook heads for levels 1..n_levels into exact UntiedAffine heads in parallel.
+    expand_tied_codebook_heads(
+        &config,
+        &codec_weights,
+        &head_projs,
+        n_embd,
+        embed_dim,
+        &mut generator_weights,
+    )?;
+
+    // Validate complete converted inventories before returning.
+    validate_inventory(
+        "codec.safetensors",
+        &codec_weights,
+        &config.codec().weight_shapes(),
+    )?;
+    validate_inventory(
+        "generator.safetensors",
+        &generator_weights,
+        &config.model().weight_shapes(config.codec()),
+    )?;
+
+    let tokenizer_bytes = artifact.file("tokenizer.json").ok().map(|b| b.to_vec());
+    Ok(LoadedArtifactWeights {
+        base_profile: artifact.manifest().profile.clone(),
+        base_manifest_sha256: artifact.manifest_sha256().to_owned(),
+        config_bytes,
+        config,
+        codec_weights,
+        generator_weights,
+        tokenizer_bytes,
+    })
+}
+
+/// Expand tied codebook heads `[(level, proj[embed_dim, n_embd], log_inv_T)]` into exact
+/// `UntiedAffine` heads (`lm_heads.{level}.weight`, `lm_heads.{level}.bias`) in parallel:
+///   `W_eff = (2 * inv_T / mean(||E||^2)) * (E @ P)`  `[vocab, n_embd]`
+///   `b_eff = -(inv_T / mean(||E||^2)) * ||E||^2`     `[vocab]`
+fn expand_tied_codebook_heads(
+    config: &LocalNcmConfig,
+    codec_weights: &TensorMap,
+    head_projs: &[(usize, Vec<f32>, f32)],
+    n_embd: usize,
+    embed_dim: usize,
+    generator_weights: &mut TensorMap,
+) -> Result<()> {
     type ConvertedHead = (usize, Vec<f32>, Vec<f32>);
     let converted_heads: Result<Vec<ConvertedHead>> =
         std::thread::scope(|scope| {
             let mut handles = Vec::with_capacity(head_projs.len());
-            for (level, proj, log_inv_t) in &head_projs {
+            for (level, proj, log_inv_t) in head_projs {
                 let level = *level;
                 let vocab = config.model().vocab_size[level];
                 let book_name = format!("vq.embeddings.{level}.weight");
@@ -443,7 +499,6 @@ fn load_upstream_tinystories_weights(
 
                         let e_row = &book[k * embed_dim..(k + 1) * embed_dim];
                         let out_row = &mut w_eff[k * n_embd..(k + 1) * n_embd];
-                        // Accumulate out_row[j] += e_row[d] * proj[d * n_embd + j] (cache-friendly row order)
                         for (d, &e_kd) in e_row.iter().enumerate() {
                             let e_scaled = (f64::from(e_kd) * w_scale) as f32;
                             let p_row = &proj[d * n_embd..(d + 1) * n_embd];
@@ -477,8 +532,148 @@ fn load_upstream_tinystories_weights(
         );
         generator_weights.insert(format!("lm_heads.{level}.bias"), (vec![vocab], b_eff));
     }
+    Ok(())
+}
 
-    // Validate complete converted inventories before returning.
+/// Admit a verified upstream `xsum-inference-v1`/`v2` artifact and convert its 9 tied-codebook
+/// heads (`lm_heads.{0..9}.{proj.weight, log_inv_T}`) into exact `UntiedAffine` `local-ncm-v1`.
+fn load_upstream_xsum_weights(
+    artifact_dir: &Path,
+    artifact: &Artifact,
+) -> Result<LoadedArtifactWeights> {
+    let raw_cfg_bytes = artifact
+        .file("config.json")
+        .map_err(|e| TrainError::Artifact(e.to_string()))?;
+    let raw_cfg: serde_json::Value = serde_json::from_slice(raw_cfg_bytes)
+        .map_err(|e| TrainError::Config(format!("parse XSum config.json: {e}")))?;
+    let vqvae = raw_cfg
+        .get("tokenizer")
+        .and_then(|t| t.get("vqvae"))
+        .ok_or_else(|| TrainError::Config("XSum config missing tokenizer.vqvae".into()))?;
+    let model_raw = raw_cfg
+        .get("model")
+        .ok_or_else(|| TrainError::Config("XSum config missing model".into()))?;
+
+    let vq_vocab = vqvae
+        .get("vqvae_vocab_size")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| TrainError::Config("XSum missing vqvae_vocab_size".into()))?;
+    let n_levels = vq_vocab.len();
+    let n_embd = model_raw
+        .get("n_embd")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(768) as usize;
+    let n_head = model_raw
+        .get("n_head")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(12) as usize;
+    let n_layer = model_raw
+        .get("n_layer")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(12) as usize;
+    let prefix_len = model_raw
+        .get("prefix_len")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(512) as usize;
+    let context_length = model_raw
+        .get("context_length")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(560) as usize;
+    let rope_base = model_raw
+        .get("rope_base")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(100_000) as usize;
+    let pad_token_id = model_raw
+        .get("prefix_pad_token_id")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(50257) as u32;
+
+    let local_cfg_val = serde_json::json!({
+        "tokenizer": vqvae,
+        "model": {
+            "attn_pattern": "block_diagonal",
+            "bias": true,
+            "context_length": context_length,
+            "dropout": 0.0,
+            "n_embd": n_embd,
+            "n_head": n_head,
+            "n_layer": n_layer,
+            "prefix_len": prefix_len,
+            "query_level0": true,
+            "raw_token_prefix": true,
+            "rope_base": rope_base,
+            "tie_heads_to_codebook": false,
+            "use_level_encoding": true,
+            "use_positional_encoding": true,
+            "use_qk_norm": true,
+            "use_rope": true,
+            "vocab_size": vq_vocab,
+            "head_kind": "untied_affine",
+            "pad_token_id": pad_token_id,
+            "eos_token_id": 50256,
+            "temperature": 1.0,
+        }
+    });
+    let config_bytes = serde_json::to_vec_pretty(&local_cfg_val)
+        .map_err(|e| TrainError::Config(format!("serialize converted XSum config: {e}")))?;
+    let config =
+        LocalNcmConfig::from_json(&config_bytes).map_err(|e| TrainError::Config(e.to_string()))?;
+    let embed_dim = config.codec().raw().embed_dim;
+
+    let codec_bytes = fs::read(artifact_dir.join("codec.safetensors"))
+        .map_err(|e| TrainError::Io(format!("read codec.safetensors: {e}")))?;
+    let codec_weights = read_tensor_map(&codec_bytes)?;
+
+    let gen_bytes = fs::read(artifact_dir.join("generator.safetensors"))
+        .map_err(|e| TrainError::Io(format!("read generator.safetensors: {e}")))?;
+    let gen_st = SafeTensors::deserialize(&gen_bytes)
+        .map_err(|e| TrainError::Artifact(format!("parse generator.safetensors: {e}")))?;
+
+    let mut generator_weights = TensorMap::new();
+    for (name, view) in gen_st.tensors() {
+        if name == "lvl_1L" || name == "attn_mask_for_masking" || name.starts_with("lm_heads.") {
+            continue;
+        }
+        let vals = read_f32_tensor_view(&name, &view)?;
+        generator_weights.insert(name, (view.shape().to_vec(), vals));
+    }
+
+    let mut head_projs = Vec::with_capacity(n_levels);
+    for i in 0..n_levels {
+        let proj_name = format!("lm_heads.{i}.proj.weight");
+        let temp_name = format!("lm_heads.{i}.log_inv_T");
+        let proj_view = gen_st
+            .tensor(&proj_name)
+            .map_err(|e| TrainError::Artifact(format!("missing {proj_name}: {e}")))?;
+        let temp_view = gen_st
+            .tensor(&temp_name)
+            .map_err(|e| TrainError::Artifact(format!("missing {temp_name}: {e}")))?;
+        if proj_view.shape() != [embed_dim, n_embd] {
+            return Err(TrainError::Artifact(format!(
+                "unexpected {proj_name} shape {:?}",
+                proj_view.shape()
+            )));
+        }
+        let proj_vals = read_f32_tensor_view(&proj_name, &proj_view)?;
+        let temp_vals = read_f32_tensor_view(&temp_name, &temp_view)?;
+        if temp_vals.len() != 1 {
+            return Err(TrainError::Artifact(format!(
+                "expected scalar {temp_name}, got len {}",
+                temp_vals.len()
+            )));
+        }
+        head_projs.push((i, proj_vals, temp_vals[0]));
+    }
+
+    expand_tied_codebook_heads(
+        &config,
+        &codec_weights,
+        &head_projs,
+        n_embd,
+        embed_dim,
+        &mut generator_weights,
+    )?;
+
     validate_inventory(
         "codec.safetensors",
         &codec_weights,
@@ -492,6 +687,336 @@ fn load_upstream_tinystories_weights(
 
     let tokenizer_bytes = artifact.file("tokenizer.json").ok().map(|b| b.to_vec());
     Ok(LoadedArtifactWeights {
+        base_profile: artifact.manifest().profile.clone(),
+        base_manifest_sha256: artifact.manifest_sha256().to_owned(),
+        config_bytes,
+        config,
+        codec_weights,
+        generator_weights,
+        tokenizer_bytes,
+    })
+}
+
+/// Admit a verified upstream `wmt14-inference-v1` artifact into `local-ncm-v1` (`UntiedLinear`).
+fn load_upstream_wmt14_weights(
+    artifact_dir: &Path,
+    artifact: &Artifact,
+) -> Result<LoadedArtifactWeights> {
+    let raw_cfg_bytes = artifact
+        .file("config.json")
+        .map_err(|e| TrainError::Artifact(e.to_string()))?;
+    let raw_cfg: serde_json::Value = serde_json::from_slice(raw_cfg_bytes)
+        .map_err(|e| TrainError::Config(format!("parse WMT14 config.json: {e}")))?;
+    let vqvae = raw_cfg
+        .get("tokenizer")
+        .and_then(|t| t.get("vqvae"))
+        .ok_or_else(|| TrainError::Config("WMT14 config missing tokenizer.vqvae".into()))?;
+    let model_raw = raw_cfg
+        .get("model")
+        .ok_or_else(|| TrainError::Config("WMT14 config missing model".into()))?;
+
+    let vq_vocab = vqvae
+        .get("vqvae_vocab_size")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| TrainError::Config("WMT14 missing vqvae_vocab_size".into()))?;
+    let n_levels = vq_vocab.len();
+    let n_embd = model_raw
+        .get("n_embd")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(768) as usize;
+    let n_head = model_raw
+        .get("n_head")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(12) as usize;
+    let n_layer = model_raw
+        .get("n_layer")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(12) as usize;
+    let prefix_len = model_raw
+        .get("prefix_len")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(96) as usize;
+    let context_length = model_raw
+        .get("context_length")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(160) as usize;
+    let rope_base = model_raw
+        .get("rope_base")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(100_000) as usize;
+    let pad_token_id = model_raw
+        .get("prefix_pad_token_id")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(151643) as u32;
+
+    let local_cfg_val = serde_json::json!({
+        "tokenizer": vqvae,
+        "model": {
+            "attn_pattern": "block_diagonal",
+            "bias": true,
+            "context_length": context_length,
+            "dropout": 0.0,
+            "n_embd": n_embd,
+            "n_head": n_head,
+            "n_layer": n_layer,
+            "prefix_len": prefix_len,
+            "query_level0": true,
+            "raw_token_prefix": true,
+            "rope_base": rope_base,
+            "tie_heads_to_codebook": false,
+            "use_level_encoding": true,
+            "use_positional_encoding": true,
+            "use_qk_norm": true,
+            "use_rope": true,
+            "vocab_size": vq_vocab,
+            "head_kind": "untied_linear",
+            "pad_token_id": pad_token_id,
+            "eos_token_id": 151645,
+            "temperature": 1.0,
+        }
+    });
+    let config_bytes = serde_json::to_vec_pretty(&local_cfg_val)
+        .map_err(|e| TrainError::Config(format!("serialize converted WMT14 config: {e}")))?;
+    let config =
+        LocalNcmConfig::from_json(&config_bytes).map_err(|e| TrainError::Config(e.to_string()))?;
+    let embed_dim = config.codec().raw().embed_dim;
+    let l0_len = config.codec().levels()[0];
+
+    let codec_bytes = fs::read(artifact_dir.join("codec.safetensors"))
+        .map_err(|e| TrainError::Io(format!("read codec.safetensors: {e}")))?;
+    let codec_weights = read_tensor_map(&codec_bytes)?;
+
+    let gen_bytes = fs::read(artifact_dir.join("generator.safetensors"))
+        .map_err(|e| TrainError::Io(format!("read generator.safetensors: {e}")))?;
+    let gen_st = SafeTensors::deserialize(&gen_bytes)
+        .map_err(|e| TrainError::Artifact(format!("parse generator.safetensors: {e}")))?;
+
+    let mut generator_weights = TensorMap::new();
+    for (name, view) in gen_st.tensors() {
+        if name == "lvl_1L"
+            || name == "attn_mask_for_masking"
+            || name == "lm_head_l0.weight"
+            || name.starts_with("lm_heads.")
+        {
+            continue;
+        }
+        if name == "transformer.wle.weight" {
+            let old_wle = read_f32_tensor_view(&name, &view)?;
+            if view.shape() != [n_levels - 1, n_embd] {
+                return Err(TrainError::Artifact(format!(
+                    "unexpected WMT14 transformer.wle.weight shape {:?}",
+                    view.shape()
+                )));
+            }
+            let mut new_wle = vec![0.0f32; n_levels * n_embd];
+            new_wle[n_embd..].copy_from_slice(&old_wle);
+            generator_weights.insert(name, (vec![n_levels, n_embd], new_wle));
+            continue;
+        }
+        let vals = read_f32_tensor_view(&name, &view)?;
+        generator_weights.insert(name, (view.shape().to_vec(), vals));
+    }
+
+    generator_weights.insert(
+        "l0_queries".into(),
+        (vec![1, l0_len, embed_dim], vec![0.0f32; l0_len * embed_dim]),
+    );
+
+    let l0_view = gen_st
+        .tensor("lm_head_l0.weight")
+        .map_err(|e| TrainError::Artifact(format!("missing lm_head_l0.weight: {e}")))?;
+    let l0_vals = read_f32_tensor_view("lm_head_l0.weight", &l0_view)?;
+    generator_weights.insert(
+        "lm_heads.0.weight".into(),
+        (l0_view.shape().to_vec(), l0_vals),
+    );
+    for i in 0..(n_levels - 1) {
+        let src_name = format!("lm_heads.{i}.weight");
+        let view = gen_st
+            .tensor(&src_name)
+            .map_err(|e| TrainError::Artifact(format!("missing {src_name}: {e}")))?;
+        let vals = read_f32_tensor_view(&src_name, &view)?;
+        generator_weights.insert(
+            format!("lm_heads.{}.weight", i + 1),
+            (view.shape().to_vec(), vals),
+        );
+    }
+
+    validate_inventory(
+        "codec.safetensors",
+        &codec_weights,
+        &config.codec().weight_shapes(),
+    )?;
+    validate_inventory(
+        "generator.safetensors",
+        &generator_weights,
+        &config.model().weight_shapes(config.codec()),
+    )?;
+
+    let tokenizer_bytes = artifact.file("tokenizer.json").ok().map(|b| b.to_vec());
+    Ok(LoadedArtifactWeights {
+        base_profile: artifact.manifest().profile.clone(),
+        base_manifest_sha256: artifact.manifest_sha256().to_owned(),
+        config_bytes,
+        config,
+        codec_weights,
+        generator_weights,
+        tokenizer_bytes,
+    })
+}
+
+/// Admit a verified upstream `lm1b-{small,medium,large}-inference-{v1,v2}` artifact into
+/// `local-ncm-v1` (`SharedHeadBiases`).
+fn load_upstream_lm1b_weights(
+    artifact_dir: &Path,
+    artifact: &Artifact,
+) -> Result<LoadedArtifactWeights> {
+    let raw_cfg_bytes = artifact
+        .file("config.json")
+        .map_err(|e| TrainError::Artifact(e.to_string()))?;
+    let raw_cfg: serde_json::Value = serde_json::from_slice(raw_cfg_bytes)
+        .map_err(|e| TrainError::Config(format!("parse LM1B config.json: {e}")))?;
+    let mut vqvae = raw_cfg
+        .get("tokenizer")
+        .and_then(|t| t.get("vqvae"))
+        .cloned()
+        .ok_or_else(|| TrainError::Config("LM1B config missing tokenizer.vqvae".into()))?;
+    // Strip training-only `aux` metadata (`code_corruption`, dual `fine_drop`) and populate
+    // optional cascade-norm defaults expected by the strict `local-ncm-v1` codec schema.
+    if let Some(vqc) = vqvae
+        .get_mut("vector_quantizer_config")
+        .and_then(|v| v.as_object_mut())
+    {
+        vqc.remove("aux");
+        vqc.entry("learned_l1_cascade_norm")
+            .or_insert(serde_json::Value::Bool(false));
+        vqc.entry("learned_l1_cascade_norm_final")
+            .or_insert(serde_json::Value::Bool(false));
+    }
+    let model_raw = raw_cfg
+        .get("model")
+        .ok_or_else(|| TrainError::Config("LM1B config missing model".into()))?;
+
+    let vq_vocab = vqvae
+        .get("vqvae_vocab_size")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .ok_or_else(|| TrainError::Config("LM1B missing vqvae_vocab_size".into()))?;
+    let n_levels = vq_vocab.len();
+    let n_embd = model_raw
+        .get("n_embd")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(768) as usize;
+    let n_head = model_raw
+        .get("n_head")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(12) as usize;
+    let n_layer = model_raw
+        .get("n_layer")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(12) as usize;
+    let prefix_len = model_raw
+        .get("prefix_len")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(1) as usize;
+    let context_length = model_raw
+        .get("context_length")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(129) as usize;
+    let rope_base = model_raw
+        .get("rope_base")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(10_000) as usize;
+    let pad_token_id = model_raw
+        .get("prefix_pad_token_id")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0) as u32;
+
+    let local_cfg_val = serde_json::json!({
+        "tokenizer": vqvae,
+        "model": {
+            "attn_pattern": "block_diagonal",
+            "bias": true,
+            "context_length": context_length,
+            "dropout": 0.0,
+            "n_embd": n_embd,
+            "n_head": n_head,
+            "n_layer": n_layer,
+            "prefix_len": prefix_len,
+            "query_level0": true,
+            "raw_token_prefix": true,
+            "rope_base": rope_base,
+            "tie_heads_to_codebook": false,
+            "use_level_encoding": true,
+            "use_positional_encoding": true,
+            "use_qk_norm": true,
+            "use_rope": true,
+            "vocab_size": vq_vocab,
+            "head_kind": "shared_head_biases",
+            "pad_token_id": pad_token_id,
+            "eos_token_id": 102,
+            "temperature": 1.0,
+        }
+    });
+    let config_bytes = serde_json::to_vec_pretty(&local_cfg_val)
+        .map_err(|e| TrainError::Config(format!("serialize converted LM1B config: {e}")))?;
+    let config =
+        LocalNcmConfig::from_json(&config_bytes).map_err(|e| TrainError::Config(e.to_string()))?;
+
+    let codec_bytes = fs::read(artifact_dir.join("codec.safetensors"))
+        .map_err(|e| TrainError::Io(format!("read codec.safetensors: {e}")))?;
+    let codec_weights = read_tensor_map(&codec_bytes)?;
+
+    let gen_bytes = fs::read(artifact_dir.join("generator.safetensors"))
+        .map_err(|e| TrainError::Io(format!("read generator.safetensors: {e}")))?;
+    let gen_st = SafeTensors::deserialize(&gen_bytes)
+        .map_err(|e| TrainError::Artifact(format!("parse generator.safetensors: {e}")))?;
+
+    let mut generator_weights = TensorMap::new();
+    for (name, view) in gen_st.tensors() {
+        if name == "lvl_1L"
+            || name == "attn_mask_for_masking"
+            || name.starts_with("lm_heads.")
+            || name.starts_with("post_upsample_convs.")
+        {
+            continue;
+        }
+        let vals = read_f32_tensor_view(&name, &view)?;
+        generator_weights.insert(name, (view.shape().to_vec(), vals));
+    }
+
+    let head_view = gen_st
+        .tensor("lm_heads.head.weight")
+        .map_err(|e| TrainError::Artifact(format!("missing lm_heads.head.weight: {e}")))?;
+    let head_vals = read_f32_tensor_view("lm_heads.head.weight", &head_view)?;
+    generator_weights.insert(
+        "lm_head.weight".into(),
+        (head_view.shape().to_vec(), head_vals),
+    );
+    for i in 0..n_levels {
+        let src_name = format!("lm_heads.biases.{i}");
+        let view = gen_st
+            .tensor(&src_name)
+            .map_err(|e| TrainError::Artifact(format!("missing {src_name}: {e}")))?;
+        let vals = read_f32_tensor_view(&src_name, &view)?;
+        generator_weights.insert(format!("head_biases.{i}"), (view.shape().to_vec(), vals));
+    }
+
+    validate_inventory(
+        "codec.safetensors",
+        &codec_weights,
+        &config.codec().weight_shapes(),
+    )?;
+    validate_inventory(
+        "generator.safetensors",
+        &generator_weights,
+        &config.model().weight_shapes(config.codec()),
+    )?;
+
+    let tokenizer_bytes = artifact.file("tokenizer.json").ok().map(|b| b.to_vec());
+    Ok(LoadedArtifactWeights {
+        base_profile: artifact.manifest().profile.clone(),
+        base_manifest_sha256: artifact.manifest_sha256().to_owned(),
         config_bytes,
         config,
         codec_weights,

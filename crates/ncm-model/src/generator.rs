@@ -442,6 +442,7 @@ impl<B: ncm_core::GeneratorBackend> Generator<B> {
         decode_transformer(
             &self.model.backend,
             &self.model.parameters.blocks,
+            None,
             &self.model.parameters.final_norm,
             geometry,
             prefix,
@@ -628,12 +629,29 @@ fn prepare_geometry_with_rope<B: ncm_core::GeneratorBackend>(
     Ok(result)
 }
 
+#[inline]
+fn apply_linear<B: ncm_core::GeneratorBackend>(
+    b: &B,
+    affine: &Affine<B::Tensor>,
+    lora: Option<&crate::LoraPair<B::Tensor>>,
+    x: &B::Tensor,
+) -> Result<B::Tensor> {
+    let base = b.project_bias(x, &affine.weight, &affine.bias)?;
+    let Some(pair) = lora else {
+        return Ok(base);
+    };
+    let hidden = b.project(x, &pair.a)?;
+    let delta = b.project(&hidden, &pair.b_scaled)?;
+    b.add(&base, &delta)
+}
+
 // Shared block execution for profiles with the same upstream transformer.
 // Profile-specific embeddings, attention masks and output heads stay outside.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn decode_transformer<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
+    lora: Option<&[crate::LoraBlock<B::Tensor>]>,
     final_norm: &Affine<B::Tensor>,
     geometry: &LevelGeometry<B::Tensor>,
     prefix: &B::Tensor,
@@ -644,8 +662,8 @@ pub(crate) fn decode_transformer<B: ncm_core::GeneratorBackend>(
     length: usize,
 ) -> Result<B::Tensor> {
     decode_transformer_observed(
-        b, blocks, final_norm, geometry, prefix, target, prefix_len, heads, width, length, false,
-        None, None,
+        b, blocks, lora, final_norm, geometry, prefix, target, prefix_len, heads, width, length,
+        false, None, None,
     )
 }
 
@@ -653,6 +671,7 @@ pub(crate) fn decode_transformer<B: ncm_core::GeneratorBackend>(
 fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
+    lora: Option<&[crate::LoraBlock<B::Tensor>]>,
     final_norm: &Affine<B::Tensor>,
     geometry: &LevelGeometry<B::Tensor>,
     prefix: &B::Tensor,
@@ -668,8 +687,6 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
     let batch = b.shape(prefix)[0];
     let seq = prefix_len + length;
     let head = width / heads;
-    let linear =
-        |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
     let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
         if batch < 16 {
             b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
@@ -682,13 +699,14 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
         trace.tensor("diagnostic.level_01.input", &x)?;
     }
     for (index, block) in blocks.iter().enumerate() {
+        let lb = lora.and_then(|arr| arr.get(index));
         let normalized = norm(&block.ln_1, &x)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
             trace.tensor("diagnostic.level_01.first_norm", &normalized)?;
         }
-        let qkv = linear(&block.qkv, &normalized)?;
+        let qkv = apply_linear(b, &block.qkv, lb.map(|l| &l.qkv), &normalized)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
@@ -727,14 +745,20 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
         {
             trace.tensor("diagnostic.level_01.first_attention", &attn)?;
         }
-        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let attn_out = apply_linear(
+            b,
+            &block.attention_projection,
+            lb.map(|l| &l.attention_projection),
+            &attn,
+        )?;
+        x = b.add(&x, &attn_out)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
             trace.tensor("diagnostic.level_01.first_residual", &x)?;
         }
         let normalized = norm(&block.ln_2, &x)?;
-        let projected = linear(&block.mlp_in, &normalized)?;
+        let projected = apply_linear(b, &block.mlp_in, lb.map(|l| &l.mlp_in), &normalized)?;
         let hidden = b.gelu(&projected)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
@@ -743,7 +767,8 @@ fn decode_transformer_observed<B: ncm_core::GeneratorBackend>(
             trace.tensor("diagnostic.level_01.first_mlp_in", &projected)?;
             trace.tensor("diagnostic.level_01.first_mlp_gelu", &hidden)?;
         }
-        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        let mlp_out = apply_linear(b, &block.mlp_out, lb.map(|l| &l.mlp_out), &hidden)?;
+        x = b.add(&x, &mlp_out)?;
         if checkpoint_after_block == Some(index + 1) {
             b.evaluate(std::slice::from_ref(&x))?;
         }
@@ -766,6 +791,7 @@ pub(crate) type PrefixKvCache<T> = Vec<(T, T)>;
 pub(crate) fn prefill_prefix_cache<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
+    lora: Option<&[crate::LoraBlock<B::Tensor>]>,
     prefix: &B::Tensor,
     prefix_cosine: &B::Tensor,
     prefix_sine: &B::Tensor,
@@ -776,8 +802,6 @@ pub(crate) fn prefill_prefix_cache<B: ncm_core::GeneratorBackend>(
 ) -> Result<PrefixKvCache<B::Tensor>> {
     let batch = b.shape(prefix)[0];
     let head = width / heads;
-    let linear =
-        |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
     let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
         if batch < 16 {
             b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
@@ -788,8 +812,9 @@ pub(crate) fn prefill_prefix_cache<B: ncm_core::GeneratorBackend>(
     let mut x = prefix.clone();
     let mut cache = Vec::with_capacity(blocks.len());
     for (index, block) in blocks.iter().enumerate() {
+        let lb = lora.and_then(|arr| arr.get(index));
         let normalized = norm(&block.ln_1, &x)?;
-        let qkv = linear(&block.qkv, &normalized)?;
+        let qkv = apply_linear(b, &block.qkv, lb.map(|l| &l.qkv), &normalized)?;
         let [q, k, v] = b.split_qkv(&qkv, batch, prefix_len, heads, head)?;
         let k = b.rms_rope(&k, &block.k_norm, prefix_cosine, prefix_sine, 1e-6)?;
         if index + 1 == blocks.len() {
@@ -802,10 +827,22 @@ pub(crate) fn prefill_prefix_cache<B: ncm_core::GeneratorBackend>(
         let attn = b.attention(&q, &k, &v, prefix_mask)?;
         let attn = b.merge_heads(&attn, batch, prefix_len, heads, head)?;
         cache.push((k, v));
-        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let attn_out = apply_linear(
+            b,
+            &block.attention_projection,
+            lb.map(|l| &l.attention_projection),
+            &attn,
+        )?;
+        x = b.add(&x, &attn_out)?;
         let normalized = norm(&block.ln_2, &x)?;
-        let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
-        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        let hidden = b.gelu(&apply_linear(
+            b,
+            &block.mlp_in,
+            lb.map(|l| &l.mlp_in),
+            &normalized,
+        )?)?;
+        let mlp_out = apply_linear(b, &block.mlp_out, lb.map(|l| &l.mlp_out), &hidden)?;
+        x = b.add(&x, &mlp_out)?;
     }
     Ok(cache)
 }
@@ -818,6 +855,7 @@ pub(crate) fn prefill_prefix_cache<B: ncm_core::GeneratorBackend>(
 pub(crate) fn decode_target_with_prefix_cache<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
+    lora: Option<&[crate::LoraBlock<B::Tensor>]>,
     final_norm: &Affine<B::Tensor>,
     target: &B::Tensor,
     cache: &PrefixKvCache<B::Tensor>,
@@ -833,8 +871,6 @@ pub(crate) fn decode_target_with_prefix_cache<B: ncm_core::GeneratorBackend>(
     }
     let batch = b.shape(target)[0];
     let head = width / heads;
-    let linear =
-        |affine: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &affine.weight, &affine.bias);
     let norm = |affine: &Affine<B::Tensor>, x: &B::Tensor| {
         if batch < 16 {
             b.layer_norm(x, &affine.weight, Some(&affine.bias), 1e-6)
@@ -843,9 +879,10 @@ pub(crate) fn decode_target_with_prefix_cache<B: ncm_core::GeneratorBackend>(
         }
     };
     let mut x = target.clone();
-    for (block, (prefix_k, prefix_v)) in blocks.iter().zip(cache) {
+    for (index, (block, (prefix_k, prefix_v))) in blocks.iter().zip(cache).enumerate() {
+        let lb = lora.and_then(|arr| arr.get(index));
         let normalized = norm(&block.ln_1, &x)?;
-        let qkv = linear(&block.qkv, &normalized)?;
+        let qkv = apply_linear(b, &block.qkv, lb.map(|l| &l.qkv), &normalized)?;
         let [q, k, v] = b.split_qkv(&qkv, batch, length, heads, head)?;
         let q = b.rms_rope(&q, &block.q_norm, target_cosine, target_sine, 1e-6)?;
         let k = b.rms_rope(&k, &block.k_norm, target_cosine, target_sine, 1e-6)?;
@@ -853,10 +890,22 @@ pub(crate) fn decode_target_with_prefix_cache<B: ncm_core::GeneratorBackend>(
         let values = b.concat_f32(&[prefix_v.clone(), v], 2)?;
         let attn = b.attention(&q, &keys, &values, target_mask)?;
         let attn = b.merge_heads(&attn, batch, length, heads, head)?;
-        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let attn_out = apply_linear(
+            b,
+            &block.attention_projection,
+            lb.map(|l| &l.attention_projection),
+            &attn,
+        )?;
+        x = b.add(&x, &attn_out)?;
         let normalized = norm(&block.ln_2, &x)?;
-        let hidden = b.gelu(&linear(&block.mlp_in, &normalized)?)?;
-        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        let hidden = b.gelu(&apply_linear(
+            b,
+            &block.mlp_in,
+            lb.map(|l| &l.mlp_in),
+            &normalized,
+        )?)?;
+        let mlp_out = apply_linear(b, &block.mlp_out, lb.map(|l| &l.mlp_out), &hidden)?;
+        x = b.add(&x, &mlp_out)?;
     }
     norm(final_norm, &x)
 }
@@ -899,6 +948,7 @@ pub struct Wmt14Teacher<B: ncm_core::GeneratorBackend> {
     deferred_head_check_experimental: bool,
     materialize_after_level: Option<usize>,
     last_transformer_checkpoint: Option<usize>,
+    lora: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
 }
 
 /// Host-resident codes and raw IDs from experimental WMT14 generation.
@@ -995,7 +1045,32 @@ impl<B: ncm_core::GeneratorBackend + Clone> Wmt14Teacher<B> {
             deferred_head_check_experimental: false,
             materialize_after_level: None,
             last_transformer_checkpoint: None,
+            lora: None,
         })
+    }
+
+    /// Expected `(n_layer, n_embd)` dimensions for compatible LoRA adapters.
+    pub fn lora_dimensions(&self) -> (usize, usize) {
+        (self.blocks.len(), 768)
+    }
+
+    /// Attach or detach a runtime LoRA adapter overlay (instant refcounted swap).
+    pub fn set_lora_adapter(
+        &mut self,
+        adapter: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
+    ) -> Result<()> {
+        if let Some(ref a) = adapter
+            && (a.n_layer() != self.blocks.len() || a.n_embd() != 768)
+        {
+            return Err(Error::Config(format!(
+                "LoRA adapter ({}, {}) does not match WMT14 ({}, 768)",
+                a.n_layer(),
+                a.n_embd(),
+                self.blocks.len()
+            )));
+        }
+        self.lora = adapter;
+        Ok(())
     }
 
     /// Explicit unqualified cache candidate; the standard constructor stays no-cache.
@@ -1487,12 +1562,14 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                 cosine: base.cosine.clone(),
                 sine: base.sine.clone(),
             };
+            let lora_blocks = self.lora.as_ref().map(|a| a.blocks());
             let mut recompute_target = None;
             let hidden = if level == 0 {
                 if self.cached_prefix_experimental {
                     let (hidden, cache) = wmt14_prefix_transformer_cached(
                         b,
                         &self.blocks,
+                        lora_blocks,
                         &self.final_norm,
                         &geometry,
                         &prefix,
@@ -1505,7 +1582,14 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                     prefix_cache = Some(cache);
                     hidden
                 } else {
-                    wmt14_prefix_transformer(b, &self.blocks, &self.final_norm, &geometry, &prefix)?
+                    wmt14_prefix_transformer(
+                        b,
+                        &self.blocks,
+                        lora_blocks,
+                        &self.final_norm,
+                        &geometry,
+                        &prefix,
+                    )?
                 }
             } else {
                 let latent = b.area1d(cumulative.as_ref().expect("preceding level"), length)?;
@@ -1520,6 +1604,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                     wmt14_cached_target_transformer(
                         b,
                         &self.blocks,
+                        lora_blocks,
                         &self.final_norm,
                         &geometry,
                         &target,
@@ -1539,6 +1624,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                     decode_transformer_observed(
                         b,
                         &self.blocks,
+                        lora_blocks,
                         &self.final_norm,
                         &geometry,
                         &prefix,
@@ -1600,6 +1686,7 @@ impl<B: ncm_core::GeneratorBackend> Wmt14Teacher<B> {
                     let hidden = decode_transformer(
                         b,
                         &self.blocks,
+                        lora_blocks,
                         &self.final_norm,
                         &geometry,
                         &prefix,
@@ -1861,17 +1948,18 @@ fn wmt14_cfg_uses_eos_then_padding_and_rejects_bad_inputs() {
 fn wmt14_prefix_transformer<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
+    lora: Option<&[crate::LoraBlock<B::Tensor>]>,
     final_norm: &Affine<B::Tensor>,
     geometry: &LevelGeometry<B::Tensor>,
     prefix: &B::Tensor,
 ) -> Result<B::Tensor> {
     let batch = b.shape(prefix)[0];
-    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &a.weight, &a.bias);
     let norm =
         |a: &Affine<B::Tensor>, x: &B::Tensor| b.layer_norm(x, &a.weight, Some(&a.bias), 1e-6);
     let mut x = prefix.clone();
-    for block in blocks {
-        let qkv = linear(&block.qkv, &norm(&block.ln_1, &x)?)?;
+    for (index, block) in blocks.iter().enumerate() {
+        let lb = lora.and_then(|arr| arr.get(index));
+        let qkv = apply_linear(b, &block.qkv, lb.map(|l| &l.qkv), &norm(&block.ln_1, &x)?)?;
         let [q, k, v] = b.split_qkv(&qkv, batch, 96, 12, 64)?;
         let q = b.rms_rope(&q, &block.q_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
         let k = b.rms_rope(&k, &block.k_norm, &geometry.cosine, &geometry.sine, 1e-6)?;
@@ -1882,9 +1970,21 @@ fn wmt14_prefix_transformer<B: ncm_core::GeneratorBackend>(
             12,
             64,
         )?;
-        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
-        let hidden = b.gelu(&linear(&block.mlp_in, &norm(&block.ln_2, &x)?)?)?;
-        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        let attn_out = apply_linear(
+            b,
+            &block.attention_projection,
+            lb.map(|l| &l.attention_projection),
+            &attn,
+        )?;
+        x = b.add(&x, &attn_out)?;
+        let hidden = b.gelu(&apply_linear(
+            b,
+            &block.mlp_in,
+            lb.map(|l| &l.mlp_in),
+            &norm(&block.ln_2, &x)?,
+        )?)?;
+        let mlp_out = apply_linear(b, &block.mlp_out, lb.map(|l| &l.mlp_out), &hidden)?;
+        x = b.add(&x, &mlp_out)?;
     }
     norm(final_norm, &x)
 }
@@ -1896,25 +1996,26 @@ type Wmt14PrefixCache<T> = Vec<(T, T)>;
 fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
+    lora: Option<&[crate::LoraBlock<B::Tensor>]>,
     final_norm: &Affine<B::Tensor>,
     geometry: &LevelGeometry<B::Tensor>,
     prefix: &B::Tensor,
     mut trace: Option<&mut dyn crate::TraceSink<B>>,
 ) -> Result<(B::Tensor, Wmt14PrefixCache<B::Tensor>)> {
     let batch = b.shape(prefix)[0];
-    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| b.project_bias(x, &a.weight, &a.bias);
     let norm =
         |a: &Affine<B::Tensor>, x: &B::Tensor| b.layer_norm(x, &a.weight, Some(&a.bias), 1e-6);
     let mut x = prefix.clone();
     let mut cache = Vec::with_capacity(blocks.len());
     for (index, block) in blocks.iter().enumerate() {
+        let lb = lora.and_then(|arr| arr.get(index));
         let normalized = norm(&block.ln_1, &x)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
             trace.tensor("diagnostic.prefix.first_norm", &normalized)?;
         }
-        let qkv = linear(&block.qkv, &normalized)?;
+        let qkv = apply_linear(b, &block.qkv, lb.map(|l| &l.qkv), &normalized)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
@@ -1936,9 +2037,15 @@ fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
             trace.tensor("diagnostic.prefix.first_attention", &attn)?;
         }
         cache.push((k, v));
-        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let attn_out = apply_linear(
+            b,
+            &block.attention_projection,
+            lb.map(|l| &l.attention_projection),
+            &attn,
+        )?;
+        x = b.add(&x, &attn_out)?;
         let normalized = norm(&block.ln_2, &x)?;
-        let projected = linear(&block.mlp_in, &normalized)?;
+        let projected = apply_linear(b, &block.mlp_in, lb.map(|l| &l.mlp_in), &normalized)?;
         let hidden = b.gelu(&projected)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
@@ -1948,7 +2055,8 @@ fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
             trace.tensor("diagnostic.prefix.first_mlp_in", &projected)?;
             trace.tensor("diagnostic.prefix.first_mlp_gelu", &hidden)?;
         }
-        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        let mlp_out = apply_linear(b, &block.mlp_out, lb.map(|l| &l.mlp_out), &hidden)?;
+        x = b.add(&x, &mlp_out)?;
         if let Some(trace) = trace.as_deref_mut() {
             trace.tensor(&format!("diagnostic.prefix.block_{index:02}"), &x)?;
         }
@@ -1961,6 +2069,7 @@ fn wmt14_prefix_transformer_cached<B: ncm_core::GeneratorBackend>(
 fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
     b: &B,
     blocks: &[GeneratorBlock<B::Tensor>],
+    lora: Option<&[crate::LoraBlock<B::Tensor>]>,
     final_norm: &Affine<B::Tensor>,
     geometry: &LevelGeometry<B::Tensor>,
     target: &B::Tensor,
@@ -1978,7 +2087,7 @@ fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
     let cosine = b.narrow(&geometry.cosine, 0, 96, *length)?;
     let sine = b.narrow(&geometry.sine, 0, 96, *length)?;
     let mask = b.narrow(&geometry.mask, 2, 96, *length)?;
-    let linear = |a: &Affine<B::Tensor>, x: &B::Tensor| {
+    let linear = |a: &Affine<B::Tensor>, lp: Option<&crate::LoraPair<B::Tensor>>, x: &B::Tensor| {
         if let Some(padding) = projection_padding {
             let width = b.shape(x)[2];
             let filler = if width == 768 {
@@ -1987,9 +2096,9 @@ fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
                 b.upload_f32(&vec![0.0; *batch * 96 * width], &[*batch, 96, width])?
             };
             let full = b.concat_f32(&[filler, x.clone()], 1)?;
-            b.narrow(&b.project_bias(&full, &a.weight, &a.bias)?, 1, 96, *length)
+            b.narrow(&apply_linear(b, a, lp, &full)?, 1, 96, *length)
         } else {
-            b.project_bias(x, &a.weight, &a.bias)
+            apply_linear(b, a, lp, x)
         }
     };
     let norm = |a: &Affine<B::Tensor>, x: &B::Tensor| {
@@ -2004,13 +2113,14 @@ fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
         trace.tensor("diagnostic.level_01.input", &x)?;
     }
     for (index, (block, (prefix_k, prefix_v))) in blocks.iter().zip(cache).enumerate() {
+        let lb = lora.and_then(|arr| arr.get(index));
         let normalized = norm(&block.ln_1, &x)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
             trace.tensor("diagnostic.level_01.first_norm", &normalized)?;
         }
-        let qkv = linear(&block.qkv, &normalized)?;
+        let qkv = linear(&block.qkv, lb.map(|l| &l.qkv), &normalized)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
@@ -2039,14 +2149,24 @@ fn wmt14_cached_target_transformer<B: ncm_core::GeneratorBackend>(
         {
             trace.tensor("diagnostic.level_01.first_attention", &attn)?;
         }
-        x = b.add(&x, &linear(&block.attention_projection, &attn)?)?;
+        let attn_out = linear(
+            &block.attention_projection,
+            lb.map(|l| &l.attention_projection),
+            &attn,
+        )?;
+        x = b.add(&x, &attn_out)?;
         if index == 0
             && let Some(trace) = trace.as_deref_mut()
         {
             trace.tensor("diagnostic.level_01.first_residual", &x)?;
         }
-        let hidden = b.gelu(&linear(&block.mlp_in, &norm(&block.ln_2, &x)?)?)?;
-        x = b.add(&x, &linear(&block.mlp_out, &hidden)?)?;
+        let hidden = b.gelu(&linear(
+            &block.mlp_in,
+            lb.map(|l| &l.mlp_in),
+            &norm(&block.ln_2, &x)?,
+        )?)?;
+        let mlp_out = linear(&block.mlp_out, lb.map(|l| &l.mlp_out), &hidden)?;
+        x = b.add(&x, &mlp_out)?;
         if let Some(trace) = trace.as_deref_mut() {
             trace.tensor(&format!("diagnostic.level_01.block_{index:02}"), &x)?;
         }
@@ -2066,6 +2186,7 @@ pub struct TinyStoriesTeacher<B: ncm_core::GeneratorBackend> {
     heads: Box<[TinyHead<B::Tensor>]>,
     geometry: Vec<LevelGeometry<B::Tensor>>,
     initial_distribution: Vec<f32>,
+    lora: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
     request_lock: std::sync::Mutex<()>,
 }
 struct TinyHead<T> {
@@ -2174,6 +2295,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
             heads: heads.into_boxed_slice(),
             geometry,
             initial_distribution: inspection.initial_distribution,
+            lora: None,
             request_lock: std::sync::Mutex::new(()),
         })
     }
@@ -2181,6 +2303,30 @@ impl<B: ncm_core::GeneratorBackend + Clone> TinyStoriesTeacher<B> {
 impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
     pub fn initial_distribution(&self) -> &[f32] {
         &self.initial_distribution
+    }
+
+    /// Expected `(n_layer, n_embd)` dimensions for compatible LoRA adapters.
+    pub fn lora_dimensions(&self) -> (usize, usize) {
+        (self.blocks.len(), 768)
+    }
+
+    /// Attach or detach a runtime LoRA adapter overlay (instant refcounted swap).
+    pub fn set_lora_adapter(
+        &mut self,
+        adapter: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
+    ) -> Result<()> {
+        if let Some(ref a) = adapter
+            && (a.n_layer() != self.blocks.len() || a.n_embd() != 768)
+        {
+            return Err(Error::Config(format!(
+                "LoRA adapter ({}, {}) does not match TinyStories ({}, 768)",
+                a.n_layer(),
+                a.n_embd(),
+                self.blocks.len()
+            )));
+        }
+        self.lora = adapter;
+        Ok(())
     }
 
     /// Experimental TinyStories generation at temperature 1, top-k 0, top-p 1
@@ -2256,6 +2402,7 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
             let hidden = decode_transformer(
                 b,
                 &self.blocks,
+                self.lora.as_ref().map(|a| a.blocks()),
                 &self.final_norm,
                 &self.geometry[level],
                 &prefix,
@@ -2365,6 +2512,7 @@ impl<B: ncm_core::GeneratorBackend> TinyStoriesTeacher<B> {
                 let hidden = decode_transformer(
                     b,
                     &self.blocks,
+                    self.lora.as_ref().map(|a| a.blocks()),
                     &self.final_norm,
                     &self.geometry[level],
                     &prefix,
@@ -2411,6 +2559,7 @@ pub struct XsumTeacher<B: ncm_core::GeneratorBackend> {
     device_allowance: B::Tensor,
     reference_ties: bool,
     prefix_cache: bool,
+    lora: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
     request_lock: std::sync::Mutex<()>,
 }
 
@@ -2578,6 +2727,7 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
             device_allowance,
             reference_ties,
             prefix_cache: false,
+            lora: None,
             request_lock: std::sync::Mutex::new(()),
         })
     }
@@ -2586,6 +2736,30 @@ impl<B: ncm_core::GeneratorBackend + Clone> XsumTeacher<B> {
     pub fn with_prefix_cache(mut self, enabled: bool) -> Self {
         self.prefix_cache = enabled;
         self
+    }
+
+    /// Expected `(n_layer, n_embd)` dimensions for compatible LoRA adapters.
+    pub fn lora_dimensions(&self) -> (usize, usize) {
+        (self.blocks.len(), 768)
+    }
+
+    /// Attach or detach a runtime LoRA adapter overlay (instant refcounted swap).
+    pub fn set_lora_adapter(
+        &mut self,
+        adapter: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
+    ) -> Result<()> {
+        if let Some(ref a) = adapter
+            && (a.n_layer() != self.blocks.len() || a.n_embd() != 768)
+        {
+            return Err(Error::Config(format!(
+                "LoRA adapter ({}, {}) does not match XSum ({}, 768)",
+                a.n_layer(),
+                a.n_embd(),
+                self.blocks.len()
+            )));
+        }
+        self.lora = adapter;
+        Ok(())
     }
 }
 
@@ -2959,6 +3133,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
             Some(prefill_prefix_cache(
                 b,
                 &self.blocks,
+                self.lora.as_ref().map(|a| a.blocks()),
                 &prefix,
                 &prefix_cos,
                 &prefix_sin,
@@ -3007,6 +3182,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 decode_target_with_prefix_cache(
                     b,
                     &self.blocks,
+                    self.lora.as_ref().map(|a| a.blocks()),
                     &self.final_norm,
                     &target,
                     cache,
@@ -3037,6 +3213,7 @@ impl<B: ncm_core::GeneratorBackend> XsumTeacher<B> {
                 decode_transformer_observed(
                     b,
                     &self.blocks,
+                    self.lora.as_ref().map(|a| a.blocks()),
                     &self.final_norm,
                     &geometry,
                     &prefix,
@@ -3625,6 +3802,7 @@ pub struct Lm1bSmallTeacher<B: ncm_core::GeneratorBackend> {
     allowance: Vec<f32>,
     device_allowance: B::Tensor,
     initial_distribution: Vec<f32>,
+    lora: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
 }
 
 #[cfg(feature = "lm1b-experimental")]
@@ -3720,7 +3898,33 @@ impl<B: ncm_core::GeneratorBackend + Clone> Lm1bSmallTeacher<B> {
             allowance,
             device_allowance,
             initial_distribution,
+            lora: None,
         })
+    }
+
+    /// Expected `(n_layer, n_embd)` dimensions for compatible LoRA adapters.
+    pub fn lora_dimensions(&self) -> (usize, usize) {
+        (self.blocks.len(), self.size.width)
+    }
+
+    /// Attach or detach a runtime LoRA adapter overlay (instant refcounted swap).
+    pub fn set_lora_adapter(
+        &mut self,
+        adapter: Option<crate::RuntimeLoraAdapter<B::Tensor>>,
+    ) -> Result<()> {
+        if let Some(ref a) = adapter
+            && (a.n_layer() != self.blocks.len() || a.n_embd() != self.size.width)
+        {
+            return Err(Error::Config(format!(
+                "LoRA adapter ({}, {}) does not match LM1B ({}, {})",
+                a.n_layer(),
+                a.n_embd(),
+                self.blocks.len(),
+                self.size.width
+            )));
+        }
+        self.lora = adapter;
+        Ok(())
     }
 
     /// Explicit same-input diagnostic using externally supplied reference rotary tables.
@@ -4001,12 +4205,14 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                 )?;
                 let target = b.add(&target, &b.narrow(&self.levels, 0, level, 1)?)?;
                 let diagnose = self.diagnostic_level == Some(level);
+                let lora_blocks = self.lora.as_ref().map(|a| a.blocks());
                 let hidden = if diagnose {
                     trace.tensor(&format!("diagnostic.level_{level:02}.target"), &target)?;
                     let mut observed = Lm1bLevelTrace(level, &mut *trace);
                     decode_transformer_observed(
                         b,
                         &self.blocks,
+                        lora_blocks,
                         &self.final_norm,
                         &self.geometry[level],
                         &prefix,
@@ -4023,6 +4229,7 @@ impl<B: ncm_core::GeneratorBackend> Lm1bSmallTeacher<B> {
                     decode_transformer(
                         b,
                         &self.blocks,
+                        lora_blocks,
                         &self.final_norm,
                         &self.geometry[level],
                         &prefix,

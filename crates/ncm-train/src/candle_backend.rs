@@ -89,12 +89,64 @@ fn linear_3d_maybe_lora(
     lora_ctx: Option<LoraCtx<'_>>,
     bf16: bool,
 ) -> candle_core::Result<Tensor> {
-    let base = linear_3d_impl(x, w, b, lora_ctx.is_some(), bf16)?;
+    let (bsz, seq, d_in) = x.dims3()?;
+    let (d_out, _) = w.dims2()?;
+    let frozen_weight = lora_ctx.is_some();
+    if bf16 {
+        let x2 = x.reshape((bsz * seq, d_in))?;
+        let xb = if x2.dtype() == DType::BF16 {
+            x2
+        } else {
+            x2.to_dtype(DType::BF16)?
+        };
+        let wt = if frozen_weight {
+            w.t()?.detach()
+        } else {
+            w.t()?
+        };
+        let wb = if wt.dtype() == DType::BF16 {
+            wt
+        } else {
+            wt.to_dtype(DType::BF16)?
+        };
+        let mut y2 = xb.matmul(&wb)?;
+        if let Some(ctx) = lora_ctx
+            && lora::is_lora_target(weight_name)
+        {
+            let a = if ctx.detached {
+                ctx.store.tensor_detached(&lora::lora_a_name(weight_name))?
+            } else {
+                ctx.store.tensor(&lora::lora_a_name(weight_name))?
+            };
+            let b_mat = if ctx.detached {
+                ctx.store.tensor_detached(&lora::lora_b_name(weight_name))?
+            } else {
+                ctx.store.tensor(&lora::lora_b_name(weight_name))?
+            };
+            let ab = a.to_dtype(DType::BF16)?;
+            let bb = b_mat.to_dtype(DType::BF16)?;
+            let low_rank = (xb.matmul(&ab.t()?)? * ctx.scale)?;
+            let delta = low_rank.matmul(&bb.t()?)?;
+            y2 = (&y2 + &delta)?;
+        }
+        let y = y2.reshape((bsz, seq, d_out))?;
+        return match b {
+            Some(bias) => {
+                let bb = if bias.dtype() == DType::BF16 {
+                    bias.clone()
+                } else {
+                    bias.to_dtype(DType::BF16)?
+                };
+                y.broadcast_add(&bb)
+            }
+            None => Ok(y),
+        };
+    }
+
+    let base = linear_3d_impl(x, w, b, frozen_weight, false)?;
     if let Some(ctx) = lora_ctx
         && lora::is_lora_target(weight_name)
     {
-        let (bsz, seq, d_in) = x.dims3()?;
-        let (d_out, _) = w.dims2()?;
         let a = if ctx.detached {
             ctx.store.tensor_detached(&lora::lora_a_name(weight_name))?
         } else {
@@ -106,41 +158,51 @@ fn linear_3d_maybe_lora(
             ctx.store.tensor(&lora::lora_b_name(weight_name))?
         };
         let x2 = x.reshape((bsz * seq, d_in))?;
-        let delta = if bf16 {
-            let xb = x2.to_dtype(DType::BF16)?;
-            let ab = a.to_dtype(DType::BF16)?;
-            let bb = b_mat.to_dtype(DType::BF16)?;
-            xb.matmul(&ab.t()?)?
-                .matmul(&bb.t()?)?
-                .to_dtype(DType::F32)?
-                .reshape((bsz, seq, d_out))?
-        } else {
-            x2.matmul(&a.t()?)?
-                .matmul(&b_mat.t()?)?
-                .reshape((bsz, seq, d_out))?
-        };
-        let scaled = (delta * ctx.scale)?;
-        return &base + scaled;
+        let low_rank = (x2.matmul(&a.t()?)? * ctx.scale)?;
+        let delta = low_rank.matmul(&b_mat.t()?)?.reshape((bsz, seq, d_out))?;
+        return &base + delta;
     }
     Ok(base)
 }
 
 fn layer_norm(x: &Tensor, w: &Tensor, b: Option<&Tensor>, eps: f64) -> candle_core::Result<Tensor> {
-    let mean = x.mean_keepdim(D::Minus1)?;
-    let xc = x.broadcast_sub(&mean)?;
+    let orig_dtype = x.dtype();
+    let xf = if orig_dtype == DType::F32 {
+        x.clone()
+    } else {
+        x.to_dtype(DType::F32)?
+    };
+    let mean = xf.mean_keepdim(D::Minus1)?;
+    let xc = xf.broadcast_sub(&mean)?;
     let var = xc.sqr()?.mean_keepdim(D::Minus1)?;
     let inv = (var + eps)?.sqrt()?;
     let normed = xc.broadcast_div(&inv)?.broadcast_mul(w)?;
-    match b {
-        Some(bias) => normed.broadcast_add(bias),
-        None => Ok(normed),
+    let out = match b {
+        Some(bias) => normed.broadcast_add(bias)?,
+        None => normed,
+    };
+    if orig_dtype == DType::F32 {
+        Ok(out)
+    } else {
+        out.to_dtype(orig_dtype)
     }
 }
 
 fn rms_norm(x: &Tensor, w: &Tensor, eps: f64) -> candle_core::Result<Tensor> {
-    let ms = x.sqr()?.mean_keepdim(D::Minus1)?;
+    let orig_dtype = x.dtype();
+    let xf = if orig_dtype == DType::F32 {
+        x.clone()
+    } else {
+        x.to_dtype(DType::F32)?
+    };
+    let ms = xf.sqr()?.mean_keepdim(D::Minus1)?;
     let inv = (ms + eps)?.sqrt()?;
-    x.broadcast_div(&inv)?.broadcast_mul(w)
+    let out = xf.broadcast_div(&inv)?.broadcast_mul(w)?;
+    if orig_dtype == DType::F32 {
+        Ok(out)
+    } else {
+        out.to_dtype(orig_dtype)
+    }
 }
 
 fn group_norm_nlc(x: &Tensor, groups: usize, eps: f64) -> candle_core::Result<Tensor> {
@@ -262,24 +324,40 @@ fn attention(
     let (_, _, _, head_dim) = q.dims4()?;
     let scale = 1.0 / (head_dim as f64).sqrt();
     let kt = k.transpose(2, 3)?.contiguous()?;
-    let mut scores = if bf16 {
-        let qb = q.to_dtype(DType::BF16)?;
-        let kb = kt.to_dtype(DType::BF16)?;
-        (qb.matmul(&kb)?.to_dtype(DType::F32)? * scale)?
-    } else {
-        (q.matmul(&kt)? * scale)?
-    };
-    if let Some(m) = mask {
-        scores = scores.broadcast_add(m)?;
-    }
-    let probs = softmax_differentiable(&scores)?;
     let vc = v.contiguous()?;
     if bf16 {
-        probs
-            .to_dtype(DType::BF16)?
-            .matmul(&vc.to_dtype(DType::BF16)?)?
-            .to_dtype(DType::F32)
+        let qb = if q.dtype() == DType::BF16 {
+            (q * scale)?
+        } else {
+            (q * scale)?.to_dtype(DType::BF16)?
+        };
+        let kb = if kt.dtype() == DType::BF16 {
+            kt
+        } else {
+            kt.to_dtype(DType::BF16)?
+        };
+        let vb = if vc.dtype() == DType::BF16 {
+            vc
+        } else {
+            vc.to_dtype(DType::BF16)?
+        };
+        let mut scores = qb.matmul(&kb)?;
+        if let Some(m) = mask {
+            scores = scores.broadcast_add(m)?;
+        }
+        let probs = softmax_differentiable(&scores)?;
+        let out = probs.matmul(&vb)?;
+        if q.dtype() == DType::BF16 {
+            Ok(out)
+        } else {
+            out.to_dtype(DType::F32)
+        }
     } else {
+        let mut scores = (q * scale)?.matmul(&kt)?;
+        if let Some(m) = mask {
+            scores = scores.broadcast_add(m)?;
+        }
+        let probs = softmax_differentiable(&scores)?;
         probs.matmul(&vc)
     }
 }
@@ -1166,21 +1244,26 @@ fn generator_level_loss(
         gen_cfg.pad_token_id,
         device,
     )?;
-    for layer in 0..gen_cfg.n_layer {
-        x = generator_block(
-            gen_cfg,
-            get,
-            lora_ctx,
-            &x,
-            &pre.cos[level],
-            &pre.sin[level],
-            &mask,
-            layer,
-            bf16,
+    let (mask, cos, sin) = if bf16 {
+        x = x.to_dtype(DType::BF16).map_err(c_err)?;
+        (
+            mask.to_dtype(DType::BF16).map_err(c_err)?,
+            pre.cos[level].to_dtype(DType::BF16).map_err(c_err)?,
+            pre.sin[level].to_dtype(DType::BF16).map_err(c_err)?,
         )
-        .map_err(c_err)?;
+    } else {
+        (mask, pre.cos[level].clone(), pre.sin[level].clone())
+    };
+    for layer in 0..gen_cfg.n_layer {
+        x = generator_block(gen_cfg, get, lora_ctx, &x, &cos, &sin, &mask, layer, bf16)
+            .map_err(c_err)?;
     }
     let target_out = x.narrow(1, gen_cfg.prefix_len, level_len).map_err(c_err)?;
+    let target_out = if target_out.dtype() == DType::F32 {
+        target_out
+    } else {
+        target_out.to_dtype(DType::F32).map_err(c_err)?
+    };
     let normed = layer_norm(&target_out, &ln_f_w, Some(&ln_f_b), 1e-6).map_err(c_err)?;
     let logits = match gen_cfg.head_kind {
         LocalHeadKind::UntiedAffine => linear_3d_impl(
@@ -1478,6 +1561,36 @@ pub fn train_generator(
     device_name: &str,
     checkpoint_dir: Option<&Path>,
 ) -> Result<(TensorMap, Vec<StepMetrics>)> {
+    let (weights, _adapters, history) = train_generator_with_adapters(
+        config,
+        dataset,
+        val_dataset,
+        frozen_codec_weights,
+        init_gen_weights,
+        resume,
+        train_cfg,
+        device_name,
+        checkpoint_dir,
+        true,
+    )?;
+    Ok((weights, history))
+}
+
+/// Train or fine-tune a generator and optionally return unmerged LoRA adapters alongside
+/// (or instead of) merged weights.
+#[allow(clippy::too_many_arguments)]
+pub fn train_generator_with_adapters(
+    config: &LocalNcmConfig,
+    dataset: &TokenDataset,
+    val_dataset: Option<&TokenDataset>,
+    frozen_codec_weights: &TensorMap,
+    init_gen_weights: &TensorMap,
+    resume: Option<&LoadedCheckpoint>,
+    train_cfg: &TrainConfig,
+    device_name: &str,
+    checkpoint_dir: Option<&Path>,
+    merge_lora: bool,
+) -> Result<(TensorMap, Option<TensorMap>, Vec<StepMetrics>)> {
     let device = resolve_device(device_name)?;
     let bf16 = train_cfg.train_precision == TrainPrecision::Bf16;
     if bf16 && matches!(device, Device::Cpu) {
@@ -1494,6 +1607,11 @@ pub fn train_generator(
 
     let mut frozen_codec = BTreeMap::new();
     for (name, (shape, vals)) in frozen_codec_weights {
+        // Generator training only encodes targets through the frozen codec; skip decoder.* weights
+        // (e.g. large vocab output heads) to keep GPU VRAM minimal.
+        if name.starts_with("decoder.") {
+            continue;
+        }
         let t = Tensor::from_slice(vals, shape.as_slice(), &device).map_err(c_err)?;
         frozen_codec.insert(name.clone(), t);
     }
@@ -1656,6 +1774,7 @@ pub fn train_generator(
                 drop(loss_l);
                 store.accumulate_grads(&grads, None, &mut accum_grads)?;
                 drop(grads);
+                device.synchronize().map_err(c_err)?;
             }
             drop(gt_codes);
             drop(cond_latents);
@@ -1778,13 +1897,18 @@ pub fn train_generator(
         }
     }
 
-    let final_weights = if lora_rank > 0 {
+    let (final_weights, raw_adapters) = if lora_rank > 0 {
         let trained_adapters = store.export_weights()?;
-        lora::merge_lora_weights(init_gen_weights, &trained_adapters, lora_rank, lora_alpha)?
+        let merged = if merge_lora {
+            lora::merge_lora_weights(init_gen_weights, &trained_adapters, lora_rank, lora_alpha)?
+        } else {
+            TensorMap::new()
+        };
+        (merged, Some(trained_adapters))
     } else {
-        store.export_weights()?
+        (store.export_weights()?, None)
     };
-    Ok((final_weights, history))
+    Ok((final_weights, raw_adapters, history))
 }
 
 /// Finite-difference vs analytic gradient check for one named generator parameter element.

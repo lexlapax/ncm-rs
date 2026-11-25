@@ -403,7 +403,8 @@ fn codec_and_generator_overfit_and_roundtrip_to_local_ncm_inference() {
         data_path: data_path.clone(),
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: out_dir.clone(),
+        output_dir: Some(out_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "cpu".into(),
@@ -454,7 +455,8 @@ fn codec_and_generator_overfit_and_roundtrip_to_local_ncm_inference() {
         data_path,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: ft_dir.clone(),
+        output_dir: Some(ft_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "cpu".into(),
@@ -506,7 +508,8 @@ fn cuda_full_train_and_inference_roundtrip() {
         data_path,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: out_dir.clone(),
+        output_dir: Some(out_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "cuda".into(),
@@ -563,7 +566,8 @@ fn mlx_full_train_and_inference_roundtrip() {
         data_path,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: out_dir.clone(),
+        output_dir: Some(out_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "mlx".into(),
@@ -783,7 +787,8 @@ fn cuda_lora_finetune_converges_and_merges_for_inference() {
         data_path: base_data,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: base_dir.clone(),
+        output_dir: Some(base_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "cuda".into(),
@@ -809,7 +814,8 @@ fn cuda_lora_finetune_converges_and_merges_for_inference() {
         data_path: ft_data,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: lora_dir.clone(),
+        output_dir: Some(lora_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "cuda".into(),
@@ -881,7 +887,8 @@ fn mlx_lora_finetune_converges_and_resumes_deterministically() {
         data_path: base_data,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: base_dir.clone(),
+        output_dir: Some(base_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "mlx".into(),
@@ -906,7 +913,8 @@ fn mlx_lora_finetune_converges_and_resumes_deterministically() {
         data_path: ft_data,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: lora_dir.clone(),
+        output_dir: Some(lora_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: Some(ckpt_dir.clone()),
         resume_dir: None,
         device: "mlx".into(),
@@ -1202,7 +1210,8 @@ fn cuda_bf16_grad_accum_and_val_eval() {
         data_path: base_data,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: base_dir.clone(),
+        output_dir: Some(base_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "cuda".into(),
@@ -1227,7 +1236,8 @@ fn cuda_bf16_grad_accum_and_val_eval() {
         data_path: ft_data,
         val_data_path: Some(val_data),
         tokenizer_path: None,
-        output_dir: bf16_dir.clone(),
+        output_dir: Some(bf16_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "cuda".into(),
@@ -1306,7 +1316,8 @@ fn mlx_bf16_grad_accum_and_val_eval() {
         data_path: base_data,
         val_data_path: None,
         tokenizer_path: None,
-        output_dir: base_dir.clone(),
+        output_dir: Some(base_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "mlx".into(),
@@ -1331,7 +1342,8 @@ fn mlx_bf16_grad_accum_and_val_eval() {
         data_path: ft_data,
         val_data_path: Some(val_data),
         tokenizer_path: None,
-        output_dir: bf16_dir.clone(),
+        output_dir: Some(bf16_dir.clone()),
+        save_adapter: None,
         checkpoint_dir: None,
         resume_dir: None,
         device: "mlx".into(),
@@ -1364,4 +1376,179 @@ fn mlx_bf16_grad_accum_and_val_eval() {
     );
     let artifact = Artifact::load_inference_streaming(&bf16_dir).unwrap();
     assert_eq!(artifact.manifest().profile, "local-ncm-v1");
+}
+
+#[cfg(feature = "cpu")]
+#[test]
+fn lora_unmerged_adapter_matches_merged_inference_and_rejects_tamper() {
+    use ncm_backend_cuda::CandleBackend;
+    use ncm_core::CodecBackend;
+    use ncm_io::{Artifact, LoraAdapterArtifact};
+    use ncm_model::{LocalNcmModel, RuntimeLoraAdapter};
+
+    let tmp = TempDir::new("lora-adapter-equiv");
+    let cfg_path = tmp.0.join("config.json");
+    let base_data = tmp.0.join("base.json");
+    let ft_data = tmp.0.join("ft.json");
+    let base_dir = tmp.0.join("base-model");
+    let merged_dir = tmp.0.join("merged-model");
+    let adapter_dir = tmp.0.join("lora-adapter");
+    let adapter_only_dir = tmp.0.join("lora-adapter-only");
+
+    fs::write(&cfg_path, tiny_config_json()).unwrap();
+    fs::write(
+        &base_data,
+        serde_json::to_string(&vec![
+            serde_json::json!({"prefix": [1, 2, 3, 4], "target": [5, 6, 7, 8, 9, 10, 11, 12]}),
+            serde_json::json!({"prefix": [4, 3, 2, 1], "target": [12, 11, 10, 9, 8, 7, 6, 5]}),
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        &ft_data,
+        serde_json::to_string(&vec![
+            serde_json::json!({"prefix": [1, 2, 3, 4], "target": [15, 14, 13, 12, 11, 10, 9, 8]}),
+            serde_json::json!({"prefix": [4, 3, 2, 1], "target": [8, 9, 10, 11, 12, 13, 14, 15]}),
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+
+    // 1. Train base model.
+    let base_job = TrainJob {
+        config_path: Some(cfg_path),
+        init_from: None,
+        data_path: base_data,
+        val_data_path: None,
+        tokenizer_path: None,
+        output_dir: Some(base_dir.clone()),
+        save_adapter: None,
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "cpu".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::All,
+            steps: 25,
+            codec_steps: Some(20),
+            batch_size: 2,
+            learning_rate: 1e-2,
+            min_lr: 1e-3,
+            warmup_steps: 3,
+            weight_decay: 0.0,
+            ..TrainConfig::default()
+        },
+    };
+    ncm_train::run_training_job(&base_job).unwrap();
+
+    // 2. Fine-tune with LoRA exporting BOTH merged artifact and unmerged adapter.
+    let ft_job = TrainJob {
+        config_path: None,
+        init_from: Some(base_dir.clone()),
+        data_path: ft_data.clone(),
+        val_data_path: None,
+        tokenizer_path: None,
+        output_dir: Some(merged_dir.clone()),
+        save_adapter: Some(adapter_dir.clone()),
+        checkpoint_dir: None,
+        resume_dir: None,
+        device: "cpu".into(),
+        overwrite: true,
+        train_cfg: TrainConfig {
+            stage: TrainStage::Generator,
+            steps: 30,
+            batch_size: 2,
+            learning_rate: 5e-3,
+            min_lr: 5e-4,
+            warmup_steps: 3,
+            weight_decay: 0.0,
+            lora_rank: 4,
+            lora_alpha: 8.0,
+            ..TrainConfig::default()
+        },
+    };
+    let report = ncm_train::run_training_job(&ft_job).unwrap();
+    assert!(report.output_adapter.is_some());
+
+    // 3. Also verify adapter-only export (no --output) works cleanly.
+    let adapter_only_job = TrainJob {
+        output_dir: None,
+        save_adapter: Some(adapter_only_dir.clone()),
+        ..ft_job
+    };
+    let rep_only = ncm_train::run_training_job(&adapter_only_job).unwrap();
+    assert!(rep_only.output_artifact.is_empty());
+    assert!(rep_only.output_adapter.is_some());
+
+    // 4. Compare unmerged adapter attached to base model vs merged model in FP32.
+    let base_art = Artifact::load_inference_streaming(&base_dir).unwrap();
+    let merged_art = Artifact::load_inference_streaming(&merged_dir).unwrap();
+    let base_sha = base_art.manifest_sha256().to_owned();
+    let merged_sha = merged_art.manifest_sha256().to_owned();
+    assert_ne!(base_sha, merged_sha);
+
+    // Adapter must reject mismatched base manifest SHA-256.
+    assert!(LoraAdapterArtifact::load(&adapter_dir, Some(&merged_sha)).is_err());
+
+    let adapter_art = LoraAdapterArtifact::load(&adapter_dir, Some(&base_sha)).unwrap();
+    let adapter_only_art = LoraAdapterArtifact::load(&adapter_only_dir, Some(&base_sha)).unwrap();
+    assert_eq!(adapter_art.tensors, adapter_only_art.tensors);
+
+    let backend = CandleBackend::cpu();
+    let mut base_model = LocalNcmModel::from_artifact(backend.clone(), &base_art).unwrap();
+    let merged_model = LocalNcmModel::from_artifact(backend.clone(), &merged_art).unwrap();
+
+    let prefix = [1u32, 2, 3, 4];
+    let base_before = base_model.generate(&prefix, 1, None).unwrap();
+    let base_ids_before = backend.read_indices(&base_before.ids).unwrap();
+
+    let (n_layer, n_embd) = base_model.lora_dimensions();
+    let runtime_adapter =
+        RuntimeLoraAdapter::from_artifact(&backend, &adapter_art, n_layer, n_embd).unwrap();
+    base_model.set_lora_adapter(Some(runtime_adapter)).unwrap();
+
+    let adapted_out = base_model.generate(&prefix, 1, None).unwrap();
+    let merged_out = merged_model.generate(&prefix, 1, None).unwrap();
+
+    let adapted_codes = backend.read_indices(&adapted_out.codes).unwrap();
+    let merged_codes = backend.read_indices(&merged_out.codes).unwrap();
+    let adapted_ids = backend.read_indices(&adapted_out.ids).unwrap();
+    let merged_ids = backend.read_indices(&merged_out.ids).unwrap();
+    assert_eq!(
+        adapted_codes, merged_codes,
+        "unmerged adapter codes must match merged model exactly"
+    );
+    assert_eq!(
+        adapted_ids, merged_ids,
+        "unmerged adapter decoded IDs must match merged model exactly"
+    );
+
+    let adapted_logits = backend.read_f32(&adapted_out.logits).unwrap();
+    let merged_logits = backend.read_f32(&merged_out.logits).unwrap();
+    let max_diff = adapted_logits
+        .iter()
+        .zip(&merged_logits)
+        .map(|(a, b)| (a - b).abs())
+        .fold(0.0f32, f32::max);
+    assert!(
+        max_diff < 1e-4,
+        "unmerged adapter vs merged logits max_diff={max_diff} >= 1e-4"
+    );
+
+    // 5. Detach adapter -> restores exact base model output (proves clean hot-swap!).
+    base_model.set_lora_adapter(None).unwrap();
+    let base_after = base_model.generate(&prefix, 1, None).unwrap();
+    assert_eq!(
+        backend.read_indices(&base_after.ids).unwrap(),
+        base_ids_before
+    );
+
+    // 6. Tamper 1 byte in adapter.safetensors -> must fail closed.
+    let st_path = adapter_dir.join("adapter.safetensors");
+    let mut bytes = fs::read(&st_path).unwrap();
+    let last = bytes.len() - 1;
+    bytes[last] ^= 0x01;
+    fs::write(&st_path, &bytes).unwrap();
+    assert!(LoraAdapterArtifact::load(&adapter_dir, Some(&base_sha)).is_err());
 }

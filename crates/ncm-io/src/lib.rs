@@ -3,10 +3,16 @@
 //! Verifies integrity relative to a manifest, not authenticity of that manifest.
 //! No pickle execution, artifact file mapping, model construction, or implicit downloads.
 
+pub mod lora_adapter;
 mod prequant;
 pub mod pytorch;
 mod wmt14_scratch;
 pub mod yaml;
+
+pub use lora_adapter::{
+    LORA_ADAPTER_SCHEMA, LoraAdapterArtifact, LoraAdapterManifest, LoraAdapterWriteSpec,
+    expected_lora_shapes, inspect_lora_adapter_manifest, write_lora_adapter,
+};
 
 pub use prequant::{
     PrequantKind, PrequantManifest, PrequantSummary, PrequantTensorRecord, PrequantTensorView,
@@ -152,14 +158,14 @@ pub struct Manifest {
     pub tensors: BTreeMap<String, Vec<TensorRecord>>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FileRecord {
     pub bytes: u64,
     pub sha256: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TensorRecord {
     pub name: String,
@@ -343,6 +349,7 @@ fn validate_training_stream(
 
 pub struct Artifact {
     manifest: Manifest,
+    manifest_sha256: String,
     payloads: BTreeMap<String, Vec<u8>>,
     reusable_wmt14: Option<ReusableWmt14>,
     streaming: BTreeMap<String, StreamedBundle>,
@@ -1039,6 +1046,7 @@ impl Artifact {
         }
         Ok(Self {
             manifest,
+            manifest_sha256,
             payloads,
             reusable_wmt14,
             streaming,
@@ -1072,6 +1080,11 @@ impl Artifact {
 
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
+    }
+
+    /// SHA-256 hex digest of the validated `manifest.json` file.
+    pub fn manifest_sha256(&self) -> &str {
+        &self.manifest_sha256
     }
 
     /// Return the validated byte length of a declared file.

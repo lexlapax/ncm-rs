@@ -25,6 +25,7 @@ pub(super) fn sample(
     text: bool,
     inline_prompt: Option<&str>,
     precision: ncm_core::ComputePrecision,
+    adapter_path: Option<&std::path::Path>,
 ) -> Result<serde_json::Value> {
     const USAGE: &str = "usage: ncm sample-lm1b ARTIFACT cuda-cudnn|mlx INPUT_JSON SEED REFERENCE_ROPE [--decode] [--top-p-fp32|--host-fp64]";
     let [
@@ -63,6 +64,7 @@ pub(super) fn sample(
                     reference_rope,
                     decode,
                     precision,
+                    adapter_path,
                 )
             }
             #[cfg(not(all(feature = "lm1b-experimental", target_os = "linux")))]
@@ -76,6 +78,7 @@ pub(super) fn sample(
                     text,
                     inline_prompt,
                     precision,
+                    adapter_path,
                 );
                 Err("experimental LM1B-small CUDA is unavailable in this build".into())
             }
@@ -96,6 +99,7 @@ pub(super) fn sample(
                     top_p,
                     host_fp64,
                     precision,
+                    adapter_path,
                 )
             }
             #[cfg(not(all(
@@ -114,6 +118,7 @@ pub(super) fn sample(
                     text,
                     inline_prompt,
                     precision,
+                    adapter_path,
                 );
                 Err("experimental LM1B-small Metal is unavailable in this build".into())
             }
@@ -169,6 +174,7 @@ mod backend {
     }
 
     #[cfg(all(feature = "lm1b-experimental", target_os = "linux"))]
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn sample_cuda(
         artifact: &str,
         input: (&str, bool, Option<&str>),
@@ -176,6 +182,7 @@ mod backend {
         reference_rope: &str,
         decode: bool,
         precision: ncm_core::ComputePrecision,
+        adapter_path: Option<&Path>,
     ) -> Result<serde_json::Value> {
         sample(
             || {
@@ -190,6 +197,7 @@ mod backend {
             reference_rope,
             decode,
             Sampling::DeviceFull,
+            adapter_path,
         )
     }
 
@@ -208,6 +216,7 @@ mod backend {
         top_p: bool,
         host_fp64: bool,
         precision: ncm_core::ComputePrecision,
+        adapter_path: Option<&Path>,
     ) -> Result<serde_json::Value> {
         sample(
             || ncm_backend_mlx::MlxBackend::gpu()?.with_precision(precision),
@@ -225,6 +234,7 @@ mod backend {
             } else {
                 Sampling::DeviceFp32
             },
+            adapter_path,
         )
     }
 
@@ -239,6 +249,7 @@ mod backend {
         reference_rope: &str,
         decode: bool,
         sampling: Sampling,
+        adapter_path: Option<&Path>,
     ) -> Result<serde_json::Value> {
         let inputs = if let Some(prompt) = input.2 {
             if !prompt.is_empty() {
@@ -291,12 +302,17 @@ mod backend {
             None
         };
         let backend = make_backend()?;
-        let model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?;
-        let model = if let Some((cosine, sine)) = external_rope {
-            model.with_reference_rope_diagnostic(&cosine, &sine)?
-        } else {
-            model
-        };
+        let base_sha = artifact.manifest_sha256().to_owned();
+        let mut model = Lm1bSmallTeacher::from_artifact(backend.clone(), &artifact)?;
+        if let Some((cosine, sine)) = external_rope {
+            model = model.with_reference_rope_diagnostic(&cosine, &sine)?;
+        }
+        let (n_layer, n_embd) = model.lora_dimensions();
+        if let Some(adapter) =
+            crate::load_sample_adapter(&backend, &base_sha, adapter_path, n_layer, n_embd)?
+        {
+            model.set_lora_adapter(Some(adapter))?;
+        }
         drop(artifact);
 
         let batch = prefixes.len();
@@ -413,7 +429,7 @@ mod dispatch_tests {
             let mut cuda = args("cuda-cudnn");
             cuda.push(flag.into());
             assert!(
-                sample(&cuda, false, None, p)
+                sample(&cuda, false, None, p, None)
                     .unwrap_err()
                     .to_string()
                     .contains("require explicit mlx")
@@ -422,7 +438,7 @@ mod dispatch_tests {
         let mut both = args("mlx");
         both.extend(["--top-p-fp32".into(), "--host-fp64".into()]);
         assert!(
-            sample(&both, false, None, p)
+            sample(&both, false, None, p, None)
                 .unwrap_err()
                 .to_string()
                 .contains("usage:")
@@ -430,7 +446,7 @@ mod dispatch_tests {
         let mut duplicate = args("mlx");
         duplicate.extend(["--top-p-fp32".into(), "--top-p-fp32".into()]);
         assert!(
-            sample(&duplicate, false, None, p)
+            sample(&duplicate, false, None, p, None)
                 .unwrap_err()
                 .to_string()
                 .contains("usage:")
@@ -511,9 +527,15 @@ mod dispatch_tests {
 
     #[test]
     fn unsupported_device_is_rejected_before_files_are_opened() {
-        let err = sample(&args("cpu"), false, None, ncm_core::ComputePrecision::Fp32)
-            .unwrap_err()
-            .to_string();
+        let err = sample(
+            &args("cpu"),
+            false,
+            None,
+            ncm_core::ComputePrecision::Fp32,
+            None,
+        )
+        .unwrap_err()
+        .to_string();
         assert!(err.contains("explicit cuda-cudnn or mlx"));
     }
 
@@ -525,13 +547,15 @@ mod dispatch_tests {
     #[test]
     fn unavailable_metal_is_not_silently_replaced() {
         let p = ncm_core::ComputePrecision::Fp32;
-        let err = sample(&args("mlx"), false, None, p)
+        let err = sample(&args("mlx"), false, None, p, None)
             .unwrap_err()
             .to_string();
         assert!(err.contains("Metal is unavailable"));
         let mut top_p = args("mlx");
         top_p.push("--top-p-fp32".into());
-        let err = sample(&top_p, false, None, p).unwrap_err().to_string();
+        let err = sample(&top_p, false, None, p, None)
+            .unwrap_err()
+            .to_string();
         assert!(err.contains("Metal is unavailable"));
     }
 }

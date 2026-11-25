@@ -288,13 +288,15 @@ pub struct StepMetrics {
     pub step_ms: f64,
 }
 
-/// Full summary returned after training and verified `local-ncm-v1` export.
+/// Full summary returned after training and verified `local-ncm-v1` / `ncm-lora-adapter-v1` export.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainReport {
     pub schema: String,
     pub device: String,
     pub stage: TrainStage,
     pub output_artifact: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_adapter: Option<String>,
     pub dataset_samples: usize,
     pub total_seconds: f64,
     pub codec_initial_loss: Option<f64>,
@@ -326,7 +328,10 @@ pub struct TrainJob {
     pub data_path: PathBuf,
     pub val_data_path: Option<PathBuf>,
     pub tokenizer_path: Option<PathBuf>,
-    pub output_dir: PathBuf,
+    /// Optional merged `local-ncm-v1` output directory (`--output`).
+    pub output_dir: Option<PathBuf>,
+    /// Optional unmerged `ncm-lora-adapter-v1` output directory (`--save-adapter`).
+    pub save_adapter: Option<PathBuf>,
     pub checkpoint_dir: Option<PathBuf>,
     pub resume_dir: Option<PathBuf>,
     pub device: String,
@@ -334,9 +339,32 @@ pub struct TrainJob {
     pub train_cfg: TrainConfig,
 }
 
-/// Execute an end-to-end training or fine-tuning job and export a verified `local-ncm-v1` artifact.
+/// Execute an end-to-end training or fine-tuning job and export a verified `local-ncm-v1`
+/// artifact and/or unmerged `ncm-lora-adapter-v1` adapter.
 pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
     job.train_cfg.validate()?;
+    if job.output_dir.is_none() && job.save_adapter.is_none() {
+        return Err(TrainError::Config(
+            "pass at least one of --output DIR or --save-adapter DIR".into(),
+        ));
+    }
+    if job.save_adapter.is_some() {
+        if job.train_cfg.lora_rank == 0 {
+            return Err(TrainError::Config(
+                "--save-adapter requires --lora-rank >= 1".into(),
+            ));
+        }
+        if job.init_from.is_none() {
+            return Err(TrainError::Config(
+                "--save-adapter requires --init-from ARTIFACT so the adapter can be pinned to a verified base manifest".into(),
+            ));
+        }
+        if job.train_cfg.stage != TrainStage::Generator {
+            return Err(TrainError::Config(
+                "--save-adapter requires --stage generator".into(),
+            ));
+        }
+    }
     if job.train_cfg.train_precision == TrainPrecision::Bf16 && job.device == "cpu" {
         return Err(TrainError::Config(
             "--train-precision bf16 requires a GPU device (cuda, cuda-cudnn, or mlx)".into(),
@@ -345,10 +373,11 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
     let t_all = Instant::now();
 
     // Load config + optional initial weights from --init-from or --config.
-    let (config_bytes, config, mut codec_weights, mut gen_weights, mut tokenizer_bytes) =
+    let (base_meta, config_bytes, config, mut codec_weights, mut gen_weights, mut tokenizer_bytes) =
         if let Some(ref init_dir) = job.init_from {
             let loaded = load_local_artifact_weights(init_dir)?;
             (
+                Some((loaded.base_profile, loaded.base_manifest_sha256)),
                 loaded.config_bytes,
                 loaded.config,
                 loaded.codec_weights,
@@ -365,7 +394,7 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
                 LocalNcmConfig::from_json(&bytes).map_err(|e| TrainError::Config(e.to_string()))?;
             let cw = init_codec_weights(cfg.codec(), job.train_cfg.seed);
             let gw = init_generator_weights(cfg.codec(), cfg.model(), job.train_cfg.seed);
-            (bytes, cfg, cw, gw, None)
+            (None, bytes, cfg, cw, gw, None)
         };
 
     if let Some(ref tok_path) = job.tokenizer_path {
@@ -398,6 +427,7 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
     let mut codec_final = None;
     let mut gen_initial = None;
     let mut gen_final = None;
+    let mut trained_lora_adapters: Option<schedule::TensorMap> = None;
 
     if matches!(job.train_cfg.stage, TrainStage::Codec | TrainStage::All) {
         let mut stage_cfg = job.train_cfg.clone();
@@ -423,11 +453,13 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         all_history.extend(hist);
     }
 
+    let base_gen_param_count = lora::count_params(&gen_weights);
     if matches!(job.train_cfg.stage, TrainStage::Generator | TrainStage::All) {
         let stage_resume = resume_ckpt
             .as_ref()
             .filter(|c| c.meta.stage == TrainStage::Generator);
-        let (trained_gen, hist) = run_generator_stage(
+        let need_merged = job.output_dir.is_some();
+        let (trained_gen, raw_adapters, hist) = run_generator_stage(
             &config,
             &dataset,
             val_dataset.as_ref(),
@@ -437,8 +469,12 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
             &job.train_cfg,
             &job.device,
             job.checkpoint_dir.as_deref(),
+            need_merged,
         )?;
-        gen_weights = trained_gen;
+        if need_merged {
+            gen_weights = trained_gen;
+        }
+        trained_lora_adapters = raw_adapters;
         gen_initial = hist.first().map(|m| m.loss);
         gen_final = hist.last().map(|m| m.loss);
         all_history.extend(hist);
@@ -448,10 +484,12 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
 
     let total_params = match job.train_cfg.stage {
         TrainStage::Codec => lora::count_params(&codec_weights),
-        TrainStage::Generator => lora::count_params(&gen_weights),
-        TrainStage::All => lora::count_params(&codec_weights) + lora::count_params(&gen_weights),
+        TrainStage::Generator => base_gen_param_count,
+        TrainStage::All => lora::count_params(&codec_weights) + base_gen_param_count,
     };
-    let trainable_params = if job.train_cfg.lora_rank > 0 {
+    let trainable_params = if let Some(ref adapters) = trained_lora_adapters {
+        lora::count_params(adapters)
+    } else if job.train_cfg.lora_rank > 0 {
         let adapters = lora::init_lora_adapters(&gen_weights, job.train_cfg.lora_rank, 0)?;
         lora::count_params(&adapters)
     } else {
@@ -476,16 +514,40 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         "final_val_loss": final_val_loss,
     });
 
-    export_local_ncm_artifact(
-        &job.output_dir,
-        &config_bytes,
-        &config,
-        &codec_weights,
-        &gen_weights,
-        tokenizer_bytes.as_deref(),
-        &provenance,
-        job.overwrite,
-    )?;
+    if let Some(ref out_dir) = job.output_dir {
+        export_local_ncm_artifact(
+            out_dir,
+            &config_bytes,
+            &config,
+            &codec_weights,
+            &gen_weights,
+            tokenizer_bytes.as_deref(),
+            &provenance,
+            job.overwrite,
+        )?;
+    }
+
+    let output_adapter = if let Some(ref adapter_dir) = job.save_adapter {
+        let (base_profile, base_manifest_sha256) = base_meta.ok_or_else(|| {
+            TrainError::Artifact("missing base artifact metadata for --save-adapter".into())
+        })?;
+        let adapters = trained_lora_adapters.as_ref().ok_or_else(|| {
+            TrainError::Artifact("no trained LoRA adapters available for --save-adapter".into())
+        })?;
+        let spec = ncm_io::LoraAdapterWriteSpec {
+            base_profile,
+            base_manifest_sha256,
+            n_layer: config.model().n_layer,
+            n_embd: config.model().n_embd,
+            rank: job.train_cfg.lora_rank,
+            alpha: job.train_cfg.effective_lora_alpha(),
+        };
+        ncm_io::write_lora_adapter(adapter_dir, &spec, adapters, job.overwrite)
+            .map_err(|e| TrainError::Artifact(format!("write LoRA adapter: {e}")))?;
+        Some(adapter_dir.display().to_string())
+    } else {
+        None
+    };
 
     let total_seconds = t_all.elapsed().as_secs_f64();
     let mean_step_ms = if all_history.is_empty() {
@@ -498,7 +560,12 @@ pub fn run_training_job(job: &TrainJob) -> Result<TrainReport> {
         schema: "ncm-train-report-v1".into(),
         device: job.device.clone(),
         stage: job.train_cfg.stage,
-        output_artifact: job.output_dir.display().to_string(),
+        output_artifact: job
+            .output_dir
+            .as_ref()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default(),
+        output_adapter,
         dataset_samples: dataset.len(),
         total_seconds,
         codec_initial_loss: codec_initial,
@@ -576,7 +643,12 @@ fn run_generator_stage(
     train_cfg: &TrainConfig,
     device: &str,
     checkpoint_dir: Option<&Path>,
-) -> Result<(schedule::TensorMap, Vec<StepMetrics>)> {
+    merge_lora: bool,
+) -> Result<(
+    schedule::TensorMap,
+    Option<schedule::TensorMap>,
+    Vec<StepMetrics>,
+)> {
     let _ = (
         config,
         dataset,
@@ -586,10 +658,11 @@ fn run_generator_stage(
         resume,
         train_cfg,
         checkpoint_dir,
+        merge_lora,
     );
     match device {
         #[cfg(feature = "cpu")]
-        "cpu" | "cuda" | "cuda-cudnn" => candle_backend::train_generator(
+        "cpu" | "cuda" | "cuda-cudnn" => candle_backend::train_generator_with_adapters(
             config,
             dataset,
             val_dataset,
@@ -599,9 +672,10 @@ fn run_generator_stage(
             train_cfg,
             device,
             checkpoint_dir,
+            merge_lora,
         ),
         #[cfg(all(feature = "mlx", target_os = "macos", target_arch = "aarch64"))]
-        "mlx" => mlx_backend::train_generator(
+        "mlx" => mlx_backend::train_generator_with_adapters(
             config,
             dataset,
             val_dataset,
@@ -610,6 +684,7 @@ fn run_generator_stage(
             resume,
             train_cfg,
             checkpoint_dir,
+            merge_lora,
         ),
         other => Err(TrainError::Backend(format!(
             "training device `{other}` is not enabled in this build"
