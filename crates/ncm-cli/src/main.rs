@@ -1,7 +1,9 @@
 //! JSON-array inference on an explicitly selected backend.
 mod decode;
+mod doctor;
 mod help;
 mod lm1b;
+mod paths;
 mod pull;
 mod quantize;
 mod sample;
@@ -639,6 +641,13 @@ fn main_impl() -> Result<()> {
     if let Some(message) = help::requested(&args) {
         print!("{message}");
         return Ok(());
+    }
+    if args.len() == 2 && (args[1] == "--version" || args[1] == "-V" || args[1] == "version") {
+        println!("{}", doctor::version_string());
+        return Ok(());
+    }
+    if args.get(1).is_some_and(|arg| arg == "doctor") {
+        return doctor::run_doctor(&args);
     }
     if args.get(1).is_some_and(|arg| arg == "list") {
         return serve::run_list(&args);

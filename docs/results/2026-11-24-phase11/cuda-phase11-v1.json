@@ -1,0 +1,31 @@
+{
+  "schema": "ncm-phase11-cuda-v1",
+  "hardware": "NVIDIA GeForce RTX 3060 Ti (8 GiB)",
+  "archive_name": "ncm-v0.6.0-linux-x86_64-cuda.tar.gz",
+  "archive_bytes": 16528365,
+  "archive_sha256": "79f3463d7f5de85b34735527508824c53ecb05f30f5447e1069b01d2eae2881f",
+  "rpath_entries": [
+    "0x000000000000001d (RUNPATH)            Library runpath: [$ORIGIN/../lib:/usr/local/cuda/lib64:/opt/cuda/lib64]"
+  ],
+  "version_output": "ncm 0.6.0 (linux/x86_64; features: cpu, cuda, cuda-cudnn)",
+  "install_script_ok": true,
+  "models_dir_sources_verified": [
+    "user-data-dir",
+    "env:NCM_MODELS_DIR",
+    "repo:artifacts/canonical"
+  ],
+  "canonical_models_detected": 35,
+  "doctor_self_test": {
+    "checks": {
+      "bf16_fused_attention_max_abs": 0.0010535567998886108,
+      "bf16_linear_max_abs": 0.01699995994567871,
+      "fp32_attention_max_abs": 3.3527612686157227e-08,
+      "fp32_linear_max_abs": 7.152557373046875e-07,
+      "q8_linear_max_abs": 0.041049957275390625
+    },
+    "device": "cuda-cudnn",
+    "elapsed_ms": 128.15,
+    "status": "ok"
+  },
+  "installed_outside_repo_wmt14_fp16": "Good morning!"
+}

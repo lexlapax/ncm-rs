@@ -17,7 +17,7 @@ const SERVE_USAGE: &str = "\
 usage: ncm serve [OPTIONS]
 
 Options:
-  --models-dir DIR                 Directory containing NCM artifacts (default: artifacts/canonical or .)
+  --models-dir DIR                 Directory containing NCM artifacts (default: NCM_MODELS_DIR, ./artifacts/canonical, or user data dir)
   --model NAME=PATH                Register a model artifact under NAME (repeatable)
   --adapter ALIAS=BASE:DIR         Register a hot-swappable LoRA adapter over BASE (repeatable)
   --device DEV                     Explicit device: cuda-cudnn, cuda, mlx, or cpu (default: compiled best)
@@ -36,7 +36,7 @@ Usage:
   ncm run MODEL [PROMPT] [OPTIONS]
 
 Options:
-  --models-dir DIR                 Directory containing NCM artifacts (default: artifacts/canonical or .)
+  --models-dir DIR                 Directory containing NCM artifacts (default: NCM_MODELS_DIR, ./artifacts/canonical, or user data dir)
   --model NAME=PATH                Register a model artifact under NAME (repeatable)
   --adapter DIR                    Optional verified ncm-lora-adapter-v1 LoRA adapter directory
   --device DEV                     Explicit device: cuda-cudnn, cuda, mlx, or cpu
@@ -66,8 +66,8 @@ List discovered local NCM artifacts.
 Usage:
   ncm list [--models-dir DIR] [--model NAME=PATH]... [--json]
 
-Scans --models-dir (default: artifacts/canonical if present, else .) for directories
-containing a valid manifest.json with a servable NCM profile.
+Scans --models-dir (default: NCM_MODELS_DIR, ./artifacts/canonical if present, else user data dir)
+for directories containing a valid manifest.json with a servable NCM profile.
 ";
 
 pub(super) const SERVE_HELP: &str = "\
@@ -77,7 +77,7 @@ Usage:
   ncm serve [OPTIONS]
 
 Options:
-  --models-dir DIR                 Directory containing NCM artifacts (default: artifacts/canonical or .)
+  --models-dir DIR                 Directory containing NCM artifacts (default: NCM_MODELS_DIR, ./artifacts/canonical, or user data dir)
   --model NAME=PATH                Register a model artifact under NAME (repeatable)
   --adapter ALIAS=BASE:DIR         Register a hot-swappable LoRA adapter over BASE (repeatable)
   --device DEV                     Explicit device: cuda-cudnn, cuda, mlx, or cpu
@@ -100,12 +100,7 @@ Ollama endpoints:
 ";
 
 fn default_models_dir() -> Option<PathBuf> {
-    let canonical = Path::new("artifacts/canonical");
-    if canonical.is_dir() {
-        Some(canonical.to_path_buf())
-    } else {
-        Some(PathBuf::from("."))
-    }
+    Some(crate::paths::resolve_models_dir(None).path)
 }
 
 fn parse_override(raw: &str) -> Result<(String, PathBuf)> {
@@ -536,12 +531,8 @@ pub(super) fn run_pull(args: &[String]) -> Result<()> {
         let model = cfg.model.ok_or(PULL_USAGE)?;
         let opts = crate::pull::NativePullOptions {
             model,
-            models_dir: cfg
-                .models_dir
-                .unwrap_or_else(|| PathBuf::from("artifacts/canonical")),
-            upstream_dir: cfg
-                .upstream_dir
-                .unwrap_or_else(|| PathBuf::from("artifacts/upstream")),
+            models_dir: crate::paths::resolve_models_dir(cfg.models_dir.as_deref()).path,
+            upstream_dir: crate::paths::resolve_upstream_dir(cfg.upstream_dir.as_deref()),
             output_override: cfg.output,
             reference_rope: cfg.reference_rope,
             dry_run: cfg.dry_run,

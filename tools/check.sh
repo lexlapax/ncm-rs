@@ -54,9 +54,9 @@ printf '%s\n' '== Local validation =='
 rustc --version
 cargo --version
 python3 --version
-bash -n tools/check.sh
+bash -n tools/check.sh tools/setup-mlx-native.sh tools/package.sh tools/install.sh
 if command -v shellcheck >/dev/null 2>&1; then
-    shellcheck tools/check.sh
+    shellcheck tools/check.sh tools/setup-mlx-native.sh tools/package.sh tools/install.sh
 fi
 cargo fmt --all -- --check
 cargo check --workspace --locked
@@ -83,7 +83,8 @@ python3 -m unittest discover -s tools/reference -p "test_phase5_tinystories_deco
 python3 -m unittest discover -s tools/reference -p "test_export_local_ncm.py" -v
 python3 -m unittest discover -s tools/reference -p "test_quickstart_export.py" -v
 python3 -m unittest discover -s tools/reference/lm1b_campaign -p "test_campaign_retest.py" -v
-python3 -m py_compile tools/reference/*.py tools/bench/compare.py
+python3 -m unittest discover -s tools -p "test_render_homebrew_formula.py" -v
+python3 -m py_compile tools/reference/*.py tools/bench/compare.py tools/render_homebrew_formula.py
 
 if "$cuda"; then
     printf '%s\n' '== Explicit CUDA validation (real GPU required) =='

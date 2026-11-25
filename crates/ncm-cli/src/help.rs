@@ -4,18 +4,20 @@ pub(super) const GENERAL: &str = "\
 NCM inference (explicit device; no fallback)
 
 Usage:
+  ncm --version
+  ncm doctor [--models-dir DIR] [--self-test] [--json]
   ncm inspect ARTIFACT
   ncm list [--models-dir DIR] [--model NAME=PATH]... [--json]
   ncm pull (--list | MODEL) [OPTIONS]
   ncm quantize ARTIFACT --precision q8|q4 --device cuda|mlx [--force]
   ncm run MODEL [PROMPT] [OPTIONS]
   ncm serve [OPTIONS]
-  ncm train (--config FILE | --init-from ARTIFACT) --data FILE --output DIR --device DEV [OPTIONS]
+  ncm train (--config FILE | --init-from ARTIFACT) --data FILE (--output DIR | --save-adapter DIR) --device DEV [OPTIONS]
   ncm sample ARTIFACT DEVICE (INPUT_JSON | --prompt TEXT) [OPTIONS]
   ncm generate|reconstruct ARTIFACT DEVICE INPUT_JSON [BATCH_SIZE]
   ncm sample-tinystories|sample-xsum|sample-wmt14|sample-lm1b ...
 
-Run `ncm <command> --help` (`sample`, `serve`, `run`, `pull`, `quantize`, `train`, `list`) for details.
+Run `ncm <command> --help` (`doctor`, `sample`, `serve`, `run`, `pull`, `quantize`, `train`, `list`) for details.
 Profile-specific sample commands remain available. The XSum alias requires explicit
 experimental flags for positive CFG and stochastic sampling. WMT14 CFG scales other
 than 0 or 1 require --experimental-cfg-wmt14 on both commands.
@@ -39,6 +41,7 @@ Options:
   --seed N                       Seed TinyStories, LM1B (default 0) or local-ncm-v1.
   --cfg S                        Classifier-free guidance scale (default 0).
   --precision fp32|bf16|fp16|q8|q4 Compute and weight precision (default fp32).
+  --adapter DIR                  Apply a verified unmerged ncm-lora-adapter-v1 directory.
   --decode                       Include evaluator-decoded text for text profiles.
   --plain                        Print decoded text lines directly instead of JSON (implies --decode).
   --text                         Encode text input; LM1B accepts only empty strings.
@@ -58,6 +61,9 @@ No device or sampling fallback is performed.
 pub(super) fn requested(args: &[String]) -> Option<&'static str> {
     match args {
         [_, flag] if flag == "--help" || flag == "-h" => Some(GENERAL),
+        [_, command, flag] if command == "doctor" && (flag == "--help" || flag == "-h") => {
+            Some(crate::doctor::DOCTOR_HELP)
+        }
         [_, command, flag] if command == "sample" && (flag == "--help" || flag == "-h") => {
             Some(SAMPLE)
         }
